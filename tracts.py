@@ -240,7 +240,10 @@ class haploid:
 					try:
 						dic[lsp[0]]=[tract(.01*float(lsp[4]),.01*float(lsp[5]),lsp[3])]
 					except IndexError:
-						print line
+						print "error defining haploid"
+						print "line to parse:", line
+						print "IOerror in: dic[lsp[0]]=[tract(.01*float(lsp[4]),.01*float(lsp[5]),lsp[3])]"
+						print "Local ancestry file may not have enough columns"
 						raise IndexError
 					
 			self.chroms=[]
@@ -265,14 +268,23 @@ class population:
 			self.nind=len(list_indivs)
 			#should probably check that all individuals have same length!
 			self.Ls=self.indivs[0].Ls
+			for ind in self.indivs:
+				if ind.Ls!=self.Ls:
+					print "warning: individuals have genomes of different lengths!"
+					sys.exit()
+			
+			
+			
 			self.maxLen=max(self.Ls)
-		elif(fname is not None and fname is not None):
+		elif(fname is not None):
 			self.indivs=[]
 			for name in names:
 				try:
 					self.indivs.append(indiv(fname=(fname[0]+name+fname[1],fname[2]),labs=labs,selectchrom=selectchrom))
 				except IndexError:
-					print "error at individuals", name
+					print "error reading individuals", name
+					print "fname=",(fname[0]+name+fname[1],fname[2]), ",labs=",labs, ", selectchrom=",selectchrom
+					self.indivs.append(indiv(fname=(fname[0]+name+fname[1],fname[2]),labs=labs,selectchrom=selectchrom))
 					raise IndexError
 			self.nind=len(self.indivs)
 			#should probably check that all individuals have same length!
@@ -496,8 +508,9 @@ class population:
 		if legend:
 			pylab.legend()
 			
-	def get_global_tractlengths(self,npts=20):
-		#note that we return an extra bin with the complete chromosome bin, so that we have one more data point than we have bin.
+	def get_global_tractlengths(self,npts=20,tol=0.01):
+		#tol is the tolerance for full chromosomes: sometimes there are small issues at the edges of the chromosomes. If a segment is within tol Morgans of the full chromosome, it counts as a full chromosome 
+		#note that we return an extra bin with the complete chromosome bin, so that we have one more data point than we have bins.
 		dat=self.applychrom(chrom.tractlengths)
 		flatdat=self.flatpop(dat)
 		bypop=self.__collectpop__(flatdat)	
@@ -506,8 +519,7 @@ class population:
 		dat={}
 		for key, poplen in bypop.iteritems():
 			#extract full length tracts
-			
-			nonfulls=numpy.array([item for item in poplen if (item[0]!=item[1])])
+			nonfulls=numpy.array([item for item in poplen if (item[0]<item[1]-tol)])
 				
 			hdat=pylab.histogram(nonfulls[:,0],bins=bins)
 			dat[key]=list(hdat[0])
