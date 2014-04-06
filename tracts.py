@@ -575,6 +575,7 @@ class demographic_model():
 			
 		if ((self.totmig>1).any() or (mig<0).any()):
 			print("migration rates should be between 0 and 1")
+			print("currently", mig)
 			raise ValueError("mig")
 		if (mig[:-1]==1).any():
 			print("warning: population was completely replaced after founding event")
@@ -941,7 +942,11 @@ def optimize(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
     args = ( bins,Ls,data,nsamp,model_func, 
                  outofbounds_fun, cutoff,
                  verbose, multinom, flush_delay,func_args)
-            
+    
+    if fixed_params is not None:
+    	print "error: fixed parameters not implemented in optimize"
+    	raise()
+    #p0 = _project_params_down(p0, fixed_params)        
     outputs = scipy.optimize.fmin_bfgs(_object_func, 
                                        p0, epsilon=epsilon,
                                        args = args, gtol=gtol, 
@@ -949,7 +954,8 @@ def optimize(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
                                        disp=False,
                                        maxiter=maxiter)
     xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
-    #xopt = _project_params_up(numpy.exp(xopt), fixed_params)
+    
+    #xopt = _project_params_up(xopt, fixed_params)
 
     if not full_output:
         return xopt
@@ -1027,6 +1033,7 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
                                        p0, outofbounds_fun,rhobeg=.01,rhoend=.001, 
                                        maxfun=maxiter)
     
+    xopt = _project_params_up(xopt, fixed_params)
     return outputs
     
     #xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
@@ -1120,8 +1127,40 @@ def optimize_slsqp(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cuto
 
 
 
+def _project_params_down(pin, fixed_params):
+    """
+    Eliminate fixed parameters from pin. Copied from Dadi (Gutenkunst et al., PLoS Genetics, 2009)
+    """
+    if fixed_params is None:
+        return pin
 
+    if len(pin) != len(fixed_params):
+        raise ValueError('fixed_params list must have same length as input '
+                         'parameter array.')
 
+    pout = []
+    for ii, (curr_val,fixed_val) in enumerate(zip(pin, fixed_params)):
+        if fixed_val is None:
+            pout.append(curr_val)
+
+    return numpy.array(pout)
+
+def _project_params_up(pin, fixed_params):
+    """
+    Fold fixed parameters into pin. Copied from Dadi (Gutenkunst et al., PLoS Genetics, 2009)
+    """
+    if fixed_params is None:
+        return pin
+
+    pout = numpy.zeros(len(fixed_params))
+    orig_ii = 0
+    for out_ii, val in enumerate(fixed_params):
+        if val is None:
+            pout[out_ii] = pin[orig_ii]
+            orig_ii += 1
+        else:
+            pout[out_ii] = fixed_params[out_ii]
+    return pout
 
 
 
@@ -1287,20 +1326,36 @@ def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fu
                  verbose, multinom, flush_delay,func_args)
     
     
-    
-    outfun=lambda x:outofbounds_fun(x,fracs) 
+    def outfun(p0,verbose=False):
+    	#cobyla uses the constraint function and feeds it the reduced parameters. Hence we have to project back up first
+    	x0=_project_params_up(p0,fixed_params)
+    	if verbose:
+    		print "p0", p0
+    		print "x0", x0
+    		print "fracs", fracs
+    		print "res", outofbounds_fun(p0,fracs) 
+    		
+    	return outofbounds_fun(x0,fracs) 
     #print outfun(p0)
-    modstrip=lambda x:model_func(x,fracs) 
+    modstrip=lambda x:model_func(x,fracs)
+    
+    	 
     fun=lambda x: _object_func_fracs2(x,bins,Ls,data,nsamp,modstrip,
                  outofbounds_fun=outfun, cutoff=cutoff,
                  verbose=verbose, multinom=multinom, flush_delay=flush_delay,
-                 func_args=func_args)
-            
+                 func_args=func_args,fixed_params=fixed_params)
+    
+    
+    p0 = _project_params_down(p0, fixed_params)        
+    #print "p0",p0
     outputs = scipy.optimize.fmin_cobyla(fun, 
                                       p0, outfun,rhobeg=.01,rhoend=.001, 
                                      maxfun=maxiter)
+    #print "outputs", outputs
+    xopt = _project_params_up(outputs, fixed_params)
+    #print "xopt",xopt
     
-    return outputs
+    return xopt
 
 
 
@@ -1315,6 +1370,9 @@ def _object_func_fracs(params, bins,Ls,data,nsamp,model_func, fracs,
 	_out_of_bounds_val = -1e16
 	global _counter
 	_counter += 1
+	
+	
+	
 	#print "in objective function","\n"
 	if outofbounds_fun is not None:
 		#outofbounds can return either True or a negative valueto signify out-of-boundedness. 
@@ -1347,34 +1405,47 @@ _counter = 0
 def _object_func_fracs2(params, bins,Ls,data,nsamp,model_func,
                  outofbounds_fun=None, cutoff=0,
                  verbose=0, multinom=True, flush_delay=0,
-                 func_args=[]):
+                 func_args=[],fixed_params=None):
 	#print "in target function2"
 	#sys.stdout.flush()    
+	
 	_out_of_bounds_val = -1e16
 	global _counter
 	_counter += 1
 	#print "in objective function","\n"
+	
+	#Deal with fixed parameters
+	params_up = _project_params_up(params, fixed_params)
+	params_up
+	
 	if outofbounds_fun is not None:
 		#outofbounds can return either True or a negative valueto signify out-of-boundedness. 
-		#print "out_of_bound is ",outofbounds_fun(params)
+		
 		if outofbounds_fun(params) is True or outofbounds_fun(params)<0:
 			
 			result=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)     
 		else:
 			
-			foo=model_func(params)
 			
-			mod=demographic_model(model_func(params))
-			
+			try:
+				mod=demographic_model(model_func(params_up))
+			except ValueError:
+				print "valueError for params ", params
+				
+				print "res was", outofbounds_fun(params,verbose=True)
+				print "mig was" , model_func(params)
+				result=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)     
+				raise ValueError
+				
 			sys.stdout.flush()
 			result=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff) 
 	else:
 		print "No bound function defined"
-		mod=demographic_model(model_func(params))
+		mod=demographic_model(model_func(params_up))
 		result=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff)
 	
 	if True:#(verbose > 0) and (_counter % verbose == 0):
-		param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params]))
+		param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params_up]))
 		print '%-8i, %-12g, %s' % (_counter, result, param_str)
 		#Misc.delayed_flush(delay=flush_delay)
 	
