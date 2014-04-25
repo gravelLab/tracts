@@ -186,6 +186,7 @@ class indiv:
 		else:
 			f1=haploid(fname=fname[0]+labs[0]+fname[1],selectchrom=selectchrom)
 			f2=haploid(fname=fname[0]+labs[1]+fname[1],selectchrom=selectchrom)
+			self.name=fname[0].split('/')[-1]
 			try:
 				self.from_haploids(f1,f2)
 			except AssertionError:
@@ -215,8 +216,15 @@ class indiv:
 		for chrom in self.chroms:
 			ls.append(chrom.applychrom(func))
 		return ls
-		
-	
+	def ancestryAmt(self,ancestry):
+		#The total length of the genome in segments of ancestry "ancestry"
+		dat=self.applychrom(chrom.tractlengths)
+		return numpy.sum([segment[1] for chromv in dat for copy in chromv for segment in copy if segment[0]==ancestry])	
+	def ancestryProps(self,ancestries):
+		#The total length of the genome in segments of ancestry "ancestry"
+		amts=[self.ancestryAmt(anc) for anc in ancestries]
+		tot=numpy.sum(amts)
+		return [amt*1./tot for amt in amts]
 			
 #haploid individual	
 class haploid:
