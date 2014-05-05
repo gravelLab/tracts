@@ -108,6 +108,17 @@ class chrom:
 				self.tracts.pop(i+1)
 				i=i-1
 			i=i+1
+					
+	def mergeancestries(self,ancestries,newlabel):
+		#merge segments that are contiguous and of either same ancestry, or both in ancestries belonging to "pops".
+		i=0
+		for tract in self.tracts:
+			if tract.label in ancestries:
+				tract.label=newlabel
+		self.smooth()
+		
+		
+			
 	def smoothUnknown(self):
 		#merge segments that are contiguous and of the same ancestry!
 		i=0
@@ -501,6 +512,10 @@ class population:
 		return dic
 	
 	
+	def mergeancestries(self,ancestries,newlabel):
+		"""Treats ancestries in label list "ancestries" as a single population with label "newlabel". Adjacent tracts of the new ancestry are merged. """
+		f=lambda i:chrom.mergeancestries(i,ancestries,newlabel)
+		self.applychrom(f)
 
 	def plot_global_tractlengths(self,colordict,npts=40,legend=True):
 		dat=self.applychrom(chrom.tractlengths)
