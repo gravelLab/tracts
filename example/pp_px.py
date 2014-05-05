@@ -66,7 +66,7 @@ def outofbounds_pp_px(params):
 	#constraint function evaluating below zero when constraints not satisfied
 	
 	ret=1
-	(init_Eu,tstart,nuEu_prop,t2)=params	
+	(init_Eu,tstart,t2,nuEu_prop)=params	
 	ret=min(1-init_Eu,1-nuEu_prop)
 	ret=min(ret,init_Eu,nuEu_prop)
 	
