@@ -912,7 +912,7 @@ def plotmig(mig,colordict={'CEU': 'red',
 
 def optimize(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
                  verbose=0, flush_delay=0.5, epsilon=1e-3, 
-                 gtol=1e-5, multinom=False, maxiter=None, full_output=True,
+                 gtol=1e-5, maxiter=None, full_output=True,
                  func_args=[], fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the BFGS method.
@@ -936,9 +936,6 @@ def optimize(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
     epsilon: Step-size to use for finite-difference derivatives.
     gtol: Convergence criterion for optimization. For more info, 
           see help(scipy.optimize.fmin_bfgs)
-    multinom: If True, do a multinomial fit where model is optimially scaled to
-              data at each step. If False, assume theta is a parameter and do
-              no scaling.
     maxiter: Maximum iterations to run for.
     full_output: If True, return full outputs as in described in 
                  help(scipy.optimize.fmin_bfgs)
@@ -964,7 +961,7 @@ def optimize(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
     """
     args = ( bins,Ls,data,nsamp,model_func, 
                  outofbounds_fun, cutoff,
-                 verbose, multinom, flush_delay,func_args)
+                 verbose, flush_delay,func_args)
     
     if fixed_params is not None:
     	print "error: fixed parameters not implemented in optimize"
@@ -990,7 +987,7 @@ def optimize(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
 
 def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,
                  verbose=0, flush_delay=0.5, epsilon=1e-3, 
-                 gtol=1e-5, multinom=False, maxiter=None, full_output=True,
+                 gtol=1e-5, maxiter=None, full_output=True,
                  func_args=[], fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the cobyla method.
@@ -1014,9 +1011,6 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
     epsilon: Step-size to use for finite-difference derivatives.
     gtol: Convergence criterion for optimization. For more info, 
           see help(scipy.optimize.fmin_bfgs)
-    multinom: If True, do a multinomial fit where model is optimially scaled to
-              data at each step. If False, assume theta is a parameter and do
-              no scaling.
     maxiter: Maximum iterations to run for.
     full_output: If True, return full outputs as in described in 
                  help(scipy.optimize.fmin_bfgs)
@@ -1042,18 +1036,18 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
     """
     args = ( bins,Ls,data,nsamp,model_func, 
                  outofbounds_fun, cutoff,
-                 verbose, multinom, flush_delay,func_args)
+                 verbose, flush_delay,func_args)
     
     
     
     fun=lambda x: _object_func(x,bins,Ls,data,nsamp,model_func,
                  outofbounds_fun=outofbounds_fun, cutoff=cutoff,
-                 verbose=verbose, multinom=multinom, flush_delay=flush_delay,
+                 verbose=verbose,flush_delay=flush_delay,
                  func_args=func_args)
     
             
     outputs = scipy.optimize.fmin_cobyla(fun, 
-                                       p0, outofbounds_fun,rhobeg=.01,rhoend=.001, 
+                                       p0, outofbounds_fun,rhobeg=.01,rhoend=.0001, 
                                        maxfun=maxiter)
     
     xopt = _project_params_up(xopt, fixed_params)
@@ -1071,7 +1065,7 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
 
 def optimize_slsqp(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff=0,bounds=[],
                  verbose=0, flush_delay=0.5, epsilon=1e-3, 
-                 gtol=1e-5, multinom=False, maxiter=None, full_output=True,
+                 gtol=1e-5, maxiter=None, full_output=True,
                  func_args=[], fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the slsq method.
@@ -1095,9 +1089,7 @@ def optimize_slsqp(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cuto
     epsilon: Step-size to use for finite-difference derivatives.
     gtol: Convergence criterion for optimization. For more info, 
           see help(scipy.optimize.fmin_bfgs)
-    multinom: If True, do a multinomial fit where model is optimially scaled to
-              data at each step. If False, assume theta is a parameter and do
-              no scaling.
+    
     maxiter: Maximum iterations to run for.
     full_output: If True, return full outputs as in described in 
                  help(scipy.optimize.fmin_bfgs)
@@ -1123,7 +1115,7 @@ def optimize_slsqp(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cuto
     """
     args = ( bins,Ls,data,nsamp,model_func, 
                  outofbounds_fun, cutoff,
-                 verbose, multinom, flush_delay,func_args)
+                 verbose, flush_delay,func_args)
             
     def onearg(a,*args):
     	return outofbounds_fun(a)
@@ -1193,7 +1185,7 @@ _counter = 0
 #calculate the log-likelihood value for tract length data. 
 def _object_func(params, bins,Ls,data,nsamp,model_func, 
                  outofbounds_fun=None, cutoff=0,
-                 verbose=0, multinom=True, flush_delay=0,
+                 verbose=0, flush_delay=0,
                  func_args=[]):
         
 	_out_of_bounds_val = -1e16
@@ -1227,7 +1219,7 @@ def _object_func(params, bins,Ls,data,nsamp,model_func,
 #define the optimization routine for when the final ancestry porportions are specified.
 def optimize_cob_fracs(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fun=None,cutoff=0,
                  verbose=0, flush_delay=0.5, epsilon=1e-3, 
-                 gtol=1e-5, multinom=False, maxiter=None, full_output=True,
+                 gtol=1e-5, maxiter=None, full_output=True,
                  func_args=[], fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the BFGS method.
@@ -1251,9 +1243,7 @@ def optimize_cob_fracs(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fun
     epsilon: Step-size to use for finite-difference derivatives.
     gtol: Convergence criterion for optimization. For more info, 
           see help(scipy.optimize.fmin_bfgs)
-    multinom: If True, do a multinomial fit where model is optimially scaled to
-              data at each step. If False, assume theta is a parameter and do
-              no scaling.
+    
     maxiter: Maximum iterations to run for.
     full_output: If True, return full outputs as in described in 
                  help(scipy.optimize.fmin_bfgs)
@@ -1279,7 +1269,7 @@ def optimize_cob_fracs(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fun
     """
     args = ( bins,Ls,data,nsamp,model_func,fracs, 
                  outofbounds_fun, cutoff,
-                 verbose, multinom, flush_delay,func_args)
+                 verbose, flush_delay,func_args)
     
     
     outfun=lambda x:outofbounds_fun(x,fracs) 
@@ -1294,7 +1284,7 @@ def optimize_cob_fracs(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fun
     
 def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fun=None,cutoff=0,
                  verbose=0, flush_delay=0.5, epsilon=1e-3, 
-                 gtol=1e-5, multinom=False, maxiter=None, full_output=True,
+                 gtol=1e-5, maxiter=None, full_output=True,
                  func_args=[], fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the cobyla method.
@@ -1318,9 +1308,7 @@ def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fu
     epsilon: Step-size to use for finite-difference derivatives.
     gtol: Convergence criterion for optimization. For more info, 
           see help(scipy.optimize.fmin_bfgs)
-    multinom: If True, do a multinomial fit where model is optimially scaled to
-              data at each step. If False, assume theta is a parameter and do
-              no scaling.
+   
     maxiter: Maximum iterations to run for.
     full_output: If True, return full outputs as in described in 
                  help(scipy.optimize.fmin_bfgs)
@@ -1346,7 +1334,7 @@ def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fu
     """
     args = ( bins,Ls,data,nsamp,model_func,fracs, 
                  outofbounds_fun, cutoff,
-                 verbose, multinom, flush_delay,func_args)
+                 verbose, flush_delay,func_args)
     
     
     def outfun(p0,verbose=False):
@@ -1365,7 +1353,7 @@ def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fu
     	 
     fun=lambda x: _object_func_fracs2(x,bins,Ls,data,nsamp,modstrip,
                  outofbounds_fun=outfun, cutoff=cutoff,
-                 verbose=verbose, multinom=multinom, flush_delay=flush_delay,
+                 verbose=verbose, flush_delay=flush_delay,
                  func_args=func_args,fixed_params=fixed_params)
     
     
@@ -1382,12 +1370,115 @@ def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fu
 
 
 
+def optimize_brute_fracs2(bins,Ls,data,nsamp, model_func, fracs,searchvalues,outofbounds_fun=None, cutoff=0,
+                 verbose=0, flush_delay=0.5,  full_output=True,
+                 func_args=[], fixed_params=None, ll_scale=1):
+    """
+    Optimize params to fit model to data using the brute force method.
+
+    This optimization method works well when we start reasonably close to the
+    optimum. It is best at burrowing down a single minimum.
+
+    
+    It should also perform better when parameters range over scales.
+
+    p0: Initial parameters.
+    data: Spectrum with data.
+    model_function: Function to evaluate model spectrum. Should take arguments
+                    (params, pts)
+    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
+    
+    verbose: If > 0, print optimization status every <verbose> steps.
+    flush_delay: Standard output will be flushed once every <flush_delay>
+                 minutes. This is useful to avoid overloading I/O on clusters.
+    epsilon: Step-size to use for finite-difference derivatives.
+    gtol: Convergence criterion for optimization. For more info, 
+          see help(scipy.optimize.fmin_bfgs)
+    
+    
+    full_output: If True, return full outputs as in described in 
+                 help(scipy.optimize.fmin_bfgs)
+    func_args: Additional arguments to model_func. It is assumed that 
+               model_func's first argument is an array of parameters to
+               optimize, that its second argument is an array of sample sizes
+               for the sfs, and that its last argument is the list of grid
+               points to use in evaluation.
+    fixed_params: If not None, should be a list used to fix model parameters at
+                  particular values. For example, if the model parameters
+                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+                  will hold nu1=0.5 and m=2. The optimizer will only change 
+                  T and m. Note that the bounds lists must include all
+                  parameters. Optimization will fail if the fixed values
+                  lie outside their bounds. A full-length p0 should be passed
+                  in; values corresponding to fixed parameters are ignored.
+    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
+              too large. (This appears to be a flaw in the scipy
+              implementation.) To overcome this, pass ll_scale > 1, which will
+              simply reduce the magnitude of the log-likelihood. Once in a
+              region of reasonable likelihood, you'll probably want to
+              re-optimize with ll_scale=1.
+    """
+    args = ( bins,Ls,data,nsamp,model_func,fracs, 
+                 outofbounds_fun, cutoff,
+                 verbose, flush_delay,func_args)
+    
+    
+    def outfun(p0,verbose=False):
+    	#cobyla uses the constraint function and feeds it the reduced parameters. Hence we have to project back up first
+    	x0=_project_params_up(p0,fixed_params)
+    	if verbose:
+    		print "p0", p0
+    		print "x0", x0
+    		print "fracs", fracs
+    		print "res", outofbounds_fun(p0,fracs) 
+    		
+    	return outofbounds_fun(x0,fracs) 
+    #print outfun(p0)
+    modstrip=lambda x:model_func(x,fracs)
+    
+    	 
+    fun=lambda x: _object_func_fracs2(x,bins,Ls,data,nsamp,modstrip,
+                 outofbounds_fun=outfun, cutoff=cutoff,
+                 verbose=verbose, flush_delay=flush_delay,
+                 func_args=func_args,fixed_params=fixed_params)
+    
+    
+    #p0 = _project_params_down(p0, fixed_params)        
+    #print "p0",p0
+    
+    
+    if len(searchvalues)==1:
+    	def fun2(x):
+    		return fun((float(x),))
+    else:
+    	fun2=fun
+    print "foutput",full_output
+    print "searchvalues",searchvalues
+    outputs = scipy.optimize.brute(fun2,searchvalues,full_output=full_output)
+    print("outputs",outputs)
+    xopt = _project_params_up(outputs[0], fixed_params)
+    #print "xopt",xopt
+    return xopt,outputs[1:]
+
+	
+
+
+
+
+
+
+
+
+
+
+
 #: Counts calls to object_func
 _counter = 0
 #define the objective function for when the ancestry porportions are specified.
 def _object_func_fracs(params, bins,Ls,data,nsamp,model_func, fracs,
                  outofbounds_fun=None, cutoff=0,
-                 verbose=0, multinom=True, flush_delay=0,
+                 verbose=0, flush_delay=0,
                  func_args=[]):
         
 	_out_of_bounds_val = -1e16
@@ -1427,11 +1518,11 @@ _counter = 0
 #define the objective function for when the ancestry porportions are specified.
 def _object_func_fracs2(params, bins,Ls,data,nsamp,model_func,
                  outofbounds_fun=None, cutoff=0,
-                 verbose=0, multinom=True, flush_delay=0,
+                 verbose=0, flush_delay=0,
                  func_args=[],fixed_params=None):
 	#print "in target function2"
 	#sys.stdout.flush()    
-	
+	print "evaluating at params",params
 	_out_of_bounds_val = -1e16
 	global _counter
 	_counter += 1
