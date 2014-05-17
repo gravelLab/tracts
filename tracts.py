@@ -232,10 +232,23 @@ class indiv:
 		dat=self.applychrom(chrom.tractlengths)
 		return numpy.sum([segment[1] for chromv in dat for copy in chromv for segment in copy if segment[0]==ancestry])	
 	def ancestryProps(self,ancestries):
-		#The total length of the genome in segments of ancestry "ancestry"
+		#The total length of the genome in segments of ancestry in "ancestries"
 		amts=[self.ancestryAmt(anc) for anc in ancestries]
 		tot=numpy.sum(amts)
 		return [amt*1./tot for amt in amts]
+	
+	def ancestryPropsByChrom(self,ancestries):
+		dat=self.applychrom(chrom.tractlengths)
+		dictamt={}
+		nc=len(dat)
+		for ancestry in ancestries:
+			lsamounts=[]
+			for chromv in dat:
+				lsamounts.append(numpy.sum([segment[1] for copy in chromv for segment in copy if segment[0]==ancestry]))
+			dictamt[ancestry]=lsamounts
+		tots=[numpy.sum([dictamt[ancestry][i] for ancestry in ancestries]) for i in range(nc)]
+		#print dictamt
+		return [[dictamt[ancestry][i]*1./tots[i]  for i in range(nc)] for ancestry in ancestries] 
 			
 #haploid individual	
 class haploid:
@@ -571,8 +584,32 @@ class population:
 				
 		return (bins,dat)
 	
+	def get_means(self,ancestries):
+		#Get the mean ancestry proportion (only among ancestries in ancestries) for all individuals 
+		return [ind.ancestryProps(ancestries) for ind in self.indivs]
+	def get_meanvar(self,ancestries):
+		byind=self.get_means(ancestries)
+		return numpy.mean(byind,axis=0),numpy.var(byind,axis=0)
 	
-	
+	def getMeansByChrom(self,ancestries):
+		return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
+	def get_assortment_variance(self,ancestries):
+		"""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)"""
+		
+		ws=numpy.array(self.Ls)/numpy.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
+		arr=numpy.array(self.getMeansByChrom(ancestries))
+		#weighted mean by individual
+		#departure from the mean
+		nchr=arr.shape[2]
+		vars=[]
+		for i in range(len(ancestries)):
+			pl=numpy.dot(arr[:,i,:], ws )
+			
+			aroundmean=arr[:,i,:]-numpy.dot(pl.reshape(self.nind,1),numpy.ones((1,nchr)))
+			vars.append((numpy.mean(aroundmean**2/(1./ws-1),axis=1)).mean()) #the unbiased estimator for the case where the variance is inversely proportional to the weight. First calculate by individual, then the mean over all individuals.
+			
+		return vars
+
 class demographic_model():
 	def __init__(self,mig):
 		"""migratory model takes as an input a vector containing the migration proportions over the last generations. Each row is a time, each column is a population. row zero corresponds to the current generation. The migration rate at the last generation (time $T$) is the "founding generation" and should sum up to 1. Assume that non-admixed individuals have been removed"""	
@@ -581,8 +618,6 @@ class demographic_model():
 		
 		#the total migration per generation
 		self.totmig=mig.sum(axis=1)
-		
-		
 		if abs(self.totmig[-1]-1)>1e-8:
 			print("founding migration should sum up to 1. Now:", mig[-1,:],"sum up to ",self.totmig[-1])
 			raise ValueError("mig")
