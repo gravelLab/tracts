@@ -593,7 +593,7 @@ class population:
 	
 	def getMeansByChrom(self,ancestries):
 		return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
-	def get_assortment_variance(self,ancestries):
+	"""def get_assortment_variance(self,ancestries):
 		"""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)"""
 		
 		ws=numpy.array(self.Ls)/numpy.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
@@ -609,6 +609,25 @@ class population:
 			vars.append((numpy.mean(aroundmean**2/(1./ws-1),axis=1)).mean()) #the unbiased estimator for the case where the variance is inversely proportional to the weight. First calculate by individual, then the mean over all individuals.
 			
 		return vars
+	"""
+	def get_variance(self,ancestries):
+		"""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)"""
+		
+		ws=numpy.array(self.Ls)/numpy.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
+		arr=numpy.array(self.getMeansByChrom(ancestries))
+		#weighted mean by individual
+		#departure from the mean
+		nchr=arr.shape[2]
+		assort_vars=[]
+		tot_vars=[]
+		gen_vars=[]
+		for i in range(len(ancestries)):
+			pl=numpy.dot(arr[:,i,:], ws )
+			tot_vars.append(numpy.var(pl))
+			aroundmean=arr[:,i,:]-numpy.dot(pl.reshape(self.nind,1),numpy.ones((1,nchr)))
+			assort_vars.append((numpy.mean(aroundmean**2/(1./ws-1),axis=1)).mean()) #the unbiased estimator for the case where the variance is inversely proportional to the weight. First calculate by individual, then the mean over all individuals.
+			gen_vars.append(tot_vars[-1]-assort_vars[-1])
+		return tot_vars,gen_vars,assort_vars
 
 class demographic_model():
 	def __init__(self,mig):
