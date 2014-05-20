@@ -155,7 +155,8 @@ pylab.legend()
 pylab.axis([0,3,.1,10000])
 
 pylab.show()
-print "optimal values found:" ,lik1,lik2
+print "optimal likelihoods values found for single pulse model:" ,lik1
+print "optimal likelihoods values found for two pulse model:" ,lik2
 ######################
 #Save the data to file for external plotting, model 1
 
