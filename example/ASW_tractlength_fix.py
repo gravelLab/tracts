@@ -36,7 +36,8 @@ labels=['EUR','AFR']
 data=[data[poplab] for poplab in labels]
 
 #we're fixing the global ancestry proportions, so we only need one parameter
-startparams=numpy.array([ 0.0683211  ])
+startparams=numpy.array([ 0.0683211  ]) # (initial admixture time). Times are measured in units of hundred generations (i.e., multiply the number by 100 to get the time in generations). The reason is that some python optimizers do a poor job when the parameters (time and ancestry proportions) are of different magnitudes. 
+#you can also look at the "_mig" output file for a generation-by-generation breakdown of the migration rates.
 
 Ls=pop.Ls
 nind=pop.nind
@@ -60,7 +61,8 @@ func=pp.pp_fix
 bound=pp.outofbounds_pp_fix
 func2=pp_px.pp_px_fix
 bound2=pp_px.outofbounds_pp_px_fix
-#(init_Eu,tstart,t2,nuEu_prop)
+#((tstart,t2,nuEu_prop)) start time, time of second migration, proportion at second migration (proportion at first migration fixed
+#by total ancestry proportion). times measured in units of 100 generations (see above)
 #give two different starting conditions, with one starting near the single-pulse model
 startparams2=numpy.array([  0.107152   ,  0.0438957  ,  0.051725  ])
 startparams2p=numpy.array([  0.07152   ,  0.03  ,  1e-8  ])
