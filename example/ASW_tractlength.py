@@ -36,7 +36,9 @@ labels=['EUR','AFR']
 data=[data[poplab] for poplab in labels]
 
 
-startparams=numpy.array([ 0.173632   ,  0.0683211  ])
+startparams=numpy.array([ 0.173632   ,  0.0683211  ]) # (initial European proportion, and time). Times are measured in units of hundred generations (i.e., multiply the number by 100 to get the time in generations). The reason is that some python optimizers do a poor job when the parameters (time and ancestry proportions) are of different magnitudes. 
+#you can also look at the "_mig" output file for a generation-by-generation breakdown of the migration rates.
+
 Ls=pop.Ls
 nind=pop.nind
 
