@@ -112,5 +112,6 @@ lik2=optmod2.loglik(bins,Ls,data,nind,cutoff=cutoff)
 
 
 
-print "optimal values found:" ,lik1,lik2
+print "optimal likelihoods values found for single pulse model:" ,lik1
+print "optimal likelihoods values found for two pulse model:" ,lik2
 
