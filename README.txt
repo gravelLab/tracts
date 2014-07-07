@@ -1,5 +1,7 @@
 Tracts is a set of classes and definitions used to model migration histories based on ancestry tracts in admixed individuals. Time-dependent gene-flow from multiple populations can be modeled.
 
+
+
 Examples contains sample hapmap data and scripts to analyze them, including two different gene flow models.
 It also contains a 3-population model for 1000 genomes puerto Rican data
 
@@ -9,32 +11,44 @@ Copy all files and folders locally (See "Download zip") on the github repository
 
 "tracts.py" is a python module. All its functions can be used from the python interpreter or ipython after it has been imported. It should work out-of-the-box once you have python, and numpy, pylab, scipy installed. 
 
-If you don’t want to tell  
-
-
+ 
 
 If you are an academic, I recommend installing the Anaconda (https://store.continuum.io/cshop/academicanaconda) distribution. Make sure not to pay for it! Click Anaconda Academic License; it should be free for those with edu e-mail addresses."
+
+input
+
+Tracts input is a set bed-style file describing the local ancestry of segments along the genome.
+ The file has 2 extra columns for the cM positions of the segments. There are two input files per individuals (for each haploid genome copy).  
+
+chrom		begin		end			assignment	cmBegin	cmEnd
+chr13		0			18110261	UNKNOWN	0.0			0.19
+chr13		18110261	28539742	YRI			0.19		22.193
+chr13		28539742	28540421	UNKNOWN	22.193		22.193
+chr13		28540421	91255067	CEU		22.193		84.7013
+
+
+driver file
+
+To maintain maximum flexibility, the options and models in tracts are set up in a driver file and a "model" file. Examples of both are provided in the distribution; these examples are the best starting points for the first-time. Tracts can be used interactively--when using the (i)python console, it is easy to examine and plot the different variables.    
 
 
 Reading the tracts output:
 
 The exemple files produce 5 output files, e.g.
 
-taino_ppp_xxp_boot0_-228.57_bins
-taino_ppp_xxp_boot0_-228.57_dat
-taino_ppp_xxp_boot0_-228.57_pred
-taino_ppp_xxp_boot0_-228.57_mig
-taino_ppp_xxp_boot0_-228.57_pars
+boot0_-252.11_bins	boot0_-252.11_liks	boot0_-252.11_ord	boot0_-252.11_pred
+boot0_-252.11_dat	boot0_-252.11_mig	boot0_-252.11_pars
 
-in this example, “ppp_xxp” is the name of the model used to fit the data
+
 boot0 means that this is bootstrap iteration 0, which in the convention used here means the fit with the real data
--228.57 is the likelihood of the best-fit model
+-252.11 is the likelihood of the best-fit model
 
 _bins contains the bins used in the discretization
 _dat are the observed counts in each bins
 _pred are the predicted counts in each bin, according to the model
 _mig is the inferred migration matrix, with the most recent generation at the top, and one column per migrant population
 _pars are the optimal parameters
+_liks contains the likelihoods in the model parameter space in the output format of scipy.optimizes' "brute" function: the first number is the best likelihood, the top matrices define the grid of parameters usedin the search, and the last matrix defines the likelihood at all grid points. see http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brute.html
 
 
 
