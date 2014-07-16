@@ -125,7 +125,7 @@ def pp_px_fix((tstart,t2,nuEu_prop),fracs):
 		return propfrommig(pp_px((init_Eu,tstart,t2,nuEu_prop)))[0]-fracs[0] 
 	
 	 
-	(init_Eu,)=scipy.optimize.fsolve(fun,(.2)) 
+	(init_Eu,)=scipy.optimize.fsolve(fun,(.2,)) 
 	#print "init_Eu",init_Eu
 	
 	return pp_px((init_Eu,tstart,t2,nuEu_prop))
@@ -145,7 +145,7 @@ def outofbounds_pp_px_fix(params,fracs):
 	#print "init_Eu," ,scipy.optimize.fsolve(fun,(.2,))
 	#print "made it!"
 	  
-	(init_Eu,)=scipy.optimize.fsolve(fun,(.2))  
+	(init_Eu,)=scipy.optimize.fsolve(fun,(.2,))  
 	#print "init_Eu,",init_Eu  
 	return outofbounds_pp_px((init_Eu,tstart,t2,nuEu_prop)) 
 
