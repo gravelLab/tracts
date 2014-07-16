@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("../")
+sys.path.append("../../")
 import tracts
 import pp,pp_px
 import numpy,pylab
