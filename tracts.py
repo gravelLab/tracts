@@ -1104,7 +1104,7 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
                                        p0, outofbounds_fun,rhobeg=.01,rhoend=.0001, 
                                        maxfun=maxiter)
     
-    xopt = _project_params_up(xopt, fixed_params)
+    xopt = _project_params_up(outputs[0], fixed_params)
     return outputs
     
     #xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
