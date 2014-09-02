@@ -34,13 +34,13 @@ To maintain maximum flexibility, the options and models in tracts are set up in 
 
 Reading the tracts output:
 
-The exemple files produce 5 output files, e.g.
+The 3-population exemple files produce 5 output files, e.g.
 
 boot0_-252.11_bins	boot0_-252.11_liks	boot0_-252.11_ord	boot0_-252.11_pred
 boot0_-252.11_dat	boot0_-252.11_mig	boot0_-252.11_pars
 
 
-boot0 means that this is bootstrap iteration 0, which in the convention used here means the fit with the real data
+boot0 means that this is bootstrap iteration 0, which in the convention used here means the fit with the real data (in the two-population example, there is no bootstrap, so the output is named "out" and "out2" instead)
 -252.11 is the likelihood of the best-fit model
 
 _bins contains the bins used in the discretization
@@ -130,6 +130,45 @@ When a time falls between two integers, the migrants are distributed across the 
 
 See the example files for example usage. If something isn't clear, please let me know by filing an "new issue", or emailing me. 
  
+FAQs:
+
+-The distribution of tract lengths decreases as a function of tract length, but increases at the very last bin. This was not seen in the original paper. What is going on? 
+
+In tracts, the last bin represents the number of chromosomes with no ancestry switches. It does not correspond to a specific length value, and for this reason was not plotted in the tracts paper. 
+
+ 
+-When I have a single pulse of admixture, I would expect an exponential distribution of tract length, but the distribution of tract lengths shows steps in the expected length. Why is that? 
+
+"Tracts" takes into account the finite length of chromosomes. Since ancestry tracts cannot extend beyond chromosomes, we expect this departure from an exponential distribution
+
+-I have migrants from the last generation. "tracts" tells me that migrants in the last two generations are not allowed. Why is that? 
+
+Haploid genomes from the last two generations have no ancestry switches and should be easy to identify in well-phased data--they should be removed from the sample before running tracts. If this is impossible (e.g., because of inaccurate phasing across chromosomes), tracts will likely attempt to assign last-generation migrants to two generations ago. This should be observable by an excess of very long tracts in the data compared to the model. 
+
+-Individuals in my population vary considerably in their ancestry proportion. Is that a problem? 
+
+It is not a problem as long as the population was close to random mating. If admixture is recent, random mating is not inconsistent with ancestry variance. If admixture is ancient, however, variation in ancestry proportion may indicate population structure, and the random mating assumption may fail. 
+
+-I ran the optimization steps many times, and found different optimal likelihoods. Why is that?
+
+Optimizing functions in many dimensions is hard, and sometimes optimizers get stuck in local maxima. If you haven tried already, you can attempt to fix the ancestry proportions a priori (see the "_fix" examples in the documentation). In most cases, the optimization will converge to the global maximum a substantial proportion of the times--running the optimization a few times from random starting positions and comparing the best values may help control for this. 
+
+If you fail to revisit the same minimum after running say, 10 optimizations, then something else might be going on. If the model is not continuous as a function of a parameter, it could make the optimization much harder. Defining a continuous model would help, or you could try the brute-force optimization method if the number of parameters is small. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
   
