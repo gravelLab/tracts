@@ -1243,16 +1243,17 @@ def _object_func(params, bins,Ls,data,nsamp,model_func,
                  verbose=0, flush_delay=0,
                  func_args=[]):
         
-	_out_of_bounds_val = -1e16
+	_out_of_bounds_val = -1e32
 	global _counter
 	_counter += 1
 	#print "in objective function","\n"
 	if outofbounds_fun is not None:
 		#outofbounds can return either True or a negative valueto signify out-of-boundedness. 
 		#print "out_of_bound is ",outofbounds_fun(params)
-		if outofbounds_fun(params) is True or outofbounds_fun(params)<0:
+		ooa=outofbounds_fun(params)
+		if ooa<0:
 			#print "out_of_bounds value " , outofbounds_fun(params),"\n"
-			result=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)     
+			result=-(ooa-1)*_out_of_bounds_val    
 		else:
 			#print "out_of_bounds value " , outofbounds_fun(params),"\n"
 			mod=demographic_model(model_func(params))
@@ -1489,8 +1490,8 @@ def optimize_brute_fracs2(bins,Ls,data,nsamp, model_func, fracs,searchvalues,out
     		print "res", outofbounds_fun(p0,fracs) 
     		
     	return outofbounds_fun(x0,fracs) 
-    #print outfun(p0)
-    modstrip=lambda x:model_func(x,fracs)
+    
+    modstrip=lambda x:model_func(x,fracs) #define a one-parameter function that has the ancestry fractions built in. 
     
     	 
     fun=lambda x: _object_func_fracs2(x,bins,Ls,data,nsamp,modstrip,
@@ -1536,7 +1537,7 @@ def _object_func_fracs(params, bins,Ls,data,nsamp,model_func, fracs,
                  verbose=0, flush_delay=0,
                  func_args=[]):
         
-	_out_of_bounds_val = -1e16
+	_out_of_bounds_val = -1e32
 	global _counter
 	_counter += 1
 	
@@ -1546,9 +1547,10 @@ def _object_func_fracs(params, bins,Ls,data,nsamp,model_func, fracs,
 	if outofbounds_fun is not None:
 		#outofbounds can return either True or a negative valueto signify out-of-boundedness. 
 		#print "out_of_bound is ",outofbounds_fun(params)
-		if outofbounds_fun(params,fracs) is True or outofbounds_fun(params,fracs)<0:
+		oob=outofbounds_fun(params,fracs)
+		if oob <0:
 			#print "out_of_bounds value " , outofbounds_fun(params),"\n"
-			result=min(-outofbounds_fun(params,fracs)*_out_of_bounds_val,-1e-8)     
+			result=-(oob-1)*_out_of_bounds_val     
 		else:
 			#print "out_of_bounds value " , outofbounds_fun(params),"\n"
 			mod=demographic_model(model_func(params,fracs))
@@ -1575,24 +1577,28 @@ def _object_func_fracs2(params, bins,Ls,data,nsamp,model_func,
                  outofbounds_fun=None, cutoff=0,
                  verbose=0, flush_delay=0,
                  func_args=[],fixed_params=None):
-	#print "in target function2"
-	#sys.stdout.flush()    
+                 
+    #this function will be minimized. We first calculate likelihoods (to be maximized), and return minus that.
+	   
 	print "evaluating at params",params
-	_out_of_bounds_val = -1e16
+	_out_of_bounds_val = -1e32
 	global _counter
 	_counter += 1
-	#print "in objective function","\n"
+	
 	
 	#Deal with fixed parameters
 	params_up = _project_params_up(params, fixed_params)
-	params_up
+	
 	
 	if outofbounds_fun is not None:
-		#outofbounds can return either True or a negative valueto signify out-of-boundedness. 
+		#outofbounds returns  a negative value to signify out-of-boundedness. 
+		oob=outofbounds_fun(params)
 		
-		if outofbounds_fun(params) is True or outofbounds_fun(params)<0:
+		if oob<0:
 			
-			result=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)     
+			mresult=-(oob-1)*_out_of_bounds_val     #we want bad functions to give very low likelihoods, and worse likelihoods when the function is further out of bounds.
+			#challenge: if outofbounds is very close to 0, this can return a reasonable likelihood. When oob is negative, we take away an extra 1 to make sure this cancellation does not happen.
+			
 		else:
 			
 			
@@ -1603,23 +1609,23 @@ def _object_func_fracs2(params, bins,Ls,data,nsamp,model_func,
 				
 				print "res was", outofbounds_fun(params,verbose=True)
 				print "mig was" , model_func(params)
-				result=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)     
+				#mresult=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)     
 				raise ValueError
 				
 			sys.stdout.flush()
-			result=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff) 
+			mresult=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff) 
 	else:
 		print "No bound function defined"
 		mod=demographic_model(model_func(params_up))
-		result=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff)
+		mresult=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff)
 	
 	if True:#(verbose > 0) and (_counter % verbose == 0):
 		param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params_up]))
-		print '%-8i, %-12g, %s' % (_counter, result, param_str)
+		print '%-8i, %-12g, %s' % (_counter, mresult, param_str)
 		#Misc.delayed_flush(delay=flush_delay)
 	
 	
 	
-	return -result   			
+	return -mresult   			
 		
 	
