@@ -632,25 +632,26 @@ class population:
 class demographic_model():
 	def __init__(self,mig):
 		"""migratory model takes as an input a vector containing the migration proportions over the last generations. Each row is a time, each column is a population. row zero corresponds to the current generation. The migration rate at the last generation (time $T$) is the "founding generation" and should sum up to 1. Assume that non-admixed individuals have been removed"""	
+		small=1e-10
 		self.mig=mig
 		(self.ngen,self.npop)=mig.shape
 		
 		#the total migration per generation
 		self.totmig=mig.sum(axis=1)
-		if abs(self.totmig[-1]-1)>1e-8:
+		if abs(self.totmig[-1]-1)>small:
 			print("founding migration should sum up to 1. Now:", mig[-1,:],"sum up to ",self.totmig[-1])
 			raise ValueError("mig")
-		if self.totmig[0]>1e-10:
+		if self.totmig[0]>small:
 			print("migrants at last generation should be removed from sample!")
 			print("currently", self.totmig[0])
 			raise ValueError("mig")
 		self.totmig[0]=0
-		if self.totmig[1]>1e-10:
+		if self.totmig[1]>small:
 			print("migrants at penultimate generation should be removed from sample!")
 			print("currently", self.totmig[1])
 			raise ValueError("mig")
 			
-		if ((self.totmig>1).any() or (mig<0).any()):
+		if ((self.totmig>1+small).any() or (mig<-small).any()):	
 			print("migration rates should be between 0 and 1")
 			print("currently", mig)
 			raise ValueError("mig")
