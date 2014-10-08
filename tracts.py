@@ -111,7 +111,7 @@ class chrom:
 					
 	def mergeancestries(self,ancestries,newlabel):
 		#merge segments that are contiguous and of either same ancestry, or both in ancestries belonging to "pops".
-		i=0
+
 		for tract in self.tracts:
 			if tract.label in ancestries:
 				tract.label=newlabel
@@ -282,7 +282,7 @@ class haploid:
 			self.labs=[]
 			self.Ls=[]
 			for num,vals in dic.iteritems():
-				accept = True
+
 				if(selectchrom is None or num.split('r')[-1] in selectchrom):  
 					self.chroms.append(chrom(tracts=vals))
 					self.Ls.append(self.chroms[-1].get_len())
@@ -393,7 +393,7 @@ class population:
 		ancestry={}
 		#keep track of ancestry of long segments
 		longancestry={}
-		possiblelong={}
+
 		totlength={}
 		for chropair in self.list_chromosome(chrom):
 			for chrom in chropair.copies:
@@ -1088,9 +1088,7 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
-    args = ( bins,Ls,data,nsamp,model_func, 
-                 outofbounds_fun, cutoff,
-                 verbose, flush_delay,func_args)
+
     
     
     
@@ -1104,7 +1102,7 @@ def optimize_cob(p0, bins,Ls,data,nsamp, model_func, outofbounds_fun=None,cutoff
                                        p0, outofbounds_fun,rhobeg=.01,rhoend=.0001, 
                                        maxfun=maxiter)
     
-    xopt = _project_params_up(outputs[0], fixed_params)
+    #xopt = _project_params_up(outputs[0], fixed_params)
     return outputs
     
     #xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
@@ -1386,9 +1384,7 @@ def optimize_cob_fracs2(p0, bins,Ls,data,nsamp, model_func, fracs,outofbounds_fu
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
-    args = ( bins,Ls,data,nsamp,model_func,fracs, 
-                 outofbounds_fun, cutoff,
-                 verbose, flush_delay,func_args)
+
     
     
     def outfun(p0,verbose=False):
@@ -1473,9 +1469,7 @@ def optimize_brute_fracs2(bins,Ls,data,nsamp, model_func, fracs,searchvalues,out
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
-    args = ( bins,Ls,data,nsamp,model_func,fracs, 
-                 outofbounds_fun, cutoff,
-                 verbose, flush_delay,func_args)
+
     
     
     def outfun(p0,verbose=False):
