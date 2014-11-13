@@ -385,7 +385,7 @@ class population:
 			win.title("chromosome %d" % (i,))
 		self.chro_canvas = Tk.Canvas(win,width=250, height=self.nind*30, bg='white')
 		
-		[ls[i].plot(self.chro_canvas,colordict,height=i*.25) for i in range(len(ls))]
+		[ls[j].plot(self.chro_canvas,colordict,height=j*.25) for j in range(len(ls))]
 		self.chro_canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
 		Tk.mainloop()
 	def ancestry_at_pos(self,chrom=0,pos=0,cutoff=.0):
@@ -871,7 +871,7 @@ class demographic_model():
 				ll+= -nsamp*models[binnum] + dat*numpy.log(nsamp*models[binnum]) - gammaln(dat + 1.)
 		return ll
 		
-	def add_random(numtoadd,length, pop,bins,data):
+	def add_random(self, numtoadd,length, pop,bins,data):
 		#add a number of tracts of specified length, taking tracts in data and breaking them down. 
 		for lpop in range(self.npops):
 			if lpop==pop:
@@ -941,7 +941,7 @@ class demographic_model():
 				ll+= -nsamp*models[binnum] + dat*numpy.log(nsamp*models[binnum]) - gammaln(dat + 1.)
 		return ll
 	
-	def plot_model_data(self,Ls,bins,data,pop,colordict):
+	def plot_model_data(self, Ls, bins, data, nsamp, pop, colordict):
 		#plot the migration model with the data	
 		pop.plot_global_tractlengths(colordict)
 		for pop in range(len(data)):
