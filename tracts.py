@@ -84,16 +84,16 @@ class chrom:
 
             # Set the chromosome's start attribute to the starting point of the
             # first known tract.
-            for tract in self.tracts:
-                self.start = tract.start
-                if tract.label != 'UNKNOWN':
+            for t in self.tracts:
+                self.start = t.start
+                if t.label != 'UNKNOWN':
                     break
 
             # Set the chromosome's end attribute to the ending point of the
             # last known tract.
-            for tract in self.tracts[-1::-1]: # Iterate in reverse over tracts
-                self.end = tract.end
-                if tract.label != 'UNKNOWN':
+            for t in self.tracts[-1::-1]: # Iterate in reverse over tracts
+                self.end = t.end
+                if t.label != 'UNKNOWN':
                     break
 
             # consider the length after stripping the UNKNOWN end tracts
@@ -224,7 +224,6 @@ class chrom:
             Returns:
                 Nothing.
             """
-        i = 0
         for tract in self.tracts:
             if tract.label in ancestries:
                 tract.label = newlabel
@@ -447,7 +446,6 @@ class haploid:
             self.labs = []
             self.Ls = []
             for num, vals in dic.iteritems():
-                accept = True
                 if(selectchrom is None or num.split('r')[-1] in selectchrom):
                     self.chroms.append(chrom(tracts=vals))
                     self.Ls.append(self.chroms[-1].get_len())
@@ -565,8 +563,8 @@ class population:
         self.chro_canvas = Tk.Canvas(win, width=250, height=self.nind*30,
                 bg='white')
 
-        for i in xrange(len(ls)):
-            ls[i].plot(self.chro_canvas, colordict, height=i*.25)
+        for j in xrange(len(ls)):
+            ls[j].plot(self.chro_canvas, colordict, height=j*.25)
 
         self.chro_canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
         Tk.mainloop()
@@ -577,7 +575,6 @@ class population:
         ancestry = {}
         # keep track of ancestry of long segments
         longancestry = {}
-        possiblelong = {}
         totlength = {}
         for chropair in self.list_chromosome(chrom):
             for chrom in chropair.copies:
@@ -1165,11 +1162,11 @@ class demographic_model():
                         gammaln(dat + 1.)
         return ll
 
-    def add_random(numtoadd, length, pop, bins, data):
+    def add_random(self, numtoadd, length, pop, bins, data):
         """ Add a number of tracts of specified length, taking tracts in data and
             breaking them down. """
         # TODO What is data doing here ?!? This function seems unused. Is it
-        # incomplete?
+        # incomplete? Grepping for it shows no hits besides its definition.
         for lpop in range(self.npops):
             if lpop == pop:
                 continue
@@ -1241,7 +1238,7 @@ class demographic_model():
                         gammaln(dat + 1.)
         return ll
 
-    def plot_model_data(self, Ls, bins, data, pop, colordict):
+    def plot_model_data(self, Ls, bins, data, nsamp, pop, colordict):
         # plot the migration model with the data
         pop.plot_global_tract_lengths(colordict)
         for pop in range(len(data)):
@@ -1415,10 +1412,6 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         magnitude of the log-likelihood. Once in a region of reasonable
         likelihood, you'll probably want to re-optimize with ll_scale=1.
     """
-    # args = ( bins, Ls, data, nsamp, model_func,
-    #              outofbounds_fun, cutoff,
-    #              verbose, flush_delay, func_args)
-
     fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func,
                  outofbounds_fun=outofbounds_fun, cutoff=cutoff,
                  verbose=verbose, flush_delay=flush_delay,
@@ -1428,18 +1421,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     outputs = scipy.optimize.fmin_cobyla(fun, p0, outofbounds_fun, rhobeg=.01,
             rhoend=.0001, maxfun=maxiter)
 
-    xopt = _project_params_up(outputs[0], fixed_params)
     return outputs
-
-    # xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
-    # xopt = _project_params_up(numpy.exp(xopt), fixed_params)
-    #
-    # if not full_output:
-    #    return xopt
-    # else:
-    #    return xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag
-
-
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         cutoff=0, bounds=[], verbose=0, flush_delay=0.5, epsilon=1e-3,
@@ -1709,11 +1691,6 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
-    args = ( bins, Ls, data, nsamp, model_func, fracs,
-                 outofbounds_fun, cutoff,
-                 verbose, flush_delay, func_args)
-
-
     def outfun(p0,verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
         # parameters. Hence we have to project back up first
