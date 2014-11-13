@@ -42,14 +42,14 @@ class chrom:
 			
 			self.auto=auto
 			assert len(tracts)>0, "empty tracts"
-			for tract in self.tracts:
-				self.start=tract.start
-				if tract.label!='UNKNOWN':
+			for Tract in self.tracts:
+				self.start=Tract.start
+				if Tract.label!='UNKNOWN':
 					break
 			
-			for tract in self.tracts[-1::-1]:
-				self.end=tract.end
-				if tract.label!='UNKNOWN':
+			for Tract in self.tracts[-1::-1]:
+				self.end=Tract.end
+				if Tract.label!='UNKNOWN':
 					break
 				
 			#consider the length after stripping the UNKNOWN end tracts
