@@ -2,7 +2,10 @@
 import numpy,pylab
 import Tkinter as Tk
 import tkFileDialog
-from scipy.misc.common import factorial
+try:
+	from scipy.misc.common import factorial
+except ImportError:
+	from scipy.misc import factorial
 from scipy.special import gammainc,gammaln
 import scipy.optimize
 
@@ -190,7 +193,7 @@ class chropair:
 #individual		
 class indiv:	
 	def __init__(self,Ls=None,label="POP",fname=None,labs=("_A","_B"),selectchrom=None):
-		"""if reading from a file, fname should be a tuple with the start and end of the file names. Otherwise, provide list of chromosome lengths. Distinguishing labels for maternal and paternal chromosomes are given in lab"""		
+		"""If reading from a file, fname should be a tuple with the start and end of the file names. Otherwise, provide list of chromosome lengths. Distinguishing labels for maternal and paternal chromosomes are given in lab"""		
 		if(fname==None):
 			self.Ls=Ls
 			self.chroms=[chropair(len=len,label=label) for len in Ls]
@@ -294,7 +297,10 @@ class haploid:
 		
 class population:
 	def __init__(self,list_indivs=None,names=None,fname=None,labs=("_A","_B"),selectchrom=None):
-		"""if reading from a file, fname should be a tuple with the start middle and end of the file names., where an individual file is specified by start--Indiv--Middle--_A--End. Otherwise, provide list of individuals. Distinguishing labels for maternal and paternal chromosomes are given in lab"""
+		"""The population can be initialized by providing it with a list of "individual" objects, or a file format fname and a list of names.
+		
+		If reading from a file, fname should be a tuple with the start, middle, and end of the file names. Given triplet of strings (start, middle, end), individual files are specified by start+indiv+middle+label+end. 
+		labels are used to distinguish between maternal and paternal chromosomes"""
 		if list_indivs is not None:
 			self.indivs=list_indivs
 			self.nind=len(list_indivs)
@@ -498,10 +504,16 @@ class population:
 				pylab.axis([0,dat[0][-1],0,150])
 	
 		
-	def applychrom(self,func):
-		"""apply func to chromosomes"""
+	def applychrom(self,func, indlist=None):
+		"""apply func to chromosomes. If no indlist is supplied, apply to all individuals"""
 		ls=[]
-		for ind in self.indivs:
+		
+		if indlist is None:
+			inds=self.indivs
+		else:
+			inds=indlist
+			
+		for ind in inds:
 			ls.append(ind.applychrom(func))
 		return ls
 	def flatpop(self,ls):
@@ -544,10 +556,16 @@ class population:
 		if legend:
 			pylab.legend()
 			
-	def get_global_tractlengths(self,npts=20,tol=0.01):
+	def get_global_tractlengths(self,npts=20,tol=0.01,indlist=None):
 		#tol is the tolerance for full chromosomes: sometimes there are small issues at the edges of the chromosomes. If a segment is within tol Morgans of the full chromosome, it counts as a full chromosome 
 		#note that we return an extra bin with the complete chromosome bin, so that we have one more data point than we have bins.
-		dat=self.applychrom(chrom.tractlengths)
+		#indlist is the individuals for which we want the tractlength. To bootstrap over individuals, provide a bootstrapped list of individuals.
+		if indlist is None:
+			inds=self.indivs
+		else:
+			inds=indlist 
+		
+		dat=self.applychrom(chrom.tractlengths, indlist=indlist)
 		flatdat=self.flatpop(dat)
 		bypop=self.__collectpop__(flatdat)	
 		
@@ -564,6 +582,11 @@ class population:
 			#note: convert to cM before plotting
 		return (bins,dat)
 	
+	
+	def bootinds(self,seed):
+		"""Return a bootstrapped list of individuals in the population. Use with get_global_tractlength inds=... to get a bootstrapped sample"""
+		numpy.random.seed(seed=seed)
+		return numpy.random.choice(self.indivs,size=len(self.indivs))
 	
 	def get_global_tractlength_table(self,lenbound):
 		#calculates the fraction of the genome covered by ancestry tracts of different lengths, spcified by lenbound (which must be sorted)
