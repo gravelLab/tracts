@@ -878,12 +878,12 @@ class demographic_model():
                     "migrants from penultimate generation are not removed")
 
         if ((self.totmig > 1).any() or (mig < 0).any()):
-            print("migration rates should be between 0 and 1")
-            print("currently", mig)
+            print "migration rates should be between 0 and 1"
+            print "currently", mig
             raise ValueError("mig")
         if (mig[:-1] == 1).any():
-            print("warning: population was completely replaced after "\
-                    "founding event")
+            print "warning: population was completely replaced after "\
+                    "founding event"
         # identify states where migration occurred as these are the relevant
         # states in our Markov model. Each state is a tuple of the form:
         # (generation, population)
@@ -1806,7 +1806,7 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
     print "foutput", full_output
     print "searchvalues", searchvalues
     outputs = scipy.optimize.brute(fun2, searchvalues, full_output=full_output)
-    print("outputs", outputs)
+    print "outputs", outputs
     xopt = _project_params_up(outputs[0], fixed_params)
     # print "xopt",xopt
     return xopt, outputs[1:]
