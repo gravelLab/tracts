@@ -888,10 +888,9 @@ class demographic_model():
         # states in our Markov model. Each state is a tuple of the form:
         # (generation, population)
 
-        self.states = map(tuple, (numpy.array(mig.nonzero()).transpose()))
+        self.states = map(tuple, numpy.array(mig.nonzero()).transpose())
         self.nstates = len(self.states)
         self.npops = mig.shape[1]
-
 
         # get the equilibrium distribution in each state
         # print self.nstates, " states"
