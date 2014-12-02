@@ -263,7 +263,7 @@ class chrom:
                 i += 1
         self._smooth()
 
-    def tract_lengths(self):
+    def tractlengths(self):
         """ Gets the distribution of tract lengths. Make sure that proper
             smoothing is implemented.
             """
@@ -375,7 +375,7 @@ class indiv:
         """ Calculate the total length of the genome in segments of the given
             ancestry.
             """
-        dat = self.applychrom(chrom.tract_lengths)
+        dat = self.applychrom(chrom.tractlengths)
         return numpy.sum([segment[1]
             for chromv in dat
             for copy in chromv
@@ -393,7 +393,7 @@ class indiv:
         return [amt*1./tot for amt in amts]
 
     def ancestryPropsByChrom(self, ancestries):
-        dat = self.applychrom(chrom.tract_lengths)
+        dat = self.applychrom(chrom.tractlengths)
         dictamt = {}
         nc = len(dat)
         for ancestry in ancestries:
@@ -737,8 +737,8 @@ class population:
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def plot_global_tract_lengths(self, colordict, npts=40, legend=True):
-        dat = self.applychrom(chrom.tract_lengths)
+    def plot_global_tractlengths(self, colordict, npts=40, legend=True):
+        dat = self.applychrom(chrom.tractlengths)
         flatdat = self.flatpop(dat)
         bypop = self.__collectpop__(flatdat)
         self.maxLen = max(self.Ls)
@@ -768,7 +768,7 @@ class population:
         else:
             inds=indlist
 
-        dat=self.applychrom(chrom.tract_lengths, indlist=indlist)
+        dat=self.applychrom(chrom.tractlengths, indlist=indlist)
         flatdat=self.flatpop(dat)
         bypop=self.__collectpop__(flatdat)
 
@@ -799,7 +799,7 @@ class population:
     def get_global_tractlength_table(self, lenbound):
         """ Calculates the fraction of the genome covered by ancestry tracts of
             different lengths, spcified by lenbound (which must be sorted). """
-        dat = self.applychrom(chrom.tract_lengths)
+        dat = self.applychrom(chrom.tractlengths)
         flatdat = self.flatpop(dat)
         bypop = self.__collectpop__(flatdat)
 
@@ -1272,7 +1272,7 @@ class demographic_model():
 
     def plot_model_data(self, Ls, bins, data, nsamp, pop, colordict):
         # plot the migration model with the data
-        pop.plot_global_tract_lengths(colordict)
+        pop.plot_global_tractlengths(colordict)
         for pop in range(len(data)):
             pylab.plot(
                     100*numpy.array(bins),

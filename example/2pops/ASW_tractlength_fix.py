@@ -52,7 +52,7 @@ nind = pop.nind
 bypopfrac = [[] for i in range(len(labels))]
 for ind in pop.indivs:
     # a list of tracts with labels and names
-    tractslst = ind.applychrom(tracts.chrom.tract_lengths)
+    tractslst = ind.applychrom(tracts.chrom.tractlengths)
     # a flattened list of tracts with labels and names
     flattracts = [numpy.sum([item[1] for chromo in tractslst for sublist in chromo for item in sublist if item[0] == label])
                   for label in labels]

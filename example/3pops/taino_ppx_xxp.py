@@ -142,7 +142,7 @@ for bootnum in runboots:
     # Calculate ancestry proportions
     for ind in pop.indivs:
         # a list of tracts with labels and names
-        ltracts = ind.applychrom(tracts.chrom.tract_lengths)
+        ltracts = ind.applychrom(tracts.chrom.tractlengths)
         # a flattened list of tracts with labels and names
         flattracts = [numpy.sum(item[1]
             for chromo in ltracts
