@@ -59,7 +59,6 @@ bound2 = pp_px.outofbounds_pp_px
 # give two different starting conditions, with one starting near the
 # single-pulse model
 startparams2 = numpy.array([0.125102, 0.107152, 0.0438957, 0.051725])
-startparams2p = numpy.array([0.155102, 0.07152, 0.03, 1e-8])
 
 optmod = tracts.demographic_model(func(startparams))
 
