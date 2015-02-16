@@ -25,7 +25,6 @@ names = [
     "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818", "NA19835", "NA19834", "NA19901", "NA19900",
     "NA19909", "NA19908", "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126", "NA20357", "NA20356"]
 
-
 chroms = ['%d' % (i,) for i in range(1, 23)]
 
 # load the population
@@ -40,13 +39,15 @@ data = [data[poplab] for poplab in labels]
 
 # we're fixing the global ancestry proportions, so we only need one parameter
 startparams = numpy.array([0.0683211])
-                          # (initial admixture time). Times are measured in units of hundred generations (i.e., multiply the number by 100 to get the time in generations). The reason is that some python optimizers do a poor job when the parameters (time and ancestry proportions) are of different magnitudes.
+# (initial admixture time). Times are measured in units of hundred generations
+# (i.e., multiply the number by 100 to get the time in generations). The reason
+# is that some python optimizers do a poor job when the parameters (time and
+# ancestry proportions) are of different magnitudes.
 # you can also look at the "_mig" output file for a
 # generation-by-generation breakdown of the migration rates.
 
 Ls = pop.Ls
 nind = pop.nind
-
 
 # calculate the proportion of ancestry in each individual
 bypopfrac = [[] for i in range(len(labels))]
@@ -100,7 +101,7 @@ for i in range(rep_pp):
     startrand = randomize(startparams)
 
 
-print "likelihoods found: ",	liks_orig_pp
+print "likelihoods found: ", liks_orig_pp
 
 liks_orig_pp_px = []
 startrand2 = startparams2
@@ -178,19 +179,16 @@ fbins.close()
 
 fdat = open(outdir + "_dat", 'w')
 for popnum in range(len(data)):
-
     fdat.write("\t".join(map(str, data[popnum])) + "\n")
-
 
 fdat.close()
 
 fmig = open(outdir + "_mig", 'w')
-
 for line in optmod.mig:
     fmig.write("\t".join(map(str, line)) + "\n")
 fmig.close()
-fpred = open(outdir + "_pred", 'w')
 
+fpred = open(outdir + "_pred", 'w')
 for popnum in range(len(data)):
     fpred.write(
         "\t".join(map(str, pop.nind * numpy.array(optmod.expectperbin(Ls, popnum, bins)))) + "\n")

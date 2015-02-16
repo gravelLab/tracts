@@ -84,8 +84,7 @@ elif len(args) == 3:
     else:
         runboots = range(int(args[1]), int(args[2]))
 
-# Get a list of all individuals in directory. Use a generator for improved
-# streaming.
+# Get a list of all individuals in directory.
 _files = os.listdir(directory)
 files = [file
         for file in _files
