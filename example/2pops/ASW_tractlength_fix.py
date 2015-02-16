@@ -6,8 +6,6 @@ import tracts
 import pp
 import pp_px
 import numpy
-import pylab
-
 
 directory = "./G10/"
 
@@ -126,48 +124,6 @@ for i in range(0, rep_pp_px):
 lik1 = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
 lik2 = optmod2.loglik(bins, Ls, data, nind, cutoff=cutoff)
 
-#
-# some plotting functions using python
-
-
-pylab.figure(1)
-
-colordict = {"AFR": 'blue', "EUR": 'red', "UNKNOWN": 'gray'}
-plotbins = bins.copy()
-
-for i in range(len(bins) - 1):
-    plotbins[i] = (bins[i] + bins[i + 1]) / 2
-
-for popnum in range(len(data)):
-    poplab = labels[popnum]
-    modexp = nind * numpy.array(optmod.expectperbin(Ls, popnum, bins))
-    pylab.semilogy(plotbins, modexp, color=colordict[poplab])
-    pylab.semilogy(
-        plotbins, data[popnum], 'o', color=colordict[poplab], label=poplab)
-
-pylab.xlabel("tract length (Morgans)")
-pylab.ylabel("counts")
-pylab.legend()
-pylab.axis([0, 3, .1, 10000])
-
-pylab.figure(2)
-
-
-for popnum in range(len(data)):
-    poplab = labels[popnum]
-    modexp2 = nind * numpy.array(optmod2.expectperbin(Ls, popnum, bins))
-    pylab.semilogy(plotbins, modexp2, color=colordict[poplab])
-    pylab.semilogy(
-        plotbins, data[popnum], 'o', color=colordict[poplab], label=poplab)
-
-pylab.xlabel("tract length (Morgans)")
-pylab.ylabel("counts")
-pylab.legend()
-pylab.axis([0, 3, .1, 10000])
-
-pylab.show()
-print "optimal likelihoods values found for single pulse model:", lik1
-print "optimal likelihoods values found for two pulse model:", lik2
 #
 # Save the data to file for external plotting, model 1
 
