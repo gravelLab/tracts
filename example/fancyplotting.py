@@ -28,7 +28,19 @@ from itertools import imap
 
 import sys
 
-colors = [(1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, 1.0, 1.0)]
+# Try to import seaborn for even better looking colors
+try:
+    import seaborn as sns
+except ImportError:
+    bcolors = None
+    sns = None
+
+# Try to import brewer2mpl for the same reason
+try:
+    import brewer2mpl as b2m
+    bcolors = b2m.get_map('Set1', 'qualitative', 9).mpl_colors
+except ImportError:
+    bcolors = None
 
 #################
 ### Constants ###
@@ -117,14 +129,15 @@ def find_bounds(mean, alpha):
 ### Plotting function ###
 #########################
 
-def create_figure(plot_theories, boundaries, data, pop_names, colors):
+def create_figure(plot_theories, data, boundaries=None, pop_names=None,
+        colors=None, with_legend=True):
     fig = plt.figure()
     fig.suptitle('Tract length (cM) versus number of tracts')
     ax = fig.add_subplot(1, 1, 1)
 
     # Set the limits on the axes
-    ax.set_ylim(0.4, 1e3) # TODO get rid of the baked-in upper limit
-    ax.set_xlim(0, 300)
+    ax.set_ylim(bottom=0.92, top=1000)
+    ax.set_xlim(0, 275)
 
     # Set the axis labels
     ax.set_ylabel('Tract length (cM)')
@@ -133,11 +146,26 @@ def create_figure(plot_theories, boundaries, data, pop_names, colors):
     # Use logarithmic scale on the y-axis
     ax.set_yscale('log')
 
+    if colors is None:
+        if bcolors is not None and len(data) <= len(bcolors):
+            # if there are enough brewer colors, use those.
+            colors = bcolors
+            eprint("used Brewer colors")
+        elif sns is not None:
+            colors = sns.color_palette('cubehelix', len(data))
+            eprint("used (seaborn) cubehelix colormap")
+        else:
+            # Get the colormap as specified in matplotlibrc
+            cmap = plt.get_cmap()
+            eprint("used matplotlib colors")
+            colors = [cmap(i) for i in np.linspace(0.0, 1.0, len(data))]
+
     # Zip together all the lists indexed by population number so we can
     # aggregate all the information relevant to a single population in each
     # iteration.
-    for (theory, bounds, experimental_data, pop_name, color) in \
-            zip(plot_theories, boundaries, data, pop_names, colors):
+    for i, (theory, bounds, experimental_data, pop_name, color) in \
+            enumerate(zip(
+                plot_theories, boundaries, data, pop_names, colors)):
         # Transpose to get the list of lows and list of highs
         X, YS = zip(*bounds)
         # Transpose to get the list of x values and list of pairs (low, high).
@@ -149,7 +177,8 @@ def create_figure(plot_theories, boundaries, data, pop_names, colors):
         ax.scatter(bins[:-1], experimental_data[:-1],
                 color=color, label=pop_name + " data")
 
-    ax.legend()
+    if with_legend:
+        ax.legend()
 
     return fig
 
@@ -167,6 +196,7 @@ _usage = [
         "./fancyplotting.py -- create a nice visualization of Tracts output.",
         "usage: ./fancyplotting.py [--input-dir INDIR] [--output-dir OUTDIR]",
         "    --name NAME --population-tags TAGS [--plot-format FMT] [--overwrite]",
+        "    [--no-legend]",
         "       ./fancyplotting.py --help",
         "",
         "The output of tracts follows a particular naming convention. Each ",
@@ -217,6 +247,7 @@ if __name__ == "__main__":
     overwrite_plot = False
     input_dir = "."
     output_dir = "."
+    with_legend = True
 
     try:
         i = 1
@@ -240,6 +271,8 @@ if __name__ == "__main__":
                 i += 1
             elif arg == "--overwrite":
                 overwrite_plot = True
+            elif arg == "--no-legend":
+                with_legend = False
             elif arg == "--help":
                 _show_usage()
                 sys.exit(0)
@@ -311,7 +344,8 @@ if __name__ == "__main__":
     ### Make the figure ###
     #######################
 
-    fig = create_figure(plot_theories, boundaries, data, pop_names, colors)
+    fig = create_figure(plot_theories, data, boundaries, pop_names,
+            with_legend=with_legend)
 
 
     ### Save the figure ###
@@ -324,4 +358,8 @@ if __name__ == "__main__":
         while path.exists(p):
             p = path.join(output_dir, "%s_plot.%d.%s" % (name, i, plot_format))
             i += 1
+    else:
+        if path.exists(p):
+            print("Notice: overwrote existing plot,", p)
+
     fig.savefig(p)
