@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 
-""" A Python module to beauty the functionality of the FancyPlotting.nb
-    Mathematica code.
+"""
+fancyplotting.py -- make nice plots of tracts output.
+
+It mimics for the most part the output of fancyplotting.nb, but additionally
+provides a command-line interface and is generally more reusable that the
+originally-bundled Mathematica code.
+
+fancyplotting.py optionally uses seaborn or brewer2mpl if those packages are
+present in order to use their color palettes and otherwise make the plots look
+prettier. It is recommended -- although not necessary -- to install both of
+them.
 """
 
 from __future__ import print_function
+
+# We use semantic versioning. See http://semver.org/
+__version__ = '0.0.0.1'
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,7 +28,27 @@ from itertools import imap
 
 import sys
 
-colors = [(1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, 1.0, 1.0)]
+# Try to import seaborn for even better looking colors
+try:
+    import seaborn as sns
+except ImportError:
+    bcolors = None
+    sns = None
+
+# Try to import brewer2mpl for the same reason
+try:
+    import brewer2mpl as b2m
+    bcolors = b2m.get_map('Set1', 'qualitative', 9).mpl_colors
+except ImportError:
+    bcolors = None
+
+#################
+### Constants ###
+#################
+
+# Parameter controlling how 'wide' the distribution should be, used to infer
+# the size of the distribution when drawing the plot
+alpha = 0.3173105078629141
 
 #########################################################
 ### Higher-order functions and combinators used later ###
@@ -39,7 +71,7 @@ def izip_with(fun, *args):
     """
     return (fun(*t) for t in zip(*args))
 
-# A strict version of zip_with
+# A strict version of izip_with
 zip_with = lambda fun, *args: list(izip_with(fun, *args))
 
 # Suffixing function factory: create a function that suffixes the supplied
@@ -50,10 +82,6 @@ suf = lambda s: lambda name: name + s
 # constant. This is just a curried, flipped form of the identity function:
 # apply x f = flip id
 apply_to = lambda c: lambda f: f(c)
-
-# Curry a function by fixing the given constant as the function's first
-# parameter.
-c2 = lambda f, c: lambda *args: f(c, *args)
 
 # To parse a TSV file of floats given its path.
 parse_tsv = \
@@ -101,14 +129,15 @@ def find_bounds(mean, alpha):
 ### Plotting function ###
 #########################
 
-def create_figure(plot_theories, boundaries, data, pop_names, colors):
+def create_figure(plot_theories, data, boundaries=None, pop_names=None,
+        colors=None, with_legend=True):
     fig = plt.figure()
     fig.suptitle('Tract length (cM) versus number of tracts')
     ax = fig.add_subplot(1, 1, 1)
 
     # Set the limits on the axes
-    ax.set_ylim(0.4, 1e3) # TODO get rid of the baked-in upper limit
-    ax.set_xlim(0, 300)
+    ax.set_ylim(bottom=0.92, top=1000)
+    ax.set_xlim(0, 275)
 
     # Set the axis labels
     ax.set_ylabel('Tract length (cM)')
@@ -117,11 +146,26 @@ def create_figure(plot_theories, boundaries, data, pop_names, colors):
     # Use logarithmic scale on the y-axis
     ax.set_yscale('log')
 
+    if colors is None:
+        if bcolors is not None and len(data) <= len(bcolors):
+            # if there are enough brewer colors, use those.
+            colors = bcolors
+            eprint("used Brewer colors")
+        elif sns is not None:
+            colors = sns.color_palette('cubehelix', len(data))
+            eprint("used (seaborn) cubehelix colormap")
+        else:
+            # Get the colormap as specified in matplotlibrc
+            cmap = plt.get_cmap()
+            eprint("used matplotlib colors")
+            colors = [cmap(i) for i in np.linspace(0.0, 1.0, len(data))]
+
     # Zip together all the lists indexed by population number so we can
     # aggregate all the information relevant to a single population in each
     # iteration.
-    for (theory, bounds, experimental_data, pop_name, color) in \
-            zip(plot_theories, boundaries, data, pop_names, colors):
+    for i, (theory, bounds, experimental_data, pop_name, color) in \
+            enumerate(zip(
+                plot_theories, boundaries, data, pop_names, colors)):
         # Transpose to get the list of lows and list of highs
         X, YS = zip(*bounds)
         # Transpose to get the list of x values and list of pairs (low, high).
@@ -133,7 +177,8 @@ def create_figure(plot_theories, boundaries, data, pop_names, colors):
         ax.scatter(bins[:-1], experimental_data[:-1],
                 color=color, label=pop_name + " data")
 
-    ax.legend()
+    if with_legend:
+        ax.legend()
 
     return fig
 
@@ -151,6 +196,7 @@ _usage = [
         "./fancyplotting.py -- create a nice visualization of Tracts output.",
         "usage: ./fancyplotting.py [--input-dir INDIR] [--output-dir OUTDIR]",
         "    --name NAME --population-tags TAGS [--plot-format FMT] [--overwrite]",
+        "    [--no-legend]",
         "       ./fancyplotting.py --help",
         "",
         "The output of tracts follows a particular naming convention. Each ",
@@ -201,6 +247,7 @@ if __name__ == "__main__":
     overwrite_plot = False
     input_dir = "."
     output_dir = "."
+    with_legend = True
 
     try:
         i = 1
@@ -224,6 +271,8 @@ if __name__ == "__main__":
                 i += 1
             elif arg == "--overwrite":
                 overwrite_plot = True
+            elif arg == "--no-legend":
+                with_legend = False
             elif arg == "--help":
                 _show_usage()
                 sys.exit(0)
@@ -283,29 +332,34 @@ if __name__ == "__main__":
     ### Calculate the boundaries for the model prediction ###
     #########################################################
 
-    # parameter controlling how 'wide' the distribution should be
-    alpha = 0.3173105078629141
-
     # For the theoretical prediction of each population, determine the lower
     # and upper bounds on the variability admitted by the theory.
     boundaries = [[(bin, find_bounds(expected_value, alpha))
-        for bin, expected_value in (np.array(pt) + 1e-9)] # TODO why this offset?
+        for bin, expected_value in (np.array(pt) + 1e-9)]
         for pt in plot_theories]
+    # the small offset 1e-9 is used to avoid the log-scale going too low,
+    # making things look bad.
 
 
     ### Make the figure ###
     #######################
 
-    fig = create_figure(plot_theories, boundaries, data, pop_names, colors)
+    fig = create_figure(plot_theories, data, boundaries, pop_names,
+            with_legend=with_legend)
 
 
     ### Save the figure ###
     #######################
 
     p = path.join(output_dir, "%s_plot.%s" % (name, plot_format))
+
     if not overwrite_plot: # if we care about preserving existing plots
         i = 1
         while path.exists(p):
             p = path.join(output_dir, "%s_plot.%d.%s" % (name, i, plot_format))
             i += 1
+    else:
+        if path.exists(p):
+            print("Notice: overwrote existing plot,", p)
+
     fig.savefig(p)
