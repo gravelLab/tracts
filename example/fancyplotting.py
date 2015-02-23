@@ -18,6 +18,14 @@ import sys
 
 colors = [(1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, 1.0, 1.0)]
 
+#################
+### Constants ###
+#################
+
+# Parameter controlling how 'wide' the distribution should be, used to infer
+# the size of the distribution when drawing the plot
+alpha = 0.3173105078629141
+
 #########################################################
 ### Higher-order functions and combinators used later ###
 #########################################################
@@ -279,9 +287,6 @@ if __name__ == "__main__":
     ### Calculate the boundaries for the model prediction ###
     #########################################################
 
-    # parameter controlling how 'wide' the distribution should be
-    alpha = 0.3173105078629141
-
     # For the theoretical prediction of each population, determine the lower
     # and upper bounds on the variability admitted by the theory.
     boundaries = [[(bin, find_bounds(expected_value, alpha))
@@ -299,6 +304,7 @@ if __name__ == "__main__":
     #######################
 
     p = path.join(output_dir, "%s_plot.%s" % (name, plot_format))
+
     if not overwrite_plot: # if we care about preserving existing plots
         i = 1
         while path.exists(p):
