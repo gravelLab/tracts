@@ -51,10 +51,6 @@ suf = lambda s: lambda name: name + s
 # apply x f = flip id
 apply_to = lambda c: lambda f: f(c)
 
-# Curry a function by fixing the given constant as the function's first
-# parameter.
-c2 = lambda f, c: lambda *args: f(c, *args)
-
 # To parse a TSV file of floats given its path.
 parse_tsv = \
         lambda path: with_file(
