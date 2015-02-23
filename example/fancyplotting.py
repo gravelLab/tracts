@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 
-""" A Python module to beauty the functionality of the FancyPlotting.nb
-    Mathematica code.
+"""
+fancyplotting.py -- make nice plots of tracts output.
+
+It mimics for the most part the output of fancyplotting.nb, but additionally
+provides a command-line interface and is generally more reusable that the
+originally-bundled Mathematica code.
+
+fancyplotting.py optionally uses seaborn or brewer2mpl if those packages are
+present in order to use their color palettes and otherwise make the plots look
+prettier. It is recommended -- although not necessary -- to install both of
+them.
 """
 
 from __future__ import print_function
+
+# We use semantic versioning. See http://semver.org/
+__version__ = '0.0.0.1'
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,7 +59,7 @@ def izip_with(fun, *args):
     """
     return (fun(*t) for t in zip(*args))
 
-# A strict version of zip_with
+# A strict version of izip_with
 zip_with = lambda fun, *args: list(izip_with(fun, *args))
 
 # Suffixing function factory: create a function that suffixes the supplied
@@ -290,8 +302,10 @@ if __name__ == "__main__":
     # For the theoretical prediction of each population, determine the lower
     # and upper bounds on the variability admitted by the theory.
     boundaries = [[(bin, find_bounds(expected_value, alpha))
-        for bin, expected_value in (np.array(pt) + 1e-9)] # TODO why this offset?
+        for bin, expected_value in (np.array(pt) + 1e-9)]
         for pt in plot_theories]
+    # the small offset 1e-9 is used to avoid the log-scale going too low,
+    # making things look bad.
 
 
     ### Make the figure ###
