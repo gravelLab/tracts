@@ -31,7 +31,7 @@ func = models.ppx_xxp_fix
 bound = models.outofbounds_ppx_xxp_fix
 
 # defines the values of parameters to loop over in the brute force
-# step. Times are in unites of 100 generations: the start time will
+# step. Times are in units of 100 generations: the start time will
 # be between 7 and 12 generations, and the timing of the second
 # migration between 1 and 12 generations in steps of 1 generation.
 # After the initial search there is a "refining" step
@@ -104,7 +104,7 @@ pop = tracts.population(names=names, fname=(directory, inter, end))
 
 # Rather than creating a new population for each bootstrap instance, we
 # just replace the list of individuals to iterate over. We need to save a
-# copy of the initial list f individuals to do this!
+# copy of the initial list of individuals to do this!
 indivs = pop.indivs
 
 def bootsamp(num):
