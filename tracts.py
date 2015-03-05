@@ -333,10 +333,9 @@ class indiv:
             self.Ls = Ls
             self.chroms = [chropair(len=len, label=label) for len in Ls]
         else:
-            f1 = haploid(fname=fname[0]+labs[0]+fname[1],
-                    selectchrom=selectchrom)
-            f2 = haploid(fname=fname[0]+labs[1]+fname[1],
-                    selectchrom=selectchrom)
+            fnames = [fname[0] + lab + fname[1] for lab in labs]
+            f1, f2 = [haploid(fname=f, selectchrom=selectchrom)
+                    for f in fnames]
             self.name = fname[0].split('/')[-1]
             try:
                 self.from_haploids(f1, f2)
@@ -489,17 +488,19 @@ class population:
         elif fname is not None:
             self.indivs = []
             for name in names:
+                pathspec = (os.path.join(fname[0], name+fname[1]), fname[2])
                 try:
                     self.indivs.append(
-                            indiv(fname=(fname[0]+name+fname[1], fname[2]),
-                                labs=labs, selectchrom=selectchrom))
+                            indiv(fname=pathspec, labs=labs,
+                                selectchrom=selectchrom))
                 except IndexError:
                     print "error reading individuals", name
-                    print "fname=", (fname[0]+name+fname[1], fname[2]), \
-                            ", labs=", labs, ", selectchrom=", selectchrom
-                    self.indivs.append( #TODO why do we do this again?
-                            indiv(fname=(fname[0]+name+fname[1], fname[2]),
-                                labs=labs, selectchrom=selectchrom))
+                    print "fname=", fname, \
+                            "; labs=", labs, ", selectchrom=", selectchrom
+                    #TODO why do we do this again? esp. when an error occurs
+                    self.indivs.append(
+                            indiv(fname=fname, labs=labs,
+                                selectchrom=selectchrom))
                     raise IndexError
             self.nind = len(self.indivs)
             # should probably check that all individuals have same length!
@@ -1606,7 +1607,7 @@ def _object_func(params, bins, Ls, data, nsamp, model_func,
 
     return -result
 
-# define the optimization routine for when the final ancestry porportions are
+# define the optimization routine for when the final ancestry proportions are
 # specified.
 def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
