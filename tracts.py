@@ -451,8 +451,27 @@ class haploid:
             self.chroms = []
             self.labs = []
             self.Ls = []
+
+            # Construct a function that tells us whether a given chromosome is
+            # selected or not.
+            if selectchrom is None:
+                # selectchrom being None means that all chromosomes are
+                # selected, so we manufacture a constant function.
+                is_selected = lambda *args: True
+            else:
+                # Otherwise, we 'normalize' selectchrom by ensuring that it
+                # contains only integers. (This is primarily for
+                # backwards-compatibility with previous scripts that specified
+                # chromosome numbers as strings.) And we make a set out of the
+                # resulting normalized list, to speed up lookups later.
+                sc = set(map(int, selectchrom))
+                # And the function we manufacture simply casts its argument
+                # (which is a string since it's read in from a file) to an int,
+                # and checks whether its in our set.
+                is_selected = lambda c: int(c) in sc
+
             for num, vals in dic.iteritems():
-                if(selectchrom is None or num.split('r')[-1] in selectchrom):
+                if selectchrom is None or is_selected(num.split('r')[-1]):
                     self.chroms.append(chrom(tracts=vals))
                     self.Ls.append(self.chroms[-1].get_len())
                     self.labs.append(num.split('r')[-1])
