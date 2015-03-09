@@ -290,10 +290,12 @@ if __name__ == "__main__":
         check_arg("--input-dir", input_dir)
         check_arg("--output-dir", output_dir)
     except CLIError as e:
-        eprint(e)
+        eprint(e, end='\n\n')
+        _show_usage()
         sys.exit(1)
     except IndexError:
-        eprint("unexpected end of command line arguments")
+        eprint("unexpected end of command line arguments", end='\n\n')
+        _show_usage()
         sys.exit(1)
 
 
