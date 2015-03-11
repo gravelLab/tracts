@@ -1404,6 +1404,8 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     else:
         return xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag
 
+optimize_bfgs = optimize
+
 def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
         maxiter=None, full_output=True, func_args=[], fixed_params=None,
