@@ -170,7 +170,9 @@ def create_figure(plot_theories, data, boundaries=None, pop_names=None,
         X, YS = zip(*bounds)
         # Transpose to get the list of x values and list of pairs (low, high).
         Y1, Y2 = zip(*YS)
-        ax.fill_between(X, Y1, Y2,
+        # offset the y-values by a small amount if they are too small.
+        # Specifically, when they are zero, the plots become messed up.
+        ax.fill_between(X, nonzero(Y1), nonzero(Y2),
                 interpolate=False, alpha=0.2, color=color)
         ax.plot(*zip(*theory),
                 color=color, label=pop_name + " model")
@@ -185,6 +187,12 @@ def create_figure(plot_theories, data, boundaries=None, pop_names=None,
 #####################
 ### Miscellaneous ###
 #####################
+
+def nonzero(seq, cutoff=1e-9, offset=1e-9):
+    """ Any zeroes (values smaller than the cutoff) found in the given sequence
+        of numbers are offset by the given offset.
+    """
+    return [x + offset if x < cutoff else x for x in seq]
 
 class CLIError(Exception):
     """ The class of errors that can arise in parsing the command line
