@@ -11,7 +11,6 @@ directory = "./G10/"
 
 
 # number of short tract bins not used in inference.
-
 cutoff = 2
 
 # number of repetitions for each model (to ensure convergence of optimization)
@@ -20,8 +19,11 @@ rep_pp_px = 2
 
 # only trio individuals
 names = [
-    "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818", "NA19835", "NA19834", "NA19901", "NA19900",
-    "NA19909", "NA19908", "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126", "NA20357", "NA20356"]
+    "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
+    "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
+    "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
+    "NA20357", "NA20356"
+]
 
 chroms = ['%d' % (i,) for i in range(1, 23)]
 
@@ -40,9 +42,9 @@ startparams = numpy.array([0.0683211])
 # (initial admixture time). Times are measured in units of hundred generations
 # (i.e., multiply the number by 100 to get the time in generations). The reason
 # is that some python optimizers do a poor job when the parameters (time and
-# ancestry proportions) are of different magnitudes.
-# you can also look at the "_mig" output file for a
-# generation-by-generation breakdown of the migration rates.
+# ancestry proportions) are of different magnitudes.  you can also look at the
+# "_mig" output file for a generation-by-generation breakdown of the migration
+# rates.
 
 Ls = pop.Ls
 nind = pop.nind
@@ -53,21 +55,33 @@ for ind in pop.indivs:
     # a list of tracts with labels and names
     tractslst = ind.applychrom(tracts.chrom.tractlengths)
     # a flattened list of tracts with labels and names
-    flattracts = [numpy.sum([item[1] for chromo in tractslst for sublist in chromo for item in sublist if item[0] == label])
-                  for label in labels]
+    flattracts = [
+            numpy.sum([
+                item[1] for chromo in tractslst
+                    for sublist in chromo
+                    for item in sublist
+                    if item[0] == label])
+            for label in labels]
+    tracts_sum = numpy.sum(flattracts)
     for i in range(len(labels)):
-        bypopfrac[i].append(flattracts[i] / numpy.sum(flattracts))
+        bypopfrac[i].append(flattracts[i] / tracts_sum)
 
 props = map(numpy.mean, bypopfrac)
-
 
 # we compare two models; single pulse versus two European pulses.
 func = pp.pp_fix
 bound = pp.outofbounds_pp_fix
+
 func2 = pp_px.pp_px_fix
 bound2 = pp_px.outofbounds_pp_px_fix
-#((tstart,t2,nuEu_prop)) start time, time of second migration, proportion at second migration (proportion at first migration fixed
-# by total ancestry proportion). times measured in units of 100 generations (see above)
+# ((tstart,t2,nuEu_prop))
+# tstart:     start time,
+# t2:         time of second migration,
+# nuEu_prop : proportion at second migration (proportion at first migration is
+#             fixed by total ancestry proportion)
+#
+# Note: times are measured in units of 100 generations (see above)
+
 # give two different starting conditions, with one starting near the
 # single-pulse model
 startparams2 = numpy.array([0.107152,  0.0438957,  0.051725])
@@ -77,16 +91,18 @@ optmod = tracts.demographic_model(func(startparams, props))
 
 
 def randomize(arr, scale=2):
-    # takes an array and multiplies every element by a factor between 0 and 2,
-    # uniformly. caps at 1.
-    return map(lambda i: min(i, 1), scale * numpy.random.random(arr.shape) * arr)
+    """ Scale each element of an array by some random factor between zero and a
+        limit (default: 2), capping the result at 1.
+    """
+    return [min(i, 1) for i in scale * numpy.random.random(arr.shape) * arr]
 
 liks_orig_pp = []
 maxlik = -1e18
 startrand = startparams
 for i in range(rep_pp):
     xopt = tracts.optimize_cob_fracs2(
-        startrand, bins, Ls, data, nind, func, props, outofbounds_fun=bound, cutoff=cutoff, epsilon=1e-2)
+        startrand, bins, Ls, data, nind, func, props, outofbounds_fun=bound,
+        cutoff=cutoff, epsilon=1e-2)
     # optimize_cob_fracs2 takes one additional parameter: the proportion of
     # each ancestry that will be used to fix the parameters.
     optmodlocal = tracts.demographic_model(func(xopt, props))
@@ -108,7 +124,8 @@ maxlik2 = -1e18
 
 for i in range(0, rep_pp_px):
     xopt2 = tracts.optimize_cob_fracs2(
-        startrand2, bins, Ls, data, nind, func2, props, outofbounds_fun=bound2, cutoff=cutoff, epsilon=1e-2)
+        startrand2, bins, Ls, data, nind, func2, props, outofbounds_fun=bound2,
+        cutoff=cutoff, epsilon=1e-2)
     try:
         optmod2loc = tracts.demographic_model(func2(xopt2, props))
         loclik = optmod2loc.loglik(bins, Ls, data, nind, cutoff=cutoff)
@@ -129,26 +146,24 @@ lik2 = optmod2.loglik(bins, Ls, data, nind, cutoff=cutoff)
 
 outdir = "./out"
 
-fbins = open(outdir + "_bins", 'w')
-fbins.write("\t".join(map(str, bins)))
-fbins.close()
+with open(outdir + "_bins", 'w') as fbins:
+    fbins.write("\t".join(map(str, bins)))
 
-fdat = open(outdir + "_dat", 'w')
-for popnum in range(len(data)):
-    fdat.write("\t".join(map(str, data[popnum])) + "\n")
+with open(outdir + "_dat", 'w') as fdat:
+    for popnum in range(len(data)):
+        fdat.write("\t".join(map(str, data[popnum])) + "\n")
 
-fdat.close()
+with open(outdir + "_mig", 'w') as fmig:
+    for line in optmod.mig:
+        fmig.write("\t".join(map(str, line)) + "\n")
 
-fmig = open(outdir + "_mig", 'w')
-for line in optmod.mig:
-    fmig.write("\t".join(map(str, line)) + "\n")
-fmig.close()
-
-fpred = open(outdir + "_pred", 'w')
-for popnum in range(len(data)):
-    fpred.write(
-        "\t".join(map(str, pop.nind * numpy.array(optmod.expectperbin(Ls, popnum, bins)))) + "\n")
-fpred.close()
+with open(outdir + "_pred", 'w') as fpred:
+    for popnum in range(len(data)):
+        fpred.write(
+            "\t".join(map(
+                str,
+                pop.nind * numpy.array(optmod.expectperbin(Ls, popnum, bins))))
+            + "\n")
 
 #
 # The first two files will be identical across models. We save an extra
@@ -156,26 +171,20 @@ fpred.close()
 
 outdir = "./out2"
 
-fbins = open(outdir + "_bins", 'w')
-fbins.write("\t".join(map(str, bins)))
-fbins.close()
+with open(outdir + "_bins", 'w') as fbins:
+    fbins.write("\t".join(map(str, bins)))
 
-fdat = open(outdir + "_dat", 'w')
-for popnum in range(len(data)):
+with open(outdir + "_dat", 'w') as fdat:
+    for popnum in range(len(data)):
+        fdat.write("\t".join(map(str, data[popnum])) + "\n")
 
-    fdat.write("\t".join(map(str, data[popnum])) + "\n")
+with open(outdir + "_mig", 'w') as fmig2:
+    for line in optmod2.mig:
+        fmig2.write("\t".join(map(str, line)) + "\n")
 
-
-fdat.close()
-
-fmig2 = open(outdir + "_mig", 'w')
-
-for line in optmod2.mig:
-    fmig2.write("\t".join(map(str, line)) + "\n")
-fmig2.close()
-fpred2 = open(outdir + "_pred", 'w')
-
-for popnum in range(len(data)):
-    fpred2.write(
-        "\t".join(map(str, pop.nind * numpy.array(optmod2.expectperbin(Ls, popnum, bins)))) + "\n")
-fpred2.close()
+with open(outdir + "_pred", 'w') as fpred2:
+    for popnum in range(len(data)):
+        fpred2.write("\t".join(map(
+            str,
+            pop.nind * numpy.array(optmod2.expectperbin(Ls, popnum, bins))))
+        + "\n")

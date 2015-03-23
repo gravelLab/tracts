@@ -76,24 +76,26 @@ def outofbounds_pp_px(params):
 
     if abs(totmig[-1]-1) > 1e-8:
         print mig
-        print("founding migration should sum up to 1. Now:")
+        print "founding migration should sum up to 1. Now:"
 
     if totmig[0] > 1e-10:
-        print("migrants at last generation should be removed from sample!")
+        print "migrants at last generation should be removed from sample!"
 
     if totmig[1] > 1e-10:
-        print(
-            "migrants at penultimate generation should be removed from sample!")
+        print "migrants at penultimate generation should be removed from " \
+                "sample!"
 
     if ((totmig > 1).any() or (mig < 0).any()):
-        print("migration rates should be between 0 and 1")
+        print "migration rates should be between 0 and 1"
 
     return ret
 
 def pp_px_fix((tstart, t2, nuEu_prop), fracs):
     def fun(init_Eu):
-        init_Eu = float(init_Eu) #if it is pased as an array, can cause problems
-        return propfrommig(pp_px((init_Eu, tstart, t2, nuEu_prop)))[0] - fracs[0]
+        #if it is pased as an array, can cause problems
+        init_Eu = float(init_Eu)
+        return propfrommig(pp_px((init_Eu, tstart, t2, nuEu_prop)))[0] \
+                - fracs[0]
 
     (init_Eu,) = scipy.optimize.fsolve(fun, (.2,))
     # print "init_Eu",init_Eu
@@ -106,7 +108,8 @@ def outofbounds_pp_px_fix(params, fracs):
 
     def fun(init_Eu):
         init_Eu = float(init_Eu)
-        return propfrommig(pp_px((init_Eu, tstart, t2, nuEu_prop)))[0] - fracs[0]
+        return propfrommig(pp_px((init_Eu, tstart, t2, nuEu_prop)))[0] \
+                - fracs[0]
 
     # print "example:,",pp_px((.2,tstart,t2,nuEu_prop))
     # print fun(0.2)
