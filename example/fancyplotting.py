@@ -31,6 +31,7 @@ import sys
 # Try to import seaborn for even better looking colors
 try:
     import seaborn as sns
+    sns.set_style(style='white')
 except ImportError:
     bcolors = None
     sns = None
@@ -136,12 +137,14 @@ def create_figure(plot_theories, data, boundaries=None, pop_names=None,
     ax = fig.add_subplot(1, 1, 1)
 
     # Set the limits on the axes
-    ax.set_ylim(bottom=0.92, top=1000)
-    ax.set_xlim(0, 275)
+    top=np.max([np.max(dat) for dat in data]) #max y value
+    ax.set_ylim(bottom=0.92, top=1.1*top)
+    #Will do x later
+    #ax.set_xlim(0, 275)
 
     # Set the axis labels
-    ax.set_ylabel('Tract length (cM)')
-    ax.set_xlabel('Number of tracts')
+    ax.set_xlabel('Tract length (cM)')
+    ax.set_ylabel('Number of tracts')
 
     # Use logarithmic scale on the y-axis
     ax.set_yscale('log')
@@ -163,11 +166,14 @@ def create_figure(plot_theories, data, boundaries=None, pop_names=None,
     # Zip together all the lists indexed by population number so we can
     # aggregate all the information relevant to a single population in each
     # iteration.
+    maxx=0
     for i, (theory, bounds, experimental_data, pop_name, color) in \
             enumerate(zip(
                 plot_theories, boundaries, data, pop_names, colors)):
         # Transpose to get the list of lows and list of highs
         X, YS = zip(*bounds)
+        if np.max(X)>maxx:
+        	maxx=np.max(X)
         # Transpose to get the list of x values and list of pairs (low, high).
         Y1, Y2 = zip(*YS)
         # offset the y-values by a small amount if they are too small.
@@ -178,7 +184,8 @@ def create_figure(plot_theories, data, boundaries=None, pop_names=None,
                 color=color, label=pop_name + " model")
         ax.scatter(bins[:-1], experimental_data[:-1],
                 color=color, label=pop_name + " data")
-
+	
+	ax.set_xlim(0, 1.1*maxx)
     if with_legend:
         ax.legend()
 
