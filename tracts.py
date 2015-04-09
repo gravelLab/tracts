@@ -1,4 +1,4 @@
-import numpy
+import numpy,os
 import pylab
 import Tkinter as Tk
 import tkFileDialog
