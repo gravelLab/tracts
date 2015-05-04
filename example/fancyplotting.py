@@ -210,6 +210,7 @@ class CLIError(Exception):
 _usage = [
         "./fancyplotting.py -- create a nice visualization of Tracts output.",
         "usage: ./fancyplotting.py [--input-dir INDIR] [--output-dir OUTDIR]",
+        "[--colors COLORS]"
         "    --name NAME --population-tags TAGS [--plot-format FMT] [--overwrite]",
         "    [--no-legend]",
         "       ./fancyplotting.py --help",
@@ -229,9 +230,13 @@ _usage = [
         "as a comma-separated list on the command line after the --population-tags",
         "switch, e.g. `--population-tags AFR,EUR`.",
         "",
+        
         "fancyplotting.py uses Matplotlib to generate its plot, so it is advisable",
         "to use a matplotlibrc file to add additional style to the plot, to make it",
         "look really good. A sample matplotlibrc is bundled with this distribution.",
+        "colors can be specified by the --color flag. colors are comma-separated.",
+        "They must be named colors from matplotlib"
+        
         "Furthermore, the output format of the plot can thus be any file type that",
         "Matplotlib can output. The default format is a PDF, which can easily be",
         "embedded into LaTeX documents, although you may want to use a PNG for",
@@ -263,7 +268,7 @@ if __name__ == "__main__":
     input_dir = "."
     output_dir = "."
     with_legend = True
-
+    colors=None
     try:
         i = 1
         while i < len(sys.argv):
@@ -281,6 +286,9 @@ if __name__ == "__main__":
             elif arg == "--population-tags":
                 pop_names = n().split(',')
                 i += 1
+            elif arg == "--colors": #colors matching the previous populations
+                colors= n().split(',')
+                i += 1
             elif arg == "--plot-format":
                 plot_format = n()
                 i += 1
@@ -288,6 +296,8 @@ if __name__ == "__main__":
                 overwrite_plot = True
             elif arg == "--no-legend":
                 with_legend = False
+
+                
             elif arg == "--help":
                 _show_usage()
                 sys.exit(0)
@@ -360,9 +370,9 @@ if __name__ == "__main__":
 
     ### Make the figure ###
     #######################
-
+    
     fig = create_figure(plot_theories, data, boundaries, pop_names,
-            with_legend=with_legend)
+            with_legend=with_legend,colors=colors)
 
 
     ### Save the figure ###
