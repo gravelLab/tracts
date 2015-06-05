@@ -1,4 +1,5 @@
 import numpy as np
+import operator as op
 import os
 import pylab
 import Tkinter as Tk
@@ -483,9 +484,32 @@ class haploid:
             self.labs = list(
                     np.array(self.labs)[np.argsort(self.labs)])
 
+def _split_indivs(indivs, count, sort_ancestry=None):
+    """ Internal function used to split a list of individuals into equally
+        sized groups after sorting the individuals according to the proportion
+        of the ancestry identified by "sort_ancestry". When no "sort_ancestry"
+        is provided, the ancestry of the first tract of the first chromosome
+        copy of the first chromosome of the first individual in the list is
+        used.
+    """
+    if sort_ancestry is None:
+        sort_ancestry = indivs[0].chroms[0].copies[0].tracts[0].label
+
+    s_indivs = sorted(indivs,
+            key=lambda i: i.ancestryProps([sort_ancestry])[0])
+
+    n = len(indivs)
+    group_frac = 1.0 / count
+
+    groups = [s_indivs[int(n*i*group_frac):int(n*(i+1)*group_frac)]
+            for i in xrange(count)]
+
+    return groups
+
 class population:
     def __init__(self, list_indivs=None, names=None, fname=None,
-            labs=("_A", "_B"), selectchrom=None):
+            labs=("_A", "_B"), selectchrom=None,
+            ignore_length_consistency=False):
         """ The population can be initialized by providing it with a list of
             "individual" objects, or a file format fname and a list of names.
             If reading from a file, fname should be a tuple with the start
@@ -493,23 +517,20 @@ class population:
             specified by start--Indiv--Middle--_A--End. Otherwise, provide list
             of individuals. Distinguishing labels for maternal and paternal
             chromosomes are given in lab.
-            """
+        """
         print "fname", fname
         if list_indivs is not None:
             self.indivs = list_indivs
             self.nind = len(list_indivs)
             # should probably check that all individuals have same length!
             self.Ls = self.indivs[0].Ls
-            for ind in self.indivs:
-                if ind.Ls != self.Ls:
-                    print "error: individuals have genomes of different "\
-                            "lengths!"
-                    sys.exit(1)
+            assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), \
+                    "individuals have genomes of difference lengths"
             self.maxLen = max(self.Ls)
         elif fname is not None:
             self.indivs = []
             for name in names:
-                
+
                 pathspec = (fname[0]+name+fname[1], fname[2])
                 if len(self.indivs)==0:
                 	print pathspec
@@ -527,13 +548,26 @@ class population:
                                 selectchrom=selectchrom))
                     raise IndexError
             self.nind = len(self.indivs)
-            # should probably check that all individuals have same length!
+            assert(ignore_length_consistency or
+                    (all(i.Ls == self.indivs[0].Ls for i in self.indivs)))
             self.Ls = self.indivs[0].Ls
             self.maxLen = max(self.Ls)
         else:
             raise
 
+    def split_by_props(self, count):
+        """ Split this population into groups according to their ancestry
+            proportions. The individuals are sorted in ascending order of their
+            ancestry named "anc".
+        """
+        if count == 1:
+            return [self]
+
+        return [population(g)
+                for g in _split_indivs(self.indivs, count)]
+
     def newgen(self):
+        """ Build a new generation from this population. """
         return population([self.new_indiv() for i in range(self.nind)])
 
     def new_indiv(self):
@@ -546,62 +580,16 @@ class population:
         new.from_haploids(gamete1, gamete2)
         return new
 
-    def plot_next(self):
-        self.indivs[self.currentplot].canvas.pack_forget()
-        if(self.currentplot < self.nind-1):
-            self.currentplot += 1
-        return self.plot_indiv()
-
-    def plot_previous(self):
-        self.indivs[self.currentplot].canvas.pack_forget()
-        if(self.currentplot > 0):
-            self.currentplot -= 1
-        return self.plot_indiv()
-
     def save(self):
         file = tkFileDialog.asksaveasfilename(parent=self.win,
                 title='Choose a file')
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
-    def plot_indiv(self):
-        self.win.title("individual %d " % (self.currentplot+1,))
-        self.canv = self.indivs[self.currentplot].plot(
-                self.colordict, win=self.win)
-
-    def plot(self, colordict):
-        self.colordict = colordict
-        self.currentplot = 0
-        self.win = Tk.Tk()#self.indivs[self.currentplot].plot(self.colordict)
-        printbutton = Tk.Button(self.win, text="save to ps", command=self.save)
-        printbutton.pack()
-
-        p = Tk.Button(self.win, text="Plot previous",
-                command=self.plot_previous)
-        p.pack()
-
-        b = Tk.Button(self.win, text="Plot next", command=self.plot_next)
-        b.pack()
-        self.plot_indiv()
-        Tk.mainloop()
-
     def list_chromosome(self, chronum):
+        """ Collect the chromosomes with the given number across the whole
+            population.
+        """
         return [indiv.chroms[chronum] for indiv in self.indivs]
-
-    def plot_chromosome(self, i, colordict, win=None):
-        """plot a single chromosome across individuals"""
-        self.colordict = colordict
-        ls = self.list_chromosome(i)
-        if (win is None):
-            win = Tk.Tk()
-            win.title("chromosome %d" % (i,))
-        self.chro_canvas = Tk.Canvas(win, width=250, height=self.nind*30,
-                bg='white')
-
-        for j in xrange(len(ls)):
-            ls[j].plot(self.chro_canvas, colordict, height=j*.25)
-
-        self.chro_canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
-        Tk.mainloop()
 
     def ancestry_at_pos(self, chrom=0, pos=0, cutoff=.0):
         """ Find ancestry proportion at specific position. The cutoff is used
@@ -648,6 +636,7 @@ class population:
             else:
                 totlength[key] = totlength[key]/float(ancestry[key])
         return (ancestry, totlength)
+
     def ancestry_per_pos(self, chrom=0, npts=100, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
         len = self.indivs[0].chroms[chrom].len
@@ -655,6 +644,251 @@ class population:
         return (plotpts,
                 [self.ancestry_at_pos(chrom=chrom, pos=pt, cutoff=cutoff)
                     for pt in plotpts])
+
+    def applychrom(self,func, indlist=None):
+        """ Apply func to chromosomes. If no indlist is supplied, apply to all
+            individuals.
+        """
+        ls=[]
+
+        if indlist is None:
+                inds=self.indivs
+        else:
+                inds=indlist
+
+        for ind in inds:
+                ls.append(ind.applychrom(func))
+        return ls
+
+    def flatpop(self,ls):
+        """returns a flattened version of a population-wide list at the tract level"""
+        flatls=[]
+        for indiv in ls:
+            for chrom in indiv:
+                for copy in chrom:
+                    flatls.extend(copy)
+        return flatls
+
+    # TODO Why is this named using the double-underscore notation?
+    def __collectpop__(self, flatdat):
+        """ Returns a dictionary sorted by the first item in a list. Used in
+            plot_tractlength.
+        """
+        dic = {}
+        for datum in flatdat:
+            try:
+                dic[datum[0]].append(datum[1:])
+            except KeyError:
+                dic[datum[0]] = [datum[1:]]
+        for key in dic.keys():
+            dic[key] = np.array(dic[key])
+        return dic
+
+    def merge_ancestries(self, ancestries, newlabel):
+        """ Treats ancestries in label list "ancestries" as a single population
+            with label "newlabel". Adjacent tracts of the new ancestry are
+            merged. """
+        f = lambda i: i.merge_ancestries(ancestries, newlabel)
+        self.applychrom(f)
+
+    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None,
+            split_count=1):
+        """ tol is the tolerance for full chromosomes: sometimes there are
+            small issues at the edges of the chromosomes. If a segment is
+            within tol Morgans of the full chromosome, it counts as a full
+            chromosome note that we return an extra bin with the complete
+            chromosome bin, so that we have one more data point than we have
+            bins.
+            indlist is the individuals for which we want the tractlength. To
+            bootstrap over individuals, provide a bootstrapped list of
+            individuals.
+        """
+        # Figure out whether we're dealing with the set of individuals
+        # represented by this population or the one contained in the indlist
+        # parameter.
+        pop = self if indlist is None else population(indlist)
+
+        if split_count > 1:
+            # If we're doing a split analysis, then break up the population
+            # into groups, and just do get_global_tractlengths on the groups.
+            ps = pop.split_by_props(split_count)
+            bindats = [p.get_global_tractlengths(npts, tol) for p in ps]
+            bins_list, dats_list = zip(*bindats)
+            # the bins will all be the same, so we can throw out the
+            # duplicates.
+            return bins_list[0], dats_list
+
+        bins = np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
+
+        dat = pop.applychrom(chrom.tractlengths)
+        flatdat = self.flatpop(dat)
+        bypop=self.__collectpop__(flatdat)
+
+        dat={}
+        for key, poplen in bypop.iteritems():
+            # extract full length tracts
+            nonfulls = np.array(
+                    [item
+                        for item in poplen
+                        if (item[0] < item[1]-tol)])
+
+            hdat = pylab.histogram(nonfulls[:, 0], bins=bins)
+            dat[key] = list(hdat[0])
+            # append the number of fulls
+            dat[key].append(len(poplen)-len(nonfulls))
+
+        return bins, dat
+
+    def bootinds(self,seed):
+        """ Return a bootstrapped list of individuals in the population. Use
+            with get_global_tractlength inds=... to get a bootstrapped
+            sample.
+            """
+        np.random.seed(seed=seed)
+        return np.random.choice(self.indivs,size=len(self.indivs))
+
+    def get_global_tractlength_table(self, lenbound):
+        """ Calculates the fraction of the genome covered by ancestry tracts of
+            different lengths, spcified by lenbound (which must be sorted). """
+        dat = self.applychrom(chrom.tractlengths)
+        flatdat = self.flatpop(dat)
+        bypop = self.__collectpop__(flatdat)
+
+        bins = lenbound
+        # np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
+
+        import bisect
+        dat = {} # np.zeros((len(bypop),len(bins)+1)
+        for key, poplen in bypop.iteritems():
+            # extract full length tracts
+            dat[key] = np.zeros(len(bins)+1)
+            nonfulls = np.array([item
+                        for item in poplen
+                        if (item[0] != item[1])])
+            for item in nonfulls:
+                pos = bisect.bisect_left(bins, item[0])
+                dat[key][pos] += item[0]/self.nind/np.sum(self.Ls)/2.
+
+        return (bins, dat)
+
+    def get_mean_ancestry_proportions(self, ancestries):
+        """ Get the mean ancestry proportion averaged across individuals in
+            the population.
+        """
+        return map(np.mean, zip(*self.get_means(ancestries)))
+
+    def get_means(self, ancestries):
+        """ Get the mean ancestry proportion (only among ancestries in
+            ancestries) for all individuals. """
+        return [ind.ancestryProps(ancestries) for ind in self.indivs]
+
+    def get_meanvar(self, ancestries):
+        byind = self.get_means(ancestries)
+        return np.mean(byind, axis=0), np.var(byind, axis=0)
+
+    def getMeansByChrom(self, ancestries):
+        """ Get the ancestry proportions in each individual of the population
+            for each chromosome.
+        """
+        return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
+
+    # def get_assortment_variance(self,ancestries):
+    #     ""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)""
+
+    # ws=np.array(self.Ls)/np.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
+    #     arr=np.array(self.getMeansByChrom(ancestries))
+    # weighted mean by individual
+    # departure from the mean
+    #     nchr=arr.shape[2]
+    #     vars=[]
+    #     for i in range(len(ancestries)):
+    #         pl=np.dot(arr[:,i,:], ws )
+
+    #         aroundmean=arr[:,i,:]-np.dot(pl.reshape(self.nind,1),np.ones((1,nchr)))
+    #         vars.append((np.mean(aroundmean**2/(1./ws-1),axis=1)).mean())
+    # the unbiased estimator for the case where the variance is
+    # inversely proportional to the weight. First calculate by
+    # individual, then the mean over all individuals.
+
+    #     return vars
+
+    def get_variance(self, ancestries):
+        """ Ancestries is a set of ancestry label. Calculates the total variance
+            in ancestry proportions, and the genealogy variance, and the
+            assortment variance. (corresponds to the mean uncertainty about the
+            proportion of genealogical ancestors, given observed ancestry
+            patterns). """
+
+        # the weights, corresponding (approximately) to the inverse variances
+        ws = np.array(self.Ls)/np.sum(self.Ls)
+        arr = np.array(self.getMeansByChrom(ancestries))
+        # weighted mean by individual
+        # departure from the mean
+        nchr = arr.shape[2]
+        assort_vars = []
+        tot_vars = []
+        gen_vars = []
+        for i in range(len(ancestries)):
+            pl = np.dot(arr[:, i, :], ws )
+            tot_vars.append(np.var(pl))
+            aroundmean = arr[:, i, :] - np.dot(
+                    pl.reshape(self.nind, 1), np.ones((1, nchr)))
+            # the unbiased estimator for the case where the variance is
+            # inversely proportional to the weight. First calculate by
+            # individual, then the mean over all individuals.
+            assort_vars.append(
+                    (np.mean(aroundmean**2/(1./ws-1), axis=1)).mean())
+            gen_vars.append(tot_vars[-1]-assort_vars[-1])
+        return tot_vars, gen_vars, assort_vars
+
+    def plot_next(self):
+        self.indivs[self.currentplot].canvas.pack_forget()
+        if(self.currentplot < self.nind-1):
+            self.currentplot += 1
+        return self.plot_indiv()
+
+    def plot_previous(self):
+        self.indivs[self.currentplot].canvas.pack_forget()
+        if(self.currentplot > 0):
+            self.currentplot -= 1
+        return self.plot_indiv()
+
+    def plot_indiv(self):
+        self.win.title("individual %d " % (self.currentplot+1,))
+        self.canv = self.indivs[self.currentplot].plot(
+                self.colordict, win=self.win)
+
+    def plot(self, colordict):
+        self.colordict = colordict
+        self.currentplot = 0
+        self.win = Tk.Tk()#self.indivs[self.currentplot].plot(self.colordict)
+        printbutton = Tk.Button(self.win, text="save to ps", command=self.save)
+        printbutton.pack()
+
+        p = Tk.Button(self.win, text="Plot previous",
+                command=self.plot_previous)
+        p.pack()
+
+        b = Tk.Button(self.win, text="Plot next", command=self.plot_next)
+        b.pack()
+        self.plot_indiv()
+        Tk.mainloop()
+
+    def plot_chromosome(self, i, colordict, win=None):
+        """plot a single chromosome across individuals"""
+        self.colordict = colordict
+        ls = self.list_chromosome(i)
+        if (win is None):
+            win = Tk.Tk()
+            win.title("chromosome %d" % (i,))
+        self.chro_canvas = Tk.Canvas(win, width=250, height=self.nind*30,
+                bg='white')
+
+        for j in xrange(len(ls)):
+            ls[j].plot(self.chro_canvas, colordict, height=j*.25)
+
+        self.chro_canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
+        Tk.mainloop()
 
     def plot_ancestries(self, chrom=0, npts=100,
             colordict={"CEU": 'blue', "YRI": 'red'}, cutoff=.0):
@@ -719,49 +953,6 @@ class population:
         # pylab.title("Chromosome %d" % (chrom+1,))
         pylab.axis([0,dat[0][-1],0,150])
 
-    def applychrom(self,func, indlist=None):
-            """apply func to chromosomes. If no indlist is supplied, apply to all individuals"""
-            ls=[]
-
-            if indlist is None:
-                    inds=self.indivs
-            else:
-                    inds=indlist
-
-            for ind in inds:
-                    ls.append(ind.applychrom(func))
-            return ls
-
-    def flatpop(self,ls):
-            """returns a flattened version of a population-wide list at the tract level"""
-            flatls=[]
-            for indiv in ls:
-                for chrom in indiv:
-                    for copy in chrom:
-                        flatls.extend(copy)
-            return flatls
-
-    # TODO Why is this named using the double-underscore notation?
-    def __collectpop__(self, flatdat):
-        """ Returns a dictionary sorted by the first item in a list. Used in
-            plot_tractlength. """
-        dic = {}
-        for datum in flatdat:
-            try:
-                dic[datum[0]].append(datum[1:])
-            except KeyError:
-                dic[datum[0]] = [datum[1:]]
-        for key in dic.keys():
-            dic[key] = np.array(dic[key])
-        return dic
-
-    def merge_ancestries(self, ancestries, newlabel):
-        """ Treats ancestries in label list "ancestries" as a single population
-            with label "newlabel". Adjacent tracts of the new ancestry are
-            merged. """
-        f = lambda i: i.merge_ancestries(ancestries, newlabel)
-        self.applychrom(f)
-
     def plot_global_tractlengths(self, colordict, npts=40, legend=True):
         dat = self.applychrom(chrom.tractlengths)
         flatdat = self.flatpop(dat)
@@ -777,155 +968,25 @@ class population:
         if legend:
             pylab.legend()
 
-    def get_global_tractlengths(self,npts=20,tol=0.01,indlist=None):
-        """ tol is the tolerance for full chromosomes: sometimes there are
-            small issues at the edges of the chromosomes. If a segment is
-            within tol Morgans of the full chromosome, it counts as a full
-            chromosome note that we return an extra bin with the complete
-            chromosome bin, so that we have one more data point than we have
-            bins.
-            indlist is the individuals for which we want the tractlength. To
-            bootstrap over individuals, provide a bootstrapped list of
-            individuals.
-            """
-        if indlist is None:
-            inds=self.indivs
-        else:
-            inds=indlist
-
-        dat=self.applychrom(chrom.tractlengths, indlist=indlist)
-        flatdat=self.flatpop(dat)
-        bypop=self.__collectpop__(flatdat)
-
-        bins=np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
-        dat={}
-        for key, poplen in bypop.iteritems():
-            # extract full length tracts
-            nonfulls = np.array(
-                    [item
-                        for item in poplen
-                        if (item[0] < item[1]-tol)])
-
-            hdat = pylab.histogram(nonfulls[:, 0], bins=bins)
-            dat[key] = list(hdat[0])
-            # append the number of fulls
-            dat[key].append(len(poplen)-len(nonfulls))
-
-        return (bins,dat)
-
-    def bootinds(self,seed):
-        """ Return a bootstrapped list of individuals in the population. Use
-            with get_global_tractlength inds=... to get a bootstrapped
-            sample.
-            """
-        np.random.seed(seed=seed)
-        return np.random.choice(self.indivs,size=len(self.indivs))
-
-    def get_global_tractlength_table(self, lenbound):
-        """ Calculates the fraction of the genome covered by ancestry tracts of
-            different lengths, spcified by lenbound (which must be sorted). """
-        dat = self.applychrom(chrom.tractlengths)
-        flatdat = self.flatpop(dat)
-        bypop = self.__collectpop__(flatdat)
-
-        bins = lenbound
-        # np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
-
-        import bisect
-        dat = {} # np.zeros((len(bypop),len(bins)+1)
-        for key, poplen in bypop.iteritems():
-            # extract full length tracts
-            dat[key] = np.zeros(len(bins)+1)
-            nonfulls = np.array([item
-                        for item in poplen
-                        if (item[0] != item[1])])
-            for item in nonfulls:
-                pos = bisect.bisect_left(bins, item[0])
-                dat[key][pos] += item[0]/self.nind/np.sum(self.Ls)/2.
-
-        return (bins, dat)
-
-    def get_means(self, ancestries):
-        """ Get the mean ancestry proportion (only among ancestries in
-            ancestries) for all individuals. """
-        return [ind.ancestryProps(ancestries) for ind in self.indivs]
-
-    def get_meanvar(self, ancestries):
-        byind = self.get_means(ancestries)
-        return np.mean(byind, axis=0), np.var(byind, axis=0)
-
-    def getMeansByChrom(self, ancestries):
-        return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
-
-    # def get_assortment_variance(self,ancestries):
-    #     ""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)""
-
-    # ws=np.array(self.Ls)/np.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
-    #     arr=np.array(self.getMeansByChrom(ancestries))
-    # weighted mean by individual
-    # departure from the mean
-    #     nchr=arr.shape[2]
-    #     vars=[]
-    #     for i in range(len(ancestries)):
-    #         pl=np.dot(arr[:,i,:], ws )
-
-    #         aroundmean=arr[:,i,:]-np.dot(pl.reshape(self.nind,1),np.ones((1,nchr)))
-    #         vars.append((np.mean(aroundmean**2/(1./ws-1),axis=1)).mean())
-    # the unbiased estimator for the case where the variance is
-    # inversely proportional to the weight. First calculate by
-    # individual, then the mean over all individuals.
-
-    #     return vars
-
-    def get_variance(self, ancestries):
-        """ Ancestries is a set of ancestry label. Calculates the total variance
-            in ancestry proportions, and the genealogy variance, and the
-            assortment variance. (corresponds to the mean uncertainty about the
-            proportion of genealogical ancestors, given observed ancestry
-            patterns). """
-
-        # the weights, corresponding (approximately) to the inverse variances
-        ws = np.array(self.Ls)/np.sum(self.Ls)
-        arr = np.array(self.getMeansByChrom(ancestries))
-        # weighted mean by individual
-        # departure from the mean
-        nchr = arr.shape[2]
-        assort_vars = []
-        tot_vars = []
-        gen_vars = []
-        for i in range(len(ancestries)):
-            pl = np.dot(arr[:, i, :], ws )
-            tot_vars.append(np.var(pl))
-            aroundmean = arr[:, i, :] - np.dot(
-                    pl.reshape(self.nind, 1), np.ones((1, nchr)))
-            # the unbiased estimator for the case where the variance is
-            # inversely proportional to the weight. First calculate by
-            # individual, then the mean over all individuals.
-            assort_vars.append(
-                    (np.mean(aroundmean**2/(1./ws-1), axis=1)).mean())
-            gen_vars.append(tot_vars[-1]-assort_vars[-1])
-        return tot_vars, gen_vars, assort_vars
-
 class demographic_model():
-    def __init__(self, mig,max_remaining_tracts=10**-5,max_morgans=100):
+    def __init__(self, mig, max_remaining_tracts=1e-5, max_morgans=100):
         """ Migratory model takes as an input a vector containing the migration
             proportions over the last generations. Each row is a time, each
             column is a population. row zero corresponds to the current
             generation. The migration rate at the last generation (time $T$) is
             the "founding generation" and should sum up to 1. Assume that
-            non-admixed individuals have been removed. 
-            
-            max_remaining_tracts is the proportion of tracts that are allowed to be 
-            incomplete after cutoff Lambda
-            (Appendix 2 in Gravel: doi: 10.1534/genetics.112.139808) 
+            non-admixed individuals have been removed.
+
+            max_remaining_tracts is the proportion of tracts that are allowed
+            to be incomplete after cutoff Lambda
+            (Appendix 2 in Gravel: doi: 10.1534/genetics.112.139808)
             cutoff=1-\sum(b_i)
-            
-            max_morgans is used to impose a cutoff to the number of Markov transitions. 
-            If the simulated morgan lengths of tracts in an infinite genome is more than 
-            max_morgans, issue a warning and stop generating new transitions
-            
-            
-            """
+
+            max_morgans is used to impose a cutoff to the number of Markov
+            transitions.  If the simulated morgan lengths of tracts in an
+            infinite genome is more than max_morgans, issue a warning and stop
+            generating new transitions
+        """
         small=1e-10
         self.mig = mig
         (self.ngen, self.npop) = mig.shape
@@ -956,6 +1017,7 @@ class demographic_model():
         if (mig[:-1] == 1).any():
             print "warning: population was completely replaced after "\
                     "founding event"
+
         # identify states where migration occurred as these are the relevant
         # states in our Markov model. Each state is a tuple of the form:
         # (generation, population)
@@ -1034,7 +1096,7 @@ class demographic_model():
         self.__uniformizemat__()
         self.ndists = []
         for i in range(self.npops):
-            self.ndists.append(self.popNdist(i)) #the distribution of the number of steps 
+            self.ndists.append(self.popNdist(i)) #the distribution of the number of steps
             #required to reach either the length of the genome, or equilibrium
         self.switchdensity()
 
@@ -1065,10 +1127,10 @@ class demographic_model():
         lmat = len(self.mat)
         # identify the highest non-self total transition rate
         outgoing = (self.mat - np.diag(self.mat.diagonal())).sum(axis=1)
-		
+
         self.maxrate = outgoing.max() #max outgoing rate
-        #reset the self-transition rate. We forget about the prior self-transition rates, 
-        #as they do not matter for the trajectories. 
+        #reset the self-transition rate. We forget about the prior self-transition rates,
+        #as they do not matter for the trajectories.
         for i in range(lmat):
             self.unifmat[i, i] = self.maxrate-outgoing[i]
         self.unifmat /= self.maxrate
@@ -1091,32 +1153,32 @@ class demographic_model():
         shortmat = self.unifmat[
                 np.meshgrid(self.stateINpop[pop],
                     self.stateINpop[pop])].transpose()
-        
+
         # calculate the amount that fall out of the state
         escapes = 1 - shortmat.sum(axis=1)
         # decide on the number of iterations
-        
-        
-        
+
+
+
         #if the expected length of tracts becomes more than maxmorgans,
-        #bail our and issue warning. 
+        #bail our and issue warning.
         nit = int(self.max_morgans* self.maxrate)
 
         nDistribution = []
-        for i in range(nit): #nit is the max number of iterations. 
-            #will exit loop earlier if tracts are all complete. 
+        for i in range(nit): #nit is the max number of iterations.
+            #will exit loop earlier if tracts are all complete.
             nDistribution.append(np.dot(escapes, newrest))
             newrest = np.dot(newrest, shortmat)
-            if newrest.sum()<self.max_remaining_tracts:#we stop when there are at most 
-            #we request that the proportions of tracts that are still 
+            if newrest.sum()<self.max_remaining_tracts:#we stop when there are at most
+            #we request that the proportions of tracts that are still
             #incomplete be at most self.cutoff tracts left
                 break
         if newrest.sum()>self.max_remaining_tracts:
             print "Warning: After %d time steps, %f of tracts are incomplete" % \
-                (nit,newrest.sum()) 
-            print "This can happen when one population has really long tracts." 
-                
-        
+                (nit,newrest.sum())
+            print "This can happen when one population has really long tracts."
+
+
         nDistribution.append(newrest.sum())
         return nDistribution
 
@@ -1240,14 +1302,16 @@ class demographic_model():
         # bins=np.arange(0,self.maxLen+1./2./float(npts),self.maxLen/float(npts))
         ll = 0
         if np.sum(data)>1./self.max_remaining_tracts:
-            print "warning: the convergence criterion max_remining_tracts may be too high\
-            , TRACTS calculates the distribution of tract lengths from the shortest to the \
-            longest, and uses approximations after a fraction 1-max_remining_tracts of \
-            all tracts have been accounted for. Since we have a total of ", np.sum(data),\
-            " we'd be underestimating the length of the longest ",np.sum(data)* \
-            self.max_remaining_tracts, " tracts."
-            
-            
+            print "warning: the convergence criterion max_remining_tracts", \
+                    "may be too high, tracts calculates the distribution", \
+                    "of tract lengths from the shortest to the longest,", \
+                    "and uses approximations after a fraction", \
+                    "1-max_remining_tracts of all tracts have been", \
+                    "accounted for. Since we have a total of", \
+                    np.sum(data), "we'd be underestimating the length of", \
+                    "the longest ", \
+                    np.sum(data) * self.max_remaining_tracts, " tracts."
+
         for pop in range(self.npops):
             models = self.expectperbin(Ls, pop, bins)
             for binnum in range(cutoff, len(bins)-1):
@@ -1256,8 +1320,6 @@ class demographic_model():
                         dat*np.log(nsamp*models[binnum]) - \
                         gammaln(dat + 1.)
         return ll
-
-
 
     def loglik_biascorrect(self, bins, Ls, data, nsamp, cutoff=0,
             biascorrect=True):
@@ -1332,6 +1394,107 @@ class demographic_model():
             pylab.plot(
                     100*np.array(bins),
                     nsamp*np.array(self.expectperbin(Ls, 0, bins)))
+
+class composite_demographic_model:
+    """ The class of demographic models that account for variance in the number
+        of ancestors of individuals of the underlying population.
+
+        Specifically, this is the demographic model constructed by the
+        "multifracs" family of optimization routines.
+
+        The expected tract counts per bin in the composite demographic model is
+        simply a component-wise sum of the expected tract counts per bin across
+        the component demographic models.
+
+        The log-likelihood of the composite demographic model is the computed
+        based on the combined expected tract counts per bin.
+    """
+    def __init__(self, model_function, parameters, proportions_list):
+        """ Construct a composite demographic model, in which we consider split
+            groups of individuals.
+
+            Arguments;
+                model_function (callable):
+                    A function that produces a migration matrix given some
+                    model parameters and fixed ancestry proportions.
+                parameters:
+                    The parameters given to the model function when the
+                    component demographic models are built.
+                proportions_list:
+                    The lists of ancestry proportions used to construc each
+                    component demographic model.
+        """
+        self.model_function = model_function
+        self.parameters = parameters
+        self.proportions_list = proportions_list
+
+        # build the component models
+        self.models = [
+                demographic_model(model_function(parameters, props))
+                for props in proportions_list]
+
+        self.npops = self.models[0].npops
+
+    def loglik(self, bins, Ls, data_list, nsamp_list, cutoff=0):
+        """ Evaluate the log-likelihood of the composite demographic model.
+
+            To compute the log-likelihood, we combine the expected count of
+            tracts per bin in each of the component demographic models into the
+            composite expected counts per bin. The expected counts per bin are
+            compared with the sum across subgroups of the actual counts per
+            bin. This gives a likelihood that is directly comparable with the
+            likelihoods of the component demographic models.
+
+            See demographic_model.loglik for more information about the
+            specifics of the log-likelihood calculation.
+        """
+        maxlen = max(Ls)
+        data = sum(np.array(d) for d in data_list)
+
+        let = lambda *xs: xs[-1](*xs[:-1])
+
+        # for each type of ancestry in this model
+        return sum(
+                let(
+                    self.expectperbin(Ls, popnum, bins, nsamp_list=nsamp_list),
+                    lambda expects: sum(
+                        let(
+                            data[popnum][binnum],
+                            lambda dat: -expects[binnum] + \
+                                    dat * np.log(expects[binnum]) - \
+                                    gammaln(dat + 1.))
+                        for binnum in xrange(cutoff, len(bins)-1)))
+                    for popnum in xrange(self.npops))
+
+    def expectperbin(self, Ls, pop, bins, nsamp_list=None):
+        """ A wrapper for demographic_model.expectperbin that yields a
+            component-wise sum of the counts per bin in the underlying
+            demographic models.
+            Since the counts given by the demographic_model.expectperbin are
+            normalized, performing a simple sum of the counts is not
+            particularly meaningful; it throws away some of the structure
+            that we have gained by using a composite model.
+            Hence, the nsamp_list parameter allows for specifying the
+            count of individuals in each of the groups represented by this
+            composite_demographic_model, which is then used to rescale the
+            counts reported by the expectperbin of the compoennt demographic
+            models.
+        """
+        if nsamp_list is None:
+            nsamp_list = [1 for _ in xrange(len(self.proportions_list[0]))]
+
+        return sum(
+                nsamp * np.array(mod.expectperbin(Ls, pop, bins))
+                for nsamp, mod in zip(nsamp_list, self.models))
+
+    def migs(self):
+        """ Get the list of migration matrices of the component demographic
+            models.
+            This method merely projects the "mig" attribute from the component
+            models.
+        """
+        return [m.mig for m in self.models]
+
 
 def plotmig(mig,
         colordict={'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange',
@@ -1421,7 +1584,7 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         print "error: fixed parameters not implemented in optimize"
         raise
 
-    
+
 
     # p0 = _project_params_down(p0, fixed_params)
     outputs = scipy.optimize.fmin_bfgs(_object_func,
@@ -1588,7 +1751,6 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
             iter=maxiter, acc=1e-4, epsilon=1e-4)
 
     return outputs
-
     # xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
     # xopt = _project_params_up(np.exp(xopt), fixed_params)
     #
@@ -1813,6 +1975,95 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
 
     return xopt
 
+def optimize_cob_multifracs(
+        p0, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
+        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
+        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=[],
+        fixed_params=None, ll_scale=1):
+    """
+    Optimize params to fit model to data using the cobyla method.
+
+    This optimization method works well when we start reasonably close to the
+    optimum. It is best at burrowing down a single minimum.
+
+
+    It should also perform better when parameters range over scales.
+
+    p0: Initial parameters.
+    data: Spectrum with data.
+    model_function: Function to evaluate model spectrum. Should take arguments
+                    (params, pts)
+    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
+
+    verbose: If > 0, print optimization status every <verbose> steps.
+    flush_delay: Standard output will be flushed once every <flush_delay>
+                 minutes. This is useful to avoid overloading I/O on clusters.
+    epsilon: Step-size to use for finite-difference derivatives.
+    gtol: Convergence criterion for optimization. For more info,
+          see help(scipy.optimize.fmin_bfgs)
+
+    maxiter: Maximum iterations to run for.
+    full_output: If True, return full outputs as in described in
+                 help(scipy.optimize.fmin_bfgs)
+    func_args: Additional arguments to model_func. It is assumed that
+               model_func's first argument is an array of parameters to
+               optimize, that its second argument is an array of sample sizes
+               for the sfs, and that its last argument is the list of grid
+               points to use in evaluation.
+    fixed_params: If not None, should be a list used to fix model parameters at
+                  particular values. For example, if the model parameters
+                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+                  will hold nu1=0.5 and m=2. The optimizer will only change
+                  T and m. Note that the bounds lists must include all
+                  parameters. Optimization will fail if the fixed values
+                  lie outside their bounds. A full-length p0 should be passed
+                  in; values corresponding to fixed parameters are ignored.
+    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
+              too large. (This appears to be a flaw in the scipy
+              implementation.) To overcome this, pass ll_scale > 1, which will
+              simply reduce the magnitude of the log-likelihood. Once in a
+              region of reasonable likelihood, you'll probably want to
+              re-optimize with ll_scale=1.
+    """
+    # Now we iterate over each set of ancestry proportions in the list, and
+    # construct the outofbounds functions and the model functions, storing
+    # each into the empty lists defined above.
+    # construct the out of bounds function.
+    def outfun(p0, fracs, verbose=False):
+        # cobyla uses the constraint function and feeds it the reduced
+        # parameters. Hence we have to project back up first
+        x0 = _project_params_up(p0, fixed_params)
+        if verbose:
+            print "p0", p0
+            print "x0", x0
+            print "fracs", fracs
+            print "res", outofbounds_fun(p0, fracs)
+
+        return outofbounds_fun(x0, fracs)
+
+    # construct the objective function. The input x is wrapped in the
+    # function r constructed above.
+    objfun = lambda x: _object_func_multifracs(
+            x, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
+            outofbounds_fun=outfun, cutoff=cutoff, verbose=verbose,
+            flush_delay=flush_delay, func_args=func_args,
+            fixed_params=fixed_params)
+
+    composite_outfun = lambda x: min(
+            outfun(x, frac) for frac in fracs_list)
+
+    p0 = _project_params_down(p0, fixed_params)
+    # print "p0",p0
+    outputs = scipy.optimize.fmin_cobyla(
+            objfun, p0, composite_outfun, rhobeg=.01, rhoend=.001,
+            maxfun=maxiter)
+    # print "outputs", outputs
+    xopt = _project_params_up(outputs, fixed_params)
+    # print "xopt",xopt
+
+    return xopt
+
 def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
         searchvalues, outofbounds_fun=None, cutoff=0, verbose=0,
         flush_delay=0.5,  full_output=True, func_args=[], fixed_params=None,
@@ -1900,6 +2151,95 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
     # print "xopt",xopt
     return xopt, outputs[1:]
 
+def optimize_brute_multifracs(
+        bins, Ls, data_list, nsamp_list, model_func, fracs_list, searchvalues,
+        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
+        full_output=True, func_args=[], fixed_params=None, ll_scale=1):
+    """
+    Optimize params to fit model to data using the brute force method.
+
+    This optimization method works well when we start reasonably close to the
+    optimum. It is best at burrowing down a single minimum.
+
+
+    It should also perform better when parameters range over scales.
+
+    p0: Initial parameters.
+    data: Spectrum with data.
+    model_function: Function to evaluate model spectrum. Should take arguments
+                    (params, pts)
+    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
+
+    verbose: If > 0, print optimization status every <verbose> steps.
+    flush_delay: Standard output will be flushed once every <flush_delay>
+                 minutes. This is useful to avoid overloading I/O on clusters.
+    epsilon: Step-size to use for finite-difference derivatives.
+    gtol: Convergence criterion for optimization. For more info,
+          see help(scipy.optimize.fmin_bfgs)
+
+
+    full_output: If True, return full outputs as in described in
+                 help(scipy.optimize.fmin_bfgs)
+    func_args: Additional arguments to model_func. It is assumed that
+               model_func's first argument is an array of parameters to
+               optimize, that its second argument is an array of sample sizes
+               for the sfs, and that its last argument is the list of grid
+               points to use in evaluation.
+    fixed_params: If not None, should be a list used to fix model parameters at
+                  particular values. For example, if the model parameters
+                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+                  will hold nu1=0.5 and m=2. The optimizer will only change
+                  T and m. Note that the bounds lists must include all
+                  parameters. Optimization will fail if the fixed values
+                  lie outside their bounds. A full-length p0 should be passed
+                  in; values corresponding to fixed parameters are ignored.
+    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
+              too large. (This appears to be a flaw in the scipy
+              implementation.) To overcome this, pass ll_scale > 1, which will
+              simply reduce the magnitude of the log-likelihood. Once in a
+              region of reasonable likelihood, you'll probably want to
+              re-optimize with ll_scale=1.
+    """
+    # construct the out of bounds function.
+    def outfun(p0, fracs, verbose=False):
+        # cobyla uses the constraint function and feeds it the reduced
+        # parameters. Hence we have to project back up first
+        x0 = _project_params_up(p0, fixed_params)
+        if verbose:
+            print "p0", p0
+            print "x0", x0
+            print "fracs", fracs
+            print "res", outofbounds_fun(p0, fracs)
+
+        return outofbounds_fun(x0, fracs)
+
+    # construct a wrapper function that will tuple up its argument in the case
+    # where searchvalues has length 1; in that case, the optimizer expects a
+    # tuple (it always wants tuples), but the input will be a single float.
+    # Hence why we need to tuple it up.
+    # The wrapper function is called on the x given as input to
+    # _object_func_multifracs
+    print "searchvalues", searchvalues
+
+    r = (lambda x: x) \
+            if len(searchvalues) > 1 else \
+            (lambda x: (float(x),))
+
+    # construct the objective function. The input x is wrapped in the
+    # function r constructed above.
+    objfun = lambda x: _object_func_multifracs(r(x), bins, Ls, data_list,
+            nsamp_list, model_func, fracs_list, outofbounds_fun=outfun,
+            cutoff=cutoff, verbose=verbose, flush_delay=flush_delay,
+            func_args=func_args, fixed_params=fixed_params)
+
+    print "foutput", full_output
+    outputs = scipy.optimize.brute(objfun, searchvalues, full_output=full_output)
+    print "outputs", outputs
+    xopt = _project_params_up(outputs[0], fixed_params)
+    # print "xopt",xopt
+    return xopt, outputs[1:]
+
 #: Counts calls to object_func
 _counter = 0
 # define the objective function for when the ancestry porportions are specified.
@@ -1935,10 +2275,6 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
 
     return -result
 
-#: Counts calls to object_func
-_counter = 0
-# define the objective function for when the ancestry porportions are
-# specified.
 def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
         func_args=[],fixed_params=None):
@@ -1975,6 +2311,69 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func,
         print "No bound function defined"
         mod=demographic_model(model_func(params_up))
         mresult=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff)
+
+    if True:#(verbose > 0) and (_counter % verbose == 0):
+        param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params_up]))
+        print '%-8i, %-12g, %s' % (_counter, mresult, param_str)
+        # Misc.delayed_flush(delay=flush_delay)
+
+    return -mresult
+
+#: Counts calls to object_func
+_counter = 0
+# define the objective function for when the ancestry porportions are
+# specified.
+def _object_func_multifracs(
+        params, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
+        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
+        func_args=[],fixed_params=None):
+    # this function will be minimized. We first calculate likelihoods (to be
+    # maximized), and return minus that.
+    print "evaluating at params",params
+    _out_of_bounds_val = -1e32
+    global _counter
+    _counter += 1
+
+    # Deal with fixed parameters
+    params_up = _project_params_up(params, fixed_params)
+
+    mkmodel = lambda: composite_demographic_model(
+            model_func, params, fracs_list)
+
+    if outofbounds_fun is not None:
+        # outofbounds returns  a negative value to signify out-of-boundedness.
+        # Compute the out of bounds function for each fraction and take the
+        # minimum as the overall out of bounds value.
+        oob = min(outofbounds_fun(params, fracs)
+                for fracs in fracs_list)
+
+        if oob < 0:
+            # we want bad functions to give very low likelihoods, and worse
+            # likelihoods when the function is further out of bounds.
+            mresult = -(oob-1)*_out_of_bounds_val
+            # challenge: if outofbounds is very close to 0, this can return a
+            # reasonable likelihood. When oob is negative, we take away an
+            # extra 1 to make sure this cancellation does not happen.
+        else:
+            try:
+                comp_model = mkmodel()
+            except ValueError:
+                print "valueError for params ", params
+
+                print "res was", outofbounds_fun(params,verbose=True)
+                print "mig was" , model_func(params)
+                # mresult=min(-outofbounds_fun(params)*_out_of_bounds_val,-1e-8)
+                raise ValueError
+
+            sys.stdout.flush()
+
+            mresult = comp_model.loglik(bins, Ls, data_list, nsamp_list,
+                cutoff=cutoff)
+    else:
+        print "No bound function defined"
+        comp_model = mkmodel()
+
+        mresult = comp_model.loglik(bins, Ls, data_list, nsamp_list)
 
     if True:#(verbose > 0) and (_counter % verbose == 0):
         param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params_up]))
