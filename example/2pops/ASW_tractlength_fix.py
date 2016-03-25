@@ -2,7 +2,9 @@
 
 import sys
 sys.path.append("../../")
-import tracts
+
+from core import tracts as tracts
+
 import pp
 import pp_px
 import numpy

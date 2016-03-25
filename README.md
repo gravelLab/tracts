@@ -16,11 +16,13 @@ Installation
 ============
 
 Copy all files and folders locally (See "Download zip" on the github repository
-page)
+page), and run the following command
 
-"tracts.py" is a python module. All its functions can be used from the python
+``python setup.py install``
+
+<!-- "tracts.py" is a python module. All its functions can be used from the python
 interpreter or ipython after it has been imported. It should work
-out-of-the-box once you have python, and numpy, pylab, scipy installed.
+out-of-the-box once you have python, and numpy, pylab, scipy installed. -->
 
 If you are an academic, I recommend installing the Anaconda
 (https://store.continuum.io/cshop/academicanaconda) distribution. Make sure not
@@ -35,11 +37,11 @@ along the genome.  The file has 2 extra columns for the cM positions of the
 segments. There are two input files per individuals (for each haploid genome
 copy).
 
-    chrom		begin		end			assignment	cmBegin	cmEnd
-    chr13		0			18110261	UNKNOWN	0.0			0.19
-    chr13		18110261	28539742	YRI			0.19		22.193
-    chr13		28539742	28540421	UNKNOWN	22.193		22.193
-    chr13		28540421	91255067	CEU		22.193		84.7013
+    chrom       begin       end         assignment  cmBegin cmEnd
+    chr13       0           18110261    UNKNOWN 0.0         0.19
+    chr13       18110261    28539742    YRI         0.19        22.193
+    chr13       28539742    28540421    UNKNOWN 22.193      22.193
+    chr13       28540421    91255067    CEU     22.193      84.7013
 
 Driver File
 ===========
@@ -55,8 +57,8 @@ Output
 
 The 3-population exemple files produce 5 output files, e.g.
 
-     boot0_-252.11_bins	boot0_-252.11_liks	boot0_-252.11_ord	boot0_-252.11_pred
-     boot0_-252.11_dat	boot0_-252.11_mig	boot0_-252.11_pars
+     boot0_-252.11_bins boot0_-252.11_liks  boot0_-252.11_ord   boot0_-252.11_pred
+     boot0_-252.11_dat  boot0_-252.11_mig   boot0_-252.11_pars
 
 
 boot0 means that this is bootstrap iteration 0, which in the convention used

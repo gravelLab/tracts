@@ -3,7 +3,8 @@
 import sys
 sys.path.append("../..")
                 #path to tracts, may have to adjust if the file is moved
-import tracts
+                
+from core import tracts as tracts
 import pp
 import pp_px
 import numpy

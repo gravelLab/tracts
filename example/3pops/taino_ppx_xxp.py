@@ -5,7 +5,7 @@ import sys
 import scipy
 tractspath = "../.."  # the path to tracts if not in your default pythonpath
 sys.path.append(tractspath)
-import tracts
+from core import tracts as tracts
 import models
 import numpy
 import pylab

@@ -7,7 +7,9 @@ import sys, os, json
 sys.path.append('../..')
 sys.path.append('..')
 
-import tracts, pp, pp_px
+import pp, pp_px
+
+from core import tracts as tracts
 
 import FancyPlot as fp
 import numpy as np
