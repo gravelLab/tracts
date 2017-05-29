@@ -253,7 +253,7 @@ class chrom:
                 while(i + j < len(self.tracts) - 1):
                     j += 1
                     if(self.tracts[i + j].label == "UNKNOWN"):
-                         self.tracts.pop(i + j)
+                         self.tracts.pop(i + j)  # Remove the unknown segment
                          j -= 1
                     else:
                          midpoint = (self.tracts[i+j].start
@@ -265,12 +265,13 @@ class chrom:
         self._smooth()
 
     def tractlengths(self):
-        """ Gets the distribution of tract lengths. Make sure that proper
+        """ Gets the list of tract lengths. Make sure that proper
             smoothing is implemented.
+            returns a tuple with ancestry, length of block, and length of chromosome
             """
         self._smooth_unknown() # TODO figure out why this is called here.
 
-        # TODO why not use t.len oslt ?
+        
         return [(t.label, t.end - t.start, self.len) for t in self.tracts]
 
     # TODO use this instead of directly getting at the tracts attribute of the
@@ -650,8 +651,9 @@ class population:
         return (ancestry, totlength)
     def ancestry_per_pos(self, chrom=0, npts=100, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
-        len = self.indivs[0].chroms[chrom].len
-        plotpts = np.arange(0, len, len/float(npts))
+        len = self.indivs[0].chroms[chrom].len #get chromosome length
+        plotpts = np.arange(0, len, len/float(npts)) #get number of points at which to 
+        #plot ancestry
         return (plotpts,
                 [self.ancestry_at_pos(chrom=chrom, pos=pt, cutoff=cutoff)
                     for pt in plotpts])
@@ -802,9 +804,7 @@ class population:
         for key, poplen in bypop.iteritems():
             # extract full length tracts
             nonfulls = np.array(
-                    [item
-                        for item in poplen
-                        if (item[0] < item[1]-tol)])
+                    [item for item in poplen if (item[0] < item[1]-tol)])
 
             hdat = pylab.histogram(nonfulls[:, 0], bins=bins)
             dat[key] = list(hdat[0])
@@ -858,7 +858,9 @@ class population:
         return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
 
     # def get_assortment_variance(self,ancestries):
-    #     ""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)""
+    #     """ancestries is a set of ancestry label. Calculates the assortment variance in 
+    #ancestry proportions (corresponds to the mean uncertainty about the proportion of 
+    #genealogical ancestors, given observed ancestry patterns)"""
 
     # ws=np.array(self.Ls)/np.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
     #     arr=np.array(self.getMeansByChrom(ancestries))
@@ -878,14 +880,17 @@ class population:
     #     return vars
 
     def get_variance(self, ancestries):
-        """ Ancestries is a set of ancestry label. Calculates the total variance
+        """ Ancestries is a set of ancestry labels. Calculates the total variance
             in ancestry proportions, and the genealogy variance, and the
             assortment variance. (corresponds to the mean uncertainty about the
             proportion of genealogical ancestors, given observed ancestry
-            patterns). """
+            patterns). Note that all ancestries not listed are considered uncalled. 
+            For example, calling the function with a single ancestry leads to no variance.
+            (and some 0/0 errors)"""
 
         # the weights, corresponding (approximately) to the inverse variances
-        ws = np.array(self.Ls)/np.sum(self.Ls)
+        #this is not a super good approximation, especially for recent admixture and short chromosomes. 
+        ws = np.array(self.Ls)/np.sum(self.Ls) #weight proportional to length
         arr = np.array(self.getMeansByChrom(ancestries))
         # weighted mean by individual
         # departure from the mean
@@ -894,7 +899,7 @@ class population:
         tot_vars = []
         gen_vars = []
         for i in range(len(ancestries)):
-            pl = np.dot(arr[:, i, :], ws )
+            pl = np.dot(arr[:, i, :], ws)
             tot_vars.append(np.var(pl))
             aroundmean = arr[:, i, :] - np.dot(
                     pl.reshape(self.nind, 1), np.ones((1, nchr)))
@@ -926,13 +931,15 @@ class demographic_model():
             
             
             """
-        small=1e-10
-        self.mig = mig
+        small=1e-10 #a small number to detect 0 values
+        self.mig = mig #migration matrix, usually provided by a function such as pp_px
         (self.ngen, self.npop) = mig.shape
-        self.max_remaining_tracts=max_remaining_tracts
+        self.max_remaining_tracts=max_remaining_tracts #tolerance for incomplete 
+        #convergence
         self.max_morgans=max_morgans
         # the total migration per generation
         self.totmig = mig.sum(axis=1)
+        #test for reasonableness of migration matrix
         if abs(self.totmig[-1] - 1) > small:
             print "founding migration should sum up to 1. Now:", mig[-1, :], \
                     "sum up to ", self.totmig[-1]
@@ -956,6 +963,10 @@ class demographic_model():
         if (mig[:-1] == 1).any():
             print "warning: population was completely replaced after "\
                     "founding event"
+        #tracts represents ancestry tracts as a markov model
+        #states are defined by source population and generation of arrival. 
+        #i.e. if one population contributes migrants in two generations, in the MM
+        #(see fig 3 in MOLA paper)  
         # identify states where migration occurred as these are the relevant
         # states in our Markov model. Each state is a tuple of the form:
         # (generation, population)
@@ -1039,9 +1050,8 @@ class demographic_model():
         self.switchdensity()
 
     def gen_variance(self, popnum):
-        """ 1. Calculate the expected genealogy variance in the model. Need to
-            double-check +-1s.
-            2. Calculate the e(d)
+        """ 1. Calculate the expected genealogy variance in the model.
+            2. Calculate the e(d) (equation 3 in MOLA (Models of Local ancestry) paper)
             3. Generations go from 0 to self.ngen-1.
             """
         legterm = [self.proportions[self.ngen - d, popnum]**2 * \
@@ -1252,6 +1262,7 @@ class demographic_model():
             models = self.expectperbin(Ls, pop, bins)
             for binnum in range(cutoff, len(bins)-1):
                 dat = data[pop][binnum]
+                #log-likelihood in poisson random field approximation
                 ll += -nsamp*models[binnum] + \
                         dat*np.log(nsamp*models[binnum]) - \
                         gammaln(dat + 1.)
