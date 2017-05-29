@@ -131,7 +131,7 @@ for i in range(0, rep_pp_px):
         loclik = optmod2loc.loglik(bins, Ls, data, nind, cutoff=cutoff)
         if loclik > maxlik2:
             optmod2 = optmod2loc
-            optpars = xopt2
+            optpars2 = xopt2
     except:
         print "convergence error"
         loclik = -1e8
@@ -164,6 +164,8 @@ with open(outdir + "_pred", 'w') as fpred:
                 str,
                 pop.nind * numpy.array(optmod.expectperbin(Ls, popnum, bins))))
             + "\n")
+with open(outdir + "_pars", 'w') as fpars:
+    fpars.write("\t".join(map(str, optpars)) + "\n")
 
 #
 # The first two files will be identical across models. We save an extra
@@ -188,3 +190,7 @@ with open(outdir + "_pred", 'w') as fpred2:
             str,
             pop.nind * numpy.array(optmod2.expectperbin(Ls, popnum, bins))))
         + "\n")
+
+with open(outdir + "_pars", 'w') as fpars2:
+    fpars2.write("\t".join(map(str, optpars2)) + "\n")
+
