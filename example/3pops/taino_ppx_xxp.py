@@ -108,11 +108,8 @@ pop = tracts.population(names=names, fname=(directory, inter, end))
 indivs = pop.indivs
 
 def bootsamp(num):
-    r = range(num)
-    # memoize the choice function to avoid the dictionary lookups on each
-    # iteration in r
-    choice = numpy.random.choice
-    return [choice(r) for _ in r]
+    #generates a list of positions of the samples to pick in a bootstrap 
+    return numpy.random.choice(range(num),replace=True,size=num)
 
 # iterate over bootstrap instances. Iteration 0 is the un-bootstrapped value
 for bootnum in runboots:

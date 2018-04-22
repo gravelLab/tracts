@@ -262,7 +262,7 @@ class chrom(object):
                 while(i + j < len(self.tracts) - 1):
                     j += 1
                     if(self.tracts[i + j].label == "UNKNOWN"):
-                         self.tracts.pop(i + j)
+                         self.tracts.pop(i + j)  # Remove the unknown segment
                          j -= 1
                     else:
                          midpoint = (self.tracts[i+j].start
@@ -274,11 +274,11 @@ class chrom(object):
         self._smooth()
 
     def tractlengths(self):
-        """ Gets the distribution of tract lengths. Make sure that proper
+        """ Gets the list of tract lengths. Make sure that proper
             smoothing is implemented.
+            returns a tuple with ancestry, length of block, and length of chromosome
             """
         self._smooth_unknown()
-
         return [(t.label, t.end - t.start, self.len) for t in self.tracts]
 
     def __iter__(self):
@@ -798,8 +798,9 @@ class population(object):
 
     def ancestry_per_pos(self, chrom=0, npts=100, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
-        len = self.indivs[0].chroms[chrom].len
-        plotpts = np.arange(0, len, len/float(npts))
+        len = self.indivs[0].chroms[chrom].len #get chromosome length
+        plotpts = np.arange(0, len, len/float(npts)) #get number of points at which to 
+        #plot ancestry
         return (plotpts,
                 [self.ancestry_at_pos(chrom=chrom, pos=pt, cutoff=cutoff)
                     for pt in plotpts])
@@ -973,7 +974,9 @@ class population(object):
         return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
 
     # def get_assortment_variance(self,ancestries):
-    #     ""ancestries is a set of ancestry label. Calculates the assortment variance in ancestry proportions (corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry patterns)""
+    #     """ancestries is a set of ancestry label. Calculates the assortment variance in 
+    #ancestry proportions (corresponds to the mean uncertainty about the proportion of 
+    #genealogical ancestors, given observed ancestry patterns)"""
 
     # ws=np.array(self.Ls)/np.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
     #     arr=np.array(self.getMeansByChrom(ancestries))
@@ -993,11 +996,13 @@ class population(object):
     #     return vars
 
     def get_variance(self, ancestries):
-        """ Ancestries is a set of ancestry label. Calculates the total variance
+        """ Ancestries is a set of ancestry labels. Calculates the total variance
             in ancestry proportions, and the genealogy variance, and the
             assortment variance. (corresponds to the mean uncertainty about the
             proportion of genealogical ancestors, given observed ancestry
-            patterns). """
+            patterns). Note that all ancestries not listed are considered uncalled. 
+            For example, calling the function with a single ancestry leads to no variance.
+            (and some 0/0 errors)"""
 
         # the weights, corresponding (approximately) to the inverse variances
         ws = np.array(self.Ls)/np.sum(self.Ls)
@@ -1147,11 +1152,13 @@ class population(object):
         if legend:
             pylab.legend()
 
+
     def __iter__(self):
         return self.indivs.__iter__()
 
     def __getitem__(self, index):
         return self.indivs[index]
+
 
 class demographic_model(object):
     def __init__(self, mig, max_remaining_tracts=1e-5, max_morgans=100):
@@ -1167,18 +1174,20 @@ class demographic_model(object):
             (Appendix 2 in Gravel: doi: 10.1534/genetics.112.139808)
             cutoff=1-\sum(b_i)
 
-            max_morgans is used to impose a cutoff to the number of Markov
-            transitions.  If the simulated morgan lengths of tracts in an
-            infinite genome is more than max_morgans, issue a warning and stop
-            generating new transitions
+            max_morgans is used to impose a cutoff to the number of Markov transitions. 
+            If the simulated morgan lengths of tracts in an infinite genome is more than 
+            max_morgans, issue a warning and stop generating new transitions
         """
         small=1e-10
         self.mig = mig
         (self.ngen, self.npop) = mig.shape
-        self.max_remaining_tracts=max_remaining_tracts
+        self.max_remaining_tracts=max_remaining_tracts #tolerance for incomplete 
+        #convergence
         self.max_morgans=max_morgans
         # the total migration per generation
         self.totmig = mig.sum(axis=1)
+
+        #test for reasonableness of migration matrix
 
         if abs(self.totmig[-1] - 1) > small:
             eprint("founding migration should sum up to 1. Now:", mig[-1, :],
@@ -1205,8 +1214,15 @@ class demographic_model(object):
             eprint("currently", mig)
             raise ValueError("mig")
         if (mig[:-1] == 1).any():
+
             eprint("warning: population was completely replaced after",
                     "founding event")
+
+
+        # Tracts represents ancestry tracts as a markov model
+        # states are defined by source population and generation of arrival. 
+        # i.e. if one population contributes migrants in two generations, in the MM
+        # (see fig 3 in MOLA paper)  
 
         # identify states where migration occurred as these are the relevant
         # states in our Markov model. Each state is a tuple of the form:
@@ -1287,9 +1303,8 @@ class demographic_model(object):
         self.switchdensity()
 
     def gen_variance(self, popnum):
-        """ 1. Calculate the expected genealogy variance in the model. Need to
-            double-check +-1s.
-            2. Calculate the e(d)
+        """ 1. Calculate the expected genealogy variance in the model.
+            2. Calculate the e(d) (equation 3 in MOLA (Models of Local ancestry) paper)
             3. Generations go from 0 to self.ngen-1.
             """
         legterm = [self.proportions[self.ngen - d, popnum]**2 * \
@@ -1502,6 +1517,7 @@ class demographic_model(object):
             models = self.expectperbin(Ls, pop, bins)
             for binnum in range(cutoff, len(bins)-1):
                 dat = data[pop][binnum]
+                #log-likelihood in poisson random field approximation
                 ll += -nsamp*models[binnum] + \
                         dat*np.log(nsamp*models[binnum]) - \
                         gammaln(dat + 1.)

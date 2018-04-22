@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator as op
 import os.path as path
-
+import scipy
 from scipy.stats import poisson
 from itertools import imap
 from collections import namedtuple
@@ -53,11 +53,10 @@ def find_bounds(mean, alpha):
     """ Find both the lower and upper bounds for a given mean value and
         dispersion parameter in a poisson distribution.
     """
-    fun = poisson(mu=mean).cdf
+    fun = lambda i: poisson.cdf(i,mean)
 
     upper = None
     lower = None
-
     i = 0
     while True:
         if upper is None and fun(i) > 1 - alpha / 2.0:
