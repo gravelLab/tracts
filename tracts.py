@@ -451,6 +451,10 @@ class indiv(object):
             self.Ls = i.Ls
 
     def plot(self, colordict, win=None):
+        """Plot an individual. colordict is a dictionary mapping population label to 
+        a set of colors. E.g.: 
+        colordict = {"CEU":'r',"YRI":b}
+        """
         if (win is None):
             win = Tk.Tk()
         self.canvas = Tk.Canvas(
