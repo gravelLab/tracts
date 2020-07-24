@@ -5,15 +5,16 @@ import operator as op
 import itertools as it
 import os
 import pylab
-import Tkinter as Tk
-import tkFileDialog
 
 from collections import defaultdict
 
 try:
     from scipy.misc.common import factorial
 except ImportError:
-    from scipy.misc import factorial
+    try:
+        from scipy.misc import factorial
+    except ImportError:
+        from scipy.special import factorial
 
 from scipy.special import gammainc, gammaln
 import scipy.optimize
@@ -455,6 +456,7 @@ class indiv(object):
         a set of colors. E.g.: 
         colordict = {"CEU":'r',"YRI":b}
         """
+        import Tkinter as Tk
         if (win is None):
             win = Tk.Tk()
         self.canvas = Tk.Canvas(
@@ -755,6 +757,7 @@ class population(object):
         return indiv.from_haploids(gamete1, gamete2)
 
     def save(self):
+        import tkFileDialog
         file = tkFileDialog.asksaveasfilename(parent=self.win,
                 title='Choose a file')
         self.indivs[self.currentplot].canvas.postscript(file=file)
@@ -1044,6 +1047,7 @@ class population(object):
                 self.colordict, win=self.win)
 
     def plot(self, colordict):
+        import Tkinter as Tk
         self.colordict = colordict
         self.currentplot = 0
         self.win = Tk.Tk()#self.indivs[self.currentplot].plot(self.colordict)
@@ -1061,6 +1065,7 @@ class population(object):
 
     def plot_chromosome(self, i, colordict, win=None):
         """plot a single chromosome across individuals"""
+        import Tkinter as Tk
         self.colordict = colordict
         ls = self.list_chromosome(i)
         if (win is None):
@@ -1162,10 +1167,10 @@ class population(object):
 
 class demographic_model(object):
     def __init__(self, mig, max_remaining_tracts=1e-5, max_morgans=100):
-        """ Migratory model takes as an input a vector containing the migration
-            proportions over the last generations. Each row is a time, each
-            column is a population. row zero corresponds to the current
-            generation. The migration rate at the last generation (time $T$) is
+        """ Migratory model takes as an input an array containing the migration
+            proportions from a discrete number of populations over the last generations.
+            Each row is a time, each column is a population. row zero corresponds to the current
+            generation. The migration rate at the last generation (mig[-1,:]) is
             the "founding generation" and should sum up to 1. Assume that
             non-admixed individuals have been removed.
 
@@ -2403,6 +2408,86 @@ def optimize_brute_multifracs(
     xopt = _project_params_up(outputs[0], fixed_params)
 
     return xopt, outputs[1:]
+
+
+
+def test_model_func(model_func, parameters,  fracs_list=None, time_params = True, time_scale = 100):
+    """Given a demographic model function, run a few debugging tests to ensure
+    that it behaves as expected, namely: 
+    1-That migration matrices sum to less than one (exactly one for the last generation
+    2-That it behaves continuously realtive to time parameters. 
+    
+    model_func: a migration model. It takes in parameters and outputs a migration matrix. 
+    parameters:  parameters for which the model will be tested. 
+    fracs_list: parameters required by some demographic models corresponding to the observed proportion of ancestry
+    from each source population
+    time_params: if True, test all parameters for continuity as if they were time parameters.
+                if a list of boolean values of the same length of parameters, only test parameters
+                corresponding to True values.
+    time_scale: the scaling of the time variables: time (in generations) = time_parameter*time_scale. This is used to
+    test continuity around integer values. 
+    returns
+    violation score (negative means that a violation has occurred)
+    and the migration matrix value as well
+    """
+
+    # First test consistency of migration matrix
+    assert (np.sum(fracs_list)==1), "fracs_list should sum to 1"
+    if fracs_list is None:
+        mig = model_func(parameters)
+    else:
+        mig = model_func(parameters, fracs_list)
+
+    totmig = mig.sum(axis=1)
+    violation = 1
+
+    if (-abs(totmig[-1] - 1) < - 1e-8 ):
+        violation = min(violation, -abs(totmig[-1] - 1) + 1e-8)  # Check that initial migration sums to 1.
+        print("last row of migration matrix should sum to one.")
+    if  (totmig[0]>0 or totmig[1]>0):
+        print ("first two rows of the migration matrix should sum to one")
+        violation = min(violation, -totmig[0], -totmig[1])  # Check that there are no migrations in the last
+        # two generations
+    if max(totmig) > 1 or min(totmig)<0:
+        print("migration rates should be between zero and one")
+        violation = min(violation, min(1 - totmig), min(totmig))  # Check that total migration rates between 0 and 1
+
+    # Second, test continuity
+    if time_params is True: #Test continuity on all parameters all parameters as time parameters.
+            time_params = [True]*len(parameters)
+
+    assert len(time_params) == len(parameters), "time_params should be a boolean list with length len(parameters)"
+
+    perturbation = 10**-15
+    for i in range(len(parameters)):
+        if time_params[i]:
+            focal_parameter = parameters[i]
+            # Round parameter to integer time
+            focal_parameter=round(time_scale*focal_parameter)/time_scale
+            up_param = focal_parameter +  perturbation
+            down_param = focal_parameter - perturbation
+
+            up_params = list(parameters)
+            up_params[i] = up_param
+            down_params = list(parameters)
+            down_params[i] = down_param
+            if fracs_list is None:
+                up_mig = model_func(up_params)
+                down_mig = model_func(down_params)
+            else:
+                up_mig = model_func(up_params, fracs_list)
+                down_mig= model_func(down_params, fracs_list)
+
+            #mig_down should always be smaller or equal in size to mig_up
+            compare_size = down_mig.shape
+            trimmed_up_mig = up_mig[:compare_size[0],:]
+            max_diff = abs(trimmed_up_mig - down_mig).max()
+            if max_diff > 10*time_scale*perturbation: # This is fairly arbitrary threshold.
+                print("apparent discontinuity in migration matrices in model test at parameters", parameters)
+                violation = min(violation,time_scale*perturbation-max_diff)
+
+    return violation, mig
+
 
 #: Counts calls to object_func
 _counter = 0
