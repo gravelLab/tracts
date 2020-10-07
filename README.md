@@ -68,8 +68,11 @@ likelihood of the best-fit model
 * _dat: the observed counts in each bins
 * _pred: the predicted counts in each bin, according to the model
 * _mig: the inferred migration matrix, with the most recent generation at the
-    top, and one column per migrant population
-* _pars: the optimal parameters
+    top, and one column per migrant population. Entry i,j in the matrix represent 
+    the proportion of individuals in the admixed population who originate
+    from the source population j at generation i in the past. 
+* _pars: the optimal parameters. I.e., if these models are passed to the 
+    admixture model, it will return the inferred migration matrix.
 * _liks: the likelihoods in the model parameter space in the output format of
     scipy.optimizes' "brute" function: the first number is the best likelihood,
     the top matrices define the grid of parameters usedin the search, and the
