@@ -367,7 +367,7 @@ class indiv(object):
                     'a diploid individual')
 
         chroms = [chropair(t)
-                for t in it.izip(*[hap.chroms for hap in haps])]
+                for t in zip(*[hap.chroms for hap in haps])]
 
         return indiv(chroms=chroms, Ls=haps[0].Ls)
 
@@ -462,7 +462,7 @@ class indiv(object):
         self.canvas = Tk.Canvas(
                 win, width=250, height=len(self.Ls)*30, bg='white')
 
-        for i in xrange(len(self.chroms)):
+        for i in range(len(self.chroms)):
             self.chroms[i].plot(self.canvas, colordict, height=i*.3)
 
         self.canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
@@ -610,7 +610,7 @@ class haploid(object):
 
         # Filter the loaded data according to selectchrom using the is_selected
         # function constructed above.
-        for chrom_data, tracts in chromd.iteritems():
+        for chrom_data, tracts in chromd.items():
             chrom_id = chrom_data.split('r')[-1]
             if is_selected(chrom_id):
                 c = chrom(tracts=tracts)
@@ -670,7 +670,7 @@ def _split_indivs(indivs, count, sort_ancestry=None):
     group_frac = 1.0 / count
 
     groups = [s_indivs[int(n*i*group_frac):int(n*(i+1)*group_frac)]
-            for i in xrange(count)]
+            for i in range(count)]
 
     return groups
 
@@ -910,7 +910,7 @@ class population(object):
                         })
 
         dat={}
-        for label, ts in bypop.iteritems():
+        for label, ts in bypop.items():
             # extract full length tracts
             nonfulls = np.array(
                     [t['tract'] for t in ts
@@ -943,7 +943,7 @@ class population(object):
 
         import bisect
         dat = {} # np.zeros((len(bypop),len(bins)+1)
-        for key, poplen in bypop.iteritems():
+        for key, poplen in bypop.items():
             # extract full length tracts
             dat[key] = np.zeros(len(bins)+1)
             nonfulls = np.array([item
@@ -1074,7 +1074,7 @@ class population(object):
         self.chro_canvas = Tk.Canvas(win, width=250, height=self.nind*30,
                 bg='white')
 
-        for j in xrange(len(ls)):
+        for j in range(len(ls)):
             ls[j].plot(self.chro_canvas, colordict, height=j*.25)
 
         self.chro_canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
@@ -1083,7 +1083,7 @@ class population(object):
     def plot_ancestries(self, chrom=0, npts=100,
             colordict={"CEU": 'blue', "YRI": 'red'}, cutoff=.0):
         dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
-        for pop, color in colordict.iteritems():
+        for pop, color in colordict.items():
             for pos in dat[1]:
                 try:
                     pos[0][pop]
@@ -1098,7 +1098,7 @@ class population(object):
                 if(pos[0][key] != 0):
                     eprint(pos[0][key], float(tot)),
                     pos[0][key] /= float(tot)
-        for pop, color in colordict.iteritems():
+        for pop, color in colordict.items():
             eprint(tot)
             pylab.figure(1)
             pylab.plot(dat[0], [pos[0][pop] for pos in dat[1]],
@@ -1116,7 +1116,7 @@ class population(object):
         for chrom in range(22):
             dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
 
-            for pop, color in colordict.iteritems():
+            for pop, color in colordict.items():
                 for pos in dat[1]:
                     try:
                         pos[0][pop]
@@ -1130,7 +1130,7 @@ class population(object):
                 for key in colordict.keys():
                     if(pos[0][key] != 0):
                         pos[0][key] /= float(tot)
-            for pop, color in colordict.iteritems():
+            for pop, color in colordict.items():
                 pylab.figure(0+startfig)
                 pylab.subplot(6, 4, chrom+1)
                 pylab.plot(dat[0], [pos[0][pop] for pos in dat[1]], '.',
@@ -1147,7 +1147,7 @@ class population(object):
         flatdat = self.flatpop()
         bypop = self.collectpop(flatdat)
         self.maxLen = max(self.Ls)
-        for label, tracts in bypop.iteritems():
+        for label, tracts in bypop.items():
             hdat = pylab.histogram([i.len() for i in tracts], npts)
             # note: convert to cM before plotting
             pylab.semilogy(100*(hdat[1][1:]+hdat[1][:-1])/2., hdat[0], 'o',
@@ -1233,7 +1233,7 @@ class demographic_model(object):
         # states in our Markov model. Each state is a tuple of the form:
         # (generation, population)
 
-        self.states = map(tuple, np.array(mig.nonzero()).transpose())
+        self.states = list(map(tuple, np.array(mig.nonzero()).transpose()))
         self.nstates = len(self.states)
         self.npops = mig.shape[1]
 
@@ -1417,7 +1417,7 @@ class demographic_model(object):
             mx = self.maxrate * x
             return 2 * np.sum(
                     nd[i] * (1 - gammainc(i+1, mx))
-                    for i in xrange(
+                    for i in range(
                         len(nd))
             ) + 2 * (1-np.sum(nd))
 
@@ -1428,7 +1428,7 @@ class demographic_model(object):
                 self.ndists[pop][i] * (((i+1) / float(self.maxrate) - L) +
                     L * gammainc(i + 1, self.maxrate * L) -
                     float(i+1) / self.maxrate * gammainc(i+2, self.maxrate*L))
-                for i in xrange(len(self.ndists[pop]))
+                for i in range(len(self.ndists[pop]))
         ) + (1 - np.sum(self.ndists[pop])) * \
                 (len(self.ndists[pop])/self.maxrate - L)
 
@@ -1436,7 +1436,7 @@ class demographic_model(object):
         """the normalizing factor, to ensure that the tract density is 1."""
         return L + np.sum(
                 self.ndists[pop][i]*(i+1)/self.maxrate
-                for i in xrange(len(self.ndists[pop]))
+                for i in range(len(self.ndists[pop]))
         ) + (1 - np.sum([self.ndists[pop]])) * \
                 len(self.ndists[pop])/self.maxrate
 
@@ -1660,9 +1660,9 @@ class composite_demographic_model(object):
 
         s = 0
 
-        for i in xrange(self.npops):
+        for i in range(self.npops):
             expects = self.expectperbin(Ls, i, bins, nsamp_list=nsamp_list)
-            for j in xrange(cutoff, len(bins) - 1):
+            for j in range(cutoff, len(bins) - 1):
                 dat = data[i][j]
                 s += -expects[j] + dat * np.log(expects[j]) - gammaln(dat + 1.)
 
@@ -1683,7 +1683,7 @@ class composite_demographic_model(object):
             models.
         """
         if nsamp_list is None:
-            nsamp_list = [1 for _ in xrange(len(self.proportions_list[0]))]
+            nsamp_list = [1 for _ in range(len(self.proportions_list[0]))]
 
         return sum(
                 nsamp * np.array(mod.expectperbin(Ls, pop, bins))
