@@ -15,17 +15,24 @@ genomes puerto Rican data
 Installation
 ============
 
-Copy all files and folders locally (See "Download zip" on the github repository
-page)
+Installation support for tracts is rudimentary. Apologies. 
 
-"tracts.py" is a python module. All its functions can be used from the python
-interpreter or ipython after it has been imported. It should work
-out-of-the-box once you have python, and numpy, pylab, scipy installed.
+Copy all files and folders locally.  
 
-If you are an academic, I recommend installing the Anaconda
-(https://store.continuum.io/cshop/academicanaconda) distribution. Make sure not
-to pay for it! Click Anaconda Academic License; it should be free for those
-with edu e-mail addresses."
+"tracts.py" is a python module. It is currently compatible with python 2.7.
+
+To load the package, you currently have to tell python where to look for the package by doing something like
+
+import sys
+tractspath = path_to_tracts_directory  # the path to tracts if not in your default pythonpath
+sys.path.append(tractspath)
+import tracts. 
+
+I have added tracts_conda_env.yml,  an anaconda environment file with the relevant dependencies. If you are using anaconda, you can load this environment using 
+
+conda env create -f tracts_conda_env.yml
+conda activate py2_tracts
+
 
 Input
 =====
