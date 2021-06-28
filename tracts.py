@@ -1,9 +1,7 @@
-from __future__ import print_function
+from __future__ import print_function  # for python 2 compatibility
 
 import numpy as np
-import operator as op
 import itertools as it
-import os
 import pylab
 
 from collections import defaultdict
@@ -21,6 +19,7 @@ import scipy.optimize
 import sys
 
 eprint = lambda *args, **kwargs: print(*args, file=sys.stderr, **kwargs)
+
 
 class tract(object):
     """ A tract is the lower-level object of interest. All the remaining
@@ -100,7 +99,7 @@ class chrom(object):
         else:
             if not tracts:
                 raise ValueError("a nonempty list of tracts is required "
-                        "for initialization of a chromosome.")
+                                "for initialization of a chromosome.")
             self.tracts = tracts
             self.auto = auto
 
@@ -201,7 +200,7 @@ class chrom(object):
         """
 
         if not self.tracts:
-            warn("smoothing empty chromosome has no effect")
+            eprint("Warning: smoothing empty chromosome has no effect")
             return None  # Nothing to smooth since there're no tracts.
 
         def same_ancestry(my, their):
@@ -719,7 +718,7 @@ class population(object):
                                 selectchrom=selectchrom))
                 except IndexError:
                     eprint("error reading individuals", name)
-                    eprint("fname=", fname, \
+                    eprint("fname=", fname,
                             "; labs=", labs, ", selectchrom=", selectchrom)
                     raise IndexError
 
@@ -801,9 +800,9 @@ class population(object):
 
     def ancestry_per_pos(self, chrom=0, npts=100, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
-        len = self.indivs[0].chroms[chrom].len #get chromosome length
-        plotpts = np.arange(0, len, len/float(npts)) #get number of points at which to 
-        #plot ancestry
+        len = self.indivs[0].chroms[chrom].len  # Get chromosome length
+        plotpts = np.arange(0, len, len/float(npts)) # Get number of points at which to
+        # Plot ancestry
         return (plotpts,
                 [self.ancestry_at_pos(chrom=chrom, pos=pt, cutoff=cutoff)
                     for pt in plotpts])
@@ -1233,7 +1232,8 @@ class demographic_model(object):
         # states in our Markov model. Each state is a tuple of the form:
         # (generation, population)
 
-        self.states = list(map(tuple, np.array(mig.nonzero()).transpose()))
+        self.states = [tuple(i) for i in np.array(mig.nonzero()).transpose()]
+
         self.nstates = len(self.states)
         self.npops = mig.shape[1]
 
@@ -2432,10 +2432,10 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params = True
     """
 
     # First test consistency of migration matrix
-    assert (np.sum(fracs_list)==1), "fracs_list should sum to 1"
     if fracs_list is None:
         mig = model_func(parameters)
     else:
+        assert (np.sum(fracs_list) == 1), "fracs_list should sum to 1"
         mig = model_func(parameters, fracs_list)
 
     totmig = mig.sum(axis=1)
