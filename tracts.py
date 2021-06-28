@@ -455,7 +455,15 @@ class indiv(object):
         a set of colors. E.g.: 
         colordict = {"CEU":'r',"YRI":b}
         """
-        import Tkinter as Tk
+
+        from sys import version_info
+        if version_info.major == 2:
+            # We are using Python 2.x
+            import Tkinter as Tk
+        elif version_info.major == 3:
+            # We are using Python 3.x
+            import tkinter as Tk
+
         if (win is None):
             win = Tk.Tk()
         self.canvas = Tk.Canvas(
@@ -756,8 +764,17 @@ class population(object):
         return indiv.from_haploids(gamete1, gamete2)
 
     def save(self):
-        import tkFileDialog
-        file = tkFileDialog.asksaveasfilename(parent=self.win,
+        from sys import version_info
+        if version_info.major == 2:
+            # We are using Python 2.x
+            import tkFileDialog as filedialog
+        elif version_info.major == 3:
+            # We are using Python 3.x
+
+            from tkinter import filedialog
+
+
+        file = filedialog.asksaveasfilename(parent=self.win,
                 title='Choose a file')
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
@@ -1046,7 +1063,13 @@ class population(object):
                 self.colordict, win=self.win)
 
     def plot(self, colordict):
-        import Tkinter as Tk
+        from sys import version_info
+        if version_info.major == 2:
+            # We are using Python 2.x
+            import Tkinter as Tk
+        elif version_info.major == 3:
+            # We are using Python 3.x
+            import tkinter as Tk
         self.colordict = colordict
         self.currentplot = 0
         self.win = Tk.Tk()#self.indivs[self.currentplot].plot(self.colordict)
@@ -1064,7 +1087,13 @@ class population(object):
 
     def plot_chromosome(self, i, colordict, win=None):
         """plot a single chromosome across individuals"""
-        import Tkinter as Tk
+        from sys import version_info
+        if version_info.major == 2:
+            # We are using Python 2.x
+            import Tkinter as Tk
+        elif version_info.major == 3:
+            # We are using Python 3.x
+            import tkinter as Tk
         self.colordict = colordict
         ls = self.list_chromosome(i)
         if (win is None):
