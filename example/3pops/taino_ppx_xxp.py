@@ -12,8 +12,6 @@ import pylab
 
 from warnings import warn
 
-from itertools import izip
-
 # optimization method. Here we use brute force; other options are implemented
 # in tracts but are not implemented in this driver script.
 method = "brute"
@@ -71,7 +69,7 @@ usage = "python taino_ppx_xxp.py 1 to run without bootstrap \n"\
         "bootstrap instance 0 is the original dataset."
 
 args = sys.argv
-print args
+print(args)
 
 if len(args) == 1:
     runboots = range(100) # run all instances
@@ -79,7 +77,7 @@ elif len(args) == 2:
     runboots = range(int(args[1])) # run just the specified number
 elif len(args) == 3:
     if int(args[1]) >= int(args[2]):
-        print usage
+        print(usage)
         sys.exit(1)
     else:
         runboots = range(int(args[1]), int(args[2]))
@@ -130,28 +128,17 @@ for bootnum in runboots:
 
     # generate the histogram of tract lengths
     (bins, data) = pop.get_global_tractlengths(npts=50)
-    print "booted data sample", data['0'][1:10]
+    print("booted data sample", data['0'][1:10])
 
     data = [data[poplab] for poplab in labels]
 
     bypopfrac = [[] for i in range(len(labels))]
     # Calculate ancestry proportions
     for ind in pop.indivs:
-        # a list of tracts with labels and names
-        ltracts = ind.applychrom(tracts.chrom.tractlengths)
-        # a flattened list of tracts with labels and names
-        flattracts = [numpy.sum(item[1]
-            for chromo in ltracts
-            for sublist in chromo
-            for item in sublist
-            if item[0] == label)
-            for label in labels]
+        for ii, poplab in enumerate(labels):
+            bypopfrac[ii].append(ind.ancestryProps(poplab))
 
-        flat_tracts_sum = numpy.sum(flattracts)
-        for frac, flat_tract in izip(bypopfrac, flattracts):
-            frac.append(flat_tract / flat_tracts_sum)
-
-    props = map(numpy.mean, bypopfrac)
+    props = numpy.mean(bypopfrac, axis=1).flatten()
 
     Ls = pop.Ls
     nind = pop.nind
@@ -165,7 +152,7 @@ for bootnum in runboots:
 
     xopt = tracts.optimize_brute_fracs2(
         bins, Ls, data, nind, func, props, slices, outofbounds_fun=bound, cutoff=cutoff)
-    print xopt
+    print(xopt)
     optmod = tracts.demographic_model(func(xopt[0], props))
     optpars = xopt[0]
     liks = xopt[1]

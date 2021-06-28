@@ -171,12 +171,12 @@ if __name__ == "__main__":
     ### Save the figure ###
     #######################
 
-    p = path.join(output_dir, "%s_plot.%s" % (name, plot_format))
+    p = path.join(output_dir, "%s_plot.%s" % (common_name, plot_format))
 
     if not overwrite_plot: # if we care about preserving existing plots
         i = 1
         while path.exists(p):
-            p = path.join(output_dir, "%s_plot.%d.%s" % (name, i, plot_format))
+            p = path.join(output_dir, "%s_plot.%d.%s" % (common_name, i, plot_format))
             i += 1
     else:
         if path.exists(p):
