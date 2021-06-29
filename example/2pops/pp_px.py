@@ -7,12 +7,14 @@ def propfrommig(mig):
         curr = curr*(1-numpy.sum(row))+row
     return curr
 
-def pp_px((init_Eu, tstart, t2, nuEu_prop)):
+def pp_px(args):
     """ A simple model in which populations EUR and AFR arrive discretely at
         first generation, and a subsequent migration of EUR occurs at time T2.
         If a time is not integer, the migration is divided between neighboring
         times proportional to the non-integer time fraction.
+        args = (init_Eu, tstart, t2, nuEu_prop)
         """
+    (init_Eu, tstart, t2, nuEu_prop) = args
     tstart *= 100
     t2 *= 100
 
@@ -75,24 +77,24 @@ def outofbounds_pp_px(params):
     ret = min(ret, t2)
 
     if abs(totmig[-1]-1) > 1e-8:
-        print mig
-        print "founding migration should sum up to 1. Now:"
+        print(mig)
+        print("founding migration should sum up to 1. Now:")
 
     if totmig[0] > 1e-10:
-        print "migrants at last generation should be removed from sample!"
+        print("migrants at last generation should be removed from sample!")
 
     if totmig[1] > 1e-10:
-        print "migrants at penultimate generation should be removed from " \
-                "sample!"
+        print("migrants at penultimate generation should be removed from sample!")
 
     if ((totmig > 1).any() or (mig < 0).any()):
-        print "migration rates should be between 0 and 1"
+        print("migration rates should be between 0 and 1")
 
     return ret
 
-def pp_px_fix((tstart, t2, nuEu_prop), fracs):
+def pp_px_fix(args, fracs):
+    (tstart, t2, nuEu_prop) = args
     def fun(init_Eu):
-        #if it is pased as an array, can cause problems
+        # If it is pased as an array, can cause problems
         init_Eu = float(init_Eu)
         return propfrommig(pp_px((init_Eu, tstart, t2, nuEu_prop)))[0] \
                 - fracs[0]

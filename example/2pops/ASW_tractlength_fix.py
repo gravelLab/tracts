@@ -52,21 +52,10 @@ nind = pop.nind
 # calculate the proportion of ancestry in each individual
 bypopfrac = [[] for i in range(len(labels))]
 for ind in pop.indivs:
-    # a list of tracts with labels and names
-    tractslst = ind.applychrom(tracts.chrom.tractlengths)
-    # a flattened list of tracts with labels and names
-    flattracts = [
-            numpy.sum([
-                item[1] for chromo in tractslst
-                    for sublist in chromo
-                    for item in sublist
-                    if item[0] == label])
-            for label in labels]
-    tracts_sum = numpy.sum(flattracts)
-    for i in range(len(labels)):
-        bypopfrac[i].append(flattracts[i] / tracts_sum)
+    for ii, poplab in enumerate(labels):
+        bypopfrac[ii].append(ind.ancestryProps([poplab]))
 
-props = map(numpy.mean, bypopfrac)
+    props = numpy.mean(bypopfrac, axis=1).flatten()
 
 # we compare two models; single pulse versus two European pulses.
 func = pp.pp_fix
@@ -115,7 +104,7 @@ for i in range(rep_pp):
     startrand = randomize(startparams)
 
 
-print "likelihoods found: ", liks_orig_pp
+print("likelihoods found: ", liks_orig_pp)
 
 liks_orig_pp_px = []
 startrand2 = startparams2
@@ -133,7 +122,7 @@ for i in range(0, rep_pp_px):
             optmod2 = optmod2loc
             optpars2 = xopt2
     except:
-        print "convergence error"
+        print("convergence error")
         loclik = -1e8
     liks_orig_pp_px.append(loclik)
     startrand2 = randomize(startparams2)

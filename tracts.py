@@ -148,14 +148,14 @@ class chrom(object):
 
         low = 0
         high = len(self.tracts) - 1
-        curr = (low + high + 1) / 2
+        curr = (low + high + 1) // 2
 
         while high > low:
             if(self.tracts[curr].start < pos):
                 low = curr
             else:
                 high = curr - 1
-            curr = (low + high + 1) / 2
+            curr = (low + high + 1) // 2
 
         return low
 
@@ -266,7 +266,7 @@ class chrom(object):
                          j -= 1
                     else:
                          midpoint = (self.tracts[i+j].start
-                                 + self.tracts[i].end) / 2
+                                 + self.tracts[i].end) / 2.
                          self.tracts[i+j].start = midpoint
                          self.tracts[i].end = midpoint
                          break
@@ -513,7 +513,7 @@ class indiv(object):
         total_length = float(np.sum(all_lengths))
         ancestry_sums = map(np.sum, zip(*all_ancestry_lengths))
 
-        return [ancestry_sum/total_length for ancestry_sum in ancestry_sums]
+        return [ancestry_sum*1./total_length for ancestry_sum in ancestry_sums]
 
     def ancestryPropsByChrom(self, ancestries):
         dat = self.applychrom(chrom.tractlengths)
@@ -964,7 +964,7 @@ class population(object):
                         if (item[0] != item[1])])
             for item in nonfulls:
                 pos = bisect.bisect_left(bins, item[0])
-                dat[key][pos] += item[0]/self.nind/np.sum(self.Ls)/2.
+                dat[key][pos] += item[0]*1./self.nind*1./np.sum(self.Ls)/2.
 
         return (bins, dat)
 
@@ -1021,7 +1021,7 @@ class population(object):
             (and some 0/0 errors)"""
 
         # the weights, corresponding (approximately) to the inverse variances
-        ws = np.array(self.Ls)/np.sum(self.Ls)
+        ws = np.array(self.Ls)*1./np.sum(self.Ls)
         arr = np.array(self.getMeansByChrom(ancestries))
         # weighted mean by individual
         # departure from the mean
@@ -1377,10 +1377,11 @@ class demographic_model(object):
         tempequil[self.stateINpop[pop]] = 0
         # Apply one evolution step
         new = np.dot(tempequil, self.unifmat)
-        # select states in relevant population
 
+        # select states in relevant population
         newrest = new[self.stateINpop[pop]]
-        newrest /= newrest.sum() #normalize probabilities
+        newrest = newrest *1./ newrest.sum() #normalize probabilities
+
         # reduce the matrix to apply only to states of current population
         shortmat = self.unifmat[
                 np.meshgrid(self.stateINpop[pop],
@@ -1390,10 +1391,6 @@ class demographic_model(object):
         escapes = 1 - shortmat.sum(axis=1)
         # decide on the number of iterations
 
-
-
-        #if the expected length of tracts becomes more than maxmorgans,
-        #bail our and issue warning.
         nit = int(self.max_morgans* self.maxrate)
 
         nDistribution = []
@@ -1419,7 +1416,7 @@ class demographic_model(object):
         if i > 10:
             lg = i*np.log(T)+(i-1)*np.log(x)-T*x-gammaln(i)
             return np.exp(lg)
-        return T**i*x**(i - 1)*np.exp(- T*x)/factorial(i - 1)
+        return T**i*x**(i - 1)*np.exp(- T*x)*1./factorial(i - 1)
 
     def inners(self, L, x, pop):
         """ Calculate the length distribution of tract lengths not hitting a
@@ -1456,15 +1453,15 @@ class demographic_model(object):
                     float(i+1) / self.maxrate * gammainc(i+2, self.maxrate*L))
                 for i in range(len(self.ndists[pop]))
         ) + (1 - np.sum(self.ndists[pop])) * \
-                (len(self.ndists[pop])/self.maxrate - L)
+                (len(self.ndists[pop])*1./self.maxrate - L)
 
     def Z(self, L, pop):
         """the normalizing factor, to ensure that the tract density is 1."""
         return L + np.sum(
-                self.ndists[pop][i]*(i+1)/self.maxrate
+                self.ndists[pop][i]*(i+1)*1./self.maxrate
                 for i in range(len(self.ndists[pop]))
         ) + (1 - np.sum([self.ndists[pop]])) * \
-                len(self.ndists[pop])/self.maxrate
+                len(self.ndists[pop])*1./self.maxrate
 
     def switchdensity(self):
         """ Calculate the density of ancestry switchpoints per morgan in our
@@ -1501,7 +1498,7 @@ class demographic_model(object):
                 np.sum(
                         [(L*self.totSwitchDens[pop]+2. * \
                                 self.proportions[0, pop]) * \
-                                self.full(L, pop)/self.Z(L, pop)
+                                self.full(L, pop)*1./self.Z(L, pop)
                             for L in Ls])
         lsval = []
         for binNum in range(len(bins) - 1):
@@ -1510,7 +1507,7 @@ class demographic_model(object):
                     [(L*self.totSwitchDens[pop] + \
                             2. * self.proportions[0, pop]) * \
                             (self.inners(L, mid, pop) + \
-                                self.outers(L, mid, pop)) / self.Z(L, pop)
+                                self.outers(L, mid, pop))*1./ self.Z(L, pop)
                         for L in Ls]) \
                     * (bins[binNum+1] - bins[binNum])
             lsval.append(max(val, 1e-17))
@@ -1578,7 +1575,7 @@ class demographic_model(object):
                 corr = []
                 for binnum in range(cutoff):
                     diff = mod[binnum]-data[pop][binnum]
-                    lg = ((bins[binnum]+bins[binnum+1]))/2;
+                    lg = ((bins[binnum]+bins[binnum+1]))//2;
 
                     corr.append((lg, diff))
                 eprint(corr)
@@ -1589,7 +1586,7 @@ class demographic_model(object):
                     for i in range(cutoff, len(bins))])
                 # probability that a given tract is hit by a given "extra short
                 # tracts"
-                probs = [bins[i]/tot for i in range(cutoff, len(bins))]
+                probs = [bins[i]*1./tot for i in range(cutoff, len(bins))]
                 eprint("tot", tot)
                 eprint("probs", probs)
                 for shortbin in range(cutoff):
@@ -2098,7 +2095,7 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
                 verbose, flush_delay, func_args)
 
 
-    outfun = lambda x:outofbounds_fun(x, fracs)
+    outfun = lambda x:outofbounds_fun(x, fracs = fracs)
 
 
     outputs = scipy.optimize.fmin_cobyla(_object_func_fracs,
@@ -2166,11 +2163,11 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs))
+            eprint("res", outofbounds_fun(p0, fracs = fracs))
 
-        return outofbounds_fun(x0, fracs)
+        return outofbounds_fun(x0, fracs = fracs)
 
-    modstrip = lambda x: model_func(x, fracs)
+    modstrip = lambda x: model_func(x, fracs = fracs)
 
     fun = lambda x: _object_func_fracs2(x, bins, Ls, data, nsamp, modstrip,
             outofbounds_fun=outfun, cutoff=cutoff,
@@ -2247,9 +2244,9 @@ def optimize_cob_multifracs(
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs))
+            eprint("res", outofbounds_fun(p0, fracs = fracs))
 
-        return outofbounds_fun(x0, fracs)
+        return outofbounds_fun(x0, fracs = fracs)
 
     # construct the objective function. The input x is wrapped in the
     # function r constructed above.
@@ -2328,11 +2325,11 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs))
+            eprint("res", outofbounds_fun(p0, fracs = fracs))
 
-        return outofbounds_fun(x0, fracs)
+        return outofbounds_fun(x0, fracs = fracs)
 
-    modstrip = lambda x: model_func(x, fracs)
+    modstrip = lambda x: model_func(x, fracs = fracs)
 
     fun = lambda x: _object_func_fracs2(x, bins, Ls, data, nsamp, modstrip,
             outofbounds_fun=outfun, cutoff=cutoff, verbose=verbose,
@@ -2409,9 +2406,9 @@ def optimize_brute_multifracs(
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs))
+            eprint("res", outofbounds_fun(p0, fracs=fracs))
 
-        return outofbounds_fun(x0, fracs)
+        return outofbounds_fun(x0, fracs=fracs)
 
     # construct a wrapper function that will tuple up its argument in the case
     # where searchvalues has length 1; in that case, the optimizer expects a
@@ -2462,7 +2459,7 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params = True
         mig = model_func(parameters)
     else:
         assert (np.sum(fracs_list) == 1), "fracs_list should sum to 1"
-        mig = model_func(parameters, fracs_list)
+        mig = model_func(parameters, fracs=fracs_list)
 
     totmig = mig.sum(axis=1)
     violation = 1
@@ -2489,7 +2486,7 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params = True
         if time_params[i]:
             focal_parameter = parameters[i]
             # Round parameter to integer time
-            focal_parameter=round(time_scale*focal_parameter)/time_scale
+            focal_parameter=round(time_scale*focal_parameter)//time_scale
             up_param = focal_parameter +  perturbation
             down_param = focal_parameter - perturbation
 
@@ -2527,11 +2524,11 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
 
     if outofbounds_fun is not None:
         # outofbounds can return either True or a negative valueto signify out-of-boundedness.
-        oob = outofbounds_fun(params,fracs)
+        oob = outofbounds_fun(params,fracs=fracs)
         if oob < 0:
             result = -(oob-1)*_out_of_bounds_val
         else:
-            mod = demographic_model(model_func(params, fracs))
+            mod = demographic_model(model_func(params, fracs=fracs))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
     else:
         eprint("No bound function defined")
@@ -2611,7 +2608,7 @@ def _object_func_multifracs(
         # outofbounds returns  a negative value to signify out-of-boundedness.
         # Compute the out of bounds function for each fraction and take the
         # minimum as the overall out of bounds value.
-        oob = min(outofbounds_fun(params, fracs)
+        oob = min(outofbounds_fun(params, fracs=fracs)
                 for fracs in fracs_list)
 
         if oob < 0:

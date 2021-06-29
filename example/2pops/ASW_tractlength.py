@@ -67,12 +67,13 @@ optmod = tracts.demographic_model(func(startparams))
 def randomize(arr, scale=2):
     # takes an array and multiplies every element by a factor between 0 and 2,
     # uniformly. caps at 1.
-    return map(lambda i: min(i, 1), scale * numpy.random.random(arr.shape) * arr)
+    return list(map(lambda i: min(i, 1), scale * numpy.random.random(arr.shape) * arr))
 
 liks_orig_pp = []
 maxlik = -1e18
 startrand = startparams
 for i in range(rep_pp):
+    print(startrand)
     xopt = tracts.optimize_cob(
         startrand, bins, Ls, data, nind, func, outofbounds_fun=bound, cutoff=cutoff, epsilon=1e-2)
     try:
@@ -82,14 +83,14 @@ for i in range(rep_pp):
             optmod = optmodlocal
             optpars = xopt
     except:
-        print "convergence error"
+        print("convergence error")
         loclik = -1e8
 
     liks_orig_pp.append(loclik)
 
     startrand = randomize(startparams)
 
-print "likelihoods found: ", liks_orig_pp
+print("likelihoods found: ", liks_orig_pp)
 
 liks_orig_pp_px = []
 startrand2 = startparams2
@@ -105,7 +106,7 @@ for i in range(0, rep_pp_px):
             optmod2 = optmod2loc
             optpars = xopt2
     except:
-        print "convergence error"
+        print("convergence error")
         loclik = -1e8
 
     liks_orig_pp_px.append(loclik)
@@ -114,5 +115,5 @@ for i in range(0, rep_pp_px):
 lik1 = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
 lik2 = optmod2.loglik(bins, Ls, data, nind, cutoff=cutoff)
 
-print "optimal likelihoods values found for single pulse model:", lik1
-print "optimal likelihoods values found for two pulse model:", lik2
+print("optimal likelihoods values found for single pulse model:", lik1)
+print("optimal likelihoods values found for two pulse model:", lik2)
