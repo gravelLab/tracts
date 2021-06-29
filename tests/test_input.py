@@ -97,22 +97,12 @@ class ManipsTestCase(unittest.TestCase):
             """
             return [min(i, 1) for i in scale * np.random.random(arr.shape) * arr]
         bypopfrac = [[] for i in range(len(labels))]
-        for ind in pop.indivs:
-            # a list of tracts with labels and names
-            tractslst = ind.applychrom(tracts.chrom.tractlengths)
-            # a flattened list of tracts with labels and names
-            flattracts = [
-                np.sum([
-                    item[1] for chromo in tractslst
-                    for sublist in chromo
-                    for item in sublist
-                    if item[0] == label])
-                for label in labels]
-            tracts_sum = np.sum(flattracts)
-            for i in range(len(labels)):
-                bypopfrac[i].append(flattracts[i] / tracts_sum)
 
-        props = list(map(np.mean, bypopfrac))
+        for ind in pop.indivs:
+            for ii, poplab in enumerate(labels):
+                bypopfrac[ii].append(ind.ancestryProps([poplab]))
+
+        props = np.mean(bypopfrac, axis=1).flatten()
 
         # we compare two models; single pulse versus two European pulses.
         func = pp.pp_fix

@@ -55,7 +55,7 @@ for ind in pop.indivs:
     for ii, poplab in enumerate(labels):
         bypopfrac[ii].append(ind.ancestryProps([poplab]))
 
-    props = numpy.mean(bypopfrac, axis=1).flatten()
+props = numpy.mean(bypopfrac, axis=1).flatten()
 
 # we compare two models; single pulse versus two European pulses.
 func = pp.pp_fix

@@ -2177,7 +2177,7 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
     if reset_counter:
         global _counter
         _counter = 0
-        
+
     def outfun(p0,verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
         # parameters. Hence we have to project back up first
