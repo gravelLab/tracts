@@ -40,14 +40,14 @@ class ManipsTestCase(unittest.TestCase):
         mig = pp.pp([fracs[0],time])
         model = tracts.demographic_model(mig)
 
-        self.assertTrue(model.proportions[-1,0] == fracs[0])
-        self.assertTrue(model.proportions[-1, 1] == fracs[1])
+        self.assertTrue(model.proportions[0,0] == fracs[0])
+        self.assertTrue(model.proportions[0, 1] == fracs[1])
 
         fracs = [0.1, .9]
         mig = pp.pp([fracs[0], time])
         model = tracts.demographic_model(mig)
-        self.assertTrue(model.proportions[-1, 0] == fracs[0])
-        self.assertTrue(model.proportions[-1, 1] == fracs[1])
+        self.assertTrue(model.proportions[0, 0] == fracs[0])
+        self.assertTrue(model.proportions[0, 1] == fracs[1])
 
     def test_models_threepops_fix(self):
         times = (0.10,0.05)
