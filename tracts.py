@@ -1825,7 +1825,7 @@ optimize_bfgs = optimize
 def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
         maxiter=None, full_output=True, func_args=[], fixed_params=None,
-        ll_scale=1):
+        ll_scale=1, reset_counter = True):
     """
     Optimize params to fit model to data using the cobyla method.
 
@@ -1881,7 +1881,15 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         overcome this, pass ll_scale > 1, which will simply reduce the
         magnitude of the log-likelihood. Once in a region of reasonable
         likelihood, you'll probably want to re-optimize with ll_scale=1.
+    reset_counter:
+        Defaults to true, resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point)
     """
+
+    if reset_counter:
+        global _counter
+        _counter = 0
+
     fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func,
                 outofbounds_fun=outofbounds_fun, cutoff=cutoff,
                 verbose=verbose, flush_delay=flush_delay,
@@ -1896,7 +1904,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         cutoff=0, bounds=[], verbose=0, flush_delay=0.5, epsilon=1e-3,
         gtol=1e-5, maxiter=None, full_output=True, func_args=[],
-        fixed_params=None, ll_scale=1):
+        fixed_params=None, ll_scale=1, reset_counter = True):
     """
     Optimize params to fit model to data using the slsq method.
 
@@ -1952,10 +1960,17 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         overcome this, pass ll_scale > 1, which will simply reduce the
         magnitude of the log-likelihood. Once in a region of reasonable
         likelihood, you'll probably want to re-optimize with ll_scale=1.
+    reset_counter:
+        Defaults to true, resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point)
     """
     args = ( bins, Ls, data, nsamp, model_func,
                 outofbounds_fun, cutoff,
                 verbose, flush_delay, func_args)
+
+    if reset_counter:
+        global _counter
+        _counter = 0
 
     def onearg(a, *args):
         return outofbounds_fun(a)
@@ -2109,7 +2124,7 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
 def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
         epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=[],
-        fixed_params=None, ll_scale=1):
+        fixed_params=None, ll_scale=1, reset_counter= True):
     """
     Optimize params to fit model to data using the cobyla method.
 
@@ -2155,7 +2170,14 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
               simply reduce the magnitude of the log-likelihood. Once in a
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
+    reset_counter:
+        Defaults to true, resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point)
     """
+    if reset_counter:
+        global _counter
+        _counter = 0
+        
     def outfun(p0,verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
         # parameters. Hence we have to project back up first

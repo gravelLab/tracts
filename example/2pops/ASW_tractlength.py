@@ -88,7 +88,7 @@ for i in range(rep_pp):
     liks_orig_pp.append(loclik)
 
     startrand = randomize(startparams)
-    tracts._counter = 0
+
 
 print("likelihoods found: ", liks_orig_pp)
 
