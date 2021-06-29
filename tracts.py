@@ -766,11 +766,8 @@ class population(object):
     def save(self):
         from sys import version_info
         if version_info.major == 2:
-            # We are using Python 2.x
             import tkFileDialog as filedialog
         elif version_info.major == 3:
-            # We are using Python 3.x
-
             from tkinter import filedialog
 
 
