@@ -52,12 +52,11 @@ class ManipsTestCase(unittest.TestCase):
     def test_models_threepops_fix(self):
         times = (0.10,0.05)
         fracs = [0.5, 0.2,.3]
-        mig = threepop.ppx_xxp_fix(times, fracs = fracs )
+        mig = threepop.ppx_xxp_fix(times, fracs=fracs)
         model = tracts.demographic_model(mig)
-
-        self.assertTrue(model.proportions[0, 0] == fracs[0])
-        self.assertTrue(model.proportions[0, 1] == fracs[1])
-        self.assertTrue(model.proportions[0, 2] == fracs[2])
+        self.assertTrue(abs(model.proportions[0, 0] - fracs[0])<10**-8)
+        self.assertTrue(abs(model.proportions[0, 1] - fracs[1])<10**-8)
+        self.assertTrue(abs(model.proportions[0, 2] - fracs[2])< 10**-8)
 
 
 

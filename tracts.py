@@ -1226,15 +1226,16 @@ class demographic_model(object):
 
         if self.totmig[0] > small:
             eprint("migrants at last generation should be removed from",
-                    "sample!")
+                    "sample! If this happens in optimization, should "
+                    "trigger constraint and lead to high likelihood")
             eprint("currently", self.totmig[0])
             raise ValueError("migrants from last generation are not removed")
 
         self.totmig[0] = 0
 
         if self.totmig[1] > small:
-            eprint("migrants at penultimate generation should be removed from",
-                    "sample!")
+            eprint("migrants at penultimate generation. This should not be allowed "
+                   "and should result in high likelihood ")
             eprint("currently", self.totmig[1])
             raise ValueError(
                     "migrants from penultimate generation are not removed")
@@ -1383,9 +1384,9 @@ class demographic_model(object):
         newrest = newrest *1./ newrest.sum() #normalize probabilities
 
         # reduce the matrix to apply only to states of current population
-        shortmat = self.unifmat[
+        shortmat = self.unifmat[tuple(
                 np.meshgrid(self.stateINpop[pop],
-                    self.stateINpop[pop])].transpose()
+                    self.stateINpop[pop]))].transpose()
 
         # calculate the amount that fall out of the state
         escapes = 1 - shortmat.sum(axis=1)

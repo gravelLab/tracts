@@ -73,7 +73,6 @@ liks_orig_pp = []
 maxlik = -1e18
 startrand = startparams
 for i in range(rep_pp):
-    print(startrand)
     xopt = tracts.optimize_cob(
         startrand, bins, Ls, data, nind, func, outofbounds_fun=bound, cutoff=cutoff, epsilon=1e-2)
     try:
@@ -89,6 +88,7 @@ for i in range(rep_pp):
     liks_orig_pp.append(loclik)
 
     startrand = randomize(startparams)
+    tracts._counter = 0
 
 print("likelihoods found: ", liks_orig_pp)
 
