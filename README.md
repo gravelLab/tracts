@@ -19,7 +19,9 @@ Installation support for tracts is rudimentary. Apologies.
 
 Copy all files and folders locally.  
 
-"tracts.py" is a python module. It is currently compatible with python 2.7.
+"tracts.py" is a python module. The main branch should support python 2.7 and 3. This is a relatively new update, so 
+please let me know if you encounter issues running or installing with either version of python 2.7. Moving ahead, however, I expect that most
+development will be on python 3. 
 
 To load the package, you currently have to tell python where to look for the package by doing something like
 

@@ -1,11 +1,11 @@
-name: py2_tracts
+name: py3_tracts
 channels:
   - defaults
 dependencies:
-  - python=2.7
+  - python=3
   - jupyter
   - backports.functools_lru_cache
   - scipy
   - matplotlib
   - pandas
-prefix: /Users/simongravel/opt/anaconda3/envs/py2
+prefix: /Users/simongravel/opt/anaconda3/envs/py3_tracts
