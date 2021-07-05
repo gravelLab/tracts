@@ -17,7 +17,9 @@ from scipy.special import gammainc, gammaln
 import scipy.optimize
 import sys
 
-eprint = lambda *args, **kwargs: print(*args, file=sys.stderr, **kwargs)
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 class tract(object):
@@ -68,6 +70,7 @@ class tract(object):
         return "tract(%s, %s, %s)" % tuple(
                 map(repr, [self.start, self.end, self.label]))
 
+
 class chrom(object):
     """ A chromosome wraps a list of tracts, which form a paritition on it. The
         chromosome has a finite, immutable length.
@@ -98,7 +101,7 @@ class chrom(object):
         else:
             if not tracts:
                 raise ValueError("a nonempty list of tracts is required "
-                                "for initialization of a chromosome.")
+                                 "for initialization of a chromosome.")
             self.tracts = tracts
             self.auto = auto
 
@@ -142,7 +145,7 @@ class chrom(object):
         """ Find the first tract containing a given position, in Morgans, and
             return its index in the underlying list. """
         # Use binary search for this, since the tract list is sorted.
-        if(pos < 0 or pos > self.len):
+        if pos < 0 or pos > self.len:
             raise ValueError("cannot seek to position outside of chromosome")
 
         low = 0
@@ -150,7 +153,7 @@ class chrom(object):
         curr = (low + high + 1) // 2
 
         while high > low:
-            if(self.tracts[curr].start < pos):
+            if self.tracts[curr].start < pos:
                 low = curr
             else:
                 high = curr - 1
@@ -178,7 +181,7 @@ class chrom(object):
             """
         startpos = self.goto(start)
         endpos = self.goto(end)
-        extract = [tract.copy() for tract in self.tracts[startpos:endpos + 1]]
+        extract = [_tract.copy() for _tract in self.tracts[startpos:endpos + 1]]
         extract[0].start = start
         extract[-1].end = end
         return extract
@@ -186,11 +189,11 @@ class chrom(object):
     # plot chromosome on the provided canvas
     def plot(self, canvas, colordict, height=0, chrwidth=.1):
 
-        for tract in self.tracts:
+        for current_tract in self.tracts:
             canvas.create_rectangle(
-                    100 * tract.start, 100 * height, 100 * tract.end,
+                    100 * current_tract.start, 100 * height, 100 * current_tract.end,
                     100 * (height + chrwidth),
-                    width=0, disableddash=True, fill=colordict[tract.label])
+                    width=0, disableddash=True, fill=colordict[current_tract.label])
 
     def _smooth(self):
         """ Combine adjacent tracts with the same label.
@@ -239,9 +242,9 @@ class chrom(object):
             Returns:
                 Nothing.
             """
-        for tract in self.tracts:
-            if tract.label in ancestries:
-                tract.label = newlabel
+        for _tract in self.tracts:
+            if _tract.label in ancestries:
+                _tract.label = newlabel
 
         self._smooth()
 
@@ -252,23 +255,23 @@ class chrom(object):
             left by the unknown ancestry.
         """
         i = 0
-        while(i < len(self.tracts) - 1):
-            if(self.tracts[i].label == 'UNKNOWN'):
+        while i < len(self.tracts) - 1:
+            if self.tracts[i].label == 'UNKNOWN':
                 i += 1
                 continue
             else:
                 j = 0
-                while(i + j < len(self.tracts) - 1):
+                while i + j < len(self.tracts) - 1:
                     j += 1
-                    if(self.tracts[i + j].label == "UNKNOWN"):
-                         self.tracts.pop(i + j)  # Remove the unknown segment
-                         j -= 1
+                    if self.tracts[i + j].label == "UNKNOWN":
+                        self.tracts.pop(i + j)  # Remove the unknown segment
+                        j -= 1
                     else:
-                         midpoint = (self.tracts[i+j].start
-                                 + self.tracts[i].end) / 2.
-                         self.tracts[i+j].start = midpoint
-                         self.tracts[i].end = midpoint
-                         break
+                        midpoint = (self.tracts[i+j].start
+                                    + self.tracts[i].end) / 2.
+                        self.tracts[i+j].start = midpoint
+                        self.tracts[i].end = midpoint
+                        break
                 i += 1
         self._smooth()
 
@@ -290,6 +293,7 @@ class chrom(object):
     def __repr__(self):
         return "chrom(tracts=%s)" % (repr(self.tracts),)
 
+
 class chropair(object):
     """ A pair of chromosomes. Using pairs of chromosomes allows us to model
         diploid individuals.
@@ -297,7 +301,7 @@ class chropair(object):
     def __init__(self, chroms=None, len=1, auto=True, label="POP"):
         """ Can instantiate by explictly providing two chromosomes as a tuple
             or an ancestry label, length and autosome status. """
-        if(chroms == None):
+        if chroms is None:
             self.copies = [chrom(len, auto, label), chrom(len, auto, label)]
             self.len = len
         else:
@@ -318,9 +322,9 @@ class chropair(object):
         tractlist = []
         for startpos in range(len(unif)-1):
             tractlist.extend(
-                    self.copies[(startchrom+startpos)%2]
+                    self.copies[(startchrom+startpos) % 2]
                         .extract(unif[startpos],
-                    unif[startpos+1]))
+                                 unif[startpos+1]))
         newchrom = chrom(self.copies[0].len, self.copies[0].auto)
         newchrom.init_list_tracts(tractlist)
         return newchrom
@@ -342,6 +346,7 @@ class chropair(object):
     def __getitem__(self, index):
         return self.copies[index]
 
+
 class indiv(object):
     """ The class of diploid individuals. An individual can hence be though of
         as a list of pairs of chromosomes. Equivalently, a diploid individual
@@ -362,10 +367,10 @@ class indiv(object):
     def from_haploids(haps):
         if len(haps) != 2:
             raise ValueError('more than two haplotypes given to construct '
-                    'a diploid individual')
+                             'a diploid individual')
 
         chroms = [chropair(t)
-                for t in zip(*[hap.chroms for hap in haps])]
+                  for t in zip(*[hap.chroms for hap in haps])]
 
         return indiv(chroms=chroms, Ls=haps[0].Ls)
 
@@ -376,14 +381,14 @@ class indiv(object):
         """
         if len(paths) != 2:
             raise ValueError('more than two paths supplied to construct '
-                    'a diploid individual')
+                             'a diploid individual')
 
         return indiv.from_haploids(
                 [haploid.from_file(path, name=name, selectchrom=selectchrom)
                     for path in paths])
 
     def __init__(self, Ls=None, label="POP", fname=None, labs=("_A", "_B"),
-            selectchrom=None, chroms=None, name=None):
+                 selectchrom=None, chroms=None, name=None):
         """ Construct a diploid individual. There are several ways to build
             individuals, either from files, from existing data, or
             programmatically.
@@ -436,7 +441,7 @@ class indiv(object):
             files are deprecated. It is recommended to instead use the static
             methods from_files or from_haploids.
         """
-        if(fname == None):
+        if fname is None:
             self.Ls = Ls
             if chroms is None:
                 self.chroms = [chropair(len=len, label=label) for len in Ls]
@@ -463,7 +468,7 @@ class indiv(object):
             # We are using Python 3.x
             import tkinter as Tk
 
-        if (win is None):
+        if win is None:
             win = Tk.Tk()
         self.canvas = Tk.Canvas(
                 win, width=250, height=len(self.Ls)*30, bg='white')
@@ -504,9 +509,7 @@ class indiv(object):
         # length as well as a tuple that represents which ancestry that tract
         # belongs to.
         gen = ((t.len(), [t.len() if t.label == a else 0 for a in ancestries])
-                for t
-                in self.iflatten()
-        )
+               for t in self.iflatten())
 
         all_lengths, all_ancestry_lengths = zip(*gen)
         total_length = float(np.sum(all_lengths))
@@ -522,9 +525,9 @@ class indiv(object):
             lsamounts = []
             for chromv in dat:
                 lsamounts.append(np.sum([segment[1]
-                        for copy in chromv
-                        for segment in copy
-                        if segment[0] == ancestry]))
+                                 for copy in chromv
+                                 for segment in copy
+                                 if segment[0] == ancestry]))
             dictamt[ancestry] = lsamounts
         tots = [np.sum(
             [dictamt[ancestry][i]
@@ -532,15 +535,15 @@ class indiv(object):
             for i in range(nc)]
 
         return [[dictamt[ancestry][i]*1./tots[i]
-            for i in range(nc)]
-            for ancestry in ancestries]
+                for i in range(nc)]
+                for ancestry in ancestries]
 
     def iflatten(self):
         """ Lazily flatten this individual to the tract level.  """
-        for chrom in self.chroms:
-            for copy in chrom.copies:
-                for tract in copy.tracts:
-                    yield tract
+        for _chrom in self.chroms:
+            for _copy in _chrom.copies:
+                for _tract in _copy.tracts:
+                    yield _tract
 
     def flat_imap(self, f):
         """ Lazily map a function over the full underlying structure of this
@@ -550,16 +553,17 @@ class indiv(object):
                 copy: the chromosome containing the tract
                 tract: the tract itself
         """
-        for chrom in self.chroms:
-            for copy in chrom.copies:
-                for tract in copy.tracts:
-                    yield f(chrom, copy, tract)
+        for _chrom in self.chroms:
+            for _copy in _chrom.copies:
+                for _tract in _copy.tracts:
+                    yield f(_chrom, _copy, _tract)
 
     def __iter__(self):
         return self.chroms.__iter__()
 
     def __getitem__(self, index):
         return self.chroms[index]
+
 
 # haploid individual
 class haploid(object):
@@ -600,8 +604,10 @@ class haploid(object):
         # selected or not.
         if selectchrom is None:
             # selectchrom being None means that all chromosomes are
-            # selected, so we manufacture a constant function.
-            is_selected = lambda *args: True
+            # selected, so the selection function always returns True.
+
+            def is_selected(*args):
+                return True
         else:
             # Otherwise, we 'normalize' selectchrom by ensuring that it
             # contains only integers. (This is primarily for
@@ -609,10 +615,12 @@ class haploid(object):
             # chromosome numbers as strings.) And we make a set out of the
             # resulting normalized list, to speed up lookups later.
             sc = set(map(int, selectchrom))
-            # And the function we manufacture simply casts its argument
+            # And the function that tests for inclusion simply casts its argument
             # (which is a string since it's read in from a file) to an int,
             # and checks whether its in our set.
-            is_selected = lambda c: int(c) in sc
+
+            def is_selected(chrom_label):
+                return int(chrom_label) in sc
 
         # Filter the loaded data according to selectchrom using the is_selected
         # function constructed above.
@@ -638,7 +646,7 @@ class haploid(object):
         return haploid(Ls=Ls, lschroms=chroms, labs=labs, name=name)
 
     def __init__(self, Ls=None, lschroms=None, fname=None, selectchrom=None,
-            labs=None, name=None):
+                 labs=None, name=None):
         if fname is None:
             if Ls is None or lschroms is None:
                 raise ValueError(
@@ -655,8 +663,8 @@ class haploid(object):
             self.name = name
 
     def __repr__(self):
-        return "haploid(lschroms=%s, name=%s, Ls=%s)" % tuple(map(repr,
-                [self.chroms, self.name, self.Ls]))
+        return "haploid(lschroms=%s, name=%s, Ls=%s)" % tuple(map(repr, [self.chroms, self.name, self.Ls]))
+
 
 def _split_indivs(indivs, count, sort_ancestry=None):
     """ Internal function used to split a list of individuals into equally
@@ -669,21 +677,19 @@ def _split_indivs(indivs, count, sort_ancestry=None):
     if sort_ancestry is None:
         sort_ancestry = indivs[0].chroms[0].copies[0].tracts[0].label
 
-    s_indivs = sorted(indivs,
-            key=lambda i: i.ancestryProps([sort_ancestry])[0])
+    s_indivs = sorted(indivs, key=lambda i: i.ancestryProps([sort_ancestry])[0])
 
     n = len(indivs)
     group_frac = 1.0 / count
 
-    groups = [s_indivs[int(n*i*group_frac):int(n*(i+1)*group_frac)]
-            for i in range(count)]
+    groups = [s_indivs[int(n*i*group_frac):int(n*(i+1)*group_frac)] for i in range(count)]
 
     return groups
 
+
 class population(object):
     def __init__(self, list_indivs=None, names=None, fname=None,
-            labs=("_A", "_B"), selectchrom=None,
-            ignore_length_consistency=False):
+                 labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False):
         """ Construct a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
@@ -707,15 +713,11 @@ class population(object):
             self.nind = len(list_indivs)
             # should probably check that all individuals have same length!
             self.Ls = self.indivs[0].Ls
-            assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), \
-                    "individuals have genomes of different lengths"
+            assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), "individuals have genomes of different lengths"
             self.maxLen = max(self.Ls)
         elif fname is not None:
             self.indivs = []
             for name in names:
-
-                pathspec = (fname[0]+name+fname[1], fname[2])
-
                 try:
                     self.indivs.append(
                             indiv.from_files(
@@ -725,14 +727,12 @@ class population(object):
                                 selectchrom=selectchrom))
                 except IndexError:
                     eprint("error reading individuals", name)
-                    eprint("fname=", fname,
-                            "; labs=", labs, ", selectchrom=", selectchrom)
+                    eprint("fname=", fname, "; labs=", labs, ", selectchrom=", selectchrom)
                     raise IndexError
 
             self.nind = len(self.indivs)
 
-            assert(ignore_length_consistency or
-                    (all(i.Ls == self.indivs[0].Ls for i in self.indivs)))
+            assert(ignore_length_consistency or (all(i.Ls == self.indivs[0].Ls for i in self.indivs)))
 
             self.Ls = self.indivs[0].Ls
             self.maxLen = max(self.Ls)
@@ -752,11 +752,11 @@ class population(object):
 
     def newgen(self):
         """ Build a new generation from this population. """
-        return population([self.new_indiv() for i in range(self.nind)])
+        return population([self.new_indiv() for _i in range(self.nind)])
 
     def new_indiv(self):
         rd = np.random.random_integers(0, self.nind-1, 2)
-        while(rd[0] == rd[1]):
+        while rd[0] == rd[1]:
             rd = np.random.random_integers(0, self.nind-1, 2)
         gamete1 = self.indivs[rd[0]].create_gamete()
         gamete2 = self.indivs[rd[1]].create_gamete()
@@ -769,38 +769,36 @@ class population(object):
         elif version_info.major == 3:
             from tkinter import filedialog
 
-
-        file = filedialog.asksaveasfilename(parent=self.win,
-                title='Choose a file')
+        file = filedialog.asksaveasfilename(parent=self.win, title='Choose a file')
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
     def list_chromosome(self, chronum):
         """ Collect the chromosomes with the given number across the whole
             population.
         """
-        return [indiv.chroms[chronum] for indiv in self.indivs]
+        return [curr_indiv.chroms[chronum] for curr_indiv in self.indivs]
 
-    def ancestry_at_pos(self, chrom=0, pos=0, cutoff=.0):
+    def ancestry_at_pos(self, select_chrom=0, pos=0, cutoff=.0):
         """ Find ancestry proportion at specific position. The cutoff is used
             to look only at tracts that extend beyond a given position. """
         ancestry = {}
         # keep track of ancestry of long segments
         longancestry = {}
         totlength = {}
-        for chropair in self.list_chromosome(chrom):
-            for chrom in chropair.copies:
-                tract = chrom.tracts[chrom.goto(pos)]
+        for chropair in self.list_chromosome(select_chrom):
+            for ploid in chropair.copies:
+                selected_tract = ploid.tracts[ploid.goto(pos)]
                 try:
-                    if(tract.len() > cutoff):
-                        ancestry[tract.label] += 1
-                        totlength[tract.label] += tract.len()
+                    if selected_tract.len() > cutoff:
+                        ancestry[selected_tract.label] += 1
+                        totlength[selected_tract.label] += selected_tract.len()
                 except KeyError:
-                    ancestry[tract.label] = 0
-                    longancestry[tract.label] = 0
-                    totlength[tract.label] = 0
-                    if tract.len():
-                        ancestry[tract.label] += 1
-                        totlength[tract.label] += tract.len()
+                    ancestry[selected_tract.label] = 0
+                    longancestry[selected_tract.label] = 0
+                    totlength[selected_tract.label] = 0
+                    if selected_tract.len():
+                        ancestry[selected_tract.label] += 1
+                        totlength[selected_tract.label] += selected_tract.len()
 
         for key in totlength.keys():
             # prevent division by zero
@@ -811,13 +809,13 @@ class population(object):
 
         return (ancestry, totlength)
 
-    def ancestry_per_pos(self, chrom=0, npts=100, cutoff=.0):
+    def ancestry_per_pos(self, select_chrom=0, npts=100, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
-        len = self.indivs[0].chroms[chrom].len  # Get chromosome length
-        plotpts = np.arange(0, len, len/float(npts)) # Get number of points at which to
+        length = self.indivs[0].chroms[chrom].len  # Get chromosome length
+        plotpts = np.arange(0, length, length/float(npts))  # Get number of points at which to
         # Plot ancestry
         return (plotpts,
-                [self.ancestry_at_pos(chrom=chrom, pos=pt, cutoff=cutoff)
+                [self.ancestry_at_pos(select_chrom=select_chrom, pos=pt, cutoff=cutoff)
                     for pt in plotpts])
 
     def applychrom(self, func, indlist=None):
@@ -827,12 +825,12 @@ class population(object):
         ls = []
 
         if indlist is None:
-                inds = self.indivs
+            inds = self.indivs
         else:
-                inds = indlist
+            inds = indlist
 
         for ind in inds:
-                ls.append(ind.applychrom(func))
+            ls.append(ind.applychrom(func))
         return ls
 
     def flatpop(self, ls=None):
@@ -859,8 +857,8 @@ class population(object):
             indivs = self.indivs
 
         for i in indivs:
-            for tract in i.iflatten():
-                yield tract
+            for _tract in i.iflatten():
+                yield _tract
 
     def collectpop(self, flatdat):
         """ Organize a list of tracts into a dictionary keyed on ancestry
@@ -880,8 +878,7 @@ class population(object):
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None,
-            split_count=1):
+    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1):
         """ tol is the tolerance for full chromosomes: sometimes there are
             small issues at the edges of the chromosomes. If a segment is
             within tol Morgans of the full chromosome, it counts as a full
@@ -907,7 +904,7 @@ class population(object):
             # duplicates.
             return bins_list[0], dats_list
 
-        bins = np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
+        bins = np.arange(0, self.maxLen*(1+.5/npts), float(self.maxLen)/npts)
 
         bypop = defaultdict(list)
 
@@ -921,13 +918,10 @@ class population(object):
                             'chromlen': chrom.len
                         })
 
-        dat={}
+        dat = {}
         for label, ts in bypop.items():
             # extract full length tracts
-            nonfulls = np.array(
-                    [t['tract'] for t in ts
-                        if t['tract'].end - t['tract'].start \
-                                < t['chromlen'] - tol])
+            nonfulls = np.array([t['tract'] for t in ts if t['tract'].end - t['tract'].start < t['chromlen'] - tol])
 
             hdat = np.histogram([n.len() for n in nonfulls], bins=bins)
             dat[label] = list(hdat[0])
@@ -942,7 +936,7 @@ class population(object):
             sample.
             """
         np.random.seed(seed=seed)
-        return np.random.choice(self.indivs,size=len(self.indivs))
+        return np.random.choice(self.indivs, size=len(self.indivs))
 
     def get_global_tractlength_table(self, lenbound):
         """ Calculates the fraction of the genome covered by ancestry tracts of
@@ -954,13 +948,13 @@ class population(object):
         # np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
 
         import bisect
-        dat = {} # np.zeros((len(bypop),len(bins)+1)
+        dat = {}  # np.zeros((len(bypop),len(bins)+1)
         for key, poplen in bypop.items():
             # extract full length tracts
             dat[key] = np.zeros(len(bins)+1)
             nonfulls = np.array([item
-                        for item in poplen
-                        if (item[0] != item[1])])
+                                 for item in poplen
+                                 if (item[0] != item[1])])
             for item in nonfulls:
                 pos = bisect.bisect_left(bins, item[0])
                 dat[key][pos] += item[0]*1./self.nind*1./np.sum(self.Ls)/2.
@@ -990,8 +984,8 @@ class population(object):
 
     # def get_assortment_variance(self,ancestries):
     #     """ancestries is a set of ancestry label. Calculates the assortment variance in 
-    #ancestry proportions (corresponds to the mean uncertainty about the proportion of 
-    #genealogical ancestors, given observed ancestry patterns)"""
+    # ancestry proportions (corresponds to the mean uncertainty about the proportion of
+    # genealogical ancestors, given observed ancestry patterns)"""
 
     # ws=np.array(self.Ls)/np.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
     #     arr=np.array(self.getMeansByChrom(ancestries))
@@ -1029,7 +1023,7 @@ class population(object):
         tot_vars = []
         gen_vars = []
         for i in range(len(ancestries)):
-            pl = np.dot(arr[:, i, :], ws )
+            pl = np.dot(arr[:, i, :], ws)
             tot_vars.append(np.var(pl))
             aroundmean = arr[:, i, :] - np.dot(
                     pl.reshape(self.nind, 1), np.ones((1, nchr)))
@@ -1043,13 +1037,13 @@ class population(object):
 
     def plot_next(self):
         self.indivs[self.currentplot].canvas.pack_forget()
-        if(self.currentplot < self.nind-1):
+        if self.currentplot < self.nind-1:
             self.currentplot += 1
         return self.plot_indiv()
 
     def plot_previous(self):
         self.indivs[self.currentplot].canvas.pack_forget()
-        if(self.currentplot > 0):
+        if self.currentplot > 0:
             self.currentplot -= 1
         return self.plot_indiv()
 
@@ -1068,12 +1062,11 @@ class population(object):
             import tkinter as Tk
         self.colordict = colordict
         self.currentplot = 0
-        self.win = Tk.Tk()#self.indivs[self.currentplot].plot(self.colordict)
+        self.win = Tk.Tk()
         printbutton = Tk.Button(self.win, text="save to ps", command=self.save)
         printbutton.pack()
 
-        p = Tk.Button(self.win, text="Plot previous",
-                command=self.plot_previous)
+        p = Tk.Button(self.win, text="Plot previous", command=self.plot_previous)
         p.pack()
 
         b = Tk.Button(self.win, text="Plot next", command=self.plot_next)
@@ -1092,11 +1085,10 @@ class population(object):
             import tkinter as Tk
         self.colordict = colordict
         ls = self.list_chromosome(i)
-        if (win is None):
+        if win is None:
             win = Tk.Tk()
             win.title("chromosome %d" % (i,))
-        self.chro_canvas = Tk.Canvas(win, width=250, height=self.nind*30,
-                bg='white')
+        self.chro_canvas = Tk.Canvas(win, width=250, height=self.nind*30, bg='white')
 
         for j in range(len(ls)):
             ls[j].plot(self.chro_canvas, colordict, height=j*.25)
@@ -1104,10 +1096,9 @@ class population(object):
         self.chro_canvas.pack(expand=Tk.YES, fill=Tk.BOTH)
         Tk.mainloop()
 
-    def plot_ancestries(self, chrom=0, npts=100,
-            colordict=None, cutoff=.0):
+    def plot_ancestries(self, chrom=0, npts=100, colordict=None, cutoff=.0):
         if colordict is None:
-                colordict = {"CEU": 'blue', "YRI": 'red'}
+            colordict = {"CEU": 'blue', "YRI": 'red'}
 
         dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
         for pop, color in colordict.items():
@@ -1122,25 +1113,22 @@ class population(object):
             for key in colordict.keys():
                 tot += pos[0][key]
             for key in colordict.keys():
-                if(pos[0][key] != 0):
+                if pos[0][key] != 0:
                     eprint(pos[0][key], float(tot)),
                     pos[0][key] /= float(tot)
         for pop, color in colordict.items():
             eprint(tot)
             pylab.figure(1)
-            pylab.plot(dat[0], [pos[0][pop] for pos in dat[1]],
-                    '.', color=color)
+            pylab.plot(dat[0], [pos[0][pop] for pos in dat[1]], '.', color=color)
             pylab.title("Chromosome %d" % (chrom+1,))
             pylab.axis([0, dat[0][-1], 0, 1])
             pylab.figure(2)
-            pylab.plot(dat[0], [100*pos[1][pop] for pos in dat[1]],
-                    '.', color=color)
+            pylab.plot(dat[0], [100*pos[1][pop] for pos in dat[1]], '.', color=color)
             pylab.title("Chromosome %d" % (chrom+1,))
             pylab.axis([0, dat[0][-1], 0, 150])
 
-    def plot_all_ancestries(self, npts=100,
-            colordict=None, startfig=0, cutoff=0):
-        if colordict is none:
+    def plot_all_ancestries(self, npts=100, colordict=None, startfig=0, cutoff=0):
+        if colordict is None:
             colordict = {"CEU": 'blue', "YRI": 'red'}
         for chrom in range(22):
             dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
@@ -1157,20 +1145,17 @@ class population(object):
                 for key in colordict.keys():
                     tot += pos[0][key]
                 for key in colordict.keys():
-                    if(pos[0][key] != 0):
+                    if pos[0][key] != 0:
                         pos[0][key] /= float(tot)
             for pop, color in colordict.items():
                 pylab.figure(0+startfig)
                 pylab.subplot(6, 4, chrom+1)
-                pylab.plot(dat[0], [pos[0][pop] for pos in dat[1]], '.',
-                        color=color)
-                # pylab.title("Chromosome %d" % (chrom+1,))
+                pylab.plot(dat[0], [pos[0][pop] for pos in dat[1]], '.', color=color)
                 pylab.axis([0, dat[0][-1], 0, 1])
                 pylab.figure(1+startfig)
-        pylab.subplot(6,4,chrom+1)
-        pylab.plot(dat[0],[100*pos[1][pop] for pos in dat[1]],'.',color=color)
-        # pylab.title("Chromosome %d" % (chrom+1,))
-        pylab.axis([0,dat[0][-1],0,150])
+        pylab.subplot(6, 4, chrom+1)
+        pylab.plot(dat[0], [100*pos[1][pop] for pos in dat[1]], '.', color=color)
+        pylab.axis([0, dat[0][-1], 0, 150])
 
     def plot_global_tractlengths(self, colordict, npts=40, legend=True):
         flatdat = self.flatpop()
@@ -1179,13 +1164,11 @@ class population(object):
         for label, tracts in bypop.items():
             hdat = pylab.histogram([i.len() for i in tracts], npts)
             # note: convert to cM before plotting
-            pylab.semilogy(100*(hdat[1][1:]+hdat[1][:-1])/2., hdat[0], 'o',
-                    color=colordict[label], label=label)
+            pylab.semilogy(100*(hdat[1][1:]+hdat[1][:-1])/2., hdat[0], 'o', color=colordict[label], label=label)
         pylab.xlabel("length(cM)")
         pylab.ylabel("counts")
         if legend:
             pylab.legend()
-
 
     def __iter__(self):
         return self.indivs.__iter__()
@@ -1206,32 +1189,30 @@ class demographic_model(object):
             max_remaining_tracts is the proportion of tracts that are allowed
             to be incomplete after cutoff Lambda
             (Appendix 2 in Gravel: doi: 10.1534/genetics.112.139808)
-            cutoff=1-\sum(b_i)
+            cutoff=1-sum(b_i)
 
             max_morgans is used to impose a cutoff to the number of Markov transitions. 
             If the simulated morgan lengths of tracts in an infinite genome is more than 
             max_morgans, issue a warning and stop generating new transitions
         """
-        small=1e-10
+        small = 1e-10
         self.mig = mig
         (self.ngen, self.npop) = mig.shape
-        self.max_remaining_tracts=max_remaining_tracts #tolerance for incomplete 
-        #convergence
-        self.max_morgans=max_morgans
+        self.max_remaining_tracts = max_remaining_tracts  # tolerance for incomplete
+        # convergence
+        self.max_morgans = max_morgans
         # the total migration per generation
         self.totmig = mig.sum(axis=1)
 
-        #test for reasonableness of migration matrix
+        # test for reasonableness of migration matrix
 
         if abs(self.totmig[-1] - 1) > small:
-            eprint("founding migration should sum up to 1. Now:", mig[-1, :],
-                    "sum up to ", self.totmig[-1])
+            eprint("founding migration should sum up to 1. Now:", mig[-1, :], "sum up to ", self.totmig[-1])
             raise ValueError("founding migration sum is not 1")
 
         if self.totmig[0] > small:
-            eprint("migrants at last generation should be removed from",
-                    "sample! If this happens in optimization, should "
-                    "trigger constraint and lead to high likelihood")
+            eprint("migrants at last generation should be removed from sample! If this happens in optimization,"
+                   "should trigger constraint and lead to high likelihood")
             eprint("currently", self.totmig[0])
             raise ValueError("migrants from last generation are not removed")
 
@@ -1244,15 +1225,13 @@ class demographic_model(object):
             raise ValueError(
                     "migrants from penultimate generation are not removed")
 
-        if ((self.totmig > 1).any() or (mig < 0).any()):
+        if (self.totmig > 1).any() or (mig < 0).any():
             eprint("migration rates should be between 0 and 1")
             eprint("currently", mig)
             raise ValueError("mig")
         if (mig[:-1] == 1).any():
 
-            eprint("warning: population was completely replaced after",
-                    "founding event")
-
+            eprint("warning: population was completely replaced after founding event")
 
         # Tracts represents ancestry tracts as a markov model
         # states are defined by source population and generation of arrival. 
@@ -1270,13 +1249,13 @@ class demographic_model(object):
 
         # get the equilibrium distribution in each state
         self.equil = np.zeros(self.nstates)
-        self.stateINpop = [[] for pop in range(self.npops)]
-        self.stateOUTpop = [[] for pop in range(self.npops)]
+        self.stateINpop = [[] for _pop in range(self.npops)]
+        self.stateOUTpop = [[] for _pop in range(self.npops)]
 
         for i, state in enumerate(self.states):
             self.stateINpop[state[1]].append(i)
             for other in range(1, self.npops+1):
-                self.stateOUTpop[(state[1]+other)%self.npops].append(i)
+                self.stateOUTpop[(state[1]+other) % self.npops].append(i)
             self.equil[i] = mig[state]*(1-self.totmig)[1:state[0]].prod()
 
         self.equil /= self.equil.sum()
@@ -1334,8 +1313,8 @@ class demographic_model(object):
         self.uniformizemat()
         self.ndists = []
         for i in range(self.npops):
-            self.ndists.append(self.popNdist(i)) #the distribution of the number of steps
-            #required to reach either the length of the genome, or equilibrium
+            self.ndists.append(self.popNdist(i))  # the distribution of the number of steps
+            # required to reach either the length of the genome, or equilibrium
         self.switchdensity()
 
     def gen_variance(self, popnum):
@@ -1343,19 +1322,15 @@ class demographic_model(object):
             2. Calculate the e(d) (equation 3 in MOLA (Models of Local ancestry) paper)
             3. Generations go from 0 to self.ngen-1.
             """
-        legterm = [self.proportions[self.ngen - d, popnum]**2 * \
-                np.prod(1 - self.totmig[:(self.ngen - d)])
-                for d in range(1, self.ngen)]
-        trunkterm = [np.sum([self.mig[u, popnum] * \
-                np.prod(1 - self.totmig[:u])
-                for u in range(self.ngen-d)])
-                for d in range(1, self.ngen)]
+        legterm = [self.proportions[self.ngen - d, popnum]**2 * np.prod(1 - self.totmig[:(self.ngen - d)])
+                   for d in range(1, self.ngen)]
+        trunkterm = [np.sum([self.mig[u, popnum] * np.prod(1 - self.totmig[:u])
+                     for u in range(self.ngen-d)])
+                     for d in range(1, self.ngen)]
 
         # Now calculate the actual variance.
-        return np.sum([2**(d-self.ngen) * (legterm[d-1]+trunkterm[d-1])\
-            for d in range(1, self.ngen)]) +\
-                    self.proportions[0, popnum] *\
-                    (1/2.**(self.ngen-1)-self.proportions[0, popnum])
+        return np.sum([2**(d-self.ngen) * (legterm[d-1]+trunkterm[d-1]) for d in range(1, self.ngen)])\
+               + self.proportions[0, popnum] * (1/2.**(self.ngen-1)-self.proportions[0, popnum])
 
     def uniformizemat(self):
         """ Uniformize the transition matrix so that each state has the same
@@ -1365,9 +1340,9 @@ class demographic_model(object):
         # identify the highest non-self total transition rate
         outgoing = (self.mat - np.diag(self.mat.diagonal())).sum(axis=1)
 
-        self.maxrate = outgoing.max() #max outgoing rate
-        #reset the self-transition rate. We forget about the prior self-transition rates,
-        #as they do not matter for the trajectories.
+        self.maxrate = outgoing.max()  # max outgoing rate
+        # reset the self-transition rate. We forget about the prior self-transition rates,
+        # as they do not matter for the trajectories.
         for i in range(lmat):
             self.unifmat[i, i] = self.maxrate-outgoing[i]
         self.unifmat /= self.maxrate
@@ -1385,37 +1360,33 @@ class demographic_model(object):
 
         # select states in relevant population
         newrest = new[self.stateINpop[pop]]
-        newrest = newrest *1./ newrest.sum() #normalize probabilities
+        newrest = newrest * 1. / newrest.sum()  # normalize probabilities
 
         # reduce the matrix to apply only to states of current population
-        shortmat = self.unifmat[tuple(
-                np.meshgrid(self.stateINpop[pop],
-                    self.stateINpop[pop]))].transpose()
+        shortmat = self.unifmat[tuple(np.meshgrid(self.stateINpop[pop], self.stateINpop[pop]))].transpose()
 
         # calculate the amount that fall out of the state
         escapes = 1 - shortmat.sum(axis=1)
         # decide on the number of iterations
 
-        nit = int(self.max_morgans* self.maxrate)
+        nit = int(self.max_morgans * self.maxrate)
 
         nDistribution = []
-        for i in range(nit): #nit is the max number of iterations.
-            #will exit loop earlier if tracts are all complete.
+        for i in range(nit):  # nit is the max number of iterations.
+            # will exit loop earlier if tracts are all complete.
             nDistribution.append(np.dot(escapes, newrest))
             newrest = np.dot(newrest, shortmat)
-            if newrest.sum()<self.max_remaining_tracts:#we stop when there are at most
-            #we request that the proportions of tracts that are still
-            #incomplete be at most self.cutoff tracts left
+            if newrest.sum() < self.max_remaining_tracts:  # we stop when there are at most
+                # we request that the proportions of tracts that are still
+                # incomplete be at most self.cutoff tracts left
                 break
-        if newrest.sum()>self.max_remaining_tracts:
-            print("Warning: After %d time steps, %f of tracts are incomplete" %
-                    (nit,newrest.sum()))
-            print("This can happen when one population has really long",
-                    "tracts.")
-
+        if newrest.sum() > self.max_remaining_tracts:
+            print("Warning: After %d time steps, %f of tracts are incomplete" % (nit, newrest.sum()))
+            print("This can happen when one population has really long tracts.")
 
         nDistribution.append(newrest.sum())
         return nDistribution
+
 
     def Erlang(self, i, x, T):
         if i > 10:
@@ -1426,65 +1397,50 @@ class demographic_model(object):
     def inners(self, L, x, pop):
         """ Calculate the length distribution of tract lengths not hitting a
             chromosome edge. """
-        if(x > L):
+        if x > L:
             return 0
         else:
-            return np.sum(
-                    self.ndists[pop][i] *
-                        (L-x) *
-                        self.Erlang(i+1, x, self.maxrate)
-                        for i in range(len(self.ndists[pop])))
+            return np.sum(self.ndists[pop][i] * (L-x) * self.Erlang(i+1, x, self.maxrate)
+                          for i in range(len(self.ndists[pop])))
 
     def outers(self, L, x, pop):
         """ Calculate the length distribution of tract lengths hitting a single
             chromosome edge. """
-        if(x > L):
+        if x > L:
             return 0
         else:
             nd = self.ndists[pop]
             mx = self.maxrate * x
-            return 2 * np.sum(
-                    nd[i] * (1 - gammainc(i+1, mx))
-                    for i in range(
-                        len(nd))
-            ) + 2 * (1-np.sum(nd))
+            return 2 * np.sum(nd[i] * (1 - gammainc(i+1, mx)) for i in range(len(nd))) + 2 * (1-np.sum(nd))
 
     def full(self, L, pop):
         """ The expected fraction of full-chromosome tracts, p. 63 May 24,
             2011. """
         return np.sum(
-                self.ndists[pop][i] * (((i+1) / float(self.maxrate) - L) +
-                    L * gammainc(i + 1, self.maxrate * L) -
-                    float(i+1) / self.maxrate * gammainc(i+2, self.maxrate*L))
+                self.ndists[pop][i] * (((i+1) / float(self.maxrate) - L) + L * gammainc(i + 1, self.maxrate * L)
+                                       - float(i+1) / self.maxrate * gammainc(i+2, self.maxrate*L))
                 for i in range(len(self.ndists[pop]))
-        ) + (1 - np.sum(self.ndists[pop])) * \
-                (len(self.ndists[pop])*1./self.maxrate - L)
+        ) + (1 - np.sum(self.ndists[pop])) * (len(self.ndists[pop])*1./self.maxrate - L)
 
     def Z(self, L, pop):
         """the normalizing factor, to ensure that the tract density is 1."""
         return L + np.sum(
                 self.ndists[pop][i]*(i+1)*1./self.maxrate
                 for i in range(len(self.ndists[pop]))
-        ) + (1 - np.sum([self.ndists[pop]])) * \
-                len(self.ndists[pop])*1./self.maxrate
+        ) + (1 - np.sum([self.ndists[pop]])) * len(self.ndists[pop])*1./self.maxrate
 
     def switchdensity(self):
         """ Calculate the density of ancestry switchpoints per morgan in our
             model. """
         self.switchdensities = np.zeros((self.npops, self.npops))
         # could optimize by precomputing survivals earlier
-        self.survivals = [(1 - self.totmig[:i]).prod()
-                for i in range(self.ngen)]
+        self.survivals = [(1 - self.totmig[:i]).prod() for i in range(self.ngen)]
         for pop1 in range(self.npops):
             for pop2 in range(pop1):
                 self.switchdensities[pop1, pop2] = \
-                        np.sum(
-                                [2 * self.proportions[i+1, pop1] * \
-                                        self.proportions[i+1, pop2]* \
-                                        self.survivals[i+1]
-                                    for i in range(1, self.ngen-1)])
-                self.switchdensities[pop2, pop1] = \
-                        self.switchdensities[pop1, pop2]
+                        np.sum([2 * self.proportions[i+1, pop1] * self.proportions[i+1, pop2] * self.survivals[i+1]
+                                for i in range(1, self.ngen-1)])
+                self.switchdensities[pop2, pop1] = self.switchdensities[pop1, pop2]
 
         self.totSwitchDens = self.switchdensities.sum(axis=1)
 
@@ -1496,24 +1452,16 @@ class demographic_model(object):
             bin should not go beyond the end of the longest chromosome. For
             now, perform poor man's integral by using the bin midpoint value
             times width. """
-        self.totalPerInd = \
-                [L*self.totSwitchDens[pop]+2.*self.proportions[0, pop]
-                        for L in Ls]
-        self.totalfull = \
-                np.sum(
-                        [(L*self.totSwitchDens[pop]+2. *
-                                self.proportions[0, pop]) *
-                                self.full(L, pop)*1./self.Z(L, pop)
-                            for L in Ls])
+        self.totalPerInd = [L*self.totSwitchDens[pop]+2.*self.proportions[0, pop] for L in Ls]
+        self.totalfull = np.sum([(L*self.totSwitchDens[pop]+2. * self.proportions[0, pop]) * self.full(L, pop)
+                                 * 1./self.Z(L, pop)
+                                 for L in Ls])
         lsval = []
         for binNum in range(len(bins) - 1):
             mid = (bins[binNum] + bins[binNum+1]) / 2.
-            val = np.sum(
-                    [(L*self.totSwitchDens[pop] +
-                            2. * self.proportions[0, pop])
-                            * (self.inners(L, mid, pop)
-                                + self.outers(L, mid, pop))*1./ self.Z(L, pop)
-                        for L in Ls]) \
+            val = np.sum([(L*self.totSwitchDens[pop] + 2. * self.proportions[0, pop])
+                          * (self.inners(L, mid, pop) + self.outers(L, mid, pop))*1./ self.Z(L, pop)
+                          for L in Ls]) \
                     * (bins[binNum+1] - bins[binNum])
             lsval.append(max(val, 1e-17))
 
@@ -1535,29 +1483,26 @@ class demographic_model(object):
         # define bins that contain all possible values
         # bins=np.arange(0,self.maxLen+1./2./float(npts),self.maxLen/float(npts))
         ll = 0
-        if np.sum(data)>1./self.max_remaining_tracts:
+        if np.sum(data) > 1./self.max_remaining_tracts:
             eprint("warning: the convergence criterion max_remining_tracts",
-                    "may be too high, tracts calculates the distribution",
-                    "of tract lengths from the shortest to the longest,",
-                    "and uses approximations after a fraction",
-                    "1-max_remining_tracts of all tracts have been",
-                    "accounted for. Since we have a total of",
-                    np.sum(data), "we'd be underestimating the length of",
-                    "the longest ",
-                    np.sum(data) * self.max_remaining_tracts, " tracts.")
+                   "may be too high, tracts calculates the distribution",
+                   "of tract lengths from the shortest to the longest,",
+                   "and uses approximations after a fraction",
+                   "1-max_remining_tracts of all tracts have been",
+                   "accounted for. Since we have a total of",
+                   np.sum(data), "we'd be underestimating the length of",
+                   "the longest ",
+                   np.sum(data) * self.max_remaining_tracts, " tracts.")
 
         for pop in range(self.npops):
             models = self.expectperbin(Ls, pop, bins)
             for binnum in range(cutoff, len(bins)-1):
                 dat = data[pop][binnum]
-                #log-likelihood in poisson random field approximation
-                ll += -nsamp*models[binnum] + \
-                        dat*np.log(nsamp*models[binnum]) - \
-                        gammaln(dat + 1.)
+                # log-likelihood in poisson random field approximation
+                ll += -nsamp*models[binnum] + dat*np.log(nsamp*models[binnum]) - gammaln(dat + 1.)
         return ll
 
-    def loglik_biascorrect(self, bins, Ls, data, nsamp, cutoff=0,
-            biascorrect=True):
+    def loglik_biascorrect(self, bins, Ls, data, nsamp, cutoff=0, biascorrect=True):
         """ Calculates the maximum-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. Compares the model
             to the first bins, and simulates the addition (or removal) of the
@@ -1571,8 +1516,7 @@ class demographic_model(object):
 
         if biascorrect:
             if self.npops != 2:
-                eprint("bias correction not implemented for more than 2",
-                        "populations")
+                eprint("bias correction not implemented for more than 2 populations")
                 sys.exit()
             cbypop = []
             for pop in range(self.npops):
@@ -1580,15 +1524,14 @@ class demographic_model(object):
                 corr = []
                 for binnum in range(cutoff):
                     diff = mod[binnum]-data[pop][binnum]
-                    lg = ((bins[binnum]+bins[binnum+1]))//2
+                    lg = (bins[binnum] + bins[binnum+1])//2
 
                     corr.append((lg, diff))
                 eprint(corr)
                 cbypop.append(corr)
             for pop in range(self.npops):
                 # total length in tracts
-                tot = np.sum([bins[i]*data[pop][i]
-                    for i in range(cutoff, len(bins))])
+                tot = np.sum([bins[i]*data[pop][i] for i in range(cutoff, len(bins))])
                 # probability that a given tract is hit by a given "extra short
                 # tracts"
                 probs = [bins[i]*1./tot for i in range(cutoff, len(bins))]
@@ -1599,8 +1542,7 @@ class demographic_model(object):
                             (len(bins)-cutoff, len(bins)-cutoff))
                     corr = cbypop[1-pop][shortbin]
                     if corr[1] > 0:
-                        eprint("correction for lack of short tracts not",
-                                "implemented!")
+                        eprint("correction for lack of short tracts not implemented!")
                         sys.exit()
                     for lbin in range(len(bins)-cutoff):
                         eprint("corr[1]", corr[1])
@@ -1617,18 +1559,15 @@ class demographic_model(object):
             models = mods[pop]
             for binnum in range(cutoff, len(bins)-1):
                 dat = data[pop][binnum]
-                ll += -nsamp*models[binnum] + \
-                        dat*np.log(nsamp*models[binnum]) - \
-                        gammaln(dat + 1.)
+                ll += -nsamp*models[binnum] + dat*np.log(nsamp*models[binnum]) - gammaln(dat + 1.)
         return ll
 
     def plot_model_data(self, Ls, bins, data, nsamp, pop, colordict):
         # plot the migration model with the data
         pop.plot_global_tractlengths(colordict)
         for pop in range(len(data)):
-            pylab.plot(
-                    100*np.array(bins),
-                    nsamp*np.array(self.expectperbin(Ls, 0, bins)))
+            pylab.plot(100*np.array(bins), nsamp*np.array(self.expectperbin(Ls, 0, bins)))
+
 
 class composite_demographic_model(object):
     """ The class of demographic models that account for variance in the number
@@ -1664,9 +1603,7 @@ class composite_demographic_model(object):
         self.proportions_list = proportions_list
 
         # build the component models
-        self.models = [
-                demographic_model(model_function(parameters, props))
-                for props in proportions_list]
+        self.models = [demographic_model(model_function(parameters, props)) for props in proportions_list]
 
         self.npops = self.models[0].npops
 
@@ -1683,7 +1620,7 @@ class composite_demographic_model(object):
             See demographic_model.loglik for more information about the
             specifics of the log-likelihood calculation.
         """
-        maxlen = max(Ls)
+        # maxlen = max(Ls)
         data = sum(np.array(d) for d in data_list)
 
         s = 0
@@ -1713,9 +1650,8 @@ class composite_demographic_model(object):
         if nsamp_list is None:
             nsamp_list = [1 for _ in range(len(self.proportions_list[0]))]
 
-        return sum(
-                nsamp * np.array(mod.expectperbin(Ls, pop, bins))
-                for nsamp, mod in zip(nsamp_list, self.models))
+        return sum(nsamp * np.array(mod.expectperbin(Ls, pop, bins))
+                   for nsamp, mod in zip(nsamp_list, self.models))
 
     def migs(self):
         """ Get the list of migration matrices of the component demographic
@@ -1726,12 +1662,9 @@ class composite_demographic_model(object):
         return [m.mig for m in self.models]
 
 
-def plotmig(mig,
-        colordict=None,
-        order=None):
+def plotmig(mig, colordict=None, order=None):
     if colordict is None:
-        colordict = {'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange',
-            'UNKNOWN': 'gray', 'YRI': 'blue'}
+        colordict = {'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange', 'UNKNOWN': 'gray', 'YRI': 'blue'}
     if order is None:
         order = ['CEU', 'NAT', 'YRI']
 
@@ -1740,18 +1673,16 @@ def plotmig(mig,
     shape = mig.shape
     for i in range(shape[0]):
         for j in range(shape[1]):
-            c = pylab.Circle(
-                    (j, i),
-                    radius=np.sqrt(mig[i, j]) / 1.7,
-                    color=colordict[order[j]])
+            c = pylab.Circle((j, i), radius=np.sqrt(mig[i, j]) / 1.7, color=colordict[order[j]])
             axes.add_patch(c)
     pylab.axis('scaled')
     pylab.ylabel("generations from present")
 
+
 def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
-        cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
-        maxiter=None, full_output=True, func_args=None, fixed_params=None,
-        ll_scale=1):
+             cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
+             maxiter=None, full_output=True, func_args=None, fixed_params=None,
+             ll_scale=1):
     """
     Optimize params to fit model to data using the BFGS method.
 
@@ -1807,20 +1738,14 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         magnitude of the log-likelihood. Once in a region of reasonable
         likelihood, you'll probably want to re-optimize with ll_scale=1.
     """
-    args = ( bins, Ls, data, nsamp, model_func,
-                 outofbounds_fun, cutoff,
-                 verbose, flush_delay, func_args)
+    args = (bins, Ls, data, nsamp, model_func, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
     if func_args is None:
         func_args = []
     if fixed_params is not None:
         raise ValueError("fixed parameters not implemented in optimize_bfgs")
 
-    outputs = scipy.optimize.fmin_bfgs(_object_func,
-            p0, epsilon=np.array(epsilon),
-            args = args, gtol=gtol,
-            full_output=full_output,
-            disp=False,
-            maxiter=maxiter)
+    outputs = scipy.optimize.fmin_bfgs(_object_func, p0, epsilon=np.array(epsilon), args=args, gtol=gtol,
+                                       full_output=full_output, disp=False, maxiter=maxiter)
     (xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag) = outputs
 
     if not full_output:
@@ -1828,12 +1753,13 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     else:
         return xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag
 
+
 optimize_bfgs = optimize
 
-def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
-        cutoff=0, verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5,
-        maxiter=None, full_output=True, func_args=None, fixed_params=None,
-        ll_scale=1, reset_counter = True):
+
+def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                 epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
+                 ll_scale=1, reset_counter=True):
     """
     Optimize params to fit model to data using the cobyla method.
 
@@ -1897,21 +1823,18 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         global _counter
         _counter = 0
 
-    fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func,
-                outofbounds_fun=outofbounds_fun, cutoff=cutoff,
-                verbose=verbose, flush_delay=flush_delay,
-                func_args=func_args)
-
+    fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func, outofbounds_fun=outofbounds_fun, cutoff=cutoff,
+                                 verbose=verbose, flush_delay=flush_delay, func_args=func_args)
 
     outputs = scipy.optimize.fmin_cobyla(
             fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
 
     return outputs
 
-def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
-        cutoff=0, bounds=None, verbose=0, flush_delay=1, epsilon=1e-3,
-        gtol=1e-5, maxiter=None, full_output=True, func_args=None,
-        fixed_params=None, ll_scale=1, reset_counter = True):
+
+def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, bounds=None, verbose=0,
+                   flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
+                   fixed_params=None, ll_scale=1, reset_counter=True):
     """
     Optimize params to fit model to data using the slsq method.
 
@@ -1969,9 +1892,7 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         Defaults to true, resets the iteration counter to zero. Set to False to
         continue iteration count (e.g., if optimization continues from previous point)
     """
-    args = ( bins, Ls, data, nsamp, model_func,
-                outofbounds_fun, cutoff,
-                verbose, flush_delay, func_args)
+    args = (bins, Ls, data, nsamp, model_func, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
     if bounds is None:
         bounds = []
     if func_args is None:
@@ -1986,10 +1907,8 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     if maxiter is None:
         maxiter = 100
 
-    outputs = scipy.optimize.fmin_slsqp(_object_func,
-            p0, ieqcons=[onearg], bounds=bounds,
-            args = args,
-            iter=maxiter, acc=1e-4, epsilon=1e-4)
+    outputs = scipy.optimize.fmin_slsqp(_object_func, p0, ieqcons=[onearg], bounds=bounds, args=args, iter=maxiter,
+                                        acc=1e-4, epsilon=1e-4)
 
     return outputs
     # xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
@@ -2000,15 +1919,14 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     # else:
     #    return xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag
 
+
 def _project_params_down(pin, fixed_params):
-    """ Eliminate fixed parameters from pin. Copied from Dadi (Gutenkunst et
-        al., PLoS Genetics, 2009). """
+    """ Eliminate fixed parameters from pin. Copied from Dadi (Gutenkunst et al., PLoS Genetics, 2009). """
     if fixed_params is None:
         return pin
 
     if len(pin) != len(fixed_params):
-        raise ValueError('fixed_params list must have same length as input '
-                        'parameter array.')
+        raise ValueError('fixed_params list must have same length as input parameter array.')
 
     pout = []
     for ii, (curr_val, fixed_val) in enumerate(zip(pin, fixed_params)):
@@ -2016,6 +1934,7 @@ def _project_params_down(pin, fixed_params):
             pout.append(curr_val)
 
     return np.array(pout)
+
 
 def _project_params_up(pin, fixed_params):
     """ Fold fixed parameters into pin. Copied from Dadi (Gutenkunst et al.,
@@ -2035,11 +1954,11 @@ def _project_params_up(pin, fixed_params):
 
 #: Counts calls to object_func
 _counter = 0
-# calculate the log-likelihood value for tract length data.
-def _object_func(params, bins, Ls, data, nsamp, model_func,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-        func_args=None):
 
+
+def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0,
+                 flush_delay=0, func_args=None):
+    """calculates the log-likelihood value for tract length data."""
     if func_args is None:
         func_args = []
     _out_of_bounds_val = -1e32
@@ -2059,19 +1978,17 @@ def _object_func(params, bins, Ls, data, nsamp, model_func,
         mod = demographic_model(model_func(params))
         result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
 
-    if True:#(verbose > 0) and (_counter % verbose == 0):
+    if True:  # (verbose > 0) and (_counter % verbose == 0):
         param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params]))
         eprint('%-8i, %-12g, %s' % (_counter, result, param_str))
         # Misc.delayed_flush(delay=flush_delay)
 
     return -result
 
-# define the optimization routine for when the final ancestry proportions are
-# specified.
-def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
-        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
-        fixed_params=None, ll_scale=1):
+
+def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun=None, cutoff=0, verbose=0,
+                       flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
+                       fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the COBYLA method.
 
@@ -2120,23 +2037,19 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
     if func_args is None:
         func_args = []
 
-    args = ( bins, Ls, data, nsamp, model_func, fracs,
-                outofbounds_fun, cutoff,
-                verbose, flush_delay, func_args)
-
+    args = (bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
 
     outfun = lambda x:outofbounds_fun(x, fracs = fracs)
 
-
-    outputs = scipy.optimize.fmin_cobyla(_object_func_fracs,
-            p0, outfun, rhobeg=.01, rhoend=.001, args=args, maxfun=maxiter)
+    outputs = scipy.optimize.fmin_cobyla(_object_func_fracs, p0, outfun, rhobeg=.01, rhoend=.001,
+                                         args=args, maxfun=maxiter)
 
     return outputs
 
-def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
-        fixed_params=None, ll_scale=1, reset_counter= True):
+
+def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun=None, cutoff=0,
+                        verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
+                        func_args=None, fixed_params=None, ll_scale=1, reset_counter=True):
     """
     Optimize params to fit model to data using the cobyla method.
 
@@ -2201,29 +2114,28 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs = fracs))
+            eprint("res", outofbounds_fun(p0, fracs=fracs))
 
-        return outofbounds_fun(x0, fracs = fracs)
+        return outofbounds_fun(x0, fracs=fracs)
 
-    modstrip = lambda x: model_func(x, fracs = fracs)
+    def modstrip(x):
+        return model_func(x, fracs=fracs)
 
-    fun = lambda x: _object_func_fracs2(x, bins, Ls, data, nsamp, modstrip,
-            outofbounds_fun=outfun, cutoff=cutoff,
-            verbose=verbose, flush_delay=flush_delay,
-            func_args=func_args, fixed_params=fixed_params)
+    def fun(x):
+        return _object_func_fracs2(x, bins, Ls, data, nsamp, modstrip, outofbounds_fun=outfun, cutoff=cutoff,
+                                   verbose=verbose, flush_delay=flush_delay, func_args=func_args,
+                                   fixed_params=fixed_params)
 
     p0 = _project_params_down(p0, fixed_params)
-    outputs = scipy.optimize.fmin_cobyla(fun, p0, outfun, rhobeg=.01,
-            rhoend=.001, maxfun=maxiter)
+    outputs = scipy.optimize.fmin_cobyla(fun, p0, outfun, rhobeg=.01, rhoend=.001, maxfun=maxiter)
     xopt = _project_params_up(outputs, fixed_params)
 
     return xopt
 
-def optimize_cob_multifracs(
-        p0, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
-        fixed_params=None, ll_scale=1):
+
+def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fracs_list, outofbounds_fun=None,
+                            cutoff=0, verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
+                            func_args=None, fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the cobyla method.
 
@@ -2276,6 +2188,7 @@ def optimize_cob_multifracs(
     # construct the outofbounds functions and the model functions, storing
     # each into the empty lists defined above.
     # construct the out of bounds function.
+
     def outfun(p0, fracs, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
         # parameters. Hence we have to project back up first
@@ -2284,33 +2197,29 @@ def optimize_cob_multifracs(
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs = fracs))
+            eprint("res", outofbounds_fun(p0, fracs=fracs))
 
-        return outofbounds_fun(x0, fracs = fracs)
+        return outofbounds_fun(x0, fracs=fracs)
 
     # construct the objective function. The input x is wrapped in the
     # function r constructed above.
-    objfun = lambda x: _object_func_multifracs(
-            x, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
-            outofbounds_fun=outfun, cutoff=cutoff, verbose=verbose,
-            flush_delay=flush_delay, func_args=func_args,
-            fixed_params=fixed_params)
+    def objfun(x):
+        return _object_func_multifracs(x, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
+                                       outofbounds_fun=outfun, cutoff=cutoff, verbose=verbose,
+                                       flush_delay=flush_delay, func_args=func_args, fixed_params=fixed_params)
 
-    composite_outfun = lambda x: min(
-            outfun(x, frac) for frac in fracs_list)
+    def composite_outfun(x):
+        return min(outfun(x, frac) for frac in fracs_list)
 
     p0 = _project_params_down(p0, fixed_params)
-    outputs = scipy.optimize.fmin_cobyla(
-            objfun, p0, composite_outfun, rhobeg=.01, rhoend=.001,
-            maxfun=maxiter)
+    outputs = scipy.optimize.fmin_cobyla(objfun, p0, composite_outfun, rhobeg=.01, rhoend=.001, maxfun=maxiter)
     xopt = _project_params_up(outputs, fixed_params)
 
     return xopt
 
-def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
-        searchvalues, outofbounds_fun=None, cutoff=0, verbose=0,
-        flush_delay=1,  full_output=True, func_args=None, fixed_params=None,
-        ll_scale=1):
+
+def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs, searchvalues, outofbounds_fun=None, cutoff=0,
+                          verbose=0, flush_delay=1,  full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the brute force method.
 
@@ -2359,7 +2268,8 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
     """
     if func_args is None:
         func_args = []
-    def outfun(p0,verbose=False):
+
+    def outfun(p0, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
         # parameters. Hence we have to project back up first
         x0 = _project_params_up(p0, fixed_params)
@@ -2367,16 +2277,17 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
             eprint("p0", p0)
             eprint("x0", x0)
             eprint("fracs", fracs)
-            eprint("res", outofbounds_fun(p0, fracs = fracs))
+            eprint("res", outofbounds_fun(p0, fracs=fracs))
 
-        return outofbounds_fun(x0, fracs = fracs)
+        return outofbounds_fun(x0, fracs=fracs)
 
-    modstrip = lambda x: model_func(x, fracs = fracs)
+    def modstrip(x):
+        return model_func(x, fracs=fracs)
 
-    fun = lambda x: _object_func_fracs2(x, bins, Ls, data, nsamp, modstrip,
-            outofbounds_fun=outfun, cutoff=cutoff, verbose=verbose,
-            flush_delay=flush_delay, func_args=func_args,
-            fixed_params=fixed_params)
+    def fun(x):
+        return _object_func_fracs2(x, bins, Ls, data, nsamp, modstrip, outofbounds_fun=outfun, cutoff=cutoff,
+                                   verbose=verbose, flush_delay=flush_delay, func_args=func_args,
+                                   fixed_params=fixed_params)
 
     if len(searchvalues) == 1:
         def fun2(x):
@@ -2389,10 +2300,10 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
 
     return xopt, outputs[1:]
 
-def optimize_brute_multifracs(
-        bins, Ls, data_list, nsamp_list, model_func, fracs_list, searchvalues,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-        full_output=True, func_args=None, fixed_params=None, ll_scale=1):
+
+def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs_list, searchvalues,
+                              outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                              full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the brute force method.
 
@@ -2440,7 +2351,7 @@ def optimize_brute_multifracs(
               re-optimize with ll_scale=1.
     """
     if func_args is None:
-        func_args=[]
+        func_args = []
 
     # construct the out of bounds function.
     def outfun(p0, fracs, verbose=False):
@@ -2462,15 +2373,15 @@ def optimize_brute_multifracs(
     # The wrapper function is called on the x given as input to
     # _object_func_multifracs
     r = (lambda x: x) \
-            if len(searchvalues) > 1 else \
-            (lambda x: (float(x),))
+        if len(searchvalues) > 1 else \
+        (lambda x: (float(x),))
 
     # construct the objective function. The input x is wrapped in the
     # function r constructed above.
-    objfun = lambda x: _object_func_multifracs(r(x), bins, Ls, data_list,
-            nsamp_list, model_func, fracs_list, outofbounds_fun=outfun,
-            cutoff=cutoff, verbose=verbose, flush_delay=flush_delay,
-            func_args=func_args, fixed_params=fixed_params)
+    def objfun(x):
+        return _object_func_multifracs(r(x), bins, Ls, data_list, nsamp_list, model_func, fracs_list,
+                                       outofbounds_fun=outfun, cutoff=cutoff, verbose=verbose, flush_delay=flush_delay,
+                                       func_args=func_args, fixed_params=fixed_params)
 
     outputs = scipy.optimize.brute(objfun, searchvalues, full_output=full_output)
     xopt = _project_params_up(outputs[0], fixed_params)
@@ -2478,8 +2389,7 @@ def optimize_brute_multifracs(
     return xopt, outputs[1:]
 
 
-
-def test_model_func(model_func, parameters,  fracs_list=None, time_params = True, time_scale = 100):
+def test_model_func(model_func, parameters,  fracs_list=None, time_params=True, time_scale=100):
     """Given a demographic model function, run a few debugging tests to ensure
     that it behaves as expected, namely: 
     1-That migration matrices sum to less than one (exactly one for the last generation
@@ -2509,20 +2419,20 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params = True
     totmig = mig.sum(axis=1)
     violation = 1
 
-    if (-abs(totmig[-1] - 1) < - 1e-8 ):
+    if -abs(totmig[-1] - 1) < - 1e-8:
         violation = min(violation, -abs(totmig[-1] - 1) + 1e-8)  # Check that initial migration sums to 1.
         print("last row of migration matrix should sum to one.")
-    if  (totmig[0]>0 or totmig[1]>0):
-        print ("first two rows of the migration matrix should sum to one")
+    if totmig[0] > 0 or totmig[1] > 0:
+        print("first two rows of the migration matrix should sum to one")
         violation = min(violation, -totmig[0], -totmig[1])  # Check that there are no migrations in the last
         # two generations
-    if max(totmig) > 1 or min(totmig)<0:
+    if max(totmig) > 1 or min(totmig) < 0:
         print("migration rates should be between zero and one")
         violation = min(violation, min(1 - totmig), min(totmig))  # Check that total migration rates between 0 and 1
 
     # Second, test continuity
-    if time_params is True: #Test continuity on all parameters all parameters as time parameters.
-            time_params = [True]*len(parameters)
+    if time_params is True:  # Test continuity on all parameters all parameters as time parameters.
+        time_params = [True]*len(parameters)
 
     assert len(time_params) == len(parameters), "time_params should be a boolean list with length len(parameters)"
 
@@ -2531,8 +2441,8 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params = True
         if time_params[i]:
             focal_parameter = parameters[i]
             # Round parameter to integer time
-            focal_parameter=round(time_scale*focal_parameter)//time_scale
-            up_param = focal_parameter +  perturbation
+            focal_parameter = round(time_scale*focal_parameter)//time_scale
+            up_param = focal_parameter + perturbation
             down_param = focal_parameter - perturbation
 
             up_params = list(parameters)
@@ -2544,25 +2454,26 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params = True
                 down_mig = model_func(down_params)
             else:
                 up_mig = model_func(up_params, fracs_list)
-                down_mig= model_func(down_params, fracs_list)
+                down_mig = model_func(down_params, fracs_list)
 
-            #mig_down should always be smaller or equal in size to mig_up
+            # mig_down should always be smaller or equal in size to mig_up
             compare_size = down_mig.shape
-            trimmed_up_mig = up_mig[:compare_size[0],:]
+            trimmed_up_mig = up_mig[:compare_size[0], :]
             max_diff = abs(trimmed_up_mig - down_mig).max()
-            if max_diff > 10*time_scale*perturbation: # This is fairly arbitrary threshold.
+            if max_diff > 10*time_scale*perturbation:  # This is fairly arbitrary threshold.
                 print("apparent discontinuity in migration matrices in model test at parameters", parameters)
-                violation = min(violation,time_scale*perturbation-max_diff)
+                violation = min(violation, time_scale*perturbation-max_diff)
 
     return violation, mig
 
 
 #: Counts calls to object_func
 _counter = 0
-# define the objective function for when the ancestry porportions are specified.
-def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-                 func_args=None):
+
+
+def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun=None, cutoff=0, verbose=0,
+                       flush_delay=0, func_args=None):
+    """define the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
     _out_of_bounds_val = -1e32
@@ -2571,7 +2482,7 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
 
     if outofbounds_fun is not None:
         # outofbounds can return either True or a negative valueto signify out-of-boundedness.
-        oob = outofbounds_fun(params,fracs=fracs)
+        oob = outofbounds_fun(params, fracs=fracs)
         if oob < 0:
             result = -(oob-1)*_out_of_bounds_val
         else:
@@ -2583,15 +2494,15 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
         result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
 
     if verbose > 0 and _counter % verbose == 0:
-        param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params]))
-        eprint( '%-8i, %-12g, %s' % (_counter, result, param_str))
+        param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in params]))
+        eprint('%-8i, %-12g, %s' % (_counter, result, param_str))
         # Misc.delayed_flush(delay=flush_delay)
 
     return -result
 
-def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-        func_args=None,fixed_params=None):
+
+def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0,
+                        flush_delay=0, func_args=None, fixed_params=None):
     if func_args is None:
         func_args = []
     # this function will be minimized. We first calculate likelihoods (to be
@@ -2619,27 +2530,27 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func,
             mod = demographic_model(model_func(params_up))
 
             sys.stdout.flush()
-            mresult=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff)
+            mresult = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
     else:
         eprint("No bound function defined")
-        mod=demographic_model(model_func(params_up))
-        mresult=mod.loglik(bins,Ls,data,nsamp,cutoff=cutoff)
+        mod = demographic_model(model_func(params_up))
+        mresult = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
 
-    if True:#(verbose > 0) and (_counter % verbose == 0):
-        param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params_up]))
+    if True:  # (verbose > 0) and (_counter % verbose == 0):
+        param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in params_up]))
         eprint('%-8i, %-12g, %s' % (_counter, mresult, param_str))
         # Misc.delayed_flush(delay=flush_delay)
 
     return -mresult
 
+
 #: Counts calls to object_func
 _counter = 0
-# define the objective function for when the ancestry porportions are
-# specified.
-def _object_func_multifracs(
-        params, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-        func_args=None,fixed_params=None):
+
+
+def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func, fracs_list, outofbounds_fun=None,
+                            cutoff=0, verbose=0, flush_delay=0, func_args=None, fixed_params=None):
+    """ define the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
     # this function will be minimized. We first calculate likelihoods (to be
@@ -2652,15 +2563,14 @@ def _object_func_multifracs(
     # Deal with fixed parameters
     params_up = _project_params_up(params, fixed_params)
 
-    mkmodel = lambda: composite_demographic_model(
-            model_func, params, fracs_list)
+    def mkmodel():
+        return composite_demographic_model(model_func, params, fracs_list)
 
     if outofbounds_fun is not None:
         # outofbounds returns  a negative value to signify out-of-boundedness.
         # Compute the out of bounds function for each fraction and take the
         # minimum as the overall out of bounds value.
-        oob = min(outofbounds_fun(params, fracs=fracs)
-                for fracs in fracs_list)
+        oob = min(outofbounds_fun(params, fracs=fracs) for fracs in fracs_list)
 
         if oob < 0:
             # we want bad functions to give very low likelihoods, and worse
@@ -2674,16 +2584,15 @@ def _object_func_multifracs(
 
             sys.stdout.flush()
 
-            mresult = comp_model.loglik(bins, Ls, data_list, nsamp_list,
-                cutoff=cutoff)
+            mresult = comp_model.loglik(bins, Ls, data_list, nsamp_list, cutoff=cutoff)
     else:
         eprint("No bound function defined")
         comp_model = mkmodel()
 
         mresult = comp_model.loglik(bins, Ls, data_list, nsamp_list)
 
-    if True:#(verbose > 0) and (_counter % verbose == 0):
-        param_str = 'array([%s])' % (', '.join(['%- 12g'%v for v in params_up]))
+    if True:  # (verbose > 0) and (_counter % verbose == 0):
+        param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in params_up]))
         eprint('%-8i, %-12g, %s' % (_counter, mresult, param_str))
         # Misc.delayed_flush(delay=flush_delay)
 
