@@ -1,7 +1,6 @@
 from __future__ import print_function  # for python 2 compatibility
 
 import numpy as np
-import itertools as it
 import pylab
 
 from collections import defaultdict
@@ -518,7 +517,7 @@ class indiv(object):
     def ancestryPropsByChrom(self, ancestries):
         dat = self.applychrom(chrom.tractlengths)
         dictamt = {}
-        nc = len(dat)
+        nc = len(list(dat))
         for ancestry in ancestries:
             lsamounts = []
             for chromv in dat:
@@ -821,16 +820,16 @@ class population(object):
                 [self.ancestry_at_pos(chrom=chrom, pos=pt, cutoff=cutoff)
                     for pt in plotpts])
 
-    def applychrom(self,func, indlist=None):
+    def applychrom(self, func, indlist=None):
         """ Apply func to chromosomes. If no indlist is supplied, apply to all
             individuals.
         """
-        ls=[]
+        ls = []
 
         if indlist is None:
-                inds=self.indivs
+                inds = self.indivs
         else:
-                inds=indlist
+                inds = indlist
 
         for ind in inds:
                 ls.append(ind.applychrom(func))
@@ -937,7 +936,7 @@ class population(object):
 
         return bins, dat
 
-    def bootinds(self,seed):
+    def bootinds(self, seed):
         """ Return a bootstrapped list of individuals in the population. Use
             with get_global_tractlength inds=... to get a bootstrapped
             sample.
@@ -1106,7 +1105,10 @@ class population(object):
         Tk.mainloop()
 
     def plot_ancestries(self, chrom=0, npts=100,
-            colordict={"CEU": 'blue', "YRI": 'red'}, cutoff=.0):
+            colordict=None, cutoff=.0):
+        if colordict is None:
+                colordict = {"CEU": 'blue', "YRI": 'red'}
+
         dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
         for pop, color in colordict.items():
             for pos in dat[1]:
@@ -1137,7 +1139,9 @@ class population(object):
             pylab.axis([0, dat[0][-1], 0, 150])
 
     def plot_all_ancestries(self, npts=100,
-            colordict={"CEU": 'blue', "YRI": 'red'}, startfig=0, cutoff=0):
+            colordict=None, startfig=0, cutoff=0):
+        if colordict is none:
+            colordict = {"CEU": 'blue', "YRI": 'red'}
         for chrom in range(22):
             dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
 
@@ -1497,18 +1501,18 @@ class demographic_model(object):
                         for L in Ls]
         self.totalfull = \
                 np.sum(
-                        [(L*self.totSwitchDens[pop]+2. * \
-                                self.proportions[0, pop]) * \
+                        [(L*self.totSwitchDens[pop]+2. *
+                                self.proportions[0, pop]) *
                                 self.full(L, pop)*1./self.Z(L, pop)
                             for L in Ls])
         lsval = []
         for binNum in range(len(bins) - 1):
             mid = (bins[binNum] + bins[binNum+1]) / 2.
             val = np.sum(
-                    [(L*self.totSwitchDens[pop] + \
-                            2. * self.proportions[0, pop]) * \
-                            (self.inners(L, mid, pop) + \
-                                self.outers(L, mid, pop))*1./ self.Z(L, pop)
+                    [(L*self.totSwitchDens[pop] +
+                            2. * self.proportions[0, pop])
+                            * (self.inners(L, mid, pop)
+                                + self.outers(L, mid, pop))*1./ self.Z(L, pop)
                         for L in Ls]) \
                     * (bins[binNum+1] - bins[binNum])
             lsval.append(max(val, 1e-17))
@@ -1576,7 +1580,7 @@ class demographic_model(object):
                 corr = []
                 for binnum in range(cutoff):
                     diff = mod[binnum]-data[pop][binnum]
-                    lg = ((bins[binnum]+bins[binnum+1]))//2;
+                    lg = ((bins[binnum]+bins[binnum+1]))//2
 
                     corr.append((lg, diff))
                 eprint(corr)
@@ -1723,9 +1727,14 @@ class composite_demographic_model(object):
 
 
 def plotmig(mig,
-        colordict={'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange',
-            'UNKNOWN': 'gray', 'YRI': 'blue'},
-        order=['CEU', 'NAT', 'YRI']):
+        colordict=None,
+        order=None):
+    if colordict is None:
+        colordict = {'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange',
+            'UNKNOWN': 'gray', 'YRI': 'blue'}
+    if order is None:
+        order = ['CEU', 'NAT', 'YRI']
+
     pylab.figure()
     axes = pylab.axes()
     shape = mig.shape
@@ -1741,7 +1750,7 @@ def plotmig(mig,
 
 def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
-        maxiter=None, full_output=True, func_args=[], fixed_params=None,
+        maxiter=None, full_output=True, func_args=None, fixed_params=None,
         ll_scale=1):
     """
     Optimize params to fit model to data using the BFGS method.
@@ -1780,10 +1789,8 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         If True, return full outputs as described in help.
         (scipy.optimize.fmin_bfgs)
     func_args:
-        Additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize, that its second
-        argument is an array of sample sizes for the sfs, and that its last
-        argument is the list of grid points to use in evaluation.
+        List of additional arguments to model_func. It is assumed that model_func's
+        first argument is an array of parameters to optimize.
     fixed_params:
         (Not yet implemented)
         If not None, should be a list used to fix model parameters at
@@ -1803,17 +1810,18 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     args = ( bins, Ls, data, nsamp, model_func,
                  outofbounds_fun, cutoff,
                  verbose, flush_delay, func_args)
-
+    if func_args is None:
+        func_args = []
     if fixed_params is not None:
         raise ValueError("fixed parameters not implemented in optimize_bfgs")
 
     outputs = scipy.optimize.fmin_bfgs(_object_func,
-            p0, epsilon=epsilon,
+            p0, epsilon=np.array(epsilon),
             args = args, gtol=gtol,
             full_output=full_output,
             disp=False,
             maxiter=maxiter)
-    xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag = outputs
+    (xopt, fopt, gopt, Bopt, func_calls, grad_calls, warnflag) = outputs
 
     if not full_output:
         return xopt
@@ -1823,8 +1831,8 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
 optimize_bfgs = optimize
 
 def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
-        cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
-        maxiter=None, full_output=True, func_args=[], fixed_params=None,
+        cutoff=0, verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5,
+        maxiter=None, full_output=True, func_args=None, fixed_params=None,
         ll_scale=1, reset_counter = True):
     """
     Optimize params to fit model to data using the cobyla method.
@@ -1864,9 +1872,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         help(scipy.optimize.fmin_bfgs)
     func_args:
         Additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize, that its second
-        argument is an array of sample sizes for the sfs, and that its last
-        argument is the list of grid points to use in evaluation.
+        first argument is an array of parameters to optimize.
     fixed_params:
         If not None, should be a list used to fix model parameters at
         particular values. For example, if the model parameters are
@@ -1885,7 +1891,8 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         Defaults to true, resets the iteration counter to zero. Set to False to
         continue iteration count (e.g., if optimization continues from previous point)
     """
-
+    if func_args is None:
+        func_args = []
     if reset_counter:
         global _counter
         _counter = 0
@@ -1902,8 +1909,8 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     return outputs
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
-        cutoff=0, bounds=[], verbose=0, flush_delay=0.5, epsilon=1e-3,
-        gtol=1e-5, maxiter=None, full_output=True, func_args=[],
+        cutoff=0, bounds=None, verbose=0, flush_delay=1, epsilon=1e-3,
+        gtol=1e-5, maxiter=None, full_output=True, func_args=None,
         fixed_params=None, ll_scale=1, reset_counter = True):
     """
     Optimize params to fit model to data using the slsq method.
@@ -1942,10 +1949,8 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
         If True, return full outputs as in described in
         help(scipy.optimize.fmin_bfgs)
     func_args:
-        Additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize, that its second
-        argument is an array of sample sizes for the sfs, and that its last
-        argument is the list of grid points to use in evaluation.
+        List of additional arguments to model_func. It is assumed that model_func's
+        first argument is an array of parameters to optimize.
     fixed_params:
         If not None, should be a list used to fix model parameters at
         particular values. For example, if the model parameters are
@@ -1967,7 +1972,10 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
     args = ( bins, Ls, data, nsamp, model_func,
                 outofbounds_fun, cutoff,
                 verbose, flush_delay, func_args)
-
+    if bounds is None:
+        bounds = []
+    if func_args is None:
+        func_args = []
     if reset_counter:
         global _counter
         _counter = 0
@@ -2030,13 +2038,16 @@ _counter = 0
 # calculate the log-likelihood value for tract length data.
 def _object_func(params, bins, Ls, data, nsamp, model_func,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-        func_args=[]):
+        func_args=None):
+
+    if func_args is None:
+        func_args = []
     _out_of_bounds_val = -1e32
     global _counter
     _counter += 1
 
     if outofbounds_fun is not None:
-        # outofbounds can return either True or a negative valueto signify out-of-boundedness.
+        # outofbounds can return either True or a negative value to signify out-of-boundedness.
         ooa = outofbounds_fun(params)
         if ooa < 0:
             result = -(ooa-1)*_out_of_bounds_val
@@ -2059,7 +2070,7 @@ def _object_func(params, bins, Ls, data, nsamp, model_func,
 # specified.
 def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
-        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=[],
+        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
         fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the COBYLA method.
@@ -2106,6 +2117,9 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
+    if func_args is None:
+        func_args = []
+
     args = ( bins, Ls, data, nsamp, model_func, fracs,
                 outofbounds_fun, cutoff,
                 verbose, flush_delay, func_args)
@@ -2115,15 +2129,13 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs,
 
 
     outputs = scipy.optimize.fmin_cobyla(_object_func_fracs,
-            p0, outfun, rhobeg=.01, rhoend=.001,
-            args = args,
-            maxfun=maxiter)
+            p0, outfun, rhobeg=.01, rhoend=.001, args=args, maxfun=maxiter)
 
     return outputs
 
 def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
-        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=[],
+        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
         fixed_params=None, ll_scale=1, reset_counter= True):
     """
     Optimize params to fit model to data using the cobyla method.
@@ -2174,6 +2186,9 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
         Defaults to true, resets the iteration counter to zero. Set to False to
         continue iteration count (e.g., if optimization continues from previous point)
     """
+    if func_args is None:
+        func_args = []
+
     if reset_counter:
         global _counter
         _counter = 0
@@ -2206,8 +2221,8 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs,
 
 def optimize_cob_multifracs(
         p0, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
-        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=[],
+        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+        epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
         fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the cobyla method.
@@ -2255,6 +2270,8 @@ def optimize_cob_multifracs(
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
+    if func_args is None:
+        func_args = []
     # Now we iterate over each set of ancestry proportions in the list, and
     # construct the outofbounds functions and the model functions, storing
     # each into the empty lists defined above.
@@ -2292,7 +2309,7 @@ def optimize_cob_multifracs(
 
 def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
         searchvalues, outofbounds_fun=None, cutoff=0, verbose=0,
-        flush_delay=0.5,  full_output=True, func_args=[], fixed_params=None,
+        flush_delay=1,  full_output=True, func_args=None, fixed_params=None,
         ll_scale=1):
     """
     Optimize params to fit model to data using the brute force method.
@@ -2340,6 +2357,8 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
+    if func_args is None:
+        func_args = []
     def outfun(p0,verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
         # parameters. Hence we have to project back up first
@@ -2372,8 +2391,8 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs,
 
 def optimize_brute_multifracs(
         bins, Ls, data_list, nsamp_list, model_func, fracs_list, searchvalues,
-        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0.5,
-        full_output=True, func_args=[], fixed_params=None, ll_scale=1):
+        outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+        full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
     Optimize params to fit model to data using the brute force method.
 
@@ -2420,6 +2439,9 @@ def optimize_brute_multifracs(
               region of reasonable likelihood, you'll probably want to
               re-optimize with ll_scale=1.
     """
+    if func_args is None:
+        func_args=[]
+
     # construct the out of bounds function.
     def outfun(p0, fracs, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
@@ -2540,7 +2562,9 @@ _counter = 0
 # define the objective function for when the ancestry porportions are specified.
 def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-                 func_args=[]):
+                 func_args=None):
+    if func_args is None:
+        func_args = []
     _out_of_bounds_val = -1e32
     global _counter
     _counter += 1
@@ -2567,7 +2591,9 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs,
 
 def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-        func_args=[],fixed_params=None):
+        func_args=None,fixed_params=None):
+    if func_args is None:
+        func_args = []
     # this function will be minimized. We first calculate likelihoods (to be
     # maximized), and return minus that.
     eprint("evaluating at params", params)
@@ -2613,7 +2639,9 @@ _counter = 0
 def _object_func_multifracs(
         params, bins, Ls, data_list, nsamp_list, model_func, fracs_list,
         outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=0,
-        func_args=[],fixed_params=None):
+        func_args=None,fixed_params=None):
+    if func_args is None:
+        func_args = []
     # this function will be minimized. We first calculate likelihoods (to be
     # maximized), and return minus that.
     eprint("evaluating at params", params)
