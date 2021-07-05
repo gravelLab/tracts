@@ -37,6 +37,7 @@ if __name__ == "__main__":
     all_test_mods = []
     for file in testfiles:
         module = file.split(".")[0]
+        print(module)
         mod = __import__(module)
         all_tests.addTest(mod.suite)
     if fast_mode:

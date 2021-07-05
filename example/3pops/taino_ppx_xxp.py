@@ -6,8 +6,8 @@ import scipy
 tractspath = "../.."  # the path to tracts if not in your default pythonpath
 sys.path.append(tractspath)
 import tracts
-import models
-import numpy
+import models_3pop
+import numpy as np
 import pylab
 
 from warnings import warn
@@ -22,11 +22,11 @@ method = "brute"
 # followed by a pulse from population 2. "fix" referes to the fact that the
 # migration rates in the model are fixed to the observed global ancestry
 # proportions--then, we only have to optimize the timing of the migrations.
-func = models.ppx_xxp_fix
+func = models_3pop.ppx_xxp_fix
 
 # this function keeps track of whether parameters are in a "forbidden" region:
 # whether mproportions are between 0 and 1, times positive, etc.
-bound = models.outofbounds_ppx_xxp_fix
+bound = models_3pop.outofbounds_ppx_xxp_fix
 
 # defines the values of parameters to loop over in the brute force
 # step. Times are in units of 100 generations: the start time will
@@ -107,12 +107,12 @@ indivs = pop.indivs
 
 def bootsamp(num):
     #generates a list of positions of the samples to pick in a bootstrap 
-    return numpy.random.choice(range(num),replace=True,size=num)
+    return np.random.choice(range(num),replace=True,size=num)
 
 # iterate over bootstrap instances. Iteration 0 is the un-bootstrapped value
 for bootnum in runboots:
     # Use a seed for reproducibility.
-    numpy.random.seed(seed=bootnum)
+    np.random.seed(seed=bootnum)
 
     if bootnum != 0:
         # draw random sample.
@@ -138,7 +138,7 @@ for bootnum in runboots:
         for ii, poplab in enumerate(labels):
             bypopfrac[ii].append(ind.ancestryProps(poplab))
 
-    props = numpy.mean(bypopfrac, axis=1).flatten()
+    props = np.mean(bypopfrac, axis=1).flatten()
 
     Ls = pop.Ls
     nind = pop.nind
@@ -148,7 +148,7 @@ for bootnum in runboots:
     def randomize(arr, scale=2):
         # takes an array and multiplies every element by a factor between 0 and
         # 2, uniformly. caps at 1.
-        return map(lambda i: min(i, 1), scale * numpy.random.random(arr.shape) * arr)
+        return map(lambda i: min(i, 1), scale * np.random.random(arr.shape) * arr)
 
     xopt = tracts.optimize_brute_fracs2(
         bins, Ls, data, nind, func, props, slices, outofbounds_fun=bound, cutoff=cutoff)
@@ -162,7 +162,7 @@ for bootnum in runboots:
     for popnum in range(len(data)):
         expects.append(optmod.expectperbin(Ls, popnum, bins))
 
-    expects = nind * numpy.array(expects)
+    expects = nind * np.array(expects)
 
     outf = outdir + "boot%d_%2.2f" % (bootnum, maxlik,)
 
@@ -187,7 +187,7 @@ for bootnum in runboots:
     fpred = open(outf + "_pred", 'w')
     for popnum in range(len(data)):
         fpred.write(
-            "\t".join(map(str, pop.nind * numpy.array(optmod.expectperbin(Ls, popnum, bins)))) + "\n")
+            "\t".join(map(str, pop.nind * np.array(optmod.expectperbin(Ls, popnum, bins)))) + "\n")
     fpred.close()
 
     fpars = open(outf + "_pars", 'w')

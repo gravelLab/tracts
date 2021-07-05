@@ -2441,7 +2441,7 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params=True, 
         if time_params[i]:
             focal_parameter = parameters[i]
             # Round parameter to integer time
-            focal_parameter = round(time_scale*focal_parameter)//time_scale
+            focal_parameter = round(time_scale*focal_parameter)*1./time_scale
             up_param = focal_parameter + perturbation
             down_param = focal_parameter - perturbation
 
@@ -2456,13 +2456,17 @@ def test_model_func(model_func, parameters,  fracs_list=None, time_params=True, 
                 up_mig = model_func(up_params, fracs_list)
                 down_mig = model_func(down_params, fracs_list)
 
+
             # mig_down should always be smaller or equal in size to mig_up
             compare_size = down_mig.shape
             trimmed_up_mig = up_mig[:compare_size[0], :]
             max_diff = abs(trimmed_up_mig - down_mig).max()
+
             if max_diff > 10*time_scale*perturbation:  # This is fairly arbitrary threshold.
                 print("apparent discontinuity in migration matrices in model test at parameters", parameters)
-                violation = min(violation, time_scale*perturbation-max_diff)
+                # print(up_mig)
+                # print(down_mig)
+                violation = min(violation, 10*time_scale*perturbation-max_diff)
 
     return violation, mig
 

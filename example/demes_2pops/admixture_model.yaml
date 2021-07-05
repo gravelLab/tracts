@@ -1,0 +1,23 @@
+# Comments start with a hash.
+description:
+  An admixture model with two populations and a single pulse
+time_units: generations
+
+demes:
+  - name: source1
+  - name: source2
+  - name: target
+    ancestors: [source1, source2]
+    proportions: [0.1, 0.9]
+    start_time: 10.1
+
+migrations:
+  - source: source1
+    dest: target
+    rate: .01
+
+pulse:
+  - source: source2
+    dest: target
+    time: 0.02
+    proportion: 0.3

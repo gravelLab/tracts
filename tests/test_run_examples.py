@@ -7,8 +7,6 @@ sys.path.append('../')
 sys.path.append('../example/2pops')
 sys.path.append('../example/3pops')
 import pp
-import models_3pop as threepop
-
 
 class ManipsTestCase(unittest.TestCase):
     def setUp(self):
@@ -17,9 +15,8 @@ class ManipsTestCase(unittest.TestCase):
     def tearDown(self):
         t = time.time() - self.startTime
         print("%s: %.3f seconds" % (self.id(), t))
-
-    def test_load_data_2pop(self):
-        """"Load data from 2 pop example and check that loaded data is as expected"""
+    def test_run_optimization_slow(self):
+        # number of short tract bins not used in inference.
         cutoff = 2
         directory = "../example/2pops/G10/"
         names = [
@@ -72,9 +69,21 @@ class ManipsTestCase(unittest.TestCase):
         liks_orig_pp = []
         maxlik = -1e18
         startrand = startparams
+        for i in range(rep_pp):
+            xopt = tracts.optimize_cob_fracs2(
+                startrand, bins, Ls, data, nind, func, props, outofbounds_fun=bound,
+                cutoff=cutoff, epsilon=1e-2)
+            # optimize_cob_fracs2 takes one additional parameter: the proportion of
+            # each ancestry that will be used to fix the parameters.
+            optmodlocal = tracts.demographic_model(func(xopt, fracs=props))
+            loclik = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
+            if loclik > maxlik:
+                optmod = optmodlocal
+                optpars = xopt
+            liks_orig_pp.append(loclik)
 
+            startrand = randomize(startparams)
 
-
-
+        print("likelihoods found: ", liks_orig_pp)
 
 suite = unittest.TestLoader().loadTestsFromTestCase(ManipsTestCase)
