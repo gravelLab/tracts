@@ -1,0 +1,16 @@
+description:
+  A simple model in which populations EUR and AFR arrive discretely at
+  first generation, and a subsequent migration of EUR occurs at time T2.
+demes:
+  - name: A
+  - name: B
+  - name: X
+    ancestors: [A, B]
+    proportions: [a, 1-a]
+    start_time: tx
+    time_scaling_factor: 100
+pulses:
+  - sources: [A]
+    dest: X
+    proportions: [r]
+    time: T2
