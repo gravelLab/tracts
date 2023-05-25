@@ -59,7 +59,7 @@ class ParametrizedDemography:
         if isinstance(param_name, numbers.Number):
             return param_name
         elif param_name in self.free_param_names:
-            return params[self.free_param_names[param_name]['index']]*(100 if self.free_param_names[param_name]['type'])
+            return params[self.free_param_names[param_name]['index']]
         elif param_name in self.dependent_params:
             return self.dependent_params[param_name](self, params)
         else:
@@ -71,6 +71,9 @@ class ParametrizedDemography:
         '''
         
         return (self.get_param_value(time_param_name, params), self.population_indices[population_name])
+    
+    def is_time_param(self):
+        return [param['type'] == 'time' for param in self.free_param_names.values()]
 
     def get_migration_matrix(self, params: list[float]) -> np.ndarray:
         '''
@@ -80,7 +83,7 @@ class ParametrizedDemography:
         '''
 
         if self.finalized is not True:
-            raise ValueError('Please finalize the model by running the finalize() method.')
+            self.finalize()
         
         if len(params) != len(self.free_param_names):
             raise ValueError(f'Number of supplied parameters ({len(params)}) does not match the number of model parameters ({len(self.free_param_names)}).')
@@ -298,7 +301,7 @@ class ParametrizedDemography:
         with open(filename) as file, ruamel.yaml.YAML(typ="safe") as yaml:
             demes_data = yaml.load(file)
             assert isinstance(demes_data, dict), ".yaml file was invalid."
-            name = demes_data['model_name']
+            demography.name = demes_data['model_name'] if 'model_name' in demes_data else 'Unnamed Model'
             for population in demes_data['demes']:
                 if 'ancestors' in population:
                     parametrized_population = population['name']

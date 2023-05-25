@@ -687,7 +687,7 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 
 class population(object):
     def __init__(self, list_indivs=None, names=None, fname=None,
-                 labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False):
+                 labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False, filenames_by_individual=None):
         """ Construct a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
@@ -713,6 +713,24 @@ class population(object):
             self.Ls = self.indivs[0].Ls
             assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), "individuals have genomes of different lengths"
             self.maxLen = max(self.Ls)
+        elif filenames_by_individual is not None:
+            self.indivs = []
+            for name, files in filenames_by_individual.items():
+                try:
+                    self.indivs.append(
+                            indiv.from_files(
+                                files,
+                                name=name,
+                                selectchrom=selectchrom))
+                except Exception as e:
+                    raise IndexError(f'Files for individiual {name} ({files}) could not be found.') from e
+                
+            self.nind = len(self.indivs)
+            #Check that all individuals have the same length.
+            self.Ls = self.indivs[0].Ls
+            if not all(i.Ls == self.indivs[0].Ls for i in self.indivs) and not ignore_length_consistency:
+                raise ValueError('Individuals have genomes of different lengths. If this is intended, use ignore_length_consistency=True.')
+            self.maxLen = max(self.Ls)
         elif fname is not None:
             self.indivs = []
             for name in names:
@@ -735,7 +753,7 @@ class population(object):
             self.Ls = self.indivs[0].Ls
             self.maxLen = max(self.Ls)
         else:
-            raise
+            raise ValueError('Population could not be loaded because individuals were not specified.')
 
     def split_by_props(self, count):
         """ Split this population into groups according to their ancestry
