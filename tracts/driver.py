@@ -3,10 +3,36 @@ import numpy
 import ruamel.yaml
 import re
 import logging
+import os
+import __main__
+import sys
+from pathlib import Path
+logger = logging.getLogger(__name__)
 
-def run_tracts(filename):
+
+def test_location(filename):
+    print(__main__.__file__)
+    print(sys.path)
+    return
+
+def locate_file_path(filename, absolute_driver_yaml_path=None):
+    for filepath, method_name in ((Path(filename), 'immediately'), 
+                                  (Path(__main__.__file__).parent / filename, 'using __main__'), 
+                                  (Path(sys.path[0]) / filename, 'using sys.path[0]'),
+                                  (absolute_driver_yaml_path.parent / filename if isinstance(absolute_driver_yaml_path, Path) else Path(''), 'using driver yaml')
+                                ):
+        #logger.info(f'{method_name}: {filepath}')
+        if filepath.is_file():
+            logger.info(f'Found {method_name}.')
+            return filepath
+    return None
+
+def run_tracts(driver_filename):
+    driver_path = locate_file_path(driver_filename)
+    if driver_path is None:
+        raise OSError('Driver yaml file could not be found.')
     driver_spec = None
-    with open(filename) as file, ruamel.yaml.YAML(typ="safe") as yaml:
+    with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
         driver_spec = yaml.load(file)
     assert isinstance(driver_spec, dict), ".yaml file was invalid."
     directory = driver_spec['samples']['directory']
@@ -28,7 +54,10 @@ def run_tracts(filename):
 
     if 'model_filename' not in driver_spec:
         raise ValueError('You must specify the file path to your model under "model_filename".')
-    model = tracts.ParametrizedDemography.load_from_YAML(driver_spec['model_filename'])
+    model_path = locate_file_path(driver_spec['model_filename'], driver_path)
+    if model_path is None:
+        raise OSError('Model yaml file could not be found.')
+    model = tracts.ParametrizedDemography.load_from_YAML(model_path.resolve())
     func = lambda params: model.get_migration_matrix(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
     bound = lambda params: model.out_of_bounds(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
 

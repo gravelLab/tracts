@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append("../../")
 import tracts
-import pp
-import pp_px
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 import numpy
 
 directory = "./G10/"

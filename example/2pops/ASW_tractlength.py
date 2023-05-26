@@ -4,8 +4,7 @@ import sys
 sys.path.append("../..")
                 #path to tracts, may have to adjust if the file is moved
 import tracts
-import pp
-import pp_px
+import tracts.legacy_models.models_2pop as models_2pop
 import numpy
 import pylab
 
@@ -53,10 +52,10 @@ Ls = pop.Ls
 nind = pop.nind
 
 # we compare two models; single pulse versus two European pulses.
-func = pp.pp
-bound = pp.outofbounds_pp
-func2 = pp_px.pp_px
-bound2 = pp_px.outofbounds_pp_px
+func = models_2pop.pp
+bound = models_2pop.outofbounds_pp
+func2 = models_2pop.pp_px
+bound2 = models_2pop.outofbounds_pp_px
 #(init_Eu,tstart,t2,nuEu_prop)
 # give two different starting conditions, with one starting near the
 # single-pulse model
