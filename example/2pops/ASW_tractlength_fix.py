@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import sys
-import tracts
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent.parent))
+import tracts
+import tracts.legacy_models.models_2pop as models_2pop
 import numpy
 
 directory = "./G10/"
@@ -58,11 +59,11 @@ for ind in pop.indivs:
 props = numpy.mean(bypopfrac, axis=1).flatten()
 
 # we compare two models; single pulse versus two European pulses.
-func = pp.pp_fix
-bound = pp.outofbounds_pp_fix
+func = models_2pop.pp_fix
+bound = models_2pop.outofbounds_pp_fix
 
-func2 = pp_px.pp_px_fix
-bound2 = pp_px.outofbounds_pp_px_fix
+func2 = models_2pop.pp_px_fix
+bound2 = models_2pop.outofbounds_pp_px_fix
 # ((tstart,t2,nuEu_prop))
 # tstart:     start time,
 # t2:         time of second migration,

@@ -14,8 +14,10 @@ Add function to solve constraints shape
 Auto-create constraint function to give known ancestry fractions
 Complete function to run the optimizer
 '''
-
+#global_logger = logging.getLogger(__name__)
 class ParametrizedDemography:
+    logger = logging.getLogger(__name__)
+
     '''
     A class representing a demographic history for a population, with parametrized migrations from other populations.
     TODO: add support for int (constant) parameters
@@ -359,8 +361,23 @@ class FixedAncestryDemography(ParametrizedDemography):
     '''
     Represents a parametrized demography with known final ancestry proportions
     '''
+
     def __init__(self):
         return
+
+    def is_time_param(self):
+        time_param_list = []
+        for param_name, param in self.free_param_names.items():
+            if param_name not in self.params_fixed_by_ancestry:
+                time_param_list.append(param['type'] == 'time')
+        return time_param_list
+
+    def out_of_bounds(self, params):
+        '''
+        Takes in a list of params equal to the length of free_params - params_fixed_by_ancestry
+        and returns a negative violation score if the resulting matrix would be or is invalid.
+        '''
+        return super().out_of_bounds(self.get_full_params(params))
 
     def add_population(self, population_name: str):
         '''
@@ -370,40 +387,56 @@ class FixedAncestryDemography(ParametrizedDemography):
             raise ValueError('Cannot add populations to a model after fixing ancestry proportions.')
         self.population_indices[population_name] = None
 
-    def get_migration_matrix(self, params):
-        print(super())
-        print(self.__class__.__mro__)
+    def get_full_params(self, params):
+        self.logger.info(f'Input params: {params}')
         full_params = params.copy()
-        print(full_params)
-        def _param_objective_func(self, params_to_solve):
+        def _param_objective_func(self: FixedAncestryDemography, params_to_solve):
+            nonlocal full_params
             params_to_solve[np.isnan(params_to_solve)] = 0
-            print(params_to_solve[0])
-            self.insert_params(full_params, params_to_solve)
-            print(full_params)
+            full_params = self.insert_params(full_params, params_to_solve)
+            self.logger.info(f'Full params: {full_params}')
             found_props = self.proportions_from_matrix(super().get_migration_matrix(full_params))[:-1]
             fixed_props = self.known_ancestry_proportions
             diff = found_props-fixed_props
-            print(f'Found proportions:{found_props}')
-            print(f'Fixed proportions:{fixed_props}')
-            print(f'Difference:{diff}')
             return diff
         solved_params = scipy.optimize.fsolve(lambda params_to_solve: _param_objective_func(self, params_to_solve), (.2,))
-        print(solved_params)
+        full_params = self.insert_params(full_params, solved_params)
+        return full_params
+
+    def get_migration_matrix(self, params):
+        '''
+        #print(super())
+        #print(self.__class__.__mro__)
+        self.logger.info(f'Input params: {params}')
+        full_params = params.copy()
+        self.logger.info('Full params: {full_params}')
+        def _param_objective_func(self: FixedAncestryDemography, params_to_solve):
+            params_to_solve[np.isnan(params_to_solve)] = 0
+            self.logger.info('Full params: {full_params}')
+            full_params = self.insert_params(full_params, params_to_solve)
+            self.logger.info('Full params: {full_params}')
+            found_props = self.proportions_from_matrix(super().get_migration_matrix(full_params))[:-1]
+            fixed_props = self.known_ancestry_proportions
+            diff = found_props-fixed_props
+            return diff
+        solved_params = scipy.optimize.fsolve(lambda params_to_solve: _param_objective_func(self, params_to_solve), (.2,))
+        #print(solved_params)
         self.insert_params(full_params, solved_params)
-        return super().get_migration_matrix(full_params)
+        '''
+        return super().get_migration_matrix(self.get_full_params(params))
     
     def insert_params(self, params, params_to_solve):
+        self.logger.info(f'Params: {params}, params')
         if len(params_to_solve) != len(self.params_fixed_by_ancestry):
             raise ValueError('Incorrect number of parameters to be solved')
-        
         if len(params) + len(params_to_solve) == len(self.free_param_names):
-            for param_name, value in zip(self.params_fixed_by_ancestry, params_to_solve):
-                params.insert(self.free_param_names[param_name]['index'], value)
-            return
+            return np.insert(params, [self.free_param_names[param_name]['index'] for param_name in self.params_fixed_by_ancestry], params_to_solve) 
         elif len(params) == len(self.free_param_names):
             for param_name, value in zip(self.params_fixed_by_ancestry, params_to_solve):
                 params[self.free_param_names[param_name]['index']] = value
-            return
+            return params
+        else:
+            raise ValueError('Parameters fixed by ancestry proportions could not be resolved with the given parameters.')
 
 def test():
     model = ParametrizedDemography()
