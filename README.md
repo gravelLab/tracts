@@ -53,11 +53,35 @@ copy).
 Driver File
 ===========
 
-To maintain maximum flexibility, the options and models in tracts are set up in
-a driver file and a "model" file. Examples of both are provided in the
-distribution; these examples are the best starting points for the first-time.
-Tracts can be used interactively--when using the (i)python console, it is easy
-to examine and plot the different variables.
+Tracts is used by passing a driver yaml file to the method tracts.run_tracts().
+An example driver file is:
+
+    samples:
+      directory: .\G10\
+      individual_names: [
+        "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
+        "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
+        "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
+        "NA20357", "NA20356"
+      ]
+      filename_format: "{name}_{label}.bed"
+      labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
+      chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
+    model_filename: pp.yaml
+    start_params: 
+    - [0.173632,  0.0683211] #Run tracts with these start params
+    - values: [0.173632,  6.83211] #Run tracts with these start params twice
+    perturbation: [0.6, 2] #And multiply them by a random number in this range at each repetition
+    repetitions: 2
+    exclude_tracts_below_cM: 2
+    time_scaling_factor: 100
+
+The samples field indicates information about the location of the sample data.
+The individual_names tells tracts which individuals use for analysis.
+The filename_format allows tracts to find the filenames corresponding to each individual.
+The model_filename corresponds to a yaml file of a demographic model, as detailed below.
+Tracts also allows for the time parameter to be scaled, as some optimizers run better when
+all parameters are on the same scale.
 
 Output
 ======
@@ -91,103 +115,44 @@ likelihood of the best-fit model
 Setting up a demographic model
 ==============================
 
-The space of possible incoming migration matrices is quite large; if we have
-`p` migrant populations over `g` generations, there can be `n*g` different
-migration rates. To simplify this, we introduce simplified parametrized models
-that describe the full migration matrix in terms of a few parameters. These
-models may, for example,  involve a discrete number of admixture pulses, or
-periods of constant migrations rate. The user has full flexibility in defining
-these models; in python, one needs to write a function that takes parameters as
-an input (such as the time of the onset of migration, migration rate `p`), and
-returns a migration matrix.
+The Demes specification is a project with the goal of standardizing 
+demographic models in computational biology. Populations, pulses of Tracts uses a modified version
+of the Demes format to specify demographic models with flexible parameters,
+which can then be optimized over. The details of the model are specified as a yaml file.
 
-Here is the simplest example of such a function, implementing a single pulse of
-migration:
+    model_name: One_Pulse
+    description:
+        A demes model with flexible parameters. Represents a population X founded R generations ago by EUR and AFR.
+    time_units: generations
+    demes:
+      - name: EUR
+      - name: AFR
+      - name: X
+      ancestors: [EUR, AFR]
+      proportions: [R, 1-R] #This line represents the proportions from each ancestor when the population is founded. Should add up to 1.
+      start_time: tx #This line represents the founding time of the population.
+      
+In Demes, the proportions and start_time would be given as numbers. 
+In tracts, they are given as parameter names, which are then tuned
+by the optimizer.
 
-    def pp((init_Eu,tstart)):
-            """ A simple model in which populations Eu and AFR arrive
-                discretely at first generation. If a time is not integer, the
-                migration is divided between neighboring times proportional to
-                the non-integer time fraction.  """
-
-            # the time is scaled by a factor 100 in this model to ease
-            # optimization with some routines that expect all parameters to
-            # have the same scale
-            tstart *= 100
-
-            if  tstart < 0:
-                    #time shouldn't be negative: that should be caught by
-                    #constraint function (below). Return empty matrix
-                    gen = int(numpy.ceil(max(tstart, 0))) + 1
-                    mig = numpy.zeros((gen+1, 2))
-                    return mig
-
-            # number of generations in the migration matrix
-            gen  = int(numpy.ceil(tstart)) + 1
-            # how close we are to the integer approximation
-            frac = gen - tstart - 1
-            # placeholder migration matrix
-            mig  = numpy.zeros((gen + 1, 2))
-
-            #initial migration rates must sum up to one.
-            initNat = 1 - init_Eu
-
-            # Replace a fraction at second generation to ensure a continuous
-            # model distribution with generation
-            mig[-1,:] = numpy.array([init_Eu, initNat])
-            mig[-2,:] = frac * numpy.array([init_Eu, initNat])
-
-            return mig
-
-Some parameter values are inconsistent: times must be positive, and proportions
-of migrants must be between 0 and 1. We define an auxiliary function that
-verifies whether these conditions are met It returns a number that is
-nonnegative if constraints are satisfied, and gets increasingly negative when
-they are more strongly violated.
-
-    def outofbounds_pp(params):
-            """ Constraint function evaluating below zero when constraints not
-                satisfied. """
-            ret = 1 #initialize the return variable to a positive value.
-            (init_Eu, tstart) = params
-
-            # migration proportion must be between 0 and 1
-            ret = min(1, 1 - init_Eu)
-            ret = min(ret, init_Eu)
-
-
-            # generate the migration matrix and test for possible issues
-            func = pp #specify the model
-            mig = func(params) #get the migration matrix
-            # calculate the migration rate per generation
-            totmig = mig.sum(axis=1)
-
-            # first generation migration must sum up to 1
-            ret = min(ret, -abs(totmig[-1] - 1) + 1e-8)
-            # no migrations are allowed in the first two generations
-            ret = min(ret, -totmig[0], -totmig[1])
-
-            # migration at any given generation cannot be greater than 1
-            ret = min(ret, 10 * min(1 - totmig), 10 * min(totmig))
-
-            # start time must be at least two generations ago
-            ret = min(ret, tstart - .02)
-
-            return ret
-
+For now, the model only accepts one population having ancestors and pulses.
+This is taken to be the sample population (in the example, X).
+The other populations in the model should have labels corresponding to the
+sources of admixture in the data.
 
 The population is founded when two populations meet; at the first generation,
 we consider all individuals in the population as “migrants”, so the sum of
-migration frequencies at the first generation must be one. If it isn’t,
-tracts will complain.
+migration frequencies at the first generation must be one.
 
 Importantly, the optimizers in tracts assume that all parameters are
-continuous, but the underlying markov model uses discrete generations.  When a
-time falls between two integers, the migrants are distributed across the
-neighboring integers, in such a way that the migration matrix changes
-“continuously”, in the sense that expected number of migrants. Continuous
-change is important, because likelihood optimizers can really struggle if the
-model is discontinuous in parameter space.
+continuous, but the underlying markov model uses discrete generations.
+The ParametrizedDemography class allows for pulses of migration at non-integer times
+by splitting the pulse across the previous and subsequent generation.
+The pulse is split such that the effective time of arrival corresponds to the time parameter,
+while the expected number of migrants corresponds to the rate parameter.
+This ensures that the output matrix is continuous in the parameters,
+which prevents the optimizer from getting stuck.
 
 Contact
 =======
