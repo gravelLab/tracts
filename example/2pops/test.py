@@ -8,5 +8,5 @@ import logging
 
 logging.basicConfig()
 tracts.driver.logger.setLevel(logging.INFO)
-tracts.run_tracts('ASW_tractlength_no_pulse.yaml')
 tracts.run_tracts('ASW_tractlength_one_pulse.yaml')
+#tracts.run_tracts('ASW_tractlength_two_pulse.yaml')

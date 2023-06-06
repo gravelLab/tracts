@@ -31,6 +31,7 @@ class ParametrizedDemography:
         self.founding_time_param = ''
         self.name = name
 
+        self.params_fixed_by_ancestry = []
         self.free_param_names = {}
         self.dependent_params = {}
         self.population_indices = {}
@@ -278,10 +279,10 @@ class ParametrizedDemography:
 
     def finalize(self):
         self.finalized = True
-        for index, key in enumerate(self.free_param_names):
-            self.free_param_names[key]['index'] = index
-        for i, key in enumerate(self.population_indices):
-            self.population_indices[key] = i
+        for index, param_name in enumerate(self.free_param_names):
+            self.free_param_names[param_name]['index'] = index
+        for index, population_name in enumerate(self.population_indices):
+            self.population_indices[population_name] = index
         return
 
 

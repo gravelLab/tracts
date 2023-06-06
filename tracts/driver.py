@@ -7,6 +7,7 @@ import os
 import __main__
 import sys
 from pathlib import Path
+import numbers
 logger = logging.getLogger(__name__)
 
 def locate_file_path(filename, absolute_driver_yaml_path=None):
@@ -58,12 +59,12 @@ def run_tracts(driver_filename):
     if 'fix_ancestry_proportions' in driver_spec and driver_spec['fix_ancestry_proportions'] == True:
         ancestry_proportions = calculate_ancestry_proportions(pop, population_labels)
         if 'params_to_fix' not in driver_spec:
-            raise ValueError('You must specify which parameters to calculate from known ancestry proportions under "params_to_fix"')
+            raise KeyError('You must specify which parameters to calculate from known ancestry proportions under "params_to_fix"')
         model.fix_ancestry_proportions(driver_spec['params_to_fix'], ancestry_proportions)
 
-    if type(driver_spec['start_params']) is not list or len(driver_spec['start_params']) < 1:
-        raise ValueError('You must specify initial parameters under "start_params".')    
-    params_found, likelihoods = run_model_multi_params(func, bound, pop, population_labels, parse_start_params(driver_spec['start_params'], model.is_time_param(), 1/time_scaling_factor))
+    if type(driver_spec['start_params']) is not dict:
+        raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')    
+    params_found, likelihoods = run_model_multi_params(func, bound, pop, population_labels, parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], driver_spec['seed'], model, time_scaling_factor))
     print("likelihoods found: ", likelihoods)
     optimal_params = min(zip(params_found,likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
@@ -91,20 +92,32 @@ def parse_individual_filenames(individual_names, filename_string, labels = ['A',
     individual_filenames = {individual_name: [_find_individual_file(individual_name, label_val) for label_val in labels] for individual_name in individual_names}
     return individual_filenames
 
-def parse_start_params(start_params_list, indices_to_scale, time_scaling_factor=1):
-    for startparams in start_params_list:
-        try: 
-            if type(startparams) == dict:
-                repetitions = startparams['repetitions'] if 'repetitions' in startparams else 1
-                if repetitions > 1 and 'perturbation' not in startparams:
-                    logging.warning('You are running the optimizer multiple times without perturbing the start parameters.')
-                for rep in range(repetitions):
-                    randomized_params = randomize(numpy.array(startparams['values']), startparams['perturbation'][0], startparams['perturbation'][1])
-                    yield scale_select_indices(randomized_params, indices_to_scale, time_scaling_factor)
-            else:
-                yield scale_select_indices(numpy.array(startparams), indices_to_scale, time_scaling_factor)
-        except Exception as e:
-            raise ValueError(f'Could not parse start_params ({startparams}).') from e
+def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: tracts.ParametrizedDemography=None, time_scaling_factor=1):
+    num_params = len(model.free_param_names) - len(model.params_fixed_by_ancestry)
+    rng = numpy.random.default_rng(seed=seed)
+    start_params = rng.random((repetitions, num_params))
+    for param_name, param_info in model.free_param_names.items():
+        if param_name not in start_param_bounds and param_name not in model.params_fixed_by_ancestry:
+            raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
+        if isinstance(start_param_bounds[param_name], numbers.Number):
+            start_params[:,param_info['index']] = start_param_bounds[param_name]
+        else:
+            try:
+                bounds = [float(bound) for bound in start_param_bounds[param_name].split('-')]
+                assert len(bounds) == 2
+                start_params[:,param_info['index']] *= bounds[1] - bounds[0]
+                start_params[:,param_info['index']] += bounds[0]
+            except Exception as e:
+                raise ValueError("Initial values must be specified as a range (ie: 5-7) or a number.") from e
+        if param_info['type'] == 'time':
+            start_params[:,param_info['index']] *= 1/time_scaling_factor
+    logger.info(f'Start Params: {start_params}')
+    return start_params
+            
+        
+        
+    
+        
         
 def scale_select_indices(arr, indices_to_scale, scaling_factor = 1):
     assert len(indices_to_scale) == len(arr)
@@ -115,10 +128,10 @@ def randomize(arr, a, b):
     # uniformly.
     return ((b-a) * numpy.random.random(arr.shape) + a)*arr
 
-def run_model_multi_params(model_func, bound_func, population, population_labels, startparams_generator, cutoff = 2):
+def run_model_multi_params(model_func, bound_func, population, population_labels, startparams_list, cutoff = 2):
     optimal_params = []
     likelihoods = []
-    for start_params in startparams_generator:
+    for start_params in startparams_list:
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params)
         optimal_params.append(params_found)

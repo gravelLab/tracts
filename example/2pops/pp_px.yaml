@@ -7,11 +7,11 @@ demes:
   - name: AFR
   - name: X
     ancestors: [EUR, AFR]
-    proportions: [a, 1-a]
+    proportions: [R, 1-R]
     start_time: tx
     time_scaling_factor: 100
 pulses:
   - sources: [EUR]
     dest: X
-    proportions: [r]
+    proportions: [P]
     time: T2

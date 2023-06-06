@@ -8,12 +8,12 @@ samples:
     ]
   filename_format: "{name}_{label}.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
-  chromosomes: 1-22
-model_filename: pp_px.yaml
+  chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
+model_filename: pp.yaml
 start_params: 
-- [0.125102, 10.7152, 0.0438957, 5.1725]
-- values: [0.125102, 10.7152, 0.0438957, 5.1725]
-  perturbation: [0.6, 2]
-  repetitions: 2
+  R: 0.1-0.2
+  tx: 5-8
+repetitions: 3
+seed: 100
 exclude_tracts_below_cM: 2
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
