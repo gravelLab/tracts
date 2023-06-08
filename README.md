@@ -5,6 +5,13 @@ Tracts is a set of classes and definitions used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from
 multiple populations can be modeled.
 
+Recent Changes
+========
+
+- Tracts is now a python package rather than a single .py file. To use tracts, copy the tracts folder into your working directory. 
+- Tracts no longer requires writing your own driver script. Instead, details about the simulation are read from a YAML file (examples below).
+- Demographic models also do not have to be handcoded anymore. They are now specified by a Demes-like YAML file (examples below).
+
 Examples
 ========
 
@@ -15,26 +22,124 @@ genomes puerto Rican data
 Installation
 ============
 
-Installation support for tracts is rudimentary. Apologies. 
+To install:
+1. Clone this repository
+2. In your local copy, open a terminal.
+3. Run pip install .
 
-Copy all files and folders locally.  
+You can then now import tracts as a python package.
 
-"tracts.py" is a python module. The main branch should support python 2.7 and 3. This is a relatively new update, so 
-please let me know if you encounter issues running or installing with either version of python 2.7. Moving ahead, however, I expect that most
-development will be on python 3. 
+Tracts is currently not distributed on PyPi or Conda. 
 
-To load the package, you currently have to tell python where to look for the package by doing something like
 
-import sys
-tractspath = path_to_tracts_directory  # the path to tracts if not in your default pythonpath
-sys.path.append(tractspath)
-import tracts. 
+Setting up a demographic model
+==============================
 
-I have added tracts_conda_env.yml,  an anaconda environment file with the relevant dependencies. If you are using anaconda, you can load this environment using 
+Tracts attempts to predict a population's migration history from the distribution of ancestry tracts.
+The space of all migration matrices is very large: if we have `p` migrant populations over g generations, there can be `n*g` different migration rates.
+In tracts, demographic models are used to describe the migration matrix as a reduced number of migration events with flexible parameters.
+For example, a model can contain only a founding pulse of migration from two ancestral populations. 
+In that case, the only parameters are the time of the pulse, and the migration rate from each population.
+The yaml file for such a model would look like:
 
-conda env create -f tracts_conda_env.yml
-conda activate py2_tracts
+    demes:
+      - name: EUR
+      - name: AFR
+      - name: X
+      ancestors: [EUR, AFR]
+      proportions: [R, 1-R]
+      start_time: tx
 
+Here, tracts deduces the sample population to be `X`. The parameter for the time of founding is named `tx`.
+Since migration at the founding pulse must add to 1, there is only one other parameter for model: `R`.
+The founding proportion from EUR is equal to `R`, and the founding proportion from AFR is `1-R`.
+
+To add more migration pulses to the model, add a `pulses` field to the YAML file:
+
+    pulses:
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t2
+
+This represents a single pulse of migration from `EUR` to `X`. It occurs at time `t2` with proportion `P`.
+
+The full model would then look like:
+
+    demes:
+      - name: EUR
+      - name: AFR
+      - name: X
+      ancestors: [EUR, AFR]
+      proportions: [R, 1-R]
+      start_time: tx
+    pulses:
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t2
+
+The `pulses` field can also contain more than one pulse:
+
+    pulses:
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t2
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t3
+
+Here, the proportion of both pulse migrations is the same, but they occur at different times. Tracts allows for the linking of parameters in this way.
+This model would have 5 parameters: `R`, `tx`, `P`, `t2`, `t3`. If the pulses had different rates, the model would have 6 parameters instead.
+
+Driver File
+===========
+
+Tracts is used by passing a driver yaml file to the method tracts.run_tracts().
+The first part of the driver file tells tracts how to load the sample data:
+
+    samples:
+      directory: .\G10\
+      filename_format: "{name}_{label}.bed"
+      individual_names: [
+        "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
+        "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
+        "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
+        "NA20357", "NA20356"
+      ]
+      labels: [A, B]
+      chromosomes: 1-22
+
+In this example, the samples are located in the 'G10' directory.
+The individual 'NA19700' has sample data in the files 'NA19700_A.bed' and 'NA19700_B.bed'
+The 'chromosomes' field tells tracts to use data from chromosomes 1 to 22. You can also specify a single chromosome or a list of chromosomes.
+
+The details of the model are specified as a different YAML file. The model_filename field is used to tell tracts where to find this model YAML.
+
+    model_filename: pp.yaml
+
+Tracts optimizes the parameters of the model to best match the distribution of ancestry tracts. 
+Starting values for the parameters can be specified as numbers or ranges.
+Multiple repetitions can be run on the same data, and a seed can be used for repeatability.
+
+    start_params:
+      R: 0.1-0.2
+      tx: 10-11
+      P:  0.03-0.05
+      t2: 5-6
+    repetitions: 3
+    seed: 100
+
+Tracts also allows for the time parameter to be scaled, as some optimizers run better when
+all parameters are on the same scale:
+
+    time_scaling_factor:
+
+Likewise, tracts below a certain length (in centimorgans) can be excluded from the analysis.
+
+    exclude_tracts_below_cM: 2
 
 Input
 =====
@@ -50,38 +155,7 @@ copy).
     chr13		28539742	28540421	UNKNOWN	22.193		22.193
     chr13		28540421	91255067	CEU		22.193		84.7013
 
-Driver File
-===========
 
-Tracts is used by passing a driver yaml file to the method tracts.run_tracts().
-An example driver file is:
-
-    samples:
-      directory: .\G10\
-      individual_names: [
-        "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
-        "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
-        "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
-        "NA20357", "NA20356"
-      ]
-      filename_format: "{name}_{label}.bed"
-      labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
-      chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
-    model_filename: pp.yaml
-    start_params: 
-    - [0.173632,  0.0683211] #Run tracts with these start params
-    - values: [0.173632,  6.83211] #Run tracts with these start params twice
-    perturbation: [0.6, 2] #And multiply them by a random number in this range at each repetition
-    repetitions: 2
-    exclude_tracts_below_cM: 2
-    time_scaling_factor: 100
-
-The samples field indicates information about the location of the sample data.
-The individual_names tells tracts which individuals use for analysis.
-The filename_format allows tracts to find the filenames corresponding to each individual.
-The model_filename corresponds to a yaml file of a demographic model, as detailed below.
-Tracts also allows for the time parameter to be scaled, as some optimizers run better when
-all parameters are on the same scale.
 
 Output
 ======
@@ -112,47 +186,6 @@ likelihood of the best-fit model
     last matrix defines the likelihood at all grid points. see
     http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brute.html
 
-Setting up a demographic model
-==============================
-
-The Demes specification is a project with the goal of standardizing 
-demographic models in computational biology. Populations, pulses of Tracts uses a modified version
-of the Demes format to specify demographic models with flexible parameters,
-which can then be optimized over. The details of the model are specified as a yaml file.
-
-    model_name: One_Pulse
-    description:
-        A demes model with flexible parameters. Represents a population X founded R generations ago by EUR and AFR.
-    time_units: generations
-    demes:
-      - name: EUR
-      - name: AFR
-      - name: X
-      ancestors: [EUR, AFR]
-      proportions: [R, 1-R] #This line represents the proportions from each ancestor when the population is founded. Should add up to 1.
-      start_time: tx #This line represents the founding time of the population.
-      
-In Demes, the proportions and start_time would be given as numbers. 
-In tracts, they are given as parameter names, which are then tuned
-by the optimizer.
-
-For now, the model only accepts one population having ancestors and pulses.
-This is taken to be the sample population (in the example, X).
-The other populations in the model should have labels corresponding to the
-sources of admixture in the data.
-
-The population is founded when two populations meet; at the first generation,
-we consider all individuals in the population as “migrants”, so the sum of
-migration frequencies at the first generation must be one.
-
-Importantly, the optimizers in tracts assume that all parameters are
-continuous, but the underlying markov model uses discrete generations.
-The ParametrizedDemography class allows for pulses of migration at non-integer times
-by splitting the pulse across the previous and subsequent generation.
-The pulse is split such that the effective time of arrival corresponds to the time parameter,
-while the expected number of migrants corresponds to the rate parameter.
-This ensures that the output matrix is continuous in the parameters,
-which prevents the optimizer from getting stuck.
 
 Contact
 =======

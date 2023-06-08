@@ -22,5 +22,3 @@ def test_pulse():
 
 def test_migration():
     return
-
-test_founding()
