@@ -94,6 +94,15 @@ The `pulses` field can also contain more than one pulse:
 Here, the proportion of both pulse migrations is the same, but they occur at different times. Tracts allows for the linking of parameters in this way.
 This model would have 5 parameters: `R`, `tx`, `P`, `t2`, `t3`. If the pulses had different rates, the model would have 6 parameters instead.
 
+Continuous migrations are specified in the `migrations` field:
+
+    migrations:
+      - source: EUR
+        dest: X
+        rate: K
+        start_time: t1
+        end_time: t2
+
 Driver File
 ===========
 
