@@ -9,14 +9,16 @@ samples:
   filename_format: "{name}_{label}.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22
-model_filename: pp.yaml
+model_filename: pp_px.yaml
 start_params: 
-- [6.83211]
-- values: [6.83211]
-  perturbation: [0.6, 2]
+  tx: 10-11
+  P:  0.03-0.05
+  t2: 5-6
+repetitions: 3
+seed: 100
 exclude_tracts_below_cM: 2
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 fix_ancestry_proportions: True
-params_to_fix: ['a'] 
+params_to_fix: ['R']
 output_directory: .\output_fix\
-output_filename_format: "no_pulse_{label}"
+output_filename_format: "two_pulse_{label}"
