@@ -1,7 +1,7 @@
 from __future__ import print_function  # for python 2 compatibility
 
 import numpy as np
-import pylab
+from matplotlib import pylab
 
 from collections import defaultdict
 
@@ -894,7 +894,7 @@ class population(object):
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1):
+    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1, exclude_tracts_below_cM=0):
         """ tol is the tolerance for full chromosomes: sometimes there are
             small issues at the edges of the chromosomes. If a segment is
             within tol Morgans of the full chromosome, it counts as a full
@@ -914,13 +914,13 @@ class population(object):
             # If we're doing a split analysis, then break up the population
             # into groups, and just do get_global_tractlengths on the groups.
             ps = pop.split_by_props(split_count)
-            bindats = [p.get_global_tractlengths(npts, tol) for p in ps]
+            bindats = [p.get_global_tractlengths(npts, tol, exclude_tracts_below_cM=exclude_tracts_below_cM) for p in ps]
             bins_list, dats_list = zip(*bindats)
             # the bins will all be the same, so we can throw out the
             # duplicates.
             return bins_list[0], dats_list
 
-        bins = np.arange(0, self.maxLen*(1+.5/npts), float(self.maxLen)/npts)
+        bins = np.arange(exclude_tracts_below_cM*0.01, self.maxLen*(1+.5/npts), float(self.maxLen)/npts)
 
         bypop = defaultdict(list)
 
@@ -956,7 +956,7 @@ class population(object):
 
     def get_global_tractlength_table(self, lenbound):
         """ Calculates the fraction of the genome covered by ancestry tracts of
-            different lengths, spcified by lenbound (which must be sorted). """
+            different lengths, specified by lenbound (which must be sorted). """
         flatdat = self.flatpop()
         bypop = self.collectpop(flatdat)
 
@@ -1211,6 +1211,7 @@ class demographic_model(object):
             If the simulated morgan lengths of tracts in an infinite genome is more than 
             max_morgans, issue a warning and stop generating new transitions
         """
+
         small = 1e-10
         self.mig = mig
         (self.ngen, self.npop) = mig.shape
@@ -1660,7 +1661,7 @@ class composite_demographic_model(object):
             Hence, the nsamp_list parameter allows for specifying the
             count of individuals in each of the groups represented by this
             composite_demographic_model, which is then used to rescale the
-            counts reported by the expectperbin of the compoennt demographic
+            counts reported by the expectperbin of the component demographic
             models.
         """
         if nsamp_list is None:

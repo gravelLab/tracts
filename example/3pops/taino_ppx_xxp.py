@@ -6,7 +6,7 @@ import scipy
 tractspath = "../.."  # the path to tracts if not in your default pythonpath
 sys.path.append(tractspath)
 import tracts
-import models_3pop
+from tracts.legacy_models import models_3pop
 import numpy as np
 import pylab
 

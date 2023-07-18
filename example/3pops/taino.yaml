@@ -24,5 +24,4 @@ repetitions: 3
 seed: 100
 exclude_tracts_below_cM: 2
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
-fix_ancestry_proportions: True
-params_to_fix: ['a', 'r']
+fix_parameters_from_ancestry_proportions: ['A', 'R']

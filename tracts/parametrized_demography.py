@@ -34,6 +34,7 @@ class ParametrizedDemography:
         self.params_fixed_by_ancestry = []
         self.free_param_names = {}
         self.dependent_params = {}
+        self.constant_params = {}
         self.population_indices = {}
         self.finalized = False
         return
@@ -63,6 +64,8 @@ class ParametrizedDemography:
             return param_name
         elif param_name in self.free_param_names:
             return params[self.free_param_names[param_name]['index']]
+        elif param_name in self.constant_params:
+            return self.constant_params[param_name]['value']
         elif param_name in self.dependent_params:
             return self.dependent_params[param_name](self, params)
         else:
@@ -267,7 +270,7 @@ class ParametrizedDemography:
                 remaining_rate -= rate
             
             if remaining_rate < 0:
-                logging.warning( 'Founding migration rates add up to more than 1')
+                logging.warning('Founding migration rates add up to more than 1')
                 
             migration_matrix[start_time, self.population_indices[remainder_population]] = remaining_rate
             migration_matrix[start_time - 1, self.population_indices[remainder_population]] = remaining_rate*repeated_migrant_fraction
@@ -365,19 +368,22 @@ class FixedAncestryDemography(ParametrizedDemography):
 
     def __init__(self):
         return
-
+    
+    
     def is_time_param(self):
         time_param_list = []
         for param_name, param in self.free_param_names.items():
             if param_name not in self.params_fixed_by_ancestry:
                 time_param_list.append(param['type'] == 'time')
         return time_param_list
+    
 
     def out_of_bounds(self, params):
         '''
         Takes in a list of params equal to the length of free_params - params_fixed_by_ancestry
         and returns a negative violation score if the resulting matrix would be or is invalid.
         '''
+        self.logger.info(f'Running bounds check.')
         return super().out_of_bounds(self.get_full_params(params))
 
     def add_population(self, population_name: str):
@@ -389,19 +395,20 @@ class FixedAncestryDemography(ParametrizedDemography):
         self.population_indices[population_name] = None
 
     def get_full_params(self, params):
-        self.logger.info(f'Input params: {params}')
+        self.logger.info(f'Params before fixed-ancestry solving: {params}')
         full_params = params.copy()
         def _param_objective_func(self: FixedAncestryDemography, params_to_solve):
             nonlocal full_params
             params_to_solve[np.isnan(params_to_solve)] = 0
             full_params = self.insert_params(full_params, params_to_solve)
-            self.logger.info(f'Full params: {full_params}')
+            #self.logger.info(f'Full params: {full_params}')
             found_props = self.proportions_from_matrix(super().get_migration_matrix(full_params))[:-1]
             fixed_props = self.known_ancestry_proportions
             diff = found_props-fixed_props
             return diff
         solved_params = scipy.optimize.fsolve(lambda params_to_solve: _param_objective_func(self, params_to_solve), (.2,))
         full_params = self.insert_params(full_params, solved_params)
+        self.logger.info(f'Params after solving with ancestry proportions: {full_params}')
         return full_params
 
     def get_migration_matrix(self, params):
@@ -424,10 +431,11 @@ class FixedAncestryDemography(ParametrizedDemography):
         #print(solved_params)
         self.insert_params(full_params, solved_params)
         '''
+        self.logger.info(f'Generating migration matrix.')
         return super().get_migration_matrix(self.get_full_params(params))
     
     def insert_params(self, params, params_to_solve):
-        self.logger.info(f'Params: {params}, params')
+        #self.logger.info(f'Params: {params}, params')
         if len(params_to_solve) != len(self.params_fixed_by_ancestry):
             raise ValueError('Incorrect number of parameters to be solved')
         if len(params) + len(params_to_solve) == len(self.free_param_names):

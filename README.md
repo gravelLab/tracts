@@ -8,7 +8,7 @@ multiple populations can be modeled.
 Recent Changes
 ========
 
-- Tracts is now a python package rather than a single .py file. To use tracts, copy the tracts folder into your working directory. 
+- Tracts is now a python package rather than a single .py file. Follow the installation instructions below.
 - Tracts no longer requires writing your own driver script. Instead, details about the simulation are read from a YAML file (examples below).
 - Demographic models also do not have to be handcoded anymore. They are now specified by a Demes-like YAML file (examples below).
 
@@ -27,7 +27,7 @@ To install:
 2. In your local copy, open a terminal.
 3. Run pip install .
 
-You can then now import tracts as a python package.
+You can now import tracts as a python package.
 
 Tracts is currently not distributed on PyPi or Conda. 
 
@@ -94,7 +94,7 @@ The `pulses` field can also contain more than one pulse:
 Here, the proportion of both pulse migrations is the same, but they occur at different times. Tracts allows for the linking of parameters in this way.
 This model would have 5 parameters: `R`, `tx`, `P`, `t2`, `t3`. If the pulses had different rates, the model would have 6 parameters instead.
 
-Continuous migrations are specified in the `migrations` field:
+Similar to pulses, continuous migrations can be specified in the `migrations` field:
 
     migrations:
       - source: EUR
@@ -122,7 +122,7 @@ The first part of the driver file tells tracts how to load the sample data:
       chromosomes: 1-22
 
 In this example, the samples are located in the 'G10' directory.
-The individual 'NA19700' has sample data in the files 'NA19700_A.bed' and 'NA19700_B.bed'
+The individual 'NA19700' has sample data in the files 'NA19700_A.bed' and 'NA19700_B.bed'. <br>
 The 'chromosomes' field tells tracts to use data from chromosomes 1 to 22. You can also specify a single chromosome or a list of chromosomes.
 
 The details of the model are specified as a different YAML file. The model_filename field is used to tell tracts where to find this model YAML.
@@ -137,18 +137,23 @@ Multiple repetitions can be run on the same data, and a seed can be used for rep
       R: 0.1-0.2
       tx: 10-11
       P:  0.03-0.05
-      t2: 5-6
-    repetitions: 3
+      t2: 5.5
+    repetitions: 2
     seed: 100
 
 Tracts also allows for the time parameter to be scaled, as some optimizers run better when
 all parameters are on the same scale:
 
-    time_scaling_factor:
+    time_scaling_factor: 100
 
 Likewise, tracts below a certain length (in centimorgans) can be excluded from the analysis.
 
-    exclude_tracts_below_cM: 2
+    exclude_tracts_below_cM: 10
+
+Ancestry Fixing
+===============
+
+
 
 Input
 =====

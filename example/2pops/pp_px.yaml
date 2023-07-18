@@ -1,4 +1,4 @@
-model_name: One_pulse
+model_name: Two_Pulse
 description:
   A simple model in which populations EUR and AFR arrive discretely at
   first generation, and a subsequent migration of EUR occurs at time T2.
@@ -9,9 +9,8 @@ demes:
     ancestors: [EUR, AFR]
     proportions: [R, 1-R]
     start_time: tx
-    time_scaling_factor: 100
 pulses:
   - sources: [EUR]
     dest: X
     proportions: [P]
-    time: T2
+    time: t2

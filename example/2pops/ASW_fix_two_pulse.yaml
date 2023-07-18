@@ -14,11 +14,10 @@ start_params:
   tx: 10-11
   P:  0.03-0.05
   t2: 5-6
-repetitions: 3
+repetitions: 2
 seed: 100
 exclude_tracts_below_cM: 2
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
-fix_ancestry_proportions: True
-params_to_fix: ['R']
+fix_parameters_from_ancestry_proportions: ['R']
 output_directory: .\output_fix\
 output_filename_format: "two_pulse_{label}"

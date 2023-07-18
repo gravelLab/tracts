@@ -15,7 +15,7 @@ start_params:
   tx: 10-11
   P:  0.03-0.05
   t2: 5-6
-repetitions: 3
+repetitions: 2
 seed: 100
-exclude_tracts_below_cM: 2
+exclude_tracts_below_cM: 10
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
