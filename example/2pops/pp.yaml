@@ -1,0 +1,11 @@
+model_name: One_Pulse
+description:
+  A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and AFR.
+time_units: generations
+demes:
+  - name: EUR
+  - name: AFR
+  - name: X
+    ancestors: [EUR, AFR]
+    proportions: [R, 1-R]
+    start_time: tx

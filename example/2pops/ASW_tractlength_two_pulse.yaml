@@ -1,0 +1,21 @@
+samples:
+  directory: .\G10\
+  individual_names: [
+    "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
+    "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
+    "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
+    "NA20357", "NA20356"
+    ]
+  filename_format: "{name}_{label}.bed"
+  labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
+  chromosomes: 1-22
+model_filename: pp_px.yaml
+start_params: 
+  R: 0.1-0.2
+  tx: 10-11
+  P:  0.03-0.05
+  t2: 5-6
+repetitions: 2
+seed: 100
+exclude_tracts_below_cM: 10
+time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.

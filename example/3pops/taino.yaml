@@ -1,0 +1,27 @@
+samples:
+  directory: .\PUR\
+  individual_names: [
+    "HG00551", "HG00553", "HG00554", "HG00637", "HG00638", "HG00640",
+    "HG00641", "HG00731", "HG00732", "HG00734", "HG00736", "HG00737",
+    "HG00739", "HG00740", "HG01047", "HG01048", "HG01049", "HG01051",
+    "HG01052", "HG01054", "HG01055", "HG01060", "HG01061", "HG01066",
+    "HG01067", "HG01069", "HG01070", "HG01072", "HG01073", "HG01075",
+    "HG01079", "HG01080", "HG01082", "HG01083", "HG01085", "HG01086",
+    "HG01094", "HG01095", "HG01097", "HG01098", "HG01101", "HG01102",
+    "HG01104", "HG01105", "HG01107", "HG01108", "HG01167", "HG01168",
+    "HG01170", "HG01171", "HG01173", "HG01174", "HG01176", "HG01177",
+    "HG01182", "HG01183", "HG01187", "HG01188", "HG01190", "HG01191",
+    "HG01197", "HG01198", "HG01204", "HG01205"
+    ]
+  filename_format: "{name}_anc_{label}_cM.bed"
+  labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
+  chromosomes: 1-22
+model_filename: pxp_xpx.yaml
+start_params: 
+  tx: 10-11
+  t2: 5-6
+repetitions: 3
+seed: 100
+exclude_tracts_below_cM: 2
+time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
+fix_parameters_from_ancestry_proportions: ['A', 'R']

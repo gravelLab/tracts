@@ -5,6 +5,13 @@ Tracts is a set of classes and definitions used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from
 multiple populations can be modeled.
 
+Recent Changes
+========
+
+- Tracts is now a python package rather than a single .py file. Follow the installation instructions below.
+- Tracts no longer requires writing your own driver script. Instead, details about the simulation are read from a YAML file (examples below).
+- Demographic models also do not have to be handcoded anymore. They are now specified by a Demes-like YAML file (examples below).
+
 Examples
 ========
 
@@ -15,23 +22,137 @@ genomes puerto Rican data
 Installation
 ============
 
-Installation support for tracts is rudimentary. Apologies. 
+To install:
+1. Clone this repository
+2. In your local copy, open a terminal.
+3. Run pip install .
 
-Copy all files and folders locally.  
+You can now import tracts as a python package.
 
-"tracts.py" is a python module. It is currently compatible with python 2.7.
+Tracts is currently not distributed on PyPi or Conda. 
 
-To load the package, you currently have to tell python where to look for the package by doing something like
 
-import sys
-tractspath = path_to_tracts_directory  # the path to tracts if not in your default pythonpath
-sys.path.append(tractspath)
-import tracts. 
+Setting up a demographic model
+==============================
 
-I have added tracts_conda_env.yml,  an anaconda environment file with the relevant dependencies. If you are using anaconda, you can load this environment using 
+Tracts attempts to predict a population's migration history from the distribution of ancestry tracts.
+The space of all migration matrices is very large: if we have `p` migrant populations over g generations, there can be `n*g` different migration rates.
+In tracts, demographic models are used to describe the migration matrix as a reduced number of migration events with flexible parameters.
+For example, a model can contain only a founding pulse of migration from two ancestral populations. 
+In that case, the only parameters are the time of the pulse, and the migration rate from each population.
+The yaml file for such a model would look like:
 
-conda env create -f tracts_conda_env.yml
-conda activate py2_tracts
+    demes:
+      - name: EUR
+      - name: AFR
+      - name: X
+      ancestors: [EUR, AFR]
+      proportions: [R, 1-R]
+      start_time: tx
+
+Here, tracts deduces the sample population to be `X`. The parameter for the time of founding is named `tx`.
+Since migration at the founding pulse must add to 1, there is only one other parameter for model: `R`.
+The founding proportion from EUR is equal to `R`, and the founding proportion from AFR is `1-R`.
+
+To add more migration pulses to the model, add a `pulses` field to the YAML file:
+
+    pulses:
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t2
+
+This represents a single pulse of migration from `EUR` to `X`. It occurs at time `t2` with proportion `P`.
+
+The full model would then look like:
+
+    demes:
+      - name: EUR
+      - name: AFR
+      - name: X
+      ancestors: [EUR, AFR]
+      proportions: [R, 1-R]
+      start_time: tx
+    pulses:
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t2
+
+The `pulses` field can also contain more than one pulse:
+
+    pulses:
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t2
+      - sources: [EUR]
+        dest: X
+        proportions: [P]
+        time: t3
+
+Here, the proportion of both pulse migrations is the same, but they occur at different times. Tracts allows for the linking of parameters in this way.
+This model would have 5 parameters: `R`, `tx`, `P`, `t2`, `t3`. If the pulses had different rates, the model would have 6 parameters instead.
+
+Similar to pulses, continuous migrations can be specified in the `migrations` field:
+
+    migrations:
+      - source: EUR
+        dest: X
+        rate: K
+        start_time: t1
+        end_time: t2
+
+Driver File
+===========
+
+Tracts is used by passing a driver yaml file to the method tracts.run_tracts().
+The first part of the driver file tells tracts how to load the sample data:
+
+    samples:
+      directory: .\G10\
+      filename_format: "{name}_{label}.bed"
+      individual_names: [
+        "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
+        "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
+        "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
+        "NA20357", "NA20356"
+      ]
+      labels: [A, B]
+      chromosomes: 1-22
+
+In this example, the samples are located in the 'G10' directory.
+The individual 'NA19700' has sample data in the files 'NA19700_A.bed' and 'NA19700_B.bed'. <br>
+The 'chromosomes' field tells tracts to use data from chromosomes 1 to 22. You can also specify a single chromosome or a list of chromosomes.
+
+The details of the model are specified as a different YAML file. The model_filename field is used to tell tracts where to find this model YAML.
+
+    model_filename: pp.yaml
+
+Tracts optimizes the parameters of the model to best match the distribution of ancestry tracts. 
+Starting values for the parameters can be specified as numbers or ranges.
+Multiple repetitions can be run on the same data, and a seed can be used for repeatability.
+
+    start_params:
+      R: 0.1-0.2
+      tx: 10-11
+      P:  0.03-0.05
+      t2: 5.5
+    repetitions: 2
+    seed: 100
+
+Tracts also allows for the time parameter to be scaled, as some optimizers run better when
+all parameters are on the same scale:
+
+    time_scaling_factor: 100
+
+Likewise, tracts below a certain length (in centimorgans) can be excluded from the analysis.
+
+    exclude_tracts_below_cM: 10
+
+Ancestry Fixing
+===============
+
 
 
 Input
@@ -48,14 +169,7 @@ copy).
     chr13		28539742	28540421	UNKNOWN	22.193		22.193
     chr13		28540421	91255067	CEU		22.193		84.7013
 
-Driver File
-===========
 
-To maintain maximum flexibility, the options and models in tracts are set up in
-a driver file and a "model" file. Examples of both are provided in the
-distribution; these examples are the best starting points for the first-time.
-Tracts can be used interactively--when using the (i)python console, it is easy
-to examine and plot the different variables.
 
 Output
 ======
@@ -86,106 +200,6 @@ likelihood of the best-fit model
     last matrix defines the likelihood at all grid points. see
     http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brute.html
 
-Setting up a demographic model
-==============================
-
-The space of possible incoming migration matrices is quite large; if we have
-`p` migrant populations over `g` generations, there can be `n*g` different
-migration rates. To simplify this, we introduce simplified parametrized models
-that describe the full migration matrix in terms of a few parameters. These
-models may, for example,  involve a discrete number of admixture pulses, or
-periods of constant migrations rate. The user has full flexibility in defining
-these models; in python, one needs to write a function that takes parameters as
-an input (such as the time of the onset of migration, migration rate `p`), and
-returns a migration matrix.
-
-Here is the simplest example of such a function, implementing a single pulse of
-migration:
-
-    def pp((init_Eu,tstart)):
-            """ A simple model in which populations Eu and AFR arrive
-                discretely at first generation. If a time is not integer, the
-                migration is divided between neighboring times proportional to
-                the non-integer time fraction.  """
-
-            # the time is scaled by a factor 100 in this model to ease
-            # optimization with some routines that expect all parameters to
-            # have the same scale
-            tstart *= 100
-
-            if  tstart < 0:
-                    #time shouldn't be negative: that should be caught by
-                    #constraint function (below). Return empty matrix
-                    gen = int(numpy.ceil(max(tstart, 0))) + 1
-                    mig = numpy.zeros((gen+1, 2))
-                    return mig
-
-            # number of generations in the migration matrix
-            gen  = int(numpy.ceil(tstart)) + 1
-            # how close we are to the integer approximation
-            frac = gen - tstart - 1
-            # placeholder migration matrix
-            mig  = numpy.zeros((gen + 1, 2))
-
-            #initial migration rates must sum up to one.
-            initNat = 1 - init_Eu
-
-            # Replace a fraction at second generation to ensure a continuous
-            # model distribution with generation
-            mig[-1,:] = numpy.array([init_Eu, initNat])
-            mig[-2,:] = frac * numpy.array([init_Eu, initNat])
-
-            return mig
-
-Some parameter values are inconsistent: times must be positive, and proportions
-of migrants must be between 0 and 1. We define an auxiliary function that
-verifies whether these conditions are met It returns a number that is
-nonnegative if constraints are satisfied, and gets increasingly negative when
-they are more strongly violated.
-
-    def outofbounds_pp(params):
-            """ Constraint function evaluating below zero when constraints not
-                satisfied. """
-            ret = 1 #initialize the return variable to a positive value.
-            (init_Eu, tstart) = params
-
-            # migration proportion must be between 0 and 1
-            ret = min(1, 1 - init_Eu)
-            ret = min(ret, init_Eu)
-
-
-            # generate the migration matrix and test for possible issues
-            func = pp #specify the model
-            mig = func(params) #get the migration matrix
-            # calculate the migration rate per generation
-            totmig = mig.sum(axis=1)
-
-            # first generation migration must sum up to 1
-            ret = min(ret, -abs(totmig[-1] - 1) + 1e-8)
-            # no migrations are allowed in the first two generations
-            ret = min(ret, -totmig[0], -totmig[1])
-
-            # migration at any given generation cannot be greater than 1
-            ret = min(ret, 10 * min(1 - totmig), 10 * min(totmig))
-
-            # start time must be at least two generations ago
-            ret = min(ret, tstart - .02)
-
-            return ret
-
-
-The population is founded when two populations meet; at the first generation,
-we consider all individuals in the population as “migrants”, so the sum of
-migration frequencies at the first generation must be one. If it isn’t,
-tracts will complain.
-
-Importantly, the optimizers in tracts assume that all parameters are
-continuous, but the underlying markov model uses discrete generations.  When a
-time falls between two integers, the migrants are distributed across the
-neighboring integers, in such a way that the migration matrix changes
-“continuously”, in the sense that expected number of migrants. Continuous
-change is important, because likelihood optimizers can really struggle if the
-model is discontinuous in parameter space.
 
 Contact
 =======

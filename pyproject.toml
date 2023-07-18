@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tracts_General-Solution"
+version = "0.0.1"
+authors = [
+  { name="Victor Yee", email="aaron.krim-yee@mcgill.ca" },
+]
+description = "A set of classes and definitions used to model migration histories based on ancestry tracts in admixed individuals. Time-dependent gene-flow from multiple populations can be modeled."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/General-Solution/tracts/blob/devel"
+"Bug Tracker" = "https://github.com/General-Solution/tracts/issues"
