@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='Tracts',
-    version='0.1dev',
+    version='2.0.2-beta',
     author="Simon Gravel, Victor Yee",
     author_email="simon.gravel@mcgill.ca, aaron.krim-yee@mcgill.ca",
     packages=['tracts',],
@@ -11,5 +11,9 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "numpy >=1.12.1",
+        "matplotlib",
+        "scipy",
+        "ruamel.yaml"
+        
     ],
 )
