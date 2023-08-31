@@ -6,13 +6,11 @@ import scipy
 tractspath = "../.."  # the path to tracts if not in your default pythonpath
 sys.path.append(tractspath)
 import tracts
-import models
-import numpy
+from tracts.legacy_models import models_3pop
+import numpy as np
 import pylab
 
 from warnings import warn
-
-from itertools import izip
 
 # optimization method. Here we use brute force; other options are implemented
 # in tracts but are not implemented in this driver script.
@@ -24,11 +22,11 @@ method = "brute"
 # followed by a pulse from population 2. "fix" referes to the fact that the
 # migration rates in the model are fixed to the observed global ancestry
 # proportions--then, we only have to optimize the timing of the migrations.
-func = models.ppx_xxp_fix
+func = models_3pop.ppx_xxp_fix
 
 # this function keeps track of whether parameters are in a "forbidden" region:
 # whether mproportions are between 0 and 1, times positive, etc.
-bound = models.outofbounds_ppx_xxp_fix
+bound = models_3pop.outofbounds_ppx_xxp_fix
 
 # defines the values of parameters to loop over in the brute force
 # step. Times are in units of 100 generations: the start time will
@@ -71,7 +69,7 @@ usage = "python taino_ppx_xxp.py 1 to run without bootstrap \n"\
         "bootstrap instance 0 is the original dataset."
 
 args = sys.argv
-print args
+print(args)
 
 if len(args) == 1:
     runboots = range(100) # run all instances
@@ -79,7 +77,7 @@ elif len(args) == 2:
     runboots = range(int(args[1])) # run just the specified number
 elif len(args) == 3:
     if int(args[1]) >= int(args[2]):
-        print usage
+        print(usage)
         sys.exit(1)
     else:
         runboots = range(int(args[1]), int(args[2]))
@@ -109,12 +107,12 @@ indivs = pop.indivs
 
 def bootsamp(num):
     #generates a list of positions of the samples to pick in a bootstrap 
-    return numpy.random.choice(range(num),replace=True,size=num)
+    return np.random.choice(range(num),replace=True,size=num)
 
 # iterate over bootstrap instances. Iteration 0 is the un-bootstrapped value
 for bootnum in runboots:
     # Use a seed for reproducibility.
-    numpy.random.seed(seed=bootnum)
+    np.random.seed(seed=bootnum)
 
     if bootnum != 0:
         # draw random sample.
@@ -130,28 +128,17 @@ for bootnum in runboots:
 
     # generate the histogram of tract lengths
     (bins, data) = pop.get_global_tractlengths(npts=50)
-    print "booted data sample", data['0'][1:10]
+    print("booted data sample", data['0'][1:10])
 
     data = [data[poplab] for poplab in labels]
 
     bypopfrac = [[] for i in range(len(labels))]
     # Calculate ancestry proportions
     for ind in pop.indivs:
-        # a list of tracts with labels and names
-        ltracts = ind.applychrom(tracts.chrom.tractlengths)
-        # a flattened list of tracts with labels and names
-        flattracts = [numpy.sum(item[1]
-            for chromo in ltracts
-            for sublist in chromo
-            for item in sublist
-            if item[0] == label)
-            for label in labels]
+        for ii, poplab in enumerate(labels):
+            bypopfrac[ii].append(ind.ancestryProps(poplab))
 
-        flat_tracts_sum = numpy.sum(flattracts)
-        for frac, flat_tract in izip(bypopfrac, flattracts):
-            frac.append(flat_tract / flat_tracts_sum)
-
-    props = map(numpy.mean, bypopfrac)
+    props = np.mean(bypopfrac, axis=1).flatten()
 
     Ls = pop.Ls
     nind = pop.nind
@@ -161,11 +148,11 @@ for bootnum in runboots:
     def randomize(arr, scale=2):
         # takes an array and multiplies every element by a factor between 0 and
         # 2, uniformly. caps at 1.
-        return map(lambda i: min(i, 1), scale * numpy.random.random(arr.shape) * arr)
+        return map(lambda i: min(i, 1), scale * np.random.random(arr.shape) * arr)
 
     xopt = tracts.optimize_brute_fracs2(
         bins, Ls, data, nind, func, props, slices, outofbounds_fun=bound, cutoff=cutoff)
-    print xopt
+    print(xopt)
     optmod = tracts.demographic_model(func(xopt[0], props))
     optpars = xopt[0]
     liks = xopt[1]
@@ -175,7 +162,7 @@ for bootnum in runboots:
     for popnum in range(len(data)):
         expects.append(optmod.expectperbin(Ls, popnum, bins))
 
-    expects = nind * numpy.array(expects)
+    expects = nind * np.array(expects)
 
     outf = outdir + "boot%d_%2.2f" % (bootnum, maxlik,)
 
@@ -200,7 +187,7 @@ for bootnum in runboots:
     fpred = open(outf + "_pred", 'w')
     for popnum in range(len(data)):
         fpred.write(
-            "\t".join(map(str, pop.nind * numpy.array(optmod.expectperbin(Ls, popnum, bins)))) + "\n")
+            "\t".join(map(str, pop.nind * np.array(optmod.expectperbin(Ls, popnum, bins)))) + "\n")
     fpred.close()
 
     fpars = open(outf + "_pars", 'w')

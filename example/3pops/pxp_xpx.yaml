@@ -1,0 +1,17 @@
+model_name: No_pulse
+description:
+  A demes model with flexible parameters. Represents a population X founded tx generations ago by A and B with an added pulse of migration from A.
+time_units: generations
+demes:
+  - name: '0'
+  - name: '1'
+  - name: '2'
+  - name: Sample
+    ancestors: ['0', '2']
+    proportions: [A, 1-A]
+    start_time: tx
+pulses:
+  - sources: ['1']
+    dest: Sample
+    proportions: [R]
+    time: t2

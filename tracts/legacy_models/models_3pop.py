@@ -119,10 +119,12 @@ def propfrommig(mig):
         curr = curr*(1-numpy.sum(row))+row
     return curr
 
-def ppx_xxp_fix((tstart, t3), fracs):
+def ppx_xxp_fix(times, fracs):
+    (tstart, t3) = times
     # An auxiliary function that, given the "missing" parameters, returns the
     # full migration matrix
-    def fun( (prop3, prop1) ):
+    def fun(props):
+        (prop3, prop1) = props
         return propfrommig(ppx_xxp((prop1, tstart, prop3, t3)))[0:2] - fracs[0:2]
 
     # Find the best-fitting parameters
@@ -140,10 +142,11 @@ def outofbounds_ppx_xxp_fix(params, fracs):
 
     (tstart, t3) = params
     if tstart > 1:
-        print "time above 500 generations!"
+        print("time above 500 generations!")
         return (1 - tstart)
 
-    def fun((prop3, prop1)):
+    def fun(props):
+        (prop3, prop1) = props
         return propfrommig(ppx_xxp((prop1, tstart, prop3, t3)))[0:2] - fracs[0:2]
     (prop3, prop1) = scipy.optimize.fsolve(fun, (.2, .2)) #(.2,.2) is just the starting point for the optimization function, it should not be sensitive to this, but it's better to start with reasonable parameter values.
     return outofbounds_ppx_xxp((prop1, tstart, prop3, t3))
