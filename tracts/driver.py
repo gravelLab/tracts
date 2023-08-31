@@ -10,16 +10,22 @@ from pathlib import Path
 import numbers
 logger = logging.getLogger(__name__)
 
+filepath_error_additional_message = '\nPlease ensure that the file path is either absolute, or relative to the working directory, script directory, or the directory of the driver yaml.'
+
 def locate_file_path(filename, absolute_driver_yaml_path=None):
     for filepath, method_name in ((Path(filename), 'using working directory'), 
                                   (Path(__main__.__file__).parent / filename, 'using script directory'), 
-                                  (Path(sys.path[0]) / filename, 'using sys.path[0]'),
                                   (absolute_driver_yaml_path.parent / filename if isinstance(absolute_driver_yaml_path, Path) else Path(''), 'using driver yaml')
                                 ):
         #logger.info(f'{method_name}: {filepath}')
         if filepath.is_file():
             logger.info(f'Found {filename} {method_name}.')
             return filepath
+    for pathname in sys.path:
+        if (Path(pathname) / filename).is_file():
+            logger.info(f'Found {filename} from {pathname}.')
+            return Path(pathname) / filename
+    #raise IndexError(f'The file {filename} could not be found. {filepath_error_additional_message}')
     return None
 
 def run_tracts(driver_filename):
@@ -42,16 +48,16 @@ def run_tracts(driver_filename):
 
     model = load_model_from_driver(driver_spec, driver_path)
 
-    func = lambda params: model.get_migration_matrix(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
-    bound = lambda params: model.out_of_bounds(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
-
     population_labels = model.population_indices.keys()
 
-    logger.info(f'Model Parameters: {model.free_param_names}')
+    logger.info(f'Model Parameters: {model.free_params}')
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         ancestry_proportions = calculate_ancestry_proportions(pop, population_labels)
         model.fix_ancestry_proportions(driver_spec['fix_parameters_from_ancestry_proportions'], ancestry_proportions)
+    
+    func = get_time_scaled_model_func(model, time_scaling_factor)
+    bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
     if type(driver_spec['start_params']) is not dict:
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
@@ -66,7 +72,7 @@ def run_tracts(driver_filename):
 
 def load_driver_file(driver_path):
     if driver_path is None:
-        raise OSError('Driver yaml file could not be found.')
+        raise OSError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
     driver_spec = None
     with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
         driver_spec = yaml.load(file)
@@ -79,7 +85,7 @@ def load_model_from_driver(driver_spec, driver_path):
         raise ValueError('You must specify the file path to your model under "model_filename".')
     model_path = locate_file_path(driver_spec['model_filename'], driver_path)
     if model_path is None:
-        raise OSError('Model yaml file could not be found.')
+        raise OSError(f'Model yaml file could not be found. {filepath_error_additional_message}')
     model = tracts.ParametrizedDemography.load_from_YAML(model_path.resolve())
     return model
     
@@ -104,17 +110,17 @@ def parse_individual_filenames(individual_names, filename_string, labels = ['A',
     def _find_individual_file(individual_name, label_val):
         filepath = locate_file_path(directory+filename_string.format(name = individual_name, label = label_val), absolute_driver_yaml_path)
         if filepath is None:
-            raise IndexError(f'File for individiual {individual_name} ("{directory+filename_string.format(name = individual_name, label = label_val)}") could not be found.')
+            raise IndexError(f'File for individiual {individual_name} ("{directory+filename_string.format(name = individual_name, label = label_val)}") could not be found. {filepath_error_additional_message}')
         return str(filepath)
     individual_filenames = {individual_name: [_find_individual_file(individual_name, label_val) for label_val in labels] for individual_name in individual_names}
     return individual_filenames
 
 def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: tracts.ParametrizedDemography=None, time_scaling_factor=1):
-    #num_params = len(model.free_param_names) - len(model.params_fixed_by_ancestry)
-    num_params = len(model.free_param_names)
+    #num_params = len(model.free_params) - len(model.params_fixed_by_ancestry)
+    num_params = len(model.free_params)
     rng = numpy.random.default_rng(seed=seed)
     start_params = rng.random((repetitions, num_params))
-    for param_name, param_info in model.free_param_names.items():
+    for param_name, param_info in model.free_params.items():
         if param_name in model.params_fixed_by_ancestry:
             start_params[:,param_info['index']] = 0
             continue
@@ -132,17 +138,22 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: trac
                 raise ValueError("Initial values must be specified as a range (ie: 5-7) or a number.") from e
         if param_info['type'] == 'time':
             start_params[:,param_info['index']] *= 1/time_scaling_factor
-    logger.info(f'Start Params: {start_params}')
+    #logger.info(f' Start Params: \n {start_params}')
     if model.params_fixed_by_ancestry is not None:
-        start_params = numpy.transpose([start_params[:,param_info['index']] for param_name, param_info in model.free_param_names.items() if param_name not in model.params_fixed_by_ancestry])
-    logger.info(f'Start Params: {start_params}')
+        start_params = numpy.transpose([start_params[:,param_info['index']] for param_name, param_info in model.free_params.items() if param_name not in model.params_fixed_by_ancestry])
+    logger.info(f' Start Params: \n {start_params}')
     return start_params
-
-        
+    
 def scale_select_indices(arr, indices_to_scale, scaling_factor = 1):
     if len(indices_to_scale) != len(arr):
         raise ValueError(f'Length of array ({len(arr)}) was not equal to length of indices_to_scale ({len(indices_to_scale)}).')
     return (numpy.multiply(indices_to_scale, scaling_factor - 1) + 1) * arr
+
+def get_time_scaled_model_func(model, time_scaling_factor):
+    return lambda params: model.get_migration_matrix(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
+
+def get_time_scaled_model_bounds(model, time_scaling_factor):
+    return lambda params: model.check_invalid(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
 
 def randomize(arr, a, b):
     # takes an array and multiplies every element by a factor between a and b,
@@ -160,24 +171,21 @@ def run_model_multi_params(model_func, bound_func, population, population_labels
     return optimal_params, likelihoods
 
 def run_model(model_func, bound_func, population, population_labels, startparams, exclude_tracts_below_cM=0):
-    cutoff = 2
     Ls = population.Ls
     nind = population.nind
     (bins, data) = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
-    xopt = tracts.optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, cutoff=cutoff, epsilon=1e-2)
+    xopt = tracts.optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2)
     optmod = tracts.demographic_model(model_func(xopt))
-    optlik = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
+    optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
 def output_simulation_data(sample_population, optimal_params, model: tracts.ParametrizedDemography, driver_spec):
 
     if 'output_directory' in driver_spec:
         output_dir = driver_spec['output_directory']
-        try:
+        if not os.path.exists(output_dir):
             os.mkdir(output_dir)
-        except OSError as error:
-            logging.warn(error)
     else:
         output_dir = ''
 

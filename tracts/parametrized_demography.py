@@ -1,17 +1,19 @@
-import numpy as np
+from __future__ import annotations
+import numpy
 import math
 import ruamel.yaml
 import itertools
 import logging
 import numbers
 import scipy
+
 '''
 TODO: 
 Add continuous migrations
 Add fixed parameters and parameter equations
 Add penalization function for non-resolvable constraints
 Add function to solve constraints shape
-Auto-create constraint function to give known ancestry fractions
+Auto-create constraint function tyo give known ancestry fractions
 Complete function to run the optimizer
 '''
 #global_logger = logging.getLogger(__name__)
@@ -23,29 +25,37 @@ class ParametrizedDemography:
     TODO: add support for int (constant) parameters
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, min_time=2, max_time=numpy.inf):
         self.founder_event = None
-        self.time_scale_factor = 1
         self.events = []
         self.constraints = []
         self.founding_time_param = ''
         self.name = name
+        self.min_time = 2
+        self.max_time = max_time
 
         self.params_fixed_by_ancestry = []
-        self.free_param_names = {}
+        self.params_not_fixed_by_ancestry = []
+        self.free_params = {}
         self.dependent_params = {}
         self.constant_params = {}
         self.population_indices = {}
+        self.reduced_constraints = []
         self.finalized = False
         return
 
-    def add_parameter(self, param_name: str, type=None):
+    def add_parameter(self, param_name: str, type=None, bounds=None):
         '''
         Adds the given parameter name to the parameters of the model
         '''
         self.finalized = False
         if param_name not in self.dependent_params:
-                self.free_param_names[param_name] = {'type':type}
+            if bounds == None:
+                if type == 'time':
+                    bounds = (self.min_time, self.max_time)
+                if type == 'rate':
+                    bounds = (0,1)
+            self.free_params[param_name] = {'type':type, 'bounds':bounds}                
 
     def add_population(self, population_name: str):
         '''
@@ -62,8 +72,8 @@ class ParametrizedDemography:
         '''
         if isinstance(param_name, numbers.Number):
             return param_name
-        elif param_name in self.free_param_names:
-            return params[self.free_param_names[param_name]['index']]
+        elif param_name in self.free_params:
+            return params[self.free_params[param_name]['index']]
         elif param_name in self.constant_params:
             return self.constant_params[param_name]['value']
         elif param_name in self.dependent_params:
@@ -79,9 +89,9 @@ class ParametrizedDemography:
         return (self.get_param_value(time_param_name, params), self.population_indices[population_name])
     
     def is_time_param(self):
-        return [param['type'] == 'time' for param in self.free_param_names.values()]
+        return [param['type'] == 'time' for param in self.free_params.values()]
 
-    def get_migration_matrix(self, params: list[float]) -> np.ndarray:
+    def get_migration_matrix(self, params: list[float]) -> numpy.ndarray:
         '''
         Takes in a list of params equal to the length of free_params
         and returns a p*g migration matrix where p is the number of incoming populations and g is the number of generations
@@ -91,8 +101,8 @@ class ParametrizedDemography:
         if self.finalized is not True:
             self.finalize()
         
-        if len(params) != len(self.free_param_names):
-            raise ValueError(f'Number of supplied parameters ({len(params)}) does not match the number of model parameters ({len(self.free_param_names)}).')
+        if len(params) != len(self.free_params):
+            raise ValueError(f'Number of supplied parameters ({len(params)}) does not match the number of model parameters ({len(self.free_params)}).')
 
         if not self.founder_event:
             raise ValueError('Population is missing a founder event.') 
@@ -103,34 +113,35 @@ class ParametrizedDemography:
             event(self, migration_matrix, params)
         return migration_matrix
     
-    def fix_ancestry_proportions(self, param_names, proportions) -> np.ndarray:
+    def fix_ancestry_proportions(self, params_to_fix, proportions) -> numpy.ndarray:
         '''
         Tells the model to calculate certain rate parameters based on the known ancestry proportions of the sample population
         '''
 
-        for param_name in param_names:
-            if param_name not in self.free_param_names:
+        for param_name in params_to_fix:
+            if param_name not in self.free_params:
                 if param_name in self.dependent_params:
                     raise KeyError(f'{param_name} is already specified by another equation.')
                 raise KeyError(f'{param_name} is not a parameter of this model.')
-            if self.free_param_names[param_name]['type'] != 'rate':
+            if self.free_params[param_name]['type'] != 'rate':
                 raise ValueError(f'{param_name} is not a rate parameter.')
         if len(proportions) != len(self.population_indices):
             raise ValueError(f'Number of given ancestry proportions is not equal to the number of population indices.')
-        if len(param_names) != len(self.population_indices) - 1:
+        if len(params_to_fix) != len(self.population_indices) - 1:
             raise ValueError(f'Number of parameters to fix is not equal to the number of population indices - 1.')
         self.__class__ = FixedAncestryDemography
-        self.params_fixed_by_ancestry = param_names
+        self.params_fixed_by_ancestry = {param_name for param_name in self.free_params if param_name in params_to_fix}
         self.known_ancestry_proportions = proportions[:-1]
+        self.reduced_constraints = [constraint for constraint in self.constraints if any(param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
         return
     
-    def out_of_bounds(self, params):
+    def check_invalid(self, params: list[float]):
         '''
         Takes in a list of params equal to the length of free_params
         and returns a negative violation score if the resulting matrix would be or is invalid.
         '''
-
-        violation_score = self.check_constraints(params)
+        self.logger.info(f'Running bounds check.')
+        violation_score = min(self.check_bounds(params), self.check_constraints(params))
         migration_matrix = self.get_migration_matrix(params)
         for totmig in migration_matrix.sum(1):
             if 1 - totmig < violation_score:
@@ -139,16 +150,35 @@ class ParametrizedDemography:
         
     def check_constraints(self, params: list[float]):
         '''
-        Constraints are a list of expressions of parameters that should always be positive
+        Constraints take the form of a dict {'param_subset':Tuple[String], 'expression': lambda (param_subset)}
         The violation score is the largest negative value from all the constraints
         '''
         violation_score = 0
-        for constraint, msg in self.constraints:
-            violation = constraint(self, params)
+        for constraint in self.constraints:
+            violation = constraint['expression']([self.get_param_value(param_name, params) for param_name in constraint['param_subset']])
             if violation < violation_score:
-                logging.warning(f'{msg} Out of bounds by: {-violation}.')
+                logging.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
                 violation_score = violation
         return violation_score
+
+    def check_bounds(self, params: list[float]):
+        '''
+        Checks the bounds on parameters.
+        Bounds should be absolute restrictions on possible parameter values,
+        whereas Constraints should be restrictions on parameter values relative to each other.
+        '''
+        violation_score = 0
+        for param_name, param_info in self.free_params.items():
+            violation = self.get_param_value(param_name, params) - param_info['bounds'][0]
+            if violation < violation_score:
+                logging.warning(f'Lower bound for parameter {param_name} is {param_info["bounds"][0]}. Out of bounds by: {-violation}.')
+                violation_score = violation
+            violation = param_info['bounds'][1] - self.get_param_value(param_name, params)
+            if violation < violation_score:
+                logging.warning(f'Upper bound for parameter {param_name} is {param_info["bounds"][1]}. Out of bounds by: {-violation}.')
+                violation_score = violation
+        return violation_score
+
 
     def add_pulse_migration(self, source_population, rate_param, time_param):
         '''
@@ -159,16 +189,13 @@ class ParametrizedDemography:
         self.add_parameter(rate_param, type='rate')
         self.add_parameter(time_param, type='time')
 
-        self.constraints.append((lambda self, params: self.get_param_value(self.founding_time_param, params) - 1 - self.get_param_value(time_param, params),
-            'Pulses cannot occur before or during the founding of the population.'))
-        self.constraints.append((lambda self, params: self.get_param_value(time_param, params) - 2,
-            'Pulses cannot occur during the two most recent generations.'))
-        self.constraints.append((lambda self, params: self.get_param_value(rate_param, params),
-            'Pulse rates cannot be negative.'))
-        self.constraints.append((lambda self, params: 1 - self.get_param_value(rate_param, params),
-            'Pulse rates must be smaller than 1'))
-
-        def _pulse_migration_event(self: 'ParametrizedDemography', migration_matrix: np.ndarray, params):
+        self.constraints.append({
+                'param_subset':{self.founding_time_param, time_param},
+                'expression':lambda param_subset: param_subset[0] - 1 - param_subset[1],
+                'message': 'Pulses cannot occur before or during the founding of the population.'
+            })
+        
+        def _pulse_migration_event(self: 'ParametrizedDemography', migration_matrix: numpy.ndarray, params):
             t = self.get_param_value(time_param, params)
             a = self.get_param_value(rate_param, params)
             t2 = math.floor(t)
@@ -188,26 +215,21 @@ class ParametrizedDemography:
         self.add_parameter(rate_param, type='rate')
         self.add_parameter(start_param, type='time')
 
-        self.constraints.append((lambda self, params: self.get_param_value(self.founding_time_param, params) - 1 - self.get_param_value(start_param, params),
-            'Migrations cannot start before or during the founding of the population.'))
-        self.constraints.append((lambda self, params: self.get_param_value(rate_param, params),
-            'Migration rates cannot be negative.'))
-        self.constraints.append((lambda self, params: 1 - self.get_param_value(rate_param, params),
-            'Migration rates must be smaller than 1.'))
-        self.constraints.append((lambda self, params: self.get_param_value(rate_param, params),
-            'Migration rates cannot be negative.'))
-
+        self.constraints.append({
+                'param_subset':{self.founding_time_param, start_param},
+                'expression':lambda param_subset: param_subset[0] - 1 - param_subset[1],
+                'message': 'Migrations cannot start before or during the founding of the population.'
+            })
 
         if end_param:
             self.add_parameter(end_param, type='time')
-            self.constraints.append((lambda self, params: self.get_param_value(end_param, params) - 2,
-                'Migrations cannot end during the two most recent generations.'))
-            self.constraints.append((lambda self, params: self.get_param_value(start_param, params) - self.get_param_value(end_param, params),
-                'Migrations start time cannot be more recent than end time.'))
-            
+            self.constraints.append({
+                'param_subset':{start_param, end_param},
+                'expression':lambda param_subset: param_subset[0] - param_subset[1],
+                'message': 'Migrations start time cannot be more recent than end time.'
+            })
 
-        
-        def _continuous_migration_event(self: 'ParametrizedDemography', migration_matrix: np.ndarray, params):
+        def _continuous_migration_event(self: 'ParametrizedDemography', migration_matrix: numpy.ndarray, params):
             start_time = self.get_param_value(start_param, params)
             end_time = self.get_param_value(end_param, params) if end_param else 2
             t1 = math.floor(start_time)
@@ -241,22 +263,16 @@ class ParametrizedDemography:
         for population, rate_param in source_populations.items():
             self.add_population(population)
             self.add_parameter(rate_param, type='rate')
-            self.constraints.append((lambda self, params: 1 - self.get_param_value(rate_param, params),
-                'Founding rates must be at most 1'))
-            self.constraints.append((lambda self, params: self.get_param_value(rate_param, params),
-                'Founding rates cannot be negative'))
 
         self.add_population(remainder_population)
+
         self.add_parameter(found_time, type='time')
         self.founding_time_param = found_time
-
-        self.constraints.append((lambda self, params: self.get_param_value(found_time, params) - 2,
-            'Populations must exist for at least 3 generations.'))
         
         def _founder_event(self: 'ParametrizedDemography', params):
             true_start_time = self.get_param_value(found_time, params)
             start_time = math.ceil(true_start_time)            
-            migration_matrix = np.zeros((start_time+1, len(self.population_indices)))
+            migration_matrix = numpy.zeros((start_time+1, len(self.population_indices)))
 
             remaining_rate = 1
             
@@ -282,8 +298,8 @@ class ParametrizedDemography:
 
     def finalize(self):
         self.finalized = True
-        for index, param_name in enumerate(self.free_param_names):
-            self.free_param_names[param_name]['index'] = index
+        for index, param_name in enumerate(self.free_params):
+            self.free_params[param_name]['index'] = index
         for index, population_name in enumerate(self.population_indices):
             self.population_indices[population_name] = index
         return
@@ -294,7 +310,7 @@ class ParametrizedDemography:
         current_ancestry_proportions = migration_matrix[-1,:]
         for row in migration_matrix[-2::-1,:]:
             current_ancestry_proportions = current_ancestry_proportions*(1-row.sum())+row
-            if not np.isclose(current_ancestry_proportions.sum(), 1):
+            if not numpy.isclose(current_ancestry_proportions.sum(), 1):
                 raise ValueError('Current ancestry proportions do not sum to 1.')
         return current_ancestry_proportions
     
@@ -372,19 +388,63 @@ class FixedAncestryDemography(ParametrizedDemography):
     
     def is_time_param(self):
         time_param_list = []
-        for param_name, param in self.free_param_names.items():
+        for param_name, param in self.free_params.items():
             if param_name not in self.params_fixed_by_ancestry:
                 time_param_list.append(param['type'] == 'time')
         return time_param_list
     
+    def check_bounds(self, params: list[float]):
+        '''
+        Checks the bounds on parameters not fixed by ancestry.
+        '''
+        violation_score = 0
+        if len(params) != len(self.free_params):
+            full_params = self.insert_params(params.copy(), [0 for param in self.params_fixed_by_ancestry])
+        else:
+            full_params = params
+        #print(full_params, self.free_params)
+        for param_name, param_info in self.free_params.items():
+            if param_name in self.params_fixed_by_ancestry:
+                continue
+            violation = self.get_param_value(param_name, full_params) - param_info['bounds'][0]
+            if violation < violation_score:
+                logging.warning(f'Lower bound for parameter {param_name} is {param_info["bounds"][0]}. Current value is {self.get_param_value(param_name, full_params)}.')
+                violation_score = violation
+            violation = param_info['bounds'][1] - self.get_param_value(param_name, full_params)
+            if violation < violation_score:
+                logging.warning(f'Upper bound for parameter {param_name} is {param_info["bounds"][1]}. Current value is {self.get_param_value(param_name, full_params)}.')
+                violation_score = violation
+        return violation_score
 
-    def out_of_bounds(self, params):
+    def check_constraints(self, params: list[float]):
+        '''
+        Checks the bounds on parameters not fixed by ancestry.
+        '''
+        violation_score = 0
+        if len(params) != len(self.free_params):
+            full_params = self.insert_params(params.copy(), [0 for param in self.params_fixed_by_ancestry]) 
+        else:
+            full_params = params
+        for constraint in self.reduced_constraints:
+            violation = constraint['expression']([self.get_param_value(param_name, full_params) for param_name in constraint['param_subset']])
+            if violation < violation_score:
+                logging.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
+                violation_score = violation
+        return violation_score
+
+    def check_invalid(self, params):
         '''
         Takes in a list of params equal to the length of free_params - params_fixed_by_ancestry
         and returns a negative violation score if the resulting matrix would be or is invalid.
         '''
-        self.logger.info(f'Running bounds check.')
-        return super().out_of_bounds(self.get_full_params(params))
+        if len(params) != len(self.free_params):
+            full_params = self.insert_params(params.copy(), [0 for param in self.params_fixed_by_ancestry]) 
+        else:
+            full_params = params
+        violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
+        if violation_score < 0:
+            return violation_score
+        return super().check_invalid(self.get_full_params(params))
 
     def add_population(self, population_name: str):
         '''
@@ -396,17 +456,22 @@ class FixedAncestryDemography(ParametrizedDemography):
 
     def get_full_params(self, params):
         self.logger.info(f'Params before fixed-ancestry solving: {params}')
-        full_params = params.copy()
+        if len(params) == len(self.free_params):
+            full_params = params
+            if numpy.allclose(self.proportions_from_matrix(super().get_migration_matrix(full_params))[:-1], self.known_ancestry_proportions):
+                return full_params
+        else:
+            full_params = params.copy()
         def _param_objective_func(self: FixedAncestryDemography, params_to_solve):
             nonlocal full_params
-            params_to_solve[np.isnan(params_to_solve)] = 0
+            params_to_solve[numpy.isnan(params_to_solve)] = 0
             full_params = self.insert_params(full_params, params_to_solve)
             #self.logger.info(f'Full params: {full_params}')
             found_props = self.proportions_from_matrix(super().get_migration_matrix(full_params))[:-1]
             fixed_props = self.known_ancestry_proportions
             diff = found_props-fixed_props
             return diff
-        solved_params = scipy.optimize.fsolve(lambda params_to_solve: _param_objective_func(self, params_to_solve), (.2,))
+        solved_params = scipy.optimize.fsolve(lambda params_to_solve: _param_objective_func(self, params_to_solve), numpy.ones(len(self.params_fixed_by_ancestry))*.2)
         full_params = self.insert_params(full_params, solved_params)
         self.logger.info(f'Params after solving with ancestry proportions: {full_params}')
         return full_params
@@ -415,11 +480,11 @@ class FixedAncestryDemography(ParametrizedDemography):
         '''
         #print(super())
         #print(self.__class__.__mro__)
-        self.logger.info(f'Input params: {params}')
+        self.logger.info(f'Inumpyut params: {params}')
         full_params = params.copy()
         self.logger.info('Full params: {full_params}')
         def _param_objective_func(self: FixedAncestryDemography, params_to_solve):
-            params_to_solve[np.isnan(params_to_solve)] = 0
+            params_to_solve[numpy.isnan(params_to_solve)] = 0
             self.logger.info('Full params: {full_params}')
             full_params = self.insert_params(full_params, params_to_solve)
             self.logger.info('Full params: {full_params}')
@@ -438,14 +503,16 @@ class FixedAncestryDemography(ParametrizedDemography):
         #self.logger.info(f'Params: {params}, params')
         if len(params_to_solve) != len(self.params_fixed_by_ancestry):
             raise ValueError('Incorrect number of parameters to be solved')
-        if len(params) + len(params_to_solve) == len(self.free_param_names):
-            return np.insert(params, [self.free_param_names[param_name]['index'] for param_name in self.params_fixed_by_ancestry], params_to_solve) 
-        elif len(params) == len(self.free_param_names):
-            for param_name, value in zip(self.params_fixed_by_ancestry, params_to_solve):
-                params[self.free_param_names[param_name]['index']] = value
+        if len(params) + len(params_to_solve) == len(self.free_params):
+            iter_params = iter(params)
+            iter_params_to_solve = iter(params_to_solve)
+            params = [next(iter_params_to_solve) if (param_name in self.params_fixed_by_ancestry) else next(iter_params) for param_name in self.free_params]
             return params
-        else:
-            raise ValueError('Parameters fixed by ancestry proportions could not be resolved with the given parameters.')
+        if len(params) == len(self.free_params):
+            for param_name, value in zip(self.params_fixed_by_ancestry, params_to_solve):
+                params[self.free_params[param_name]['index']] = value
+            return params
+        raise ValueError('Parameters fixed by ancestry proportions could not be resolved with the given parameters.')
 
 def test():
     model = ParametrizedDemography()
@@ -455,14 +522,14 @@ def test():
     model.finalize()
     m = model.get_migration_matrix([0.1, 4, 0.2, 1, 2.2])
     print(m)
-    print(model.free_param_names)
+    print(model.free_params)
 
 def test_2():
     model = ParametrizedDemography.load_from_YAML('pp_px.yaml')
     m = model.get_migration_matrix([0.2, 4, 0.375, 3])
     print(m)
     print(model.proportions_from_matrix(m))
-    print(model.free_param_names)
+    print(model.free_params)
     model.fix_ancestry_proportions('r', [0.5, 0.5])
     print(model.params_fixed_by_ancestry)
     model.get_migration_matrix([0.2, 4, 0.375])
@@ -473,4 +540,4 @@ def test_3():
     print(m)
 
 if __name__ == '__main__':
-    test_3()
+    pass

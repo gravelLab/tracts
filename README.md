@@ -5,12 +5,13 @@ Tracts is a set of classes and definitions used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from
 multiple populations can be modeled.
 
-Recent Changes
+Changes in Tracts 2
 ========
 
 - Tracts is now a python package rather than a single .py file. Follow the installation instructions below.
 - Tracts no longer requires writing your own driver script. Instead, details about the simulation are read from a YAML file (examples below).
 - Demographic models also do not have to be handcoded anymore. They are now specified by a Demes-like YAML file (examples below).
+- Minor Patches: Fixed an issue with fixing multiple parameters from ancestry.
 
 Examples
 ========
