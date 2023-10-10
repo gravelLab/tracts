@@ -17,7 +17,7 @@ def locate_file_path(filename, absolute_driver_yaml_path=None):
                                   (Path(__main__.__file__).parent / filename, 'using script directory'), 
                                   (absolute_driver_yaml_path.parent / filename if isinstance(absolute_driver_yaml_path, Path) else Path(''), 'using driver yaml')
                                 ):
-        #logger.info(f'{method_name}: {filepath}')
+        logger.info(f'{method_name}: {filepath}')
         if filepath.is_file():
             logger.info(f'Found {filename} {method_name}.')
             return filepath
@@ -160,23 +160,23 @@ def randomize(arr, a, b):
     # uniformly.
     return ((b-a) * numpy.random.random(arr.shape) + a)*arr
 
-def run_model_multi_params(model_func, bound_func, population, population_labels, startparams_list, exclude_tracts_below_cM=0):
+def run_model_multi_params(model_func, bound_func, population, population_labels, startparams_list, exclude_tracts_below_cM=0, modelling_method=tracts.PhaseTypeDistribution):
     optimal_params = []
     likelihoods = []
     for start_params in startparams_list:
         logger.info(f'Start params: {start_params}')
-        params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params, exclude_tracts_below_cM=exclude_tracts_below_cM, modelling_method=modelling_method)
         optimal_params.append(params_found)
         likelihoods.append(likelihood_found)
     return optimal_params, likelihoods
 
-def run_model(model_func, bound_func, population, population_labels, startparams, exclude_tracts_below_cM=0):
+def run_model(model_func, bound_func, population, population_labels, startparams, exclude_tracts_below_cM=0, modelling_method=tracts.PhaseTypeDistribution):
     Ls = population.Ls
     nind = population.nind
     (bins, data) = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
-    xopt = tracts.optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2)
-    optmod = tracts.demographic_model(model_func(xopt))
+    xopt = tracts.optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2, modelling_method=modelling_method)
+    optmod = modelling_method(model_func(xopt))
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
@@ -202,10 +202,10 @@ def output_simulation_data(sample_population, optimal_params, model: tracts.Para
         for population in model.population_indices.keys():
             fdat.write("\t".join(map(str, data[population])) + "\n")
 
-    optimal_model = tracts.demographic_model(model.get_migration_matrix(optimal_params))
+    optimal_model = tracts.PhaseTypeDistribution(model.get_migration_matrix(optimal_params))
     
     with open(output_dir + output_filename_format.format(label='migration_matrix'), 'w') as fmig2:
-        for line in optimal_model.mig:
+        for line in optimal_model.migration_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
 
     with open(output_dir + output_filename_format.format(label='predicted_tract_distribution'), 'w') as fpred2:

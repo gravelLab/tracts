@@ -130,7 +130,7 @@ class ParametrizedDemography:
         if len(params_to_fix) != len(self.population_indices) - 1:
             raise ValueError(f'Number of parameters to fix is not equal to the number of population indices - 1.')
         self.__class__ = FixedAncestryDemography
-        self.params_fixed_by_ancestry = {param_name for param_name in self.free_params if param_name in params_to_fix}
+        self.params_fixed_by_ancestry = {param_name:'' for param_name in self.free_params if param_name in params_to_fix}
         self.known_ancestry_proportions = proportions[:-1]
         self.reduced_constraints = [constraint for constraint in self.constraints if any(param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
         return
@@ -142,6 +142,8 @@ class ParametrizedDemography:
         '''
         self.logger.info(f'Running bounds check.')
         violation_score = min(self.check_bounds(params), self.check_constraints(params))
+        if violation_score < 0:
+            return violation_score
         migration_matrix = self.get_migration_matrix(params)
         for totmig in migration_matrix.sum(1):
             if 1 - totmig < violation_score:
@@ -152,13 +154,13 @@ class ParametrizedDemography:
         '''
         Constraints take the form of a dict {'param_subset':Tuple[String], 'expression': lambda (param_subset)}
         The violation score is the largest negative value from all the constraints
-        '''
+        ''' 
         violation_score = 0
         for constraint in self.constraints:
             violation = constraint['expression']([self.get_param_value(param_name, params) for param_name in constraint['param_subset']])
             if violation < violation_score:
-                logging.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
                 violation_score = violation
+                logging.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
         return violation_score
 
     def check_bounds(self, params: list[float]):
@@ -190,8 +192,8 @@ class ParametrizedDemography:
         self.add_parameter(time_param, type='time')
 
         self.constraints.append({
-                'param_subset':{self.founding_time_param, time_param},
-                'expression':lambda param_subset: param_subset[0] - 1 - param_subset[1],
+                'param_subset':(self.founding_time_param, time_param),
+                'expression':lambda param_subset: param_subset[0] - param_subset[1] - 1,
                 'message': 'Pulses cannot occur before or during the founding of the population.'
             })
         
@@ -199,6 +201,7 @@ class ParametrizedDemography:
             t = self.get_param_value(time_param, params)
             a = self.get_param_value(rate_param, params)
             t2 = math.floor(t)
+            #print(f'Pulse average time: {t}. Pulse start time: {t2}. Founding time: {self.get_param_value(self.founding_time_param, params)}')
             r2 = a*(t2+1-t)
             migration_matrix[t2, self.population_indices[source_population]] += r2
             migration_matrix[t2+1, self.population_indices[source_population]] += a*(t-t2)/(1-r2)
@@ -216,7 +219,7 @@ class ParametrizedDemography:
         self.add_parameter(start_param, type='time')
 
         self.constraints.append({
-                'param_subset':{self.founding_time_param, start_param},
+                'param_subset':(self.founding_time_param, start_param),
                 'expression':lambda param_subset: param_subset[0] - 1 - param_subset[1],
                 'message': 'Migrations cannot start before or during the founding of the population.'
             })
@@ -224,7 +227,7 @@ class ParametrizedDemography:
         if end_param:
             self.add_parameter(end_param, type='time')
             self.constraints.append({
-                'param_subset':{start_param, end_param},
+                'param_subset':(start_param, end_param),
                 'expression':lambda param_subset: param_subset[0] - param_subset[1],
                 'message': 'Migrations start time cannot be more recent than end time.'
             })
