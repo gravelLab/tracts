@@ -3,10 +3,10 @@ requires = ["setuptools==68.2.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tracts_General-Solution"
+name = "tracts"
 version = "0.0.1"
 authors = [
-  { name="Victor Yee", email="aaron.krim-yee@mcgill.ca" },
+  { name="Simon Gravel", email="simon.gravel@mcgill.ca" },
 ]
 description = "A set of classes and definitions used to model migration histories based on ancestry tracts in admixed individuals. Time-dependent gene-flow from multiple populations can be modeled."
 readme = "README.md"
@@ -18,5 +18,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/General-Solution/tracts/blob/devel"
-"Bug Tracker" = "https://github.com/General-Solution/tracts/issues"
+"Homepage" = "https://github.com/sgravel/tracts/blob/devel"
+"Bug Tracker" = "https://github.com/sgravel/tracts/issues"
