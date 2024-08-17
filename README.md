@@ -9,6 +9,7 @@ Changes in Tracts 2
 ========
 
 - Tracts is now a python package rather than a single .py file. Follow the installation instructions below.
+- Tracts now uses the matrix exponential form of the Phase-Type Distribution to calculate the tractlength distribution. This should not have resulted to changes to the interface. If it has, please report it in the issues.
 - Tracts no longer requires writing your own driver script. Instead, details about the simulation are read from a YAML file (examples below).
 - Demographic models also do not have to be handcoded anymore. They are now specified by a Demes-like YAML file (examples below).
 - Minor Patches: Fixed an issue with fixing multiple parameters from ancestry.

@@ -1227,7 +1227,7 @@ class PhaseTypeDistribution():
         #all_states[0] contains the migration times and all_states[1] contains the migration populations
         #In other words, (all_states[0][i], all_states[1][i]) gives the ith (time, pop) migration
 
-        num_states = len(self.all_states[0])
+        #num_states = len(self.all_states[0])
 
         # In a continuous-time markov chain, diagonal entries are normalized to be equal to 1 - (probability of no-transition)
         # Because self-transitioning and no-transitioning is considered identical.
@@ -1372,6 +1372,12 @@ class PhaseTypeDistribution():
             new_histogram = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin)
             histogram += new_histogram
         return histogram
+
+    def expectperbin(self, Ls, pop, bins, nsamp_list=None):
+        '''
+        Backwards compatibility with old tracts syntax
+        '''
+        return self.tractlength_histogram_multi_windowed(pop, bins, Ls)
     
     def normalization_factor(self, L, S, S0_inv=None, alpha=None, exp_SL=None):
         '''Computes the normalization factor Z from S0_inv and chromosome length L
@@ -1515,16 +1521,6 @@ class PhaseTypeDistribution():
         # define bins that contain all possible values
         # bins=np.arange(0,self.maxLen+1./2./float(npts),self.maxLen/float(npts))
         ll = 0
-        if np.sum(data) > 1./self.max_remaining_tracts:
-            eprint("warning: the convergence criterion max_remining_tracts",
-                   "may be too high, tracts calculates the distribution",
-                   "of tract lengths from the shortest to the longest,",
-                   "and uses approximations after a fraction",
-                   "1-max_remining_tracts of all tracts have been",
-                   "accounted for. Since we have a total of",
-                   np.sum(data), "we'd be underestimating the length of",
-                   "the longest ",
-                   np.sum(data) * self.max_remaining_tracts, " tracts.")
         #print(f'npops: {self.npops}')
         for pop in range(self.num_populations):
             predicted_tractlength_histogram = self.tractlength_histogram_multi_windowed(pop, bins, Ls)
@@ -1558,7 +1554,7 @@ class demographic_model(object):
             max_morgans, issue a warning and stop generating new transitions
         """
         small = 1e-10
-        self.mig = mig
+        self.migration_matrix = mig
         (self.ngen, self.npop) = mig.shape
         self.max_remaining_tracts = max_remaining_tracts  # tolerance for incomplete
         # convergence
@@ -1688,7 +1684,7 @@ class demographic_model(object):
             """
         legterm = [self.proportions[self.ngen - d, popnum]**2 * np.prod(1 - self.totmig[:(self.ngen - d)])
                    for d in range(1, self.ngen)]
-        trunkterm = [np.sum([self.mig[u, popnum] * np.prod(1 - self.totmig[:u])
+        trunkterm = [np.sum([self.migration_matrix[u, popnum] * np.prod(1 - self.totmig[:u])
                      for u in range(self.ngen-d)])
                      for d in range(1, self.ngen)]
 
