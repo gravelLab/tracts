@@ -4,7 +4,7 @@ sys.path.insert(1, str(Path(__file__).parent.parent))
 
 from tracts.core import *
 from tracts.parametrized_demography import ParametrizedDemography, FixedAncestryDemography
-from tracts import legacy_models
+#from tracts import legacy_models
 from tracts import driver
 from tracts import logs
 from tracts import legacy
