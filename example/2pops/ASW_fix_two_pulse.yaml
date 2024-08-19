@@ -1,5 +1,5 @@
 samples:
-  directory: .\G10\
+  directory: ./G10/
   individual_names: [
     "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
     "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
@@ -19,5 +19,5 @@ seed: 100
 exclude_tracts_below_cM: 2
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 fix_parameters_from_ancestry_proportions: ['R']
-output_directory: .\output_fix\
+output_directory: ./output_fix/
 output_filename_format: "two_pulse_{label}"
