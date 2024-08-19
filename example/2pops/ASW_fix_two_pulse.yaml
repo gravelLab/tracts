@@ -11,7 +11,7 @@ samples:
   chromosomes: 1-22
 model_filename: pp_px.yaml
 start_params: 
-  tx: 10-11
+  tx: 8-11
   P:  0.03-0.05
   t2: 5-6
 repetitions: 2

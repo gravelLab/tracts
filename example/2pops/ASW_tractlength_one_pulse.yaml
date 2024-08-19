@@ -13,7 +13,7 @@ model_filename: pp.yaml
 start_params: 
   R: 0.1-0.2
   tx: 5-8
-repetitions: 3
+repetitions: 2
 seed: 100
 exclude_tracts_below_cM: 10
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
