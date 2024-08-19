@@ -1,5 +1,5 @@
 samples:
-  directory: .\G10\
+  directory: ./G10/
   individual_names: [
     "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
     "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
@@ -13,7 +13,7 @@ model_filename: pp.yaml
 start_params: 
   R: 0.1-0.2
   tx: 5-8
-repetitions: 2
+repetitions: 3
 seed: 100
 exclude_tracts_below_cM: 10
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.

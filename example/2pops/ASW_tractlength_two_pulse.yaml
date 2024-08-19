@@ -1,5 +1,5 @@
 samples:
-  directory: .\G10\
+  directory: ./G10/
   individual_names: [
     "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
     "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
