@@ -2,3 +2,6 @@
 *.pyc
 /output/
 /tracts/__pycache/
+build/
+.idea/
+docs/build

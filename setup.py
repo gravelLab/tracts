@@ -13,7 +13,10 @@ setup(
         "numpy >=1.12.1",
         "matplotlib",
         "scipy",
-        "ruamel.yaml"
-        
+        "ruamel.yaml",
+        "Sphinx>=7.2.6",
+        "sphinx-autodoc-typehints>=1.12.0",
+        "sphinxcontrib-napoleon>=0.7",
+        "sphinx-book-theme>=1.0.0"
     ],
 )
