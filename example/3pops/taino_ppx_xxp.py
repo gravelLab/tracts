@@ -183,7 +183,7 @@ for bootnum in runboots:
 
     fdat.close()
     fmig = open(outf + "_mig", 'w')
-    for line in optmod.mig:
+    for line in optmod.migration_matrix:
         fmig.write("\t".join(map(str, line)) + "\n")
 
     fmig.close()

@@ -1,4 +1,3 @@
-import tracts
 import numpy
 import ruamel.yaml
 import re
@@ -8,6 +7,10 @@ import __main__
 import sys
 from pathlib import Path
 import numbers
+
+from tracts.parametrized_demography import ParametrizedDemography
+
+from tracts import Population, PhaseTypeDistribution, optimize_cob
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +53,7 @@ def run_tracts(driver_filename):
     exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
 
     # load the population
-    pop = tracts.Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list)
+    pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list)
     (bins, data) = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
 
     logger.info(f'Bins: {bins}')
@@ -103,7 +106,7 @@ def load_model_from_driver(driver_spec, driver_path):
     model_path = locate_file_path(driver_spec['model_filename'], driver_path)
     if model_path is None:
         raise OSError(f'Model yaml file could not be found. {filepath_error_additional_message}')
-    model = tracts.ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
+    model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
     return model
 
 
@@ -145,7 +148,7 @@ def parse_individual_filenames(individual_names, filename_string, labels=None, d
     return individual_filenames
 
 
-def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: tracts.ParametrizedDemography = None,
+def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: ParametrizedDemography = None,
                        time_scaling_factor=1):
     # num_params = len(model.free_params) - len(model.params_fixed_by_ancestry)
     num_params = len(model.free_params)
@@ -201,7 +204,7 @@ def randomize(arr, a, b):
 
 
 def run_model_multi_params(model_func, bound_func, population, population_labels, startparams_list,
-                           exclude_tracts_below_cM=0, modelling_method=tracts.PhaseTypeDistribution):
+                           exclude_tracts_below_cM=0, modelling_method=PhaseTypeDistribution):
     optimal_params = []
     likelihoods = []
     for start_params in startparams_list:
@@ -215,19 +218,19 @@ def run_model_multi_params(model_func, bound_func, population, population_labels
 
 
 def run_model(model_func, bound_func, population, population_labels, startparams, exclude_tracts_below_cM=0,
-              modelling_method=tracts.PhaseTypeDistribution):
+              modelling_method=PhaseTypeDistribution):
     Ls = population.Ls
     nind = population.nind
     (bins, data) = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
-    xopt = tracts.optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2,
-                               modelling_method=modelling_method)
+    xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2,
+                        modelling_method=modelling_method)
     optmod = modelling_method(model_func(xopt))
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
 
-def output_simulation_data(sample_population, optimal_params, model: tracts.ParametrizedDemography, driver_spec):
+def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
     if 'output_directory' in driver_spec:
         output_dir = driver_spec['output_directory']
         if not os.path.exists(output_dir):
@@ -248,7 +251,7 @@ def output_simulation_data(sample_population, optimal_params, model: tracts.Para
         for population in model.population_indices.keys():
             fdat.write("\t".join(map(str, data[population])) + "\n")
 
-    optimal_model = tracts.PhaseTypeDistribution(model.get_migration_matrix(optimal_params))
+    optimal_model = PhaseTypeDistribution(model.get_migration_matrix(optimal_params))
 
     with open(output_dir + output_filename_format.format(label='migration_matrix'), 'w') as fmig2:
         for line in optimal_model.migration_matrix:
@@ -265,7 +268,7 @@ def output_simulation_data(sample_population, optimal_params, model: tracts.Para
         fpars2.write("\t".join(map(str, optimal_params)) + "\n")
 
 
-def calculate_ancestry_proportions(sample_population: tracts.Population, population_labels):
+def calculate_ancestry_proportions(sample_population: Population, population_labels):
     # calculate the proportion of ancestry in each individual
     bypopfrac = [[] for i in range(len(population_labels))]
     for ind in sample_population.indivs:

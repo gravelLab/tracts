@@ -2,7 +2,6 @@
 # from pathlib import Path
 # sys.path.append(str(Path(__file__).parent.parent))
 # path to tracts, may have to adjust if the file is moved
-import tracts
 import tracts.driver
 
 """

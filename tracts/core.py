@@ -1,3 +1,4 @@
+# TODO: Do we need Python 2 compatibility?
 from __future__ import print_function  # for python 2 compatibility
 
 import numpy as np
@@ -6,30 +7,26 @@ from matplotlib import pylab
 
 from collections import defaultdict
 
-# try:
-#     from scipy.misc.common import factorial
-# except ImportError:
-#     try:
-#         from scipy.misc import factorial
-#     except ImportError:
-#         from scipy.special import factorial
-
 from scipy.special import gammainc, gammaln, factorial
 import scipy.optimize
 import sys
 import itertools
+import bisect
 
 from sys import version_info
 
 if version_info.major == 2:
     # We are using Python 2.x
     import Tkinter as tk
+    import tkFileDialog as filedialog
 elif version_info.major == 3:
     # We are using Python 3.x
     import tkinter as tk
+    from tkinter import filedialog
 
 #: Counts calls to object_func
 _counter = 0
+
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -804,13 +801,6 @@ class Population:
         return Indiv.from_haploids([gamete1, gamete2])
 
     def save(self):
-        if version_info.major == 2:
-            import tkFileDialog as filedialog
-        elif version_info.major == 3:
-            from tkinter import filedialog
-        else:
-            raise Exception("Unsupported python version")
-
         file = filedialog.asksaveasfilename(parent=self.win, title='Choose a file')
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
@@ -973,7 +963,6 @@ class Population:
         bins = lenbound
         # np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
 
-        import bisect
         dat = {}  # np.zeros((len(bypop),len(bins)+1)
         for key, poplen in bypop.items():
             # extract full length tracts

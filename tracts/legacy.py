@@ -16,6 +16,18 @@ from collections import defaultdict
 from scipy.special import gammainc, gammaln, factorial
 import scipy.optimize
 import sys
+import bisect
+
+from sys import version_info
+
+if version_info.major == 2:
+    # We are using Python 2.x
+    import Tkinter as Tk
+    import tkFileDialog as filedialog
+elif version_info.major == 3:
+    # We are using Python 3.x
+    import tkinter as Tk
+    from tkinter import filedialog
 
 
 def eprint(*args, **kwargs):
@@ -462,15 +474,6 @@ class Indiv:
         a set of colors. E.g.: 
         colordict = {"CEU":'r',"YRI":b}
         """
-
-        from sys import version_info
-        if version_info.major == 2:
-            # We are using Python 2.x
-            import Tkinter as Tk
-        elif version_info.major == 3:
-            # We are using Python 3.x
-            import tkinter as Tk
-
         if win is None:
             win = Tk.Tk()
         self.canvas = Tk.Canvas(
@@ -787,12 +790,6 @@ class Population:
         return Indiv.from_haploids(gamete1, gamete2)
 
     def save(self):
-        from sys import version_info
-        if version_info.major == 2:
-            import tkFileDialog as filedialog
-        elif version_info.major == 3:
-            from tkinter import filedialog
-
         file = filedialog.asksaveasfilename(parent=self.win, title='Choose a file')
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
@@ -972,7 +969,6 @@ class Population:
         bins = lenbound
         # np.arange(0,self.maxLen*(1+.5/npts),float(self.maxLen)/npts)
 
-        import bisect
         dat = {}  # np.zeros((len(bypop),len(bins)+1)
         for key, poplen in bypop.items():
             # extract full length tracts
@@ -984,7 +980,7 @@ class Population:
                 pos = bisect.bisect_left(bins, item[0])
                 dat[key][pos] += item[0] * 1. / self.nind * 1. / np.sum(self.Ls) / 2.
 
-        return (bins, dat)
+        return bins, dat
 
     def get_mean_ancestry_proportions(self, ancestries):
         """ Get the mean ancestry proportion averaged across individuals in
@@ -1078,13 +1074,6 @@ class Population:
             self.colordict, win=self.win)
 
     def plot(self, colordict):
-        from sys import version_info
-        if version_info.major == 2:
-            # We are using Python 2.x
-            import Tkinter as Tk
-        elif version_info.major == 3:
-            # We are using Python 3.x
-            import tkinter as Tk
         self.colordict = colordict
         self.currentplot = 0
         self.win = Tk.Tk()
@@ -1101,13 +1090,6 @@ class Population:
 
     def plot_chromosome(self, i, colordict, win=None):
         """plot a single chromosome across individuals"""
-        from sys import version_info
-        if version_info.major == 2:
-            # We are using Python 2.x
-            import Tkinter as Tk
-        elif version_info.major == 3:
-            # We are using Python 3.x
-            import tkinter as Tk
         self.colordict = colordict
         ls = self.list_chromosome(i)
         if win is None:
