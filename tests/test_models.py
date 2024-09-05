@@ -1,24 +1,25 @@
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
+# import sys
+# from pathlib import Path
+# sys.path.append(str(Path(__file__).parent.parent))
 from tracts import ParametrizedDemography
+# from tracts.legacy_models.models_2pop import pp
 import tracts
-import time
 import numpy
-import random
 
 
-def test_founding_2pop(params):
+def test_founding_2pop():
     model = ParametrizedDemography()
     model.add_founder_event({'A': 'm1_A'}, 'B', 't0')
     model.finalize()
     m = model.get_migration_matrix([0.4, 4.5])
-    m2 = tracts.legacy_models.models_2pop.pp([0.4,0.045])
+    m2 = tracts.legacy_models.models_2pop.pp([0.4, 0.045])
     assert numpy.allclose(m, m2)
     return
 
+
 def test_pulse():
     return
+
 
 def test_migration():
     return

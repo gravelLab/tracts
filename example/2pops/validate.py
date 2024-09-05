@@ -80,7 +80,7 @@ def load_population(path_pairs):
         haplotypes for an individual, build a tracts population.
     """
     eprint('loading population')
-    return tracts.population([tracts.indiv.from_files(t) for t in path_pairs])
+    return tracts.Population([tracts.Indiv.from_files(t) for t in path_pairs])
 
 def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
         startparams, migration_fun_name):
@@ -127,7 +127,7 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
             cutoff=cutoff)
 
     # Construct the composite demographic model
-    composite_model = tracts.composite_demographic_model(
+    composite_model = tracts.CompositeDemographicModel(
             migration_fun, composite_model_parameters,
             group_ancestry_averages)
 
@@ -146,7 +146,7 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
             migration_fun, ancestry_averages, startparams,
             outofbounds_fun=migration_outofbounds_fun, cutoff=cutoff)
 
-    fracs2_model = tracts.demographic_model(
+    fracs2_model = tracts.DemographicModel(
             migration_fun(fracs2_model_parameters, ancestry_averages))
 
     return {

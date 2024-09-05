@@ -29,7 +29,7 @@ names = [
 chroms = ['%d' % (i,) for i in range(1, 23)]
 
 # load the population
-pop = tracts.population(
+pop = tracts.Population(
     names=names, fname=(directory, "", ".bed"), selectchrom=chroms)
 (bins, data) = pop.get_global_tractlengths(npts=50)
 
@@ -61,7 +61,7 @@ bound2 = models_2pop.outofbounds_pp_px
 # single-pulse model
 startparams2 = numpy.array([0.125102, 0.107152, 0.0438957, 0.051725])
 
-optmod = tracts.demographic_model(func(startparams))
+optmod = tracts.DemographicModel(func(startparams))
 
 def randomize(arr, scale=2):
     # takes an array and multiplies every element by a factor between 0 and 2,
@@ -75,7 +75,7 @@ for i in range(rep_pp):
     xopt = tracts.optimize_cob(
         startrand, bins, Ls, data, nind, func, outofbounds_fun=bound, cutoff=cutoff, epsilon=1e-2)
     try:
-        optmodlocal = tracts.demographic_model(func(xopt))
+        optmodlocal = tracts.DemographicModel(func(xopt))
         loclik = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
         if loclik > maxlik:
             optmod = optmodlocal
@@ -99,7 +99,7 @@ for i in range(0, rep_pp_px):
     xopt2 = tracts.optimize_cob(
         startrand2, bins, Ls, data, nind, func2, outofbounds_fun=bound2, cutoff=cutoff, epsilon=1e-2)
     try:
-        optmod2loc = tracts.demographic_model(func2(xopt2))
+        optmod2loc = tracts.DemographicModel(func2(xopt2))
         loclik = optmod2loc.loglik(bins, Ls, data, nind, cutoff=cutoff)
         if loclik > maxlik2:
             optmod2 = optmod2loc

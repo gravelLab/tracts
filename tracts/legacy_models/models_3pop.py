@@ -1,7 +1,6 @@
 import numpy
 import scipy.optimize
 
-
 """
 A simple model in which populations 1 and 2 arrive discretely at first
 generation, 3 at a subsequent generation. If a time is not integer, the
@@ -71,6 +70,7 @@ def ppx_xxp(*params):
 
     return mig
 
+
 def outofbounds_ppx_xxp(*params):
     """ Constraint function evaluating below zero when constraints are not
         satisfied. """
@@ -78,7 +78,7 @@ def outofbounds_ppx_xxp(*params):
 
     (prop1, tstart, prop3, t3) = params[0]
 
-    ret = min(1-prop1, 1-prop3)
+    ret = min(1 - prop1, 1 - prop3)
     ret = min(ret, prop1, prop3)
 
     # Pedestrian way of testing for all possible issues
@@ -93,19 +93,20 @@ def outofbounds_ppx_xxp(*params):
         print("Pulse less than 0")
     # print  "ret2 ",ret
 
-    ret = min(ret, -abs(totmig[-1]-1) + 1e-8)
+    ret = min(ret, -abs(totmig[-1] - 1) + 1e-8)
     ret = min(ret, -totmig[0], -totmig[1])
     # print "ret3 " , ret
 
-    ret = min(ret, min(1-totmig), min(totmig))
+    ret = min(ret, min(1 - totmig), min(totmig))
     # print "ret4 " , ret
 
     # print "times ",t3,tstart
-    ret = min(ret, tstart-t3)
+    ret = min(ret, tstart - t3)
 
     ret = min(ret, t3)
     ret = min(ret, tstart)
     return ret
+
 
 # We don't have to calculate all the tract length distributions to have the
 # global ancestry proportion right. Here we define a function that
@@ -114,13 +115,15 @@ def outofbounds_ppx_xxp(*params):
 # We first define a function that calculates the final proportions of ancestry
 # based on the migration matrix
 def propfrommig(mig):
-    curr = mig[-1,:]
-    for row in mig[-2::-1,:]:
-        curr = curr*(1-numpy.sum(row))+row
+    curr = mig[-1, :]
+    for row in mig[-2::-1, :]:
+        curr = curr * (1 - numpy.sum(row)) + row
     return curr
+
 
 def ppx_xxp_fix(times, fracs):
     (tstart, t3) = times
+
     # An auxiliary function that, given the "missing" parameters, returns the
     # full migration matrix
     def fun(props):
@@ -133,6 +136,7 @@ def ppx_xxp_fix(times, fracs):
     # parameter values.
     (prop3, prop1) = scipy.optimize.fsolve(fun, (.2, .2))
     return ppx_xxp((prop1, tstart, prop3, t3))
+
 
 def outofbounds_ppx_xxp_fix(params, fracs):
     # constraint function evaluating below zero when constraints not satisfied
@@ -148,5 +152,8 @@ def outofbounds_ppx_xxp_fix(params, fracs):
     def fun(props):
         (prop3, prop1) = props
         return propfrommig(ppx_xxp((prop1, tstart, prop3, t3)))[0:2] - fracs[0:2]
-    (prop3, prop1) = scipy.optimize.fsolve(fun, (.2, .2)) #(.2,.2) is just the starting point for the optimization function, it should not be sensitive to this, but it's better to start with reasonable parameter values.
+
+    # (.2,.2) is just the starting point for the optimization function,
+    # it should not be sensitive to this, but it's better to start with reasonable parameter values.
+    (prop3, prop1) = scipy.optimize.fsolve(fun, (.2, .2))
     return outofbounds_ppx_xxp((prop1, tstart, prop3, t3))

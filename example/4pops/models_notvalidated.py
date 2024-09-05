@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.optimize
-
+from functools import partial
 
 """
 A simple model in which populations 1 and 2 arrive discretely at first
@@ -104,7 +104,7 @@ def outofbounds_ppxx_xxpp(*params):
 
     (prop1, tstart, prop3, prop4, t3) = params[0]
 
-    violation = min(1-prop1, 1-prop3, 1-prop4)
+    violation = min(1 - prop1, 1 - prop3, 1 - prop4)
     violation = min(violation, prop1, prop3, prop4)
 
     # Pedestrian way of testing for all possible issues
@@ -112,17 +112,18 @@ def outofbounds_ppxx_xxpp(*params):
     mig = func(params[0])
     totmig = mig.sum(axis=1)
 
-    violation = min(violation, -abs(totmig[-1]-1) + 1e-8)   # Check that initial migration sums to 1.
-    violation = min(violation, -totmig[0], -totmig[1])      # Check that there are no migrations in the last
+    violation = min(violation, -abs(totmig[-1] - 1) + 1e-8)  # Check that initial migration sums to 1.
+    violation = min(violation, -totmig[0], -totmig[1])  # Check that there are no migrations in the last
     # two generations
 
-    violation = min(violation, min(1-totmig), min(totmig))  # Check that total migration rates between 0 and 1
+    violation = min(violation, min(1 - totmig), min(totmig))  # Check that total migration rates between 0 and 1
 
-    violation = min(violation, tstart-t3)
+    violation = min(violation, tstart - t3)
 
     violation = min(violation, t3)
     violation = min(violation, tstart)
     return violation
+
 
 # We don't have to calculate all the tract length distributions to have the
 # global ancestry proportion right. Here we define a function that
@@ -133,12 +134,22 @@ def outofbounds_ppxx_xxpp(*params):
 
 
 def propfrommig(mig):
-    """Obtains the propotion of present dat genomes contributed by each population"""
+    """Obtains the proportion of present dat genomes contributed by each population"""
 
     current_contributions = mig[-1, :]
     for row in mig[-2::-1, :]:
-        current_contributions = current_contributions*(1-np.sum(row))+row
+        current_contributions = current_contributions * (1 - np.sum(row)) + row
     return current_contributions
+
+
+def fun(params_optimize, tstart, n_pops, fracs, t3):
+    """function taking the missing parameters and compares results to expected ancestry proportions"""
+    (prop1_opt, prop3_opt, prop4_opt) = params_optimize
+    return (propfrommig(ppxx_xxpp((prop1_opt, tstart, prop3_opt, prop4_opt, t3)))[0:n_pops - 1] -
+            fracs[0:n_pops - 1])
+
+
+starting_point = np.array((.2, .2, .2))
 
 
 def ppxx_xxpp_fix(params, fracs):
@@ -146,17 +157,13 @@ def ppxx_xxpp_fix(params, fracs):
     # full migration matrix
     (tstart, t3) = params
     n_pops = 4
-
-    def fun(params_optimize):
-        """function taking the missing parameters and compares results to expected ancestry proportions"""
-        (prop1_opt, prop3_opt, prop4_opt) = params_optimize
-        return propfrommig(ppxx_xxpp((prop1_opt, tstart, prop3_opt, prop4_opt, t3)))[0:n_pops-1] - fracs[0:n_pops-1]
-
+    fixed_param_function = params(fun, tstart=tstart, n_pops=n_pops, fracs=fracs, t3=t3)
     # Find the best-fitting parameters
     # (.2,.2) is just the starting point for the optimization function, it
     # should not be sensitive to this, but it's better to start with reasonable
     # parameter values.
-    (prop1, prop3, prop4) = scipy.optimize.fsolve(fun, np.array((.2, .2, .2)))
+    # TODO: This only works if the function has three solutions
+    (prop1, prop3, prop4) = scipy.optimize.fsolve(fixed_param_function, starting_point)
     return ppxx_xxpp((prop1, tstart, prop3, prop4, t3))
 
 
@@ -167,13 +174,10 @@ def outofbounds_ppxx_xxpp_fix(params, fracs):
     if tstart > 1:
         print("time above 100 generations!")
         return 1 - tstart
-
-    def fun(params_optimize):
-        (prop1_opt, prop3_opt, prop4_opt) = params_optimize
-        return propfrommig(ppxx_xxpp((prop1_opt, tstart, prop3_opt, prop4_opt, t3)))[0:n_pops-1] - fracs[0:n_pops-1]
-
-    # (.2,.2,.2) blelow is just the starting point for the
+    fixed_param_function = params(fun, tstart=tstart, n_pops=n_pops, fracs=fracs, t3=t3)
+    # (.2,.2,.2) below is just the starting point for the
     # optimization function. Result should not be sensitive
     # to this, but it's better to start with reasonable parameter values.
-    (prop1, prop3, prop4) = scipy.optimize.fsolve(fun, np.array((.2, .2, .2)))
+    # TODO: This only works if the function has three solutions
+    (prop1, prop3, prop4) = scipy.optimize.fsolve(fixed_param_function, starting_point)
     return outofbounds_ppxx_xxpp((prop1, tstart, prop3, prop4, t3))

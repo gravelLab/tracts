@@ -3,15 +3,9 @@
 # We use semantic versioning. See http://semver.org/
 __version__ = "0.0.0.1"
 
-import numpy as np
 import matplotlib.pyplot as plt
-import operator as op
-import os.path as path
-import scipy
+import numpy as np
 from scipy.stats import poisson
-from collections import namedtuple
-
-import sys
 
 #################
 ### Constants ###
@@ -20,6 +14,7 @@ import sys
 # Parameter controlling how 'wide' the distribution should be, used to infer
 # the size of the distribution when drawing the plot
 alpha = 0.3173105078629141
+
 
 #########################################################
 ### Higher-order functions and combinators used later ###
@@ -41,7 +36,7 @@ def parse_tsv(path):
     def fun(handle):
         return list(map(lambda line: list(map(float, line.strip().split("\t"))), handle))
 
-    return with_file(fun, path,)
+    return with_file(fun, path, )
 
 
 #######################################################################
@@ -73,14 +68,16 @@ def find_bounds(mean, alpha):
 #####################################################
 
 
-class Theory(object):
+class Theory:
     """ Represents an inference as made by tracts for a single population. """
 
     @staticmethod
-    def load(path, bins, model_name, pop_names=[""]):
+    def load(path, bins, model_name, pop_names=None):
         """ From a '_pred' file as created by tracts, generate a list of Theory
             objects.
         """
+        if pop_names is None:
+            pop_names = [""]
         theories = parse_tsv(path)
 
         return [
@@ -196,7 +193,9 @@ class FancyPlot:
 
         return FancyPlot(pops)
 
-    def __init__(self, pops=[]):
+    def __init__(self, pops=None):
+        if pops is None:
+            pops = []
         self.populations = pops
 
         self.title = "Number of tracts vs tract length (cM)"
@@ -247,7 +246,7 @@ class FancyPlot:
 
         fst = lambda t: t[1]
 
-        return (map(fst, pop_colors), map(lambda cs: map(fst, cs), model_colors))
+        return map(fst, pop_colors), map(lambda cs: map(fst, cs), model_colors)
 
     def draw(self, ax, pop_colors, theory_colors):
         """ Draw this FancyPlot onto an existing set of axes with the given

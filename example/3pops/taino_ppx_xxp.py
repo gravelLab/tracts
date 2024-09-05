@@ -2,13 +2,12 @@
 
 import os
 import sys
-import scipy
+
 tractspath = "../.."  # the path to tracts if not in your default pythonpath
 sys.path.append(tractspath)
 import tracts
 from tracts.legacy_models import models_3pop
 import numpy as np
-import pylab
 
 from warnings import warn
 
@@ -60,21 +59,21 @@ inter = "_anc"
 # string at the end of input file. Note that the file should end in ".bed"
 end = "_cM.bed"
 
-usage = "python taino_ppx_xxp.py 1 to run without bootstrap \n"\
-        "python taino_ppx_xxp.py A [B] if no argument provided, runs "\
-        "first 100 bootstrap instances. If A only, A is the number of "\
-        "instances. If A and B are provided, it is a range between A "\
-        "and B (A must be smaller). seeds ensure that runs with a given "\
-        "number are reproducible.\n"\
+usage = "python taino_ppx_xxp.py 1 to run without bootstrap \n" \
+        "python taino_ppx_xxp.py A [B] if no argument provided, runs " \
+        "first 100 bootstrap instances. If A only, A is the number of " \
+        "instances. If A and B are provided, it is a range between A " \
+        "and B (A must be smaller). seeds ensure that runs with a given " \
+        "number are reproducible.\n" \
         "bootstrap instance 0 is the original dataset."
 
 args = sys.argv
 print(args)
 
 if len(args) == 1:
-    runboots = range(100) # run all instances
+    runboots = range(100)  # run all instances
 elif len(args) == 2:
-    runboots = range(int(args[1])) # run just the specified number
+    runboots = range(int(args[1]))  # run just the specified number
 elif len(args) == 3:
     if int(args[1]) >= int(args[2]):
         print(usage)
@@ -85,29 +84,31 @@ elif len(args) == 3:
 # Get a list of all individuals in directory.
 _files = os.listdir(directory)
 files = [file
-        for file in _files
-        if file.split('.')[-1] == "bed"]  # only consider bed files
+         for file in _files
+         if file.split('.')[-1] == "bed"]  # only consider bed files
 
 # Get unique individual labels
 names = list(set(file.split('_')[0] for file in files))
 
 if len(_files) != len(files):
     warn("some files in the bed directory were ignored, since they do not "
-            "end with `.bed`.")
+         "end with `.bed`.")
 
 # Load the population using the population class's constructor. It
 # automatically iterates over individuals and haploid copies (labeled _A"
 # and "_B" by default
-pop = tracts.population(names=names, fname=(directory, inter, end))
+pop = tracts.Population(names=names, fname=(directory, inter, end))
 
 # Rather than creating a new population for each bootstrap instance, we
 # just replace the list of individuals to iterate over. We need to save a
 # copy of the initial list of individuals to do this!
 indivs = pop.indivs
 
+
 def bootsamp(num):
-    #generates a list of positions of the samples to pick in a bootstrap 
-    return np.random.choice(range(num),replace=True,size=num)
+    # generates a list of positions of the samples to pick in a bootstrap
+    return np.random.choice(range(num), replace=True, size=num)
+
 
 # iterate over bootstrap instances. Iteration 0 is the un-bootstrapped value
 for bootnum in runboots:
@@ -145,15 +146,17 @@ for bootnum in runboots:
 
     cutoff = 2
 
+
     def randomize(arr, scale=2):
         # takes an array and multiplies every element by a factor between 0 and
         # 2, uniformly. caps at 1.
         return map(lambda i: min(i, 1), scale * np.random.random(arr.shape) * arr)
 
+
     xopt = tracts.optimize_brute_fracs2(
         bins, Ls, data, nind, func, props, slices, outofbounds_fun=bound, cutoff=cutoff)
     print(xopt)
-    optmod = tracts.demographic_model(func(xopt[0], props))
+    optmod = tracts.DemographicModel(func(xopt[0], props))
     optpars = xopt[0]
     liks = xopt[1]
     maxlik = optmod.loglik(bins, Ls, data, pop.nind, cutoff=cutoff)
