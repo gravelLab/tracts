@@ -13,8 +13,8 @@ def test_founding_2pop():
     model.finalize()
     m = model.get_migration_matrix([0.4, 4.5])
     m2 = tracts.legacy_models.models_2pop.pp([0.4, 0.045])
+    # TODO: The m2 array has 7 elements while m has 6 which causes this test to fail
     assert numpy.allclose(m, m2)
-    return
 
 
 def test_pulse():

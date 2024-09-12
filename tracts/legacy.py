@@ -18,16 +18,9 @@ import scipy.optimize
 import sys
 import bisect
 
-from sys import version_info
 
-if version_info.major == 2:
-    # We are using Python 2.x
-    import Tkinter as Tk
-    import tkFileDialog as filedialog
-elif version_info.major == 3:
-    # We are using Python 3.x
-    import tkinter as Tk
-    from tkinter import filedialog
+import tkinter as Tk
+from tkinter import filedialog
 
 
 def eprint(*args, **kwargs):
@@ -787,7 +780,7 @@ class Population:
             rd = np.random.random_integers(0, self.nind - 1, 2)
         gamete1 = self.indivs[rd[0]].create_gamete()
         gamete2 = self.indivs[rd[1]].create_gamete()
-        return Indiv.from_haploids(gamete1, gamete2)
+        return Indiv.from_haploids([gamete1, gamete2])
 
     def save(self):
         file = filedialog.asksaveasfilename(parent=self.win, title='Choose a file')
@@ -865,8 +858,7 @@ class Population:
             except AttributeError:
                 self._flats = list(self.iflatten(ls))
                 return self._flats
-        else:
-            return list(self.iflatten(ls))
+        return list(self.iflatten(ls))
 
     def iflatten(self, indivs=None):
         """ Flatten a list of individuals to the tract level. If the list of
@@ -1106,8 +1098,8 @@ class Population:
     def plot_ancestries(self, chrom=0, npts=100, colordict=None, cutoff=.0):
         if colordict is None:
             colordict = {"CEU": 'blue', "YRI": 'red'}
-
-        dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
+        tot = -1
+        dat = self.ancestry_per_pos(select_chrom=chrom, npts=npts, cutoff=cutoff)
         for pop, color in colordict.items():
             for pos in dat[1]:
                 try:
@@ -1138,7 +1130,7 @@ class Population:
         if colordict is None:
             colordict = {"CEU": 'blue', "YRI": 'red'}
         for chrom in range(22):
-            dat = self.ancestry_per_pos(chrom=chrom, npts=npts, cutoff=cutoff)
+            dat = self.ancestry_per_pos(select_chrom=chrom, npts=npts, cutoff=cutoff)
 
             for pop, color in colordict.items():
                 for pos in dat[1]:

@@ -2,9 +2,6 @@
 
 import os
 import sys
-
-tractspath = "../.."  # the path to tracts if not in your default pythonpath
-sys.path.append(tractspath)
 import tracts
 from tracts.legacy_models import models_3pop
 import numpy as np
@@ -51,8 +48,7 @@ labels = ['0', '2', '1']
 directory = "PUR/"
 outdir = "PUR/output/"
 
-if not os.path.exists(outdir):
-    os.makedirs(outdir)
+os.makedirs(outdir, exist_ok=True)
 
 # string between individual label and haploid chromosome id in input file
 inter = "_anc"
@@ -70,6 +66,7 @@ usage = "python taino_ppx_xxp.py 1 to run without bootstrap \n" \
 args = sys.argv
 print(args)
 
+runboots = None
 if len(args) == 1:
     runboots = range(100)  # run all instances
 elif len(args) == 2:

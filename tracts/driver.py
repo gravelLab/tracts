@@ -1,16 +1,15 @@
-import numpy
-import ruamel.yaml
-import re
-import logging
-import os
 import __main__
+import logging
+import numbers
+import os
 import sys
 from pathlib import Path
-import numbers
 
-from tracts.parametrized_demography import ParametrizedDemography
+import numpy
+import ruamel.yaml
 
 from tracts import Population, PhaseTypeDistribution, optimize_cob
+from tracts.parametrized_demography import ParametrizedDemography
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ def run_tracts(driver_filename):
 
     # load the population
     pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list)
-    (bins, data) = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    bins, data = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
 
     logger.info(f'Bins: {bins}')
 
@@ -82,12 +81,12 @@ def run_tracts(driver_filename):
                                                                           driver_spec['seed'], model,
                                                                           time_scaling_factor),
                                                        exclude_tracts_below_cM=exclude_tracts_below_cM)
-    print("likelihoods found: ", likelihoods)
+    formatted_likelihoods = [float(x) for x in likelihoods]
+    print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
     if 'output_filename_format' in driver_spec:
         output_simulation_data(pop, optimal_params, model, driver_spec)
-    return
 
 
 def load_driver_file(driver_path):
@@ -221,7 +220,7 @@ def run_model(model_func, bound_func, population, population_labels, startparams
               modelling_method=PhaseTypeDistribution):
     Ls = population.Ls
     nind = population.nind
-    (bins, data) = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    bins, data = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
     xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2,
                         modelling_method=modelling_method)

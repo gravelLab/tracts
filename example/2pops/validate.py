@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+import json
+import os
+import sys
 
-import sys, os, json
+import tracts
+from tracts.legacy_models.models_2pop import *
 
-sys.path.append('../..')
-sys.path.append('..')
+import example.FancyPlot as fp
 
-import tracts, pp, pp_px
-
-import FancyPlot as fp
 import numpy as np
-
-from glob import glob
-from collections import defaultdict
 
 eprint = lambda *args, **kwargs: print(*args, file=sys.stderr, **kwargs)
 
@@ -37,6 +33,7 @@ names = [
     "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
     "NA20357", "NA20356"
 ]
+
 
 def collect_paths(data_dir, pathspec):
     """ Builds a list of tuples of paths corresponding to a list of paths
@@ -65,15 +62,17 @@ def collect_paths(data_dir, pathspec):
 
     return paths
 
+
 def G10_paths(data_dir):
     paths = []
     for name in names:
         paths.append(
-                tuple(
-                    os.path.join(data_dir, name + suf)
-                    for suf
-                    in ['_A.bed', '_B.bed']))
+            tuple(
+                os.path.join(data_dir, name + suf)
+                for suf
+                in ['_A.bed', '_B.bed']))
     return paths
+
 
 def load_population(path_pairs):
     """ Given a list of pairs of paths, each pair identifying the two
@@ -82,8 +81,9 @@ def load_population(path_pairs):
     eprint('loading population')
     return tracts.Population([tracts.Indiv.from_files(t) for t in path_pairs])
 
+
 def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
-        startparams, migration_fun_name):
+                  startparams, migration_fun_name):
     """ Analyse a population using a given migration function, with both the
         composite and classical models.
     """
@@ -99,7 +99,7 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
     groups = pop.split_by_props(2)
 
     # Compute the counts of individuals in each group and the average ancestry
-    # proportions across individuals. The counts of individuals in each groups
+    # proportions across individuals. The counts of individuals in each group
     # should differ by no more than one.
     ninds, group_ancestry_averages = zip(*map(
         lambda p: (
@@ -110,8 +110,8 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
     # Rearrange the data for each group into a list ordered in the same way as
     # the population labels.
     group_data = [
-            [g[ancestry_label] for ancestry_label in ancestry_labels]
-            for g in group_data]
+        [g[ancestry_label] for ancestry_label in ancestry_labels]
+        for g in group_data]
 
     ## Optimize the model parameters using COBYLA
     #composite_model_parameters = tracts.optimize_cob_multifracs(
@@ -121,16 +121,15 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
 
     # Optimize the model parameters using brute
     composite_model_parameters, _ = tracts.optimize_brute_multifracs(
-            bins, pop.Ls, group_data, ninds, migration_fun,
-            group_ancestry_averages, startparams,
-            outofbounds_fun=migration_outofbounds_fun,
-            cutoff=cutoff)
+        bins, pop.Ls, group_data, ninds, migration_fun,
+        group_ancestry_averages, startparams,
+        outofbounds_fun=migration_outofbounds_fun,
+        cutoff=cutoff)
 
     # Construct the composite demographic model
     composite_model = tracts.CompositeDemographicModel(
-            migration_fun, composite_model_parameters,
-            group_ancestry_averages)
-
+        migration_fun, composite_model_parameters,
+        group_ancestry_averages)
 
     ## 1b. the fracs2 model.
 
@@ -142,56 +141,57 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
     ancestry_averages = pop.get_mean_ancestry_proportions(ancestry_labels)
 
     fracs2_model_parameters, _ = tracts.optimize_brute_fracs2(
-            bins, pop.Ls, data, nind,
-            migration_fun, ancestry_averages, startparams,
-            outofbounds_fun=migration_outofbounds_fun, cutoff=cutoff)
+        bins, pop.Ls, data, nind,
+        migration_fun, ancestry_averages, startparams,
+        outofbounds_fun=migration_outofbounds_fun, cutoff=cutoff)
 
     fracs2_model = tracts.DemographicModel(
-            migration_fun(fracs2_model_parameters, ancestry_averages))
+        migration_fun(fracs2_model_parameters, ancestry_averages))
 
     return {
-            'classical': {
-                'params': fracs2_model_parameters,
-                'model': fracs2_model,
-                'averages': ancestry_averages,
-                'theories': dict(
-                    (
-                        name,
-                        fp.Theory(
-                            bins,
-                            nind * np.array(
-                                fracs2_model.expectperbin(
-                                    pop.Ls, i, bins)),
-                            migration_fun_name + ' classical',
-                            name)
-                    )
-                    for i, name in enumerate(labels)),
-            },
-            'composite': {
-                'params': composite_model_parameters,
-                'model': composite_model,
-                'ninds': ninds,
-                'averages': group_ancestry_averages,
-                'groups': group_data,
-                'theories': dict(
-                    (
-                        name,
-                        fp.Theory(
-                            bins,
-                            composite_model.expectperbin(
-                                pop.Ls, i, bins, ninds),
-                            migration_fun_name + ' composite',
-                            name)
-                    )
-                    for i, name in enumerate(labels)),
-            },
-            'misc': {
-                'startparams': startparams,
-                'bins': bins,
-                'data': data,
-                'fun': migration_fun,
-            },
+        'classical': {
+            'params': fracs2_model_parameters,
+            'model': fracs2_model,
+            'averages': ancestry_averages,
+            'theories': dict(
+                (
+                    name,
+                    fp.Theory(
+                        bins,
+                        nind * np.array(
+                            fracs2_model.expectperbin(
+                                pop.Ls, i, bins)),
+                        migration_fun_name + ' classical',
+                        name)
+                )
+                for i, name in enumerate(labels)),
+        },
+        'composite': {
+            'params': composite_model_parameters,
+            'model': composite_model,
+            'ninds': ninds,
+            'averages': group_ancestry_averages,
+            'groups': group_data,
+            'theories': dict(
+                (
+                    name,
+                    fp.Theory(
+                        bins,
+                        composite_model.expectperbin(
+                            pop.Ls, i, bins, ninds),
+                        migration_fun_name + ' composite',
+                        name)
+                )
+                for i, name in enumerate(labels)),
+        },
+        'misc': {
+            'startparams': startparams,
+            'bins': bins,
+            'data': data,
+            'fun': migration_fun,
+        },
     }
+
 
 def combine(d):
     """ Takes a dictionary ModelName -> ModelData and joins it into something
@@ -203,7 +203,7 @@ def combine(d):
         migration matrix according to that model.
     """
     q = {}
-    for name, data in d.iteritems():
+    for name, data in d.items():
         if 'misc' not in q:
             del data['misc']['fun']
             del data['misc']['startparams']
@@ -212,14 +212,15 @@ def combine(d):
             q['misc']['bins'] = list(q['misc']['bins'])
         else:
             del data['misc']
-        del data['classical']['model'] # nor demographic_model
-        del data['composite']['model'] # nor composite_demographic_model
-        del data['classical']['theories'] # nor FancyPlot Thoery
+        del data['classical']['model']  # nor demographic_model
+        del data['composite']['model']  # nor composite_demographic_model
+        del data['classical']['theories']  # nor FancyPlot Thoery
         del data['composite']['theories']
         data['classical']['params'] = list(data['classical']['params'])
         data['composite']['params'] = list(data['composite']['params'])
         q[name] = data
     return q
+
 
 def main(data_dir, output_dir, pathspec):
     if pathspec == 'G10' or not pathspec:
@@ -230,22 +231,20 @@ def main(data_dir, output_dir, pathspec):
 
     nind = len(pop.indivs)
 
-
     # do the analyses
 
-    pp_data = dual_analysis(ancestry_labels, pop, pp.pp_fix,
-            pp.outofbounds_pp_fix, (slice(0.02, 0.06, 0.005),), 'pp')
+    pp_data = dual_analysis(ancestry_labels, pop, pp_fix,
+                            outofbounds_pp_fix, (slice(0.02, 0.06, 0.005),), 'pp')
 
-    pp_px_data = dual_analysis(ancestry_labels, pop, pp_px.pp_px_fix,
-            pp_px.outofbounds_pp_px_fix,
-            (slice(0.02, 0.06, 0.01),
-                slice(0.005, 0.04, 0.01),
-                slice(0.01, 0.04, 0.01)),
-            'pp_px')
+    pp_px_data = dual_analysis(ancestry_labels, pop, pp_px_fix,
+                               outofbounds_pp_px_fix,
+                               (slice(0.02, 0.06, 0.01),
+                                slice(0.005, 0.04, 0.01),
+                                slice(0.01, 0.04, 0.01)),
+                               'pp_px')
 
     bins = pp_data['misc']['bins']
     ninds = pp_data['composite']['ninds']
-
 
     # Plotting
 
@@ -253,8 +252,8 @@ def main(data_dir, output_dir, pathspec):
 
     pp_plot = fp.FancyPlot([
         fp.Population(bins, pp_data['misc']['data'][i], name)
-            .add_theory(pp_data['classical']['theories'][name])
-            .add_theory(pp_data['composite']['theories'][name])
+        .add_theory(pp_data['classical']['theories'][name])
+        .add_theory(pp_data['composite']['theories'][name])
         for i, name in enumerate(ancestry_labels)])
 
     pp_plot.bottom_limit = 0.45
@@ -267,8 +266,8 @@ def main(data_dir, output_dir, pathspec):
 
     pp_px_plot = fp.FancyPlot([
         fp.Population(bins, pp_data['misc']['data'][i], name)
-            .add_theory(pp_px_data['classical']['theories'][name])
-            .add_theory(pp_px_data['composite']['theories'][name])
+        .add_theory(pp_px_data['classical']['theories'][name])
+        .add_theory(pp_px_data['composite']['theories'][name])
         for i, name in enumerate(ancestry_labels)])
 
     pp_px_plot.bottom_limit = 0.45
@@ -281,14 +280,14 @@ def main(data_dir, output_dir, pathspec):
 
     pp_vs_pp_px_plot_classical = fp.FancyPlot([
         fp.Population(bins, pp_data['misc']['data'][i], name)
-            .add_theory(pp_data['classical']['theories'][name])
-            .add_theory(pp_px_data['classical']['theories'][name])
+        .add_theory(pp_data['classical']['theories'][name])
+        .add_theory(pp_px_data['classical']['theories'][name])
         for i, name in enumerate(ancestry_labels)])
 
     pp_vs_pp_px_plot_classical.bottom_limit = 0.45
 
     pp_vs_pp_px_plot_classical.make_figure().savefig(
-            output_dir + '_pp_vs_pp_px_classical.pdf')
+        output_dir + '_pp_vs_pp_px_classical.pdf')
 
     eprint("done")
 
@@ -296,14 +295,14 @@ def main(data_dir, output_dir, pathspec):
 
     pp_vs_pp_px_plot_composite = fp.FancyPlot([
         fp.Population(bins, pp_data['misc']['data'][i], name)
-            .add_theory(pp_data['composite']['theories'][name])
-            .add_theory(pp_px_data['composite']['theories'][name])
+        .add_theory(pp_data['composite']['theories'][name])
+        .add_theory(pp_px_data['composite']['theories'][name])
         for i, name in enumerate(ancestry_labels)])
 
     pp_vs_pp_px_plot_composite.bottom_limit = 0.45
 
     pp_vs_pp_px_plot_composite.make_figure().savefig(
-            output_dir + '_pp_vs_pp_px_composite.pdf')
+        output_dir + '_pp_vs_pp_px_composite.pdf')
 
     eprint("done")
 
@@ -317,7 +316,7 @@ def main(data_dir, output_dir, pathspec):
             "dual_analysis" function.
             Returns the list of files written.
         """
-        names = [prefix+ '_classical_mig']
+        names = [prefix + '_classical_mig']
 
         with open(prefix + '_classical_mig', 'wt') as f:
             for line in d['classical']['model'].mig:
@@ -340,28 +339,28 @@ def main(data_dir, output_dir, pathspec):
     # Compute the model likelihoods and save them
 
     pp_data['classical']['lik'] = pp_data['classical']['model'].loglik(
-            bins, pop.Ls, pp_data['misc']['data'], nind, cutoff=cutoff)
+        bins, pop.Ls, pp_data['misc']['data'], nind, cutoff=cutoff)
 
     pp_data['composite']['lik'] = pp_data['composite']['model'].loglik(
-            bins, pop.Ls, pp_data['composite']['groups'],
-            pp_data['composite']['ninds'], cutoff=cutoff)
+        bins, pop.Ls, pp_data['composite']['groups'],
+        pp_data['composite']['ninds'], cutoff=cutoff)
 
     pp_px_data['classical']['lik'] = pp_px_data['classical']['model'].loglik(
-            bins, pop.Ls, pp_data['misc']['data'], nind, cutoff=cutoff)
+        bins, pop.Ls, pp_data['misc']['data'], nind, cutoff=cutoff)
 
     pp_px_data['composite']['lik'] = pp_px_data['composite']['model'].loglik(
-            bins, pop.Ls, pp_data['composite']['groups'],
-            pp_data['composite']['ninds'], cutoff=cutoff)
+        bins, pop.Ls, pp_data['composite']['groups'],
+        pp_data['composite']['ninds'], cutoff=cutoff)
 
     def write_liks(f):
         print("pp classical", pp_data['classical']['lik'],
-                sep='\t', file=f)
+              sep='\t', file=f)
         print("pp composite", pp_data['composite']['lik'],
-                sep='\t', file=f)
+              sep='\t', file=f)
         print("pp_px classical", pp_px_data['classical']['lik'],
-                sep='\t', file=f)
+              sep='\t', file=f)
         print("pp_px composite", pp_px_data['composite']['lik'],
-                sep='\t', file=f)
+              sep='\t', file=f)
 
     print("likelihoods:")
     write_liks(sys.stdout)
@@ -372,7 +371,7 @@ def main(data_dir, output_dir, pathspec):
         f.write('\t'.join(map(str, pp_data['misc']['bins'])) + '\n')
 
     with open(output_dir + '_dat', 'wt') as f:
-        for i in xrange(len(ancestry_labels)):
+        for i in range(len(ancestry_labels)):
             f.write('\t'.join(map(str, pp_data['misc']['data'][i])) + '\n')
 
     # Combine the pp and pp_px data into one JSON-serializable dict and save
@@ -386,6 +385,7 @@ def main(data_dir, output_dir, pathspec):
         json.dump(q, f)
 
     print('Done. Have a nice day.')
+
 
 if __name__ == '__main__':
     # "Parse" command line arguments.
@@ -402,7 +402,7 @@ if __name__ == '__main__':
 
     try:
         pathspec = sys.argv[3]
-    except:
+    except IndexError:
         pathspec = ''
 
     main(data_dir, output_dir, pathspec)

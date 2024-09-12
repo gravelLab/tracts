@@ -1,13 +1,4 @@
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent))
-sys.path.append(str(Path(__file__).parent.parent.parent))
-#path to tracts, may have to adjust if the file is moved
-#print(sys.path)
-import tracts
+from tracts import run_tracts
 
-#tracts.show_INFO(tracts.driver)
-#tracts.show_INFO(tracts.ParametrizedDemography)
-
-tracts.run_tracts('ASW_fix_one_pulse.yaml')
-tracts.run_tracts('ASW_fix_two_pulse.yaml')
+run_tracts('ASW_fix_one_pulse.yaml')
+run_tracts('ASW_fix_two_pulse.yaml')

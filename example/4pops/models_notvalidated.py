@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.optimize
-from functools import partial
 
 """
 A simple model in which populations 1 and 2 arrive discretely at first

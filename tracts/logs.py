@@ -6,5 +6,6 @@ def show_INFO(module=None):
         module.logger.setLevel(logging.INFO)
         logging.info('')
         module.logger.info(f' INFO logs enabled for this module.')
-    except:
+    except Exception as ex:
+        print(f"Logging exception {ex}")
         pass
