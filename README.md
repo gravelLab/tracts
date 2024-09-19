@@ -5,6 +5,10 @@ Tracts is a set of classes and definitions used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from
 multiple populations can be modeled.
 
+Documentation
+==============
+You can find the documentation for this project [here](https://gravellab.github.io/tracts/)
+
 Changes in Tracts 2
 ========
 
@@ -27,7 +31,7 @@ Installation
 To install:
 1. Clone this repository
 2. In your local copy, open a terminal.
-3. Run pip install .
+3. Run `pip install .`
 
 You can now import tracts as a python package.
 
