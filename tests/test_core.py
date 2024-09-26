@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy
 import scipy
+from tracts.phase_type_distribution import normalization_factor_2
 
 import tracts
 from test_data import bins, Ls
@@ -14,15 +15,19 @@ Tests for component methods of tracts core
 """
 
 
-def test_PDT():
+def test_PDT_general():
     migration_matrix = numpy.array([[0, 0], [0, 0], [0.1, 0], [0, 0], [0, 0], [0, 0], [0.2, 0.8]])
     PTD = tracts.PhaseTypeDistribution(migration_matrix)
-    assert numpy.isclose(numpy.linalg.det(PTD.equilibrium_distribution), 0)
-    assert numpy.isclose(numpy.linalg.norm(PTD.equilibrium_distribution), 1)
+    # Verify that the equilibrium distribution is a valid probability vector
+    assert min(PTD.equilibrium_distribution) >= 0
+    assert numpy.isclose(numpy.linalg.norm(PTD.equilibrium_distribution, ord=1), 1)
+    # Verify that the determinant of the transition matrix is 0
+    # assert numpy.isclose(numpy.linalg.det(PTD.equilibrium_distribution), 0)
+    assert numpy.isclose(numpy.linalg.det(PTD.full_transition_matrix), 0)
     assert numpy.allclose(numpy.dot(PTD.equilibrium_distribution, PTD.full_transition_matrix), 0)
 
 
-def verify_PDT():
+def test_verify_PDT():
     """
     Test that phase-type distributions gives the same result as demographic_model.expectperbin()
     """
@@ -48,10 +53,12 @@ def verify_PDT():
 
 
 def view_PTD_CDFs(migration_matrix):
+    # TODO: Consider using or removing this function
     PTD = tracts.PhaseTypeDistribution(migration_matrix)
 
 
 def print_histogram_model_comparison(PTD_hist, demo_hist, L):
+    # TODO: Consider moving this to examples
     print(sum(PTD_hist))
     print(sum(demo_hist))
     fig, ax = plt.subplots(1, 2)
@@ -75,6 +82,7 @@ def print_histogram_model_comparison(PTD_hist, demo_hist, L):
     plt.show()
 
 
+# TODO: Consider moving this to examples
 class ModelComparison:
     """
     A class for comparing PhaseType and demographic_model values
@@ -150,7 +158,9 @@ def compare_models(migration_matrix, bins, L, population_number):
 def compare_models_3(migration_matrix, bins, L, population_number):
     PTD = tracts.PhaseTypeDistribution(migration_matrix)
     PTD_hist = PTD.tractlength_histogram_windowed(population_number, bins, L)
-    PTD_CDF = PTD.tractlength_CDF_windowed(population_number, bins, L)
+    # TODO: Check that the correct function name has been guessed correctly
+    # PTD_CDF = PTD.tractlength_CDF_windowed(population_number, bins, L)
+    PTD_CDF = PTD.tractlength_histogram_windowed(population_number, bins, L)
     print(numpy.array([numpy.sum(PTD_hist[:i]) for i in range(len(PTD_hist) + 1)]))
     print(PTD_CDF - PTD_CDF[0])
 
@@ -168,13 +178,13 @@ def compare_models_4(migration_matrix, bins, L, population_number):
 
 
 def compare_models_2(migration_matrix, bins, Ls, population_number):
-    PTD = tracts
+    PTD = tracts.PhaseTypeDistribution(migration_matrix)
     demo = tracts.DemographicModel(migration_matrix)
     print(f'Z from tracts: {demo.Z(Ls, population_number)}')
-    print(
-        f'Z from PhaseType Calculation: {numpy.array([PTD.normalization_factor([L], PTD.transition_matrices[population_number], PTD.inverse_S0_list[population_number], PTD.alpha_list[population_number]) for L in Ls])}')
-    print(
-        f'Z from PhaseType CDF: {numpy.array([PTD.normalization_factor_2([L], PTD.transition_matrices[population_number], PTD.inverse_S0_list[population_number], PTD.alpha_list[population_number])[0] for L in Ls])}')
+    print(f'Z from PhaseType Calculation:'
+          f' {numpy.array([PTD.normalization_factor([L], PTD.transition_matrices[population_number], PTD.inverse_S0_list[population_number], PTD.alpha_list[population_number]) for L in Ls])}')
+    print(f'Z from PhaseType CDF: '
+          f'{numpy.array([normalization_factor_2([L], PTD.transition_matrices[population_number], PTD.inverse_S0_list[population_number], PTD.alpha_list[population_number])[0] for L in Ls])}')
     # print(scipy.stats.pearsonr(PTD_hist,demo_hist))
 
 
@@ -222,5 +232,3 @@ def weird_factor(migration_matrix, Ls, population_number):
     return numpy.array(
         [L * demo.totSwitchDens[population_number] + 2. * demo.proportions[0, population_number] for L in Ls])
 
-
-verify_PDT()

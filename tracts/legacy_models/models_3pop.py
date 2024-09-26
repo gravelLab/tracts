@@ -147,7 +147,7 @@ def outofbounds_ppx_xxp_fix(params, fracs):
     (tstart, t3) = params
     if tstart > 1:
         print("time above 500 generations!")
-        return (1 - tstart)
+        return 1 - tstart
 
     def fun(props):
         (prop3, prop1) = props

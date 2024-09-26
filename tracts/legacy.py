@@ -18,7 +18,6 @@ import scipy.optimize
 import sys
 import bisect
 
-
 import tkinter as Tk
 from tkinter import filedialog
 
@@ -94,7 +93,7 @@ class Chrom:
                     An identifier categorizing this chromosome.
                 tracts (list of tract objects, default: None):
                     The list of tracts that span this chromosome. If None is
-                    given, the a single, unlabeled tract is created to span the
+                    given, the single, unlabeled tract is created to span the
                     whole chromosome, according to the length len.
         """
         if tracts is None:
@@ -203,13 +202,13 @@ class Chrom:
 
     def _smooth(self):
         """ Combine adjacent tracts with the same label.
-            The side-effect is that the entire list of tracts is copied, so
+            The side effect is that the entire list of tracts is copied, so
             unnecessary calls to this method should be avoided.
         """
 
         if not self.tracts:
             eprint("Warning: smoothing empty chromosome has no effect")
-            return None  # Nothing to smooth since there're no tracts.
+            return None  # Nothing to smooth since there are no tracts.
 
         def same_ancestry(my, their):
             return my.label == their.label
@@ -708,6 +707,7 @@ class Population:
             of individuals. Distinguishing labels for maternal and paternal
             chromosomes are given in lab.
         """
+        self._flats = None
         if list_indivs is not None:
             self.indivs = list_indivs
             self.nind = len(list_indivs)
@@ -821,12 +821,12 @@ class Population:
             else:
                 totlength[key] = totlength[key] / float(ancestry[key])
 
-        return (ancestry, totlength)
+        return ancestry, totlength
 
     def ancestry_per_pos(self, select_chrom=0, npts=100, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
         length = self.indivs[0].chroms[select_chrom].len  # Get chromosome length
-        plotpts = np.arange(0, length, length/float(npts))  # Get number of points at which to
+        plotpts = np.arange(0, length, length / float(npts))  # Get number of points at which to
         # Plot ancestry
         return (plotpts,
                 [self.ancestry_at_pos(select_chrom=select_chrom, pos=pt, cutoff=cutoff)
@@ -1459,8 +1459,7 @@ class DemographicModel:
             mid = (bins[binNum] + bins[binNum + 1]) / 2.
             val = np.sum([(L * self.totSwitchDens[pop] + 2. * self.proportions[0, pop])
                           * (self.inners(L, mid, pop) + self.outers(L, mid, pop)) * 1. / self.Z(L, pop)
-                          for L in Ls]) \
-                  * (bins[binNum + 1] - bins[binNum])
+                          for L in Ls]) * (bins[binNum + 1] - bins[binNum])
             lsval.append(max(val, 1e-17))
 
         lsval.append(max(self.totalfull, 1e-17))
@@ -2108,7 +2107,7 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs, outofbound
 
     def outfun(p0, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
-        # parameters. Hence we have to project back up first
+        # parameters. Hence, we have to project back up first
         x0 = _project_params_up(p0, fixed_params)
         if verbose:
             eprint("p0", p0)
@@ -2188,11 +2187,11 @@ def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fra
     # Now we iterate over each set of ancestry proportions in the list, and
     # construct the outofbounds functions and the model functions, storing
     # each into the empty lists defined above.
-    # construct the out of bounds function.
+    # construct the out-of-bounds function.
 
     def outfun(p0, fracs, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
-        # parameters. Hence we have to project back up first
+        # parameters. Hence, we have to project back up first
         x0 = _project_params_up(p0, fixed_params)
         if verbose:
             eprint("p0", p0)
@@ -2272,7 +2271,7 @@ def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs, searchvalues
 
     def outfun(p0, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
-        # parameters. Hence we have to project back up first
+        # parameters. Hence, we have to project back up first
         x0 = _project_params_up(p0, fixed_params)
         if verbose:
             eprint("p0", p0)
@@ -2354,10 +2353,10 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
     if func_args is None:
         func_args = []
 
-    # construct the out of bounds function.
+    # construct the out-of-bounds function.
     def outfun(p0, fracs, verbose=False):
         # cobyla uses the constraint function and feeds it the reduced
-        # parameters. Hence we have to project back up first
+        # parameters. Hence, we have to project back up first
         x0 = _project_params_up(p0, fixed_params)
         if verbose:
             eprint("p0", p0)
@@ -2370,7 +2369,7 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
     # construct a wrapper function that will tuple up its argument in the case
     # where searchvalues has length 1; in that case, the optimizer expects a
     # tuple (it always wants tuples), but the input will be a single float.
-    # Hence why we need to tuple it up.
+    # Hence, why we need to tuple it up.
     # The wrapper function is called on the x given as input to
     # _object_func_multifracs
     r = (lambda x: x) \

@@ -19,6 +19,16 @@ def distribution_scaling_factor(population_proportion, S, S0_inv=None, alpha=Non
     return -2 * population_proportion / np.dot(alpha, S0_inv)
 
 
+def normalization_factor_2(L, S, S0_inv=None, alpha=None):
+    """Computes the normalization factor Z from S0_inv and chromosome length L
+    """
+    if S0_inv is None:
+        S0_inv = np.linalg.inv(S).sum(1)
+    if alpha is None:
+        alpha = np.ones(len(S0_inv)) / S0_inv
+    return L - np.dot(alpha, S0_inv)
+
+
 class PhaseTypeDistribution:
     """
     A class representing the phase-type distribution of tracts
@@ -128,9 +138,11 @@ class PhaseTypeDistribution:
     def get_equilibrium_distribution(self):
         transition_matrix_eigs = np.linalg.eig(self.full_transition_matrix.transpose())
         try:
-            return [eigenvector for eigenvalue, eigenvector in
-                    zip(transition_matrix_eigs[0], np.transpose(transition_matrix_eigs[1])) if
-                    np.isclose(eigenvalue, 0)][0]
+            result_vector = [eigenvector for eigenvalue, eigenvector in
+                             zip(transition_matrix_eigs[0], np.transpose(transition_matrix_eigs[1])) if
+                             np.isclose(eigenvalue, 0)][0]
+            result_vector = result_vector / np.linalg.norm(result_vector, ord=1)
+            return result_vector
         except IndexError as _:
             raise Exception(
                 'Equilibrium distribution could not be calculated. The transition matrix does not have a 0 eigenvalue.')

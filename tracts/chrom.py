@@ -3,7 +3,7 @@ from tracts.util import eprint
 
 
 class Chrom:
-    """ A chromosome wraps a list of tracts, which form a paritition on it. The
+    """ A chromosome wraps a list of tracts, which form a partition on it. The
         chromosome has a finite, immutable length.
         """
 
@@ -128,7 +128,7 @@ class Chrom:
 
     def _smooth(self):
         """ Combine adjacent tracts with the same label.
-            The side-effect is that the entire list of tracts is copied, so
+            The side effect is that the entire list of tracts is copied, so
             unnecessary calls to this method should be avoided.
         """
 
@@ -167,7 +167,7 @@ class Chrom:
                 ancestries (list of strings):
                     The ancestries to merge.
                 newlabel (string):
-                    The identifier for the new ancesty to assign to the
+                    The identifier for the new ancestry to assign to the
                     matching tracts.
 
             Returns:

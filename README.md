@@ -211,7 +211,7 @@ Contact
 =======
 
 See the example files for example usage. If something isn't clear, please let
-me know by filing an "new issue", or emailing me.
+me know by filing a "new issue", or emailing me.
 
 FAQ
 ===
@@ -255,7 +255,7 @@ population structure, and the random mating assumption may fail.
 > likelihoods. Why is that?
 
 Optimizing functions in many dimensions is hard, and sometimes optimizers get
-stuck in local maxima. If you haven tried already, you can attempt to fix the
+stuck in local maxima. If you haven't tried already, you can attempt to fix the
 ancestry proportions a priori (see the `_fix` examples in the documentation).
 In most cases, the optimization will converge to the global maximum a
 substantial proportion of the time: running the optimization a few times from

@@ -72,7 +72,7 @@ def outofbounds_pp(params):
     if totmig[1] > 1e-10:
         print("migrants at penultimate generation should be removed from sample!")
 
-    if ((totmig > 1).any() or (mig < 0).any()):
+    if (totmig > 1).any() or (mig < 0).any():
         print("migration rates should be between 0 and 1")
 
     return ret

@@ -19,16 +19,6 @@ def choose_model(migration_matrix, use_PTD=False):
     return DemographicModel(migration_matrix)
 
 
-def normalization_factor_2(L, S, S0_inv=None, alpha=None):
-    """Computes the normalization factor Z from S0_inv and chromosome length L
-    """
-    if S0_inv is None:
-        S0_inv = np.linalg.inv(S).sum(1)
-    if alpha is None:
-        alpha = np.ones(len(S0_inv)) / S0_inv
-    return L - np.dot(alpha, S0_inv)
-
-
 def inner_PDF(x, L, S, exp_Sx=None, alpha=None, S0_inv=None):
     """ Calculate the CDF of tractlengths on a window L
         S is the transition submatrix

@@ -59,7 +59,8 @@ class CompositeDemographicModel:
         data = sum(np.array(d) for d in data_list)
 
         s = 0
-        # TODO: data and expects is an integers here, how can we index them?
+        # TODO: data and expects is an integers here, how can we index them? Probably, a different expectperbin was
+        #  meant to be used here
         for i in range(self.npops):
             expects = self.expectperbin(Ls, i, bins, nsamp_list=nsamp_list)
             for j in range(cutoff, len(bins) - 1):
