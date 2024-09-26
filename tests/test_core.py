@@ -189,9 +189,8 @@ def compare_models_2(migration_matrix, bins, Ls, population_number):
 
 
 def per_bin_noscale(demographic_model: tracts.DemographicModel, bins, L, population_number):
-    PDF = lambda x: (demographic_model.inners(L, x, population_number) + demographic_model.outers(L, x,
-                                                                                                  population_number)) / demographic_model.Z(
-        L, population_number)
+    PDF = lambda x: (demographic_model.inners(L, x, population_number) +
+                     demographic_model.outers(L, x, population_number)) / demographic_model.Z(L, population_number)
     binval = lambda binNum: scipy.integrate.quad(PDF, bins[binNum], bins[binNum + 1])
     lsval = [binval(binNum)[0] for binNum in range(len(bins) - 1)]
     lsval.append(demographic_model.full(L, population_number) / demographic_model.Z(L, population_number))
@@ -201,10 +200,8 @@ def per_bin_noscale(demographic_model: tracts.DemographicModel, bins, L, populat
 def per_bin_noscale_integral(demographic_model: tracts.DemographicModel, bins, L, population_number):
     mid = lambda binNum: (bins[binNum + 1] + bins[binNum]) / 2
     diff = lambda binNum: bins[binNum + 1] - bins[binNum]
-    PDF = lambda x: (demographic_model.inners(L, x, population_number) + demographic_model.outers(L, x,
-                                                                                                  population_number)) / demographic_model.Z(
-        L, population_number)
-
+    PDF = lambda x: (demographic_model.inners(L, x, population_number) +
+                     demographic_model.outers(L, x, population_number)) / demographic_model.Z(L, population_number)
     lsval = [PDF(mid(binNum)) * diff(binNum) for binNum in range(len(bins) - 1)]
     lsval.append(demographic_model.full(L, population_number) / demographic_model.Z(L, population_number))
     return numpy.array(lsval)

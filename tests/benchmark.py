@@ -13,7 +13,7 @@ Tests for component methods of tracts core
 
 
 def benchmark_PTD(migration_matrix, bins, Ls, runs):
-    print('Benchmarking Phase-Type Distibution')
+    print('Benchmarking Phase-Type Distribution')
     time_total = 0
     for run in range(runs):
         start = time()
@@ -44,22 +44,34 @@ def benchmark_demography(migration_matrix, bins, Ls, runs):
     return time_total / runs
 
 
-def benchmark(runs):
+def run_benchmark(migration_matrix, runs):
     """
     Test that phase-type distributions gives the same result as demographic_model.expectperbin()
     """
     # pops = [0, 1]
-    # A = numpy.array([[0, 0], [0, 0], [0.1, 0], [0, 0], [0, 0], [0, 0], [0.2, 0.8]])
-    # B = numpy.array(
-    #     [[0, 0], [0, 0], [0, 0.1], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0],
-    #      [0.1, 0], [0.1, 0], [0.6, 0.4]])
+    benchmark_PTD(migration_matrix, bins, Ls, runs)
+    benchmark_demography(migration_matrix, bins, Ls, runs)
+
+
+def benchmark_A(runs):
+    A = numpy.array([[0, 0], [0, 0], [0.1, 0], [0, 0], [0, 0], [0, 0], [0.2, 0.8]])
+    run_benchmark(A, runs)
+
+
+def benchmark_B(runs):
+    B = numpy.array([[0, 0], [0, 0], [0, 0.1], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0],
+                     [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.6, 0.4]])
+    run_benchmark(B, runs)
+
+
+def benchmark_C(runs):
     C = numpy.array(
         [[0, 0], [0, 0], [0, 0.1], [0, 0.1], [0, 0.1], [0, 0.1], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0],
          [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0], [0.1, 0],
          [0.1, 0], [0.6, 0.4]])
-
-    benchmark_PTD(C, bins, Ls, runs)
-    benchmark_demography(C, bins, Ls, runs)
+    run_benchmark(C, runs)
 
 
-benchmark(100)
+# benchmark_A(100)
+benchmark_B(100)
+# benchmark_C(100)

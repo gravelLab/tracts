@@ -7,18 +7,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import poisson
 
-#################
-### Constants ###
-#################
+# Constants
 
 # Parameter controlling how 'wide' the distribution should be, used to infer
 # the size of the distribution when drawing the plot
 alpha = 0.3173105078629141
 
 
-#########################################################
-### Higher-order functions and combinators used later ###
-#########################################################
+# Higher-order functions and combinators used later
 
 
 def with_file(fun, path, mode="r"):
@@ -39,10 +35,7 @@ def parse_tsv(path):
     return with_file(fun, path, )
 
 
-#######################################################################
-### Functions for finding out the dispersion intervals for the plot ###
-#######################################################################
-
+# Functions for finding out the dispersion intervals for the plot
 
 def find_bounds(mean, alpha):
     """ Find both the lower and upper bounds for a given mean value and
@@ -63,10 +56,7 @@ def find_bounds(mean, alpha):
         i += 1
 
 
-#####################################################
-### Classes that represent the data to be plotted ###
-#####################################################
-
+# Classes that represent the data to be plotted
 
 class Theory:
     """ Represents an inference as made by tracts for a single population. """
@@ -311,9 +301,7 @@ class FancyPlot:
         return fig
 
 
-#####################
-### Miscellaneous ###
-#####################
+# Miscellaneous
 
 
 def nonzero(seq, cutoff=1e-9, offset=1e-9):

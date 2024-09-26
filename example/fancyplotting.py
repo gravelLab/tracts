@@ -85,13 +85,10 @@ def _show_usage():
         eprint(u)
 
 
-####################
-### Script entry ###
-####################
+# Script entry
 
 if __name__ == "__main__":
-    ### Parse command line arguments ###
-    ####################################
+    # Parse command line arguments
 
     names = None
     pop_names = None
@@ -118,7 +115,8 @@ if __name__ == "__main__":
             elif arg == "--population-tags":
                 pop_names = n().split(',')
                 i += 1
-            elif arg == "--colors":  #colors matching the previous populations
+            # Colors matching the previous populations
+            elif arg == "--colors":
                 colors = n().split(',')
                 i += 1
             elif arg == "--plot-format":
@@ -171,8 +169,7 @@ if __name__ == "__main__":
 
     fig = fp.make_figure()
 
-    ### Save the figure ###
-    #######################
+    # Save the figure
 
     p = path.join(output_dir, "%s_plot.%s" % (common_name, plot_format))
 

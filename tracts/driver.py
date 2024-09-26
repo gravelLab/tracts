@@ -268,9 +268,11 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
 
 
 def calculate_ancestry_proportions(sample_population: Population, population_labels):
-    # calculate the proportion of ancestry in each individual
-    bypopfrac = [[] for i in range(len(population_labels))]
+    # Calculate the proportion of ancestry in each individual
+    bypopfrac = [[] for _ in range(len(population_labels))]
     for ind in sample_population.indivs:
-        for ii, poplab in enumerate(population_labels):
-            bypopfrac[ii].append(ind.ancestryProps([poplab]))
+        for i, poplab in enumerate(population_labels):
+            bypopfrac[i].append(ind.ancestryProps([poplab]))
+    # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
+    # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
     return numpy.mean(bypopfrac, axis=1).flatten()
