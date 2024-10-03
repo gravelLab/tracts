@@ -129,15 +129,16 @@ class ModelComparison:
         print(PTD_CDF - PTD_CDF[0])
 
     def compare_models_4(self, bins, L, population_number):
+        # TODO: Move to examples
         PTD_hist = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
         demo_hist = per_bin_noscale(self.demo, bins, L, population_number)
-        demo_hist2 = per_bin_noscale(self.demo, bins, L, population_number)
+        # demo_hist2 = per_bin_noscale(self.demo, bins, L, population_number)
         # TODO: demo_hist and demo_hist2 can be compared with numpy.allclose(demo_hist, demo_hist2)
-        assert len(PTD_hist) == len(demo_hist) == len(demo_hist2)
+        assert len(PTD_hist) == len(demo_hist) # == len(demo_hist2)
         print(f'Chromosome has length {L}.')
         print(f'Normalized tractlength distribution from tracts PDF using bin midpoints:\n{demo_hist}')
         print(f'Normalized tractlength distribution from PhaseType CDF:\n{PTD_hist}')
-        print(f'Normalized tractlength distribution from tracts PDF using scipy integration:\n {demo_hist2}')
+        # print(f'Normalized tractlength distribution from tracts PDF using scipy integration:\n {demo_hist2}')
 
     def compare_models_5(self, bins, Ls, population_number):
         # TODO: Discuss if this can be automatically verified

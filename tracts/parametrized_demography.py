@@ -315,20 +315,19 @@ class ParametrizedDemography:
             'message': 'Pulses cannot occur before or during the founding of the population.'
         })
 
-        # TODO: Check if we can remove the first parameter, as 'self' is passed by default
-        def _pulse_migration_event(self: 'ParametrizedDemography', migration_matrix: numpy.ndarray, params):
-            t = self.get_param_value(time_param, params)
-            a = self.get_param_value(rate_param, params)
+        def _pulse_migration_event(parametrized_demography: ParametrizedDemography, migration_matrix: numpy.ndarray,
+                                   params):
+            t = parametrized_demography.get_param_value(time_param, params)
+            a = parametrized_demography.get_param_value(rate_param, params)
             t2 = math.floor(t)
             # print(f'Pulse average time: {t}. Pulse start time: {t2}.
             # Founding time: {self.get_param_value(self.founding_time_param, params)}')
             r2 = a * (t2 + 1 - t)
-            migration_matrix[t2, self.population_indices[source_population]] += r2
-            migration_matrix[t2 + 1, self.population_indices[source_population]] += a * (t - t2) / (1 - r2)
-            return
+            migration_matrix[t2, parametrized_demography.population_indices[source_population]] += r2
+            migration_matrix[t2 + 1, parametrized_demography.population_indices[source_population]] += (
+                    a * (t - t2) / (1 - r2))
 
         self.events.append(_pulse_migration_event)
-        return
 
     def add_continuous_migration(self, source_population, rate_param, start_param, end_param):
         """
@@ -352,24 +351,24 @@ class ParametrizedDemography:
                 'message': 'Migrations start time cannot be more recent than end time.'
             })
 
-        # TODO: Check if we can remove the first parameter, as 'self' is passed by default
-        def _continuous_migration_event(self: 'ParametrizedDemography', migration_matrix: numpy.ndarray, params):
-            start_time = self.get_param_value(start_param, params)
-            end_time = self.get_param_value(end_param, params) if end_param else 2
+        def _continuous_migration_event(parametrized_demography: ParametrizedDemography,
+                                        migration_matrix: numpy.ndarray, params):
+            start_time = parametrized_demography.get_param_value(start_param, params)
+            end_time = parametrized_demography.get_param_value(end_param, params) if end_param else 2
             t1 = math.floor(start_time)
             t2 = math.ceil(end_time)
-            a = self.get_param_value(rate_param, params)
+            a = parametrized_demography.get_param_value(rate_param, params)
 
-            migration_matrix[t1 - 1, self.population_indices[source_population]] += a * (end_time - t1)
+            migration_matrix[t1 - 1, parametrized_demography.population_indices[source_population]] += (
+                    a * (end_time - t1))
 
             for t in range(t1, t2):
-                migration_matrix[t, self.population_indices[source_population]] += a
+                migration_matrix[t, parametrized_demography.population_indices[source_population]] += a
 
-            migration_matrix[t1, self.population_indices[source_population]] += a * (start_time - t1)
-            migration_matrix[t2, self.population_indices[source_population]] += a * (t2 - end_time)
+            migration_matrix[t1, parametrized_demography.population_indices[source_population]] += a * (start_time - t1)
+            migration_matrix[t2, parametrized_demography.population_indices[source_population]] += a * (t2 - end_time)
 
         self.events.append(_continuous_migration_event)
-        return
 
     def add_founder_event(self, source_populations: dict[str, str], remainder_population: str, found_time: str) -> None:
         """
@@ -392,11 +391,10 @@ class ParametrizedDemography:
         self.add_parameter(found_time, param_type='time')
         self.founding_time_param = found_time
 
-        # TODO: Check if we can remove the first parameter, as 'self' is passed by default
-        def _founder_event(self: 'ParametrizedDemography', params):
-            true_start_time = self.get_param_value(found_time, params)
+        def _founder_event(parametrized_demography: ParametrizedDemography, params):
+            true_start_time = parametrized_demography.get_param_value(found_time, params)
             start_time = math.ceil(true_start_time)
-            migration_matrix = numpy.zeros((start_time + 1, len(self.population_indices)))
+            migration_matrix = numpy.zeros((start_time + 1, len(parametrized_demography.population_indices)))
 
             remaining_rate = 1
 
@@ -404,23 +402,23 @@ class ParametrizedDemography:
             # to ensure continuous behaviour for fractional start times.
             repeated_migrant_fraction = start_time - true_start_time
 
-            for population, rate_param in source_populations.items():
-                rate = self.get_param_value(rate_param, params)
-                migration_matrix[start_time, self.population_indices[population]] = rate
-                migration_matrix[start_time - 1, self.population_indices[population]] = rate * repeated_migrant_fraction
+            for source_population, rate_param in source_populations.items():
+                rate = parametrized_demography.get_param_value(rate_param, params)
+                migration_matrix[start_time, parametrized_demography.population_indices[source_population]] = rate
+                migration_matrix[start_time - 1, parametrized_demography.population_indices[source_population]] = (
+                        rate * repeated_migrant_fraction)
                 remaining_rate -= rate
 
             if remaining_rate < 0:
                 logging.warning('Founding migration rates add up to more than 1')
 
-            migration_matrix[start_time, self.population_indices[remainder_population]] = remaining_rate
-            migration_matrix[start_time - 1, self.population_indices[
+            migration_matrix[start_time, parametrized_demography.population_indices[remainder_population]] = remaining_rate
+            migration_matrix[start_time - 1, parametrized_demography.population_indices[
                 remainder_population]] = remaining_rate * repeated_migrant_fraction
 
             return migration_matrix
 
         self.founder_event = _founder_event
-        return
 
     def finalize(self):
         self.finalized = True
@@ -468,7 +466,7 @@ class ParametrizedDemography:
         return demography
 
     @staticmethod
-    def parse_proportions(ancestors: list[str], proportions: list) -> tuple[dict[str:str], list[str]]:
+    def parse_proportions(ancestors: list[str], proportions: list) -> tuple[dict[str:str], str]:
         """
         Parses the ancestry proportions used in a founding event into a dict of parametrized source populations
         and a remainder population.
@@ -511,6 +509,7 @@ class ParametrizedDemography:
         return source_populations, remainder_population
 
 
+# TODO: Figure out what is being tested here and move to tests
 def test():
     model = ParametrizedDemography()
     model.add_founder_event({'A': 'm1_A'}, 'B', 't0')
@@ -537,7 +536,3 @@ def test_3():
     model = ParametrizedDemography.load_from_YAML('pp.yaml')
     m = model.get_migration_matrix([0.2, 4.1])
     print(m)
-
-
-if __name__ == '__main__':
-    pass

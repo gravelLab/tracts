@@ -1,6 +1,6 @@
 from collections import defaultdict
 from tracts.tract import Tract
-from tracts.chrom import Chrom
+from tracts.chromosome import Chrom
 import numpy as np
 
 

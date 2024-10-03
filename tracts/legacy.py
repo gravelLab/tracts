@@ -925,7 +925,7 @@ class Population:
         for indiv in pop:
             for chrom in indiv:
                 for copy in chrom:
-                    copy._smooth_unknown()
+                    copy.smooth_unknown()
                     for tract in copy:
                         bypop[tract.label].append({
                             'tract': tract,

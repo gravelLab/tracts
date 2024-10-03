@@ -2,8 +2,7 @@ from tracts.core import *
 from tracts.indiv import Indiv
 from tracts.tract import Tract
 from tracts.population import Population
-from tracts.chrom import Chrom
-from tracts.chropair import Chropair
+from tracts.chromosome import Chrom, Chropair
 from tracts.composite_demographic_model import CompositeDemographicModel
 from tracts.demographic_model import DemographicModel
 from tracts.haploid import Haploid

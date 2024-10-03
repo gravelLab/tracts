@@ -271,8 +271,8 @@ def calculate_ancestry_proportions(sample_population: Population, population_lab
     # Calculate the proportion of ancestry in each individual
     bypopfrac = [[] for _ in range(len(population_labels))]
     for ind in sample_population.indivs:
-        for i, poplab in enumerate(population_labels):
-            bypopfrac[i].append(ind.ancestryProps([poplab]))
+        for i, population_label in enumerate(population_labels):
+            bypopfrac[i].append(ind.ancestryProps([population_label]))
     # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
     # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
     return numpy.mean(bypopfrac, axis=1).flatten()

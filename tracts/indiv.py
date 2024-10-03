@@ -1,6 +1,5 @@
 from tracts.haploid import Haploid
-from tracts.chropair import Chropair
-from tracts.chrom import Chrom
+from tracts.chromosome import Chropair, Chrom
 
 import tkinter as tk
 import numpy as np
