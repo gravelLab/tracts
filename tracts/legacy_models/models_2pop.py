@@ -1,3 +1,5 @@
+import math
+
 import numpy
 import scipy
 
@@ -13,20 +15,20 @@ def pp(*args):
     # the time is scaled by a factor 100 in this model to ease optimization
     # with some routines that expect all parameters to have the same scale
 
-    (init_Eu, tstart) = args[0]
+    init_Eu, tstart = args[0]
 
     tstart *= 100
 
     if tstart < 0:
         # time shouldn't be negative: that should be caught by
         # constraint. Return empty matrix
-        gen = int(numpy.ceil(max(tstart, 0))) + 1
-        mig = numpy.zeros((gen + 1, 2))
+        gen = 1
+        mig = numpy.zeros((gen, 2))
         return mig
 
-    gen = int(numpy.ceil(tstart)) + 1
+    gen = math.ceil(tstart) + 1
     frac = gen - tstart - 1
-    mig = numpy.zeros((gen + 1, 2))
+    mig = numpy.zeros((gen, 2))
 
     initNat = 1 - init_Eu
 
@@ -41,8 +43,7 @@ def pp(*args):
 def outofbounds_pp(params):
     # constraint function evaluating below zero when constraints not
     # satisfied
-    ret = 1
-    (init_Eu, tstart) = params
+    init_Eu, tstart = params
 
     ret = min(1, 1 - init_Eu)  # migration proportion must be between 0 and 1
     ret = min(ret, init_Eu)
@@ -61,7 +62,7 @@ def outofbounds_pp(params):
     # start time must be at least two generations ago
     ret = min(ret, tstart - .02)
 
-    # print some diagnistics (facultative)
+    # print some diagnostics (facultative)
     if abs(totmig[-1] - 1) > 1e-8:
         print(mig)
         print("founding migration should sum up to 1. Now:")

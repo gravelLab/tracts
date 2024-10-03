@@ -59,8 +59,6 @@ class CompositeDemographicModel:
         data = sum(np.array(d) for d in data_list)
 
         s = 0
-        # TODO: data and expects is an integers here, how can we index them? Probably, a different expectperbin was
-        #  meant to be used here
         for i in range(self.npops):
             expects = self.expectperbin(Ls, i, bins, nsamp_list=nsamp_list)
             for j in range(cutoff, len(bins) - 1):
@@ -85,7 +83,6 @@ class CompositeDemographicModel:
         """
         if nsamp_list is None:
             nsamp_list = [1 for _ in range(len(self.proportions_list[0]))]
-
         return sum(nsamp * np.array(mod.expectperbin(Ls, pop, bins))
                    for nsamp, mod in zip(nsamp_list, self.models))
 

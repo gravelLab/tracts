@@ -235,35 +235,34 @@ class DemographicModel:
             chromosome edge. """
         if x > L:
             return 0
-        else:
-            return np.sum(num_steps * (L - x) * Erlang(i + 1, x, self.maxrate)
-                          for i, num_steps in enumerate(self.ndists[pop]))
+        generator = (num_steps * (L - x) * Erlang(i + 1, x, self.maxrate)
+                     for i, num_steps in enumerate(self.ndists[pop]))
+        return sum(np.fromiter(generator, dtype=np.float64))
 
     def outers(self, L, x, pop):
         """ Calculate the length distribution of tract lengths hitting a single
             chromosome edge. """
         if x > L:
             return 0
-        else:
-            nd = self.ndists[pop]
-            mx = self.maxrate * x
-            return 2 * np.sum(nd[i] * (1 - gammainc(i + 1, mx)) for i in range(len(nd))) + 2 * (1 - np.sum(nd))
+        nd = self.ndists[pop]
+        mx = self.maxrate * x
+        generator = (nd[i] * (1 - gammainc(i + 1, mx)) for i in range(len(nd)))
+        return 2 * sum(np.fromiter(generator, dtype=np.float64)) + 2 * (1 - np.sum(nd))
 
     def full(self, L, pop):
         """ The expected fraction of full-chromosome tracts, p. 63 May 24,
             2011. """
-        return np.sum(
-            self.ndists[pop][i] * (((i + 1) / float(self.maxrate) - L) + L * gammainc(i + 1, self.maxrate * L)
-                                   - float(i + 1) / self.maxrate * gammainc(i + 2, self.maxrate * L))
-            for i in range(len(self.ndists[pop]))
-        ) + (1 - np.sum(self.ndists[pop])) * (len(self.ndists[pop]) * 1. / self.maxrate - L)
+        generator = (self.ndists[pop][i] * (((i + 1) / float(self.maxrate) - L) + L * gammainc(i + 1, self.maxrate * L)
+                                            - float(i + 1) / self.maxrate * gammainc(i + 2, self.maxrate * L))
+                     for i in range(len(self.ndists[pop])))
+        return (sum(np.fromiter(generator, dtype=np.float64)) + (1 - np.sum(self.ndists[pop])) *
+                (len(self.ndists[pop]) * 1. / self.maxrate - L))
 
     def Z(self, L, pop):
         """the normalizing factor, to ensure that the tract density is 1."""
-        return L + np.sum(
-            self.ndists[pop][i] * (i + 1) * 1. / self.maxrate
-            for i in range(len(self.ndists[pop]))
-        ) + (1 - np.sum([self.ndists[pop]])) * len(self.ndists[pop]) * 1. / self.maxrate
+        generator = (self.ndists[pop][i] * (i + 1) * 1. / self.maxrate for i in range(len(self.ndists[pop])))
+        return (L + sum(np.fromiter(generator, dtype=np.float64))
+                + (1 - np.sum([self.ndists[pop]])) * len(self.ndists[pop]) * 1. / self.maxrate)
 
     def switchdensity(self):
         """ Calculate the density of ancestry switchpoints per morgan in our

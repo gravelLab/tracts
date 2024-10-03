@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import scipy.optimize
 
@@ -41,13 +43,13 @@ def ppxx_xxpp(*params):
     # some sanity checks
     if t3 > tstart or t3 < 0 or tstart < 0:
         # This will be caught by "outofbounds" function. Return empty matrix
-        gen = int(np.ceil(max(tstart, 0))) + 1
+        gen = math.ceil(max(tstart, 0)) + 1
         mig = np.zeros((gen + 1, 3))
         return mig
 
     # How many generations we'll need to accomodate all the migrations. The +1
     # is not really necessary here.
-    gen = int(np.ceil(tstart)) + 1
+    gen = math.ceil(tstart) + 1
 
     # How far off the continuous time is from its discrete optimization
     timefrac = gen - tstart - 1
@@ -65,7 +67,7 @@ def ppxx_xxpp(*params):
     mig[-2, :] = np.array([penultimate_prop1, penultimate_prop2, 0, 0])
 
     # Which integer generation to add the migrants from pop 3
-    gen3 = int(np.ceil(t3)) + 1
+    gen3 = math.ceil(t3) + 1
     timefrac3 = gen3 - t3 - 1
 
     # we want the total proportion replaced  by 3 to be prop3.

@@ -2,10 +2,8 @@ from timeit import default_timer as time
 
 import numpy
 
-# sys.path.append(str(Path(__file__).parent.parent))
-# path to tracts, may have to adjust if the file is moved
 import tracts
-from test_data import bins, Ls
+from tests.test_data import bins, Ls
 
 """
 Tests for component methods of tracts core
