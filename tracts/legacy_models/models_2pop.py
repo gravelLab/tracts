@@ -1,4 +1,5 @@
 import math
+from copy import copy
 
 import numpy
 import scipy

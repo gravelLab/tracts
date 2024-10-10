@@ -88,7 +88,7 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
         composite and classical models.
     """
 
-    ## 1a. the composite demographic model.
+    # 1a. The composite demographic model.
 
     # Get the information about the tracts out of the population object, and
     # split the population into 2 groups, in order to perform an analysis as a
@@ -113,8 +113,8 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
         [g[ancestry_label] for ancestry_label in ancestry_labels]
         for g in group_data]
 
-    ## Optimize the model parameters using COBYLA
-    #composite_model_parameters = tracts.optimize_cob_multifracs(
+    # Optimize the model parameters using COBYLA
+    # composite_model_parameters = tracts.optimize_cob_multifracs(
     #        startparams, bins, pop.Ls, group_data, ninds, migration_fun,
     #        group_ancestry_averages, outofbounds_fun=migration_outofbounds_fun,
     #        cutoff=cutoff, epsilon=1e-12)
@@ -131,7 +131,7 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
         migration_fun, composite_model_parameters,
         group_ancestry_averages)
 
-    ## 1b. the fracs2 model.
+    # 1b. The fracs2 model.
 
     nind = len(pop.indivs)
 
@@ -319,7 +319,7 @@ def main(data_dir, output_dir, pathspec):
         names = [prefix + '_classical_mig']
 
         with open(prefix + '_classical_mig', 'wt') as f:
-            for line in d['classical']['model'].mig:
+            for line in d['classical']['model'].migration_matrix:
                 f.write('\t'.join(map(str, line)) + '\n')
 
         for i, mig in enumerate(d['composite']['model'].migs()):
@@ -381,8 +381,24 @@ def main(data_dir, output_dir, pathspec):
         'pp_px': pp_px_data,
     })
 
+    def convert_numpy(obj):
+        """Recursively convert NumPy types to native Python types."""
+        if isinstance(obj, dict):
+            return {k: convert_numpy(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [convert_numpy(item) for item in obj]
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        if isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return obj
+
+    serializable_data = convert_numpy(q)
+
     with open(output_dir + 'result.json', 'wt') as f:
-        json.dump(q, f)
+        json.dump(serializable_data, f)
 
     print('Done. Have a nice day.')
 

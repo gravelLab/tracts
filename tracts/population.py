@@ -138,8 +138,7 @@ class Population:
         if count == 1:
             return [self]
 
-        return [Population(g)
-                for g in _split_indivs(self.indivs, count)]
+        return [Population(g) for g in _split_indivs(self.indivs, count)]
 
     def newgen(self):
         """ Build a new generation from this population. """
@@ -333,7 +332,8 @@ class Population:
         """ Get the mean ancestry proportion averaged across individuals in
             the population.
         """
-        return map(np.mean, zip(*self.get_means(ancestries)))
+        # return map(np.mean, zip(*self.get_means(ancestries)))
+        return list(map(np.mean, zip(*self.get_means(ancestries))))
 
     def get_means(self, ancestries):
         """ Get the mean ancestry proportion (only among ancestries in
