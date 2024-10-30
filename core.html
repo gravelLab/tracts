@@ -1,0 +1,984 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Core &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!-- 
+    this give us a css class that will be invisible only if js is disabled 
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=a3416100" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=26a4bc78f4c0ddb94549"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549" />
+
+    <script src="_static/documentation_options.js?v=789eb5fd"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'core';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Tracts: A set of tools for modelling ancestry patterns along the genome" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts 2.0 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Core</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/core.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Core</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-core">API</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.Z2"><code class="docutils literal notranslate"><span class="pre">Z2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.choose_model"><code class="docutils literal notranslate"><span class="pre">choose_model()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.inner_PDF"><code class="docutils literal notranslate"><span class="pre">inner_PDF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize"><code class="docutils literal notranslate"><span class="pre">optimize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_bfgs"><code class="docutils literal notranslate"><span class="pre">optimize_bfgs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_brute_fracs2"><code class="docutils literal notranslate"><span class="pre">optimize_brute_fracs2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_brute_multifracs"><code class="docutils literal notranslate"><span class="pre">optimize_brute_multifracs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob"><code class="docutils literal notranslate"><span class="pre">optimize_cob()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob_fracs"><code class="docutils literal notranslate"><span class="pre">optimize_cob_fracs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob_fracs2"><code class="docutils literal notranslate"><span class="pre">optimize_cob_fracs2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob_multifracs"><code class="docutils literal notranslate"><span class="pre">optimize_cob_multifracs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_slsqp"><code class="docutils literal notranslate"><span class="pre">optimize_slsqp()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.outer_PDF"><code class="docutils literal notranslate"><span class="pre">outer_PDF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.plotmig"><code class="docutils literal notranslate"><span class="pre">plotmig()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.test_model_func"><code class="docutils literal notranslate"><span class="pre">test_model_func()</span></code></a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="core">
+<h1>Core<a class="headerlink" href="#core" title="Link to this heading">#</a></h1>
+<section id="module-core">
+<span id="api"></span><h2>API<a class="headerlink" href="#module-core" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="core.Z2">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">Z2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.Z2" title="Link to this definition">#</a></dt>
+<dd><p>the normalizing factor, to ensure that the tract density is 1.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.choose_model">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">choose_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">migration_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_PTD</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.choose_model" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.inner_PDF">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">inner_PDF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_Sx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S0_inv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.inner_PDF" title="Link to this definition">#</a></dt>
+<dd><p>Calculate the CDF of tractlengths on a window L
+S is the transition submatrix
+Z is the normalization factor
+Accepts precomputed values for e^Sx, e^SL, and Z</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the BFGS method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<dl class="simple">
+<dt>p0:</dt><dd><p>Initial parameters.</p>
+</dd>
+<dt>data:</dt><dd><p>Spectrum with data.</p>
+</dd>
+<dt>model_function:</dt><dd><p>Function to evaluate model spectrum. Should take arguments (params,
+pts)</p>
+</dd>
+<dt>out_of_bounds_fun:</dt><dd><p>A funtion evaluating to True if the current parameters are in a
+forbidden region.</p>
+</dd>
+<dt>cutoff:</dt><dd><p>the number of bins to drop at the beginning of the array. This could be
+achieved with masks.</p>
+</dd>
+<dt>verbose:</dt><dd><p>If greater than zero, print optimization status every &lt;verbose&gt; steps.</p>
+</dd>
+<dt>flush_delay:</dt><dd><p>Standard output will be flushed once every &lt;flush_delay&gt; minutes. This
+is useful to avoid overloading I/O on clusters.</p>
+</dd>
+<dt>epsilon:</dt><dd><p>Step-size to use for finite-difference derivatives.</p>
+</dd>
+<dt>gtol:</dt><dd><dl class="simple">
+<dt>Convergence criterion for optimization. For more info, see</dt><dd><p>help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+</dl>
+</dd>
+<dt>maxiter:</dt><dd><p>Maximum iterations to run for.</p>
+</dd>
+<dt>full_output:</dt><dd><p>If True, return full outputs as described in help.
+(scipy.optimize.fmin_bfgs)</p>
+</dd>
+<dt>func_args:</dt><dd><p>List of additional arguments to model_func. It is assumed that model_func’s
+first argument is an array of parameters to optimize.</p>
+</dd>
+<dt>fixed_params:</dt><dd><p>(Not yet implemented)
+If not None, should be a list used to fix model parameters at
+particular values. For example, if the model parameters are
+(nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
+and m=2. The optimizer will only change T and m. Note that the bounds
+lists must include all parameters. Optimization will fail if the fixed
+values lie outside their bounds. A full-length p0 should be passed in;
+values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale:</dt><dd><p>The bfgs algorithm may fail if your initial log-likelihood is too
+large. (This appears to be a flaw in the scipy implementation.) To
+overcome this, pass ll_scale &gt; 1, which will simply reduce the
+magnitude of the log-likelihood. Once in a region of reasonable
+likelihood, you’ll probably want to re-optimize with ll_scale=1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_bfgs">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_bfgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_bfgs" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the BFGS method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<dl class="simple">
+<dt>p0:</dt><dd><p>Initial parameters.</p>
+</dd>
+<dt>data:</dt><dd><p>Spectrum with data.</p>
+</dd>
+<dt>model_function:</dt><dd><p>Function to evaluate model spectrum. Should take arguments (params,
+pts)</p>
+</dd>
+<dt>out_of_bounds_fun:</dt><dd><p>A funtion evaluating to True if the current parameters are in a
+forbidden region.</p>
+</dd>
+<dt>cutoff:</dt><dd><p>the number of bins to drop at the beginning of the array. This could be
+achieved with masks.</p>
+</dd>
+<dt>verbose:</dt><dd><p>If greater than zero, print optimization status every &lt;verbose&gt; steps.</p>
+</dd>
+<dt>flush_delay:</dt><dd><p>Standard output will be flushed once every &lt;flush_delay&gt; minutes. This
+is useful to avoid overloading I/O on clusters.</p>
+</dd>
+<dt>epsilon:</dt><dd><p>Step-size to use for finite-difference derivatives.</p>
+</dd>
+<dt>gtol:</dt><dd><dl class="simple">
+<dt>Convergence criterion for optimization. For more info, see</dt><dd><p>help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+</dl>
+</dd>
+<dt>maxiter:</dt><dd><p>Maximum iterations to run for.</p>
+</dd>
+<dt>full_output:</dt><dd><p>If True, return full outputs as described in help.
+(scipy.optimize.fmin_bfgs)</p>
+</dd>
+<dt>func_args:</dt><dd><p>List of additional arguments to model_func. It is assumed that model_func’s
+first argument is an array of parameters to optimize.</p>
+</dd>
+<dt>fixed_params:</dt><dd><p>(Not yet implemented)
+If not None, should be a list used to fix model parameters at
+particular values. For example, if the model parameters are
+(nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
+and m=2. The optimizer will only change T and m. Note that the bounds
+lists must include all parameters. Optimization will fail if the fixed
+values lie outside their bounds. A full-length p0 should be passed in;
+values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale:</dt><dd><p>The bfgs algorithm may fail if your initial log-likelihood is too
+large. (This appears to be a flaw in the scipy implementation.) To
+overcome this, pass ll_scale &gt; 1, which will simply reduce the
+magnitude of the log-likelihood. Once in a region of reasonable
+likelihood, you’ll probably want to re-optimize with ll_scale=1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_brute_fracs2">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_brute_fracs2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fracs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">searchvalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_brute_fracs2" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the brute force method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<p>p0: Initial parameters.
+data: Spectrum with data.
+model_function: Function to evaluate model spectrum. Should take arguments</p>
+<blockquote>
+<div><p>(params, pts)</p>
+</div></blockquote>
+<p>out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.</p>
+<p>verbose: If &gt; 0, print optimization status every &lt;verbose&gt; steps.
+flush_delay: Standard output will be flushed once every &lt;flush_delay&gt;</p>
+<blockquote>
+<div><p>minutes. This is useful to avoid overloading I/O on clusters.</p>
+</div></blockquote>
+<p>epsilon: Step-size to use for finite-difference derivatives.
+gtol: Convergence criterion for optimization. For more info,</p>
+<blockquote>
+<div><p>see help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>full_output: If True, return full outputs as in described in</dt><dd><p>help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+<dt>func_args: Additional arguments to model_func. It is assumed that</dt><dd><p>model_func’s first argument is an array of parameters to
+optimize, that its second argument is an array of sample sizes
+for the sfs, and that its last argument is the list of grid
+points to use in evaluation.</p>
+</dd>
+<dt>fixed_params: If not None, should be a list used to fix model parameters at</dt><dd><p>particular values. For example, if the model parameters
+are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+will hold nu1=0.5 and m=2. The optimizer will only change
+T and m. Note that the bounds lists must include all
+parameters. Optimization will fail if the fixed values
+lie outside their bounds. A full-length p0 should be passed
+in; values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale: The bfgs algorithm may fail if your initial log-likelihood is</dt><dd><p>too large. (This appears to be a flaw in the scipy
+implementation.) To overcome this, pass ll_scale &gt; 1, which will
+simply reduce the magnitude of the log-likelihood. Once in a
+region of reasonable likelihood, you’ll probably want to
+re-optimize with ll_scale=1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_brute_multifracs">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_brute_multifracs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fracs_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">searchvalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_brute_multifracs" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the brute force method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<p>p0: Initial parameters.
+data: Spectrum with data.
+model_function: Function to evaluate model spectrum. Should take arguments</p>
+<blockquote>
+<div><p>(params, pts)</p>
+</div></blockquote>
+<p>out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.</p>
+<p>verbose: If &gt; 0, print optimization status every &lt;verbose&gt; steps.
+flush_delay: Standard output will be flushed once every &lt;flush_delay&gt;</p>
+<blockquote>
+<div><p>minutes. This is useful to avoid overloading I/O on clusters.</p>
+</div></blockquote>
+<p>epsilon: Step-size to use for finite-difference derivatives.
+gtol: Convergence criterion for optimization. For more info,</p>
+<blockquote>
+<div><p>see help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>full_output: If True, return full outputs as in described in</dt><dd><p>help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+<dt>func_args: Additional arguments to model_func. It is assumed that</dt><dd><p>model_func’s first argument is an array of parameters to
+optimize, that its second argument is an array of sample sizes
+for the sfs, and that its last argument is the list of grid
+points to use in evaluation.</p>
+</dd>
+<dt>fixed_params: If not None, should be a list used to fix model parameters at</dt><dd><p>particular values. For example, if the model parameters
+are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+will hold nu1=0.5 and m=2. The optimizer will only change
+T and m. Note that the bounds lists must include all
+parameters. Optimization will fail if the fixed values
+lie outside their bounds. A full-length p0 should be passed
+in; values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale: The bfgs algorithm may fail if your initial log-likelihood is</dt><dd><p>too large. (This appears to be a flaw in the scipy
+implementation.) To overcome this, pass ll_scale &gt; 1, which will
+simply reduce the magnitude of the log-likelihood. Once in a
+region of reasonable likelihood, you’ll probably want to
+re-optimize with ll_scale=1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_cob">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_cob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon=0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol=1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_counter=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modelling_method=&lt;class</span> <span class="pre">'tracts.demographic_model.DemographicModel'&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_cob" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the cobyla method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<dl class="simple">
+<dt>p0:</dt><dd><p>Initial parameters.</p>
+</dd>
+<dt>data:</dt><dd><p>Spectrum with data.</p>
+</dd>
+<dt>model_function:</dt><dd><p>Function to evaluate model spectrum. Should take arguments (params,
+pts)</p>
+</dd>
+<dt>out_of_bounds_fun:</dt><dd><p>A funtion evaluating to True if the current parameters are in a
+forbidden region.</p>
+</dd>
+<dt>cutoff:</dt><dd><p>the number of bins to drop at the beginning of the array. This could be
+achieved with masks.</p>
+</dd>
+<dt>verbose:</dt><dd><p>If &gt; 0, print optimization status every &lt;verbose&gt; steps.</p>
+</dd>
+<dt>flush_delay:</dt><dd><p>Standard output will be flushed once every &lt;flush_delay&gt; minutes. This
+is useful to avoid overloading I/O on clusters.</p>
+</dd>
+<dt>epsilon:</dt><dd><p>Step-size to use for finite-difference derivatives.</p>
+</dd>
+<dt>gtol:</dt><dd><dl class="simple">
+<dt>Convergence criterion for optimization. For more info, see</dt><dd><p>help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+</dl>
+</dd>
+<dt>maxiter:</dt><dd><p>Maximum iterations to run for.</p>
+</dd>
+<dt>full_output:</dt><dd><p>If True, return full outputs as in described in
+help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+<dt>func_args:</dt><dd><p>Additional arguments to model_func. It is assumed that model_func’s
+first argument is an array of parameters to optimize.</p>
+</dd>
+<dt>fixed_params:</dt><dd><p>If not None, should be a list used to fix model parameters at
+particular values. For example, if the model parameters are
+(nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
+and m=2. The optimizer will only change T and m. Note that the bounds
+lists must include all parameters. Optimization will fail if the fixed
+values lie outside their bounds. A full-length p0 should be passed in;
+values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale:</dt><dd><p>The bfgs algorithm may fail if your initial log-likelihood is too
+large. (This appears to be a flaw in the scipy implementation.) To
+overcome this, pass ll_scale &gt; 1, which will simply reduce the
+magnitude of the log-likelihood. Once in a region of reasonable
+likelihood, you’ll probably want to re-optimize with ll_scale=1.</p>
+</dd>
+<dt>reset_counter:</dt><dd><p>Defaults to true, resets the iteration counter to zero. Set to False to
+continue iteration count (e.g., if optimization continues from previous point)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_cob_fracs">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_cob_fracs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fracs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_cob_fracs" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the COBYLA method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<p>p0: Initial parameters.
+data: Spectrum with data.
+model_function: Function to evaluate model spectrum. Should take arguments</p>
+<blockquote>
+<div><p>(params, pts)</p>
+</div></blockquote>
+<p>out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.</p>
+<p>verbose: If &gt; 0, print optimization status every &lt;verbose&gt; steps.
+flush_delay: Standard output will be flushed once every &lt;flush_delay&gt;</p>
+<blockquote>
+<div><p>minutes. This is useful to avoid overloading I/O on clusters.</p>
+</div></blockquote>
+<p>epsilon: Step-size to use for finite-difference derivatives.
+gtol: Convergence criterion for optimization. For more info,</p>
+<blockquote>
+<div><p>see help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<p>maxiter: Maximum iterations to run for.
+full_output: If True, return full outputs as in described in</p>
+<blockquote>
+<div><p>help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>func_args: Additional arguments to model_func. It is assumed that</dt><dd><p>model_func’s first argument is an array of parameters to
+optimize, that its second argument is an array of sample sizes
+for the sfs, and that its last argument is the list of grid
+points to use in evaluation.</p>
+</dd>
+<dt>fixed_params: If not None, should be a list used to fix model parameters at</dt><dd><p>particular values. For example, if the model parameters
+are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+will hold nu1=0.5 and m=2. The optimizer will only change
+T and m. Note that the bounds lists must include all
+parameters. Optimization will fail if the fixed values
+lie outside their bounds. A full-length p0 should be passed
+in; values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale: The bfgs algorithm may fail if your initial log-likelihood is</dt><dd><p>too large. (This appears to be a flaw in the scipy
+implementation.) To overcome this, pass ll_scale &gt; 1, which will
+simply reduce the magnitude of the log-likelihood. Once in a
+region of reasonable likelihood, you’ll probably want to
+re-optimize with ll_scale=1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_cob_fracs2">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_cob_fracs2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fracs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_counter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_cob_fracs2" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the cobyla method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<p>p0: Initial parameters.
+data: Spectrum with data.
+model_function: Function to evaluate model spectrum. Should take arguments</p>
+<blockquote>
+<div><p>(params, pts)</p>
+</div></blockquote>
+<p>out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.</p>
+<p>verbose: If &gt; 0, print optimization status every &lt;verbose&gt; steps.
+flush_delay: Standard output will be flushed once every &lt;flush_delay&gt;</p>
+<blockquote>
+<div><p>minutes. This is useful to avoid overloading I/O on clusters.</p>
+</div></blockquote>
+<p>epsilon: Step-size to use for finite-difference derivatives.
+gtol: Convergence criterion for optimization. For more info,</p>
+<blockquote>
+<div><p>see help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<p>maxiter: Maximum iterations to run for.
+full_output: If True, return full outputs as in described in</p>
+<blockquote>
+<div><p>help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>func_args: Additional arguments to model_func. It is assumed that</dt><dd><p>model_func’s first argument is an array of parameters to
+optimize, that its second argument is an array of sample sizes
+for the sfs, and that its last argument is the list of grid
+points to use in evaluation.</p>
+</dd>
+<dt>fixed_params: If not None, should be a list used to fix model parameters at</dt><dd><p>particular values. For example, if the model parameters
+are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+will hold nu1=0.5 and m=2. The optimizer will only change
+T and m. Note that the bounds lists must include all
+parameters. Optimization will fail if the fixed values
+lie outside their bounds. A full-length p0 should be passed
+in; values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale: The bfgs algorithm may fail if your initial log-likelihood is</dt><dd><p>too large. (This appears to be a flaw in the scipy
+implementation.) To overcome this, pass ll_scale &gt; 1, which will
+simply reduce the magnitude of the log-likelihood. Once in a
+region of reasonable likelihood, you’ll probably want to
+re-optimize with ll_scale=1.</p>
+</dd>
+<dt>reset_counter:</dt><dd><p>Defaults to true, resets the iteration counter to zero. Set to False to
+continue iteration count (e.g., if optimization continues from previous point)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_cob_multifracs">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_cob_multifracs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fracs_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_cob_multifracs" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the cobyla method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<p>p0: Initial parameters.
+data: Spectrum with data.
+model_function: Function to evaluate model spectrum. Should take arguments</p>
+<blockquote>
+<div><p>(params, pts)</p>
+</div></blockquote>
+<p>out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
+cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.</p>
+<p>verbose: If &gt; 0, print optimization status every &lt;verbose&gt; steps.
+flush_delay: Standard output will be flushed once every &lt;flush_delay&gt;</p>
+<blockquote>
+<div><p>minutes. This is useful to avoid overloading I/O on clusters.</p>
+</div></blockquote>
+<p>epsilon: Step-size to use for finite-difference derivatives.
+gtol: Convergence criterion for optimization. For more info,</p>
+<blockquote>
+<div><p>see help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<p>maxiter: Maximum iterations to run for.
+full_output: If True, return full outputs as in described in</p>
+<blockquote>
+<div><p>help(scipy.optimize.fmin_bfgs)</p>
+</div></blockquote>
+<dl class="simple">
+<dt>func_args: Additional arguments to model_func. It is assumed that</dt><dd><p>model_func’s first argument is an array of parameters to
+optimize, that its second argument is an array of sample sizes
+for the sfs, and that its last argument is the list of grid
+points to use in evaluation.</p>
+</dd>
+<dt>fixed_params: If not None, should be a list used to fix model parameters at</dt><dd><p>particular values. For example, if the model parameters
+are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
+will hold nu1=0.5 and m=2. The optimizer will only change
+T and m. Note that the bounds lists must include all
+parameters. Optimization will fail if the fixed values
+lie outside their bounds. A full-length p0 should be passed
+in; values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale: The bfgs algorithm may fail if your initial log-likelihood is</dt><dd><p>too large. (This appears to be a flaw in the scipy
+implementation.) To overcome this, pass ll_scale &gt; 1, which will
+simply reduce the magnitude of the log-likelihood. Once in a
+region of reasonable likelihood, you’ll probably want to
+re-optimize with ll_scale=1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.optimize_slsqp">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">optimize_slsqp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outofbounds_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flush_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ll_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_counter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.optimize_slsqp" title="Link to this definition">#</a></dt>
+<dd><p>Optimize params to fit model to data using the slsq method.</p>
+<p>This optimization method works well when we start reasonably close to the
+optimum. It is best at burrowing down a single minimum.</p>
+<p>It should also perform better when parameters range over scales.</p>
+<dl class="simple">
+<dt>p0:</dt><dd><p>Initial parameters.</p>
+</dd>
+<dt>data:</dt><dd><p>Spectrum with data.</p>
+</dd>
+<dt>model_function:</dt><dd><p>Function to evaluate model spectrum. Should take arguments (params,
+pts)</p>
+</dd>
+<dt>out_of_bounds_fun:</dt><dd><p>A funtion evaluating to True if the current parameters are in a
+forbidden region.</p>
+</dd>
+<dt>cutoff:</dt><dd><p>the number of bins to drop at the beginning of the array. This could be
+achieved with masks.</p>
+</dd>
+<dt>verbose:</dt><dd><p>If &gt; 0, print optimization status every &lt;verbose&gt; steps.</p>
+</dd>
+<dt>flush_delay:</dt><dd><p>Standard output will be flushed once every &lt;flush_delay&gt; minutes. This
+is useful to avoid overloading I/O on clusters.</p>
+</dd>
+<dt>epsilon:</dt><dd><p>Step-size to use for finite-difference derivatives.</p>
+</dd>
+<dt>gtol:</dt><dd><dl class="simple">
+<dt>Convergence criterion for optimization. For more info, see</dt><dd><p>help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+</dl>
+</dd>
+<dt>maxiter:</dt><dd><p>Maximum iterations to run for.</p>
+</dd>
+<dt>full_output:</dt><dd><p>If True, return full outputs as in described in
+help(scipy.optimize.fmin_bfgs)</p>
+</dd>
+<dt>func_args:</dt><dd><p>List of additional arguments to model_func. It is assumed that model_func’s
+first argument is an array of parameters to optimize.</p>
+</dd>
+<dt>fixed_params:</dt><dd><p>If not None, should be a list used to fix model parameters at
+particular values. For example, if the model parameters are
+(nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
+and m=2. The optimizer will only change T and m. Note that the bounds
+lists must include all parameters. Optimization will fail if the fixed
+values lie outside their bounds. A full-length p0 should be passed in;
+values corresponding to fixed parameters are ignored.</p>
+</dd>
+<dt>ll_scale:</dt><dd><p>The bfgs algorithm may fail if your initial log-likelihood is too
+large. (This appears to be a flaw in the scipy implementation.) To
+overcome this, pass ll_scale &gt; 1, which will simply reduce the
+magnitude of the log-likelihood. Once in a region of reasonable
+likelihood, you’ll probably want to re-optimize with ll_scale=1.</p>
+</dd>
+<dt>reset_counter:</dt><dd><p>Defaults to true, resets the iteration counter to zero. Set to False to
+continue iteration count (e.g., if optimization continues from previous point)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.outer_PDF">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">outer_PDF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_Sx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S0_inv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.outer_PDF" title="Link to this definition">#</a></dt>
+<dd><p>Calculate the length distribution of tract lengths hitting a single
+chromosome edge.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.plotmig">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">plotmig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colordict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.plotmig" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.test_model_func">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">test_model_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fracs_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.test_model_func" title="Link to this definition">#</a></dt>
+<dd><p>Given a demographic model function, run a few debugging tests to ensure
+that it behaves as expected, namely:
+1-That migration matrices sum to less than one (exactly one for the last generation)
+2-That it behaves continuously relative to time parameters.</p>
+<p>model_func: a migration model. It takes in parameters and outputs a migration matrix.
+parameters:  parameters for which the model will be tested.
+fracs_list: parameters required by some demographic models corresponding to the observed proportion of ancestry
+from each source population
+time_params: if True, test all parameters for continuity as if they were time parameters.</p>
+<blockquote>
+<div><p>if a list of boolean values of the same length of parameters, only test parameters
+corresponding to True values.</p>
+</div></blockquote>
+<p>time_scale: the scaling of the time variables: time (in generations) = time_parameter*time_scale. This is used to
+test continuity around integer values.
+returns
+violation score (negative means that a violation has occurred)
+and the migration matrix value as well</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Tracts: A set of tools for modelling ancestry patterns along the genome</p>
+      </div>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-core">API</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.Z2"><code class="docutils literal notranslate"><span class="pre">Z2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.choose_model"><code class="docutils literal notranslate"><span class="pre">choose_model()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.inner_PDF"><code class="docutils literal notranslate"><span class="pre">inner_PDF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize"><code class="docutils literal notranslate"><span class="pre">optimize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_bfgs"><code class="docutils literal notranslate"><span class="pre">optimize_bfgs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_brute_fracs2"><code class="docutils literal notranslate"><span class="pre">optimize_brute_fracs2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_brute_multifracs"><code class="docutils literal notranslate"><span class="pre">optimize_brute_multifracs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob"><code class="docutils literal notranslate"><span class="pre">optimize_cob()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob_fracs"><code class="docutils literal notranslate"><span class="pre">optimize_cob_fracs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob_fracs2"><code class="docutils literal notranslate"><span class="pre">optimize_cob_fracs2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_cob_multifracs"><code class="docutils literal notranslate"><span class="pre">optimize_cob_multifracs()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.optimize_slsqp"><code class="docutils literal notranslate"><span class="pre">optimize_slsqp()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.outer_PDF"><code class="docutils literal notranslate"><span class="pre">outer_PDF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.plotmig"><code class="docutils literal notranslate"><span class="pre">plotmig()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#core.test_model_func"><code class="docutils literal notranslate"><span class="pre">test_model_func()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Simon Gravel
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024, Simon Gravel.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
