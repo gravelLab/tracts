@@ -1,4 +1,15 @@
+import os
+
+import pytest
+
 from tracts import ParametrizedDemography
+
+
+@pytest.fixture
+def pp_yaml_path():
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_directory, "pp.yaml")
+    return file_path
 
 
 def test():
@@ -23,7 +34,7 @@ def test():
 #     model.get_migration_matrix([0.2, 4, 0.375])
 
 
-def test_3():
-    model = ParametrizedDemography.load_from_YAML('pp.yaml')
+def test_3(pp_yaml_path):
+    model = ParametrizedDemography.load_from_YAML(pp_yaml_path)
     m = model.get_migration_matrix([0.2, 4.1])
     print(m)
