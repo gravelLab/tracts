@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import numbers
+import warnings
 
 import numpy
 import ruamel.yaml
@@ -230,7 +231,8 @@ class ParametrizedDemography:
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
             else:
                 full_params = params
-            for constraint in self.reduced_constraints:
+            # for constraint in self.reduced_constraints:
+            for constraint in self.constraints:
                 violation = constraint['expression'](
                     [self.get_param_value(param_name, full_params) for param_name in constraint['param_subset']])
                 if violation < violation_score:
@@ -412,7 +414,8 @@ class ParametrizedDemography:
             if remaining_rate < 0:
                 logging.warning('Founding migration rates add up to more than 1')
 
-            migration_matrix[start_time, parametrized_demography.population_indices[remainder_population]] = remaining_rate
+            migration_matrix[
+                start_time, parametrized_demography.population_indices[remainder_population]] = remaining_rate
             migration_matrix[start_time - 1, parametrized_demography.population_indices[
                 remainder_population]] = remaining_rate * repeated_migrant_fraction
 
@@ -507,32 +510,3 @@ class ParametrizedDemography:
             ' the other must be "1-a-b"')
 
         return source_populations, remainder_population
-
-
-# TODO: Figure out what is being tested here and move to tests
-def test():
-    model = ParametrizedDemography()
-    model.add_founder_event({'A': 'm1_A'}, 'B', 't0')
-    model.add_pulse_migration('C', 'r1', 't1')
-    model.add_pulse_migration('D', 'r1', 't2')
-    model.finalize()
-    m = model.get_migration_matrix([0.1, 4, 0.2, 1, 2.2])
-    print(m)
-    print(model.free_params)
-
-
-def test_2():
-    model = ParametrizedDemography.load_from_YAML('pp_px.yaml')
-    m = model.get_migration_matrix([0.2, 4, 0.375, 3])
-    print(m)
-    print(model.proportions_from_matrix(m))
-    print(model.free_params)
-    model.fix_ancestry_proportions('r', [0.5, 0.5])
-    print(model.params_fixed_by_ancestry)
-    model.get_migration_matrix([0.2, 4, 0.375])
-
-
-def test_3():
-    model = ParametrizedDemography.load_from_YAML('pp.yaml')
-    m = model.get_migration_matrix([0.2, 4.1])
-    print(m)

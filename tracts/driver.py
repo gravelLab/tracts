@@ -202,11 +202,11 @@ def randomize(arr, a, b):
     return ((b - a) * numpy.random.random(arr.shape) + a) * arr
 
 
-def run_model_multi_params(model_func, bound_func, population, population_labels, startparams_list,
+def run_model_multi_params(model_func, bound_func, population, population_labels, start_params_list,
                            exclude_tracts_below_cM=0, modelling_method=PhaseTypeDistribution):
     optimal_params = []
     likelihoods = []
-    for start_params in startparams_list:
+    for start_params in start_params_list:
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
