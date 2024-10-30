@@ -369,7 +369,6 @@ def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None
         ooa = outofbounds_fun(params)
         if ooa < 0:
             result = -(ooa - 1) * _out_of_bounds_val
-            print(result)
         else:
             mod = modelling_method(model_func(params))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
