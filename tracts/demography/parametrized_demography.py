@@ -6,7 +6,8 @@ from pathlib import Path
 import numpy
 import ruamel.yaml
 
-from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent
+from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
+from tracts.demography.param_types import ParamType
 
 """
 TODO: 
@@ -20,17 +21,6 @@ Complete function to run the optimizer
 
 sex_ration_yaml_key = "male_to_female_ratio"
 population_ancestor_name_yaml_key = "name"
-
-
-def execute_pulse_event(t, a, migration_matrix: numpy.ndarray, population_index):
-    t2 = math.floor(t)
-    # print(f'Pulse average time: {t}. Pulse start time: {t2}.
-    # Founding time: {self.get_param_value(self.founding_time_param, params)}')
-    r2 = a * (t2 + 1 - t)
-    migration_matrix[t2, population_index] += r2
-    migration_matrix[t2 + 1, population_index] += (
-            a * (t - t2) / (1 - r2))
-
 
 class PulseEvent(BaseMigrationEvent):
 
@@ -84,7 +74,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
 
-    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> [numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> list[numpy.ndarray]:
         """
         Takes in a list of params equal to the length of free_params
         and returns a p*g migration matrix where p is the number of incoming populations and g is
@@ -116,6 +106,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         """
         Tells the model to calculate certain rate parameters based on the known
         ancestry proportions of the sample population
+        Proportions are calculated in driver.py
         """
         for param_name in params_to_fix:
             if param_name not in self.free_params:
@@ -140,8 +131,8 @@ class ParametrizedDemography(BaseParametrizedDemography):
         Adds a pulse migration from source population A, parametrized by time and rate
         """
         self.add_population(source_population)
-        self.add_parameter(rate_param, param_type='rate')
-        self.add_parameter(time_param, param_type='time')
+        self.add_parameter(rate_param, param_type=ParamType.RATE)
+        self.add_parameter(time_param, param_type=ParamType.TIME)
         founding_time = self.get_founding_time()
         self.constraints.append({
             'param_subset': (founding_time, time_param),
@@ -160,8 +151,8 @@ class ParametrizedDemography(BaseParametrizedDemography):
         Adds a continuous migration from source population A, parametrized by start_time, end_time, and magnitude
         """
         self.add_population(source_population)
-        self.add_parameter(rate_param, param_type='rate')
-        self.add_parameter(start_param, param_type='time')
+        self.add_parameter(rate_param, param_type=ParamType.RATE)
+        self.add_parameter(start_param, param_type=ParamType.TIME)
         founding_time = self.get_founding_time()
         self.constraints.append({
             'param_subset': (founding_time, start_param),
@@ -170,7 +161,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         })
 
         if end_param:
-            self.add_parameter(end_param, param_type='time')
+            self.add_parameter(end_param, param_type=ParamType.TIME)
             self.constraints.append({
                 'param_subset': (start_param, end_param),
                 'expression': lambda param_subset: param_subset[0] - param_subset[1],
@@ -244,7 +235,7 @@ class SexBiasedParametrizedDemography(BaseParametrizedDemography):
                     for ancestor in ancestors_info:
                         ancestor_name = ancestor['name']
                         source_populations.append(ancestor_name)
-                        sex_ratio_param_name = ancestor.get('male_to_female_ratio')
+                        sex_ratio_param_name = ancestor.get(sex_ration_yaml_key)
                         ancestor_to_male_female_ratios[ancestor_name] = sex_ratio_param_name
                         demography.add_parameter(param_name=sex_ratio_param_name, bounds=[-1, 1])
                     # Parse proportions
@@ -278,7 +269,7 @@ class SexBiasedParametrizedDemography(BaseParametrizedDemography):
     def fix_ancestry_proportions(self, params_to_fix, proportions):
         pass
 
-    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> [numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> list[numpy.ndarray]:
         pass
 
     def add_pulse_migration(self, source_population, rate_param, time_param):

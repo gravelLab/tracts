@@ -5,6 +5,7 @@ import numbers
 from abc import ABC, abstractmethod
 import numpy
 import scipy
+from tracts.demography.param_types import ParamType
 
 
 class BaseFounderEvent(ABC):
@@ -53,7 +54,6 @@ class FounderEvent(BaseFounderEvent):
 
         return migration_matrix
 
-
 class BaseMigrationEvent(ABC):
 
     def __init__(self, rate_parameter, source_population):
@@ -64,7 +64,6 @@ class BaseMigrationEvent(ABC):
     def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: numpy.ndarray, params):
         pass
 
-
 class BaseParametrizedDemography(ABC):
     logger = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class BaseParametrizedDemography(ABC):
         self.name = name
         self.min_time = min_time
         self.max_time = max_time
-        self.events: [BaseMigrationEvent] = []
+        self.events: list[BaseMigrationEvent] = []
         self.constraints = []
         self.params_fixed_by_ancestry = []
         self.params_not_fixed_by_ancestry = []
@@ -109,11 +108,11 @@ class BaseParametrizedDemography(ABC):
 
         for population, rate_param in source_populations.items():
             self.add_population(population)
-            self.add_parameter(rate_param, param_type='rate')
+            self.add_parameter(rate_param, param_type=ParamType.RATE)
 
         self.add_population(remainder_population)
 
-        self.add_parameter(found_time, param_type='time')
+        self.add_parameter(found_time, param_type=ParamType.TIME)
         self.founder_event = FounderEvent(
             found_time=found_time,
             source_population=source_populations,
@@ -132,17 +131,17 @@ class BaseParametrizedDemography(ABC):
         for index, population_name in enumerate(self.population_indices):
             self.population_indices[population_name] = index
 
-    def add_parameter(self, param_name: str, param_type=None, bounds=None):
+    def add_parameter(self, param_name: str, param_type: ParamType=None, bounds=None):
         """
         Adds the given parameter name to the parameters of the model
         """
         self.finalized = False
         if param_name not in self.dependent_params:
             if bounds is None:
-                if param_type == 'time':
+                if param_type == ParamType.TIME:
                     bounds = (self.min_time, self.max_time)
-                elif param_type == 'rate':
-                    bounds = (0, 1)
+                else:
+                    bounds = param_type.bounds
             self.free_params[param_name] = {'type': param_type, 'bounds': bounds}
 
     def add_population(self, population_name: str):
@@ -171,11 +170,11 @@ class BaseParametrizedDemography(ABC):
 
     def is_time_param(self):
         if not self.has_been_fixed:
-            return [param['type'] == 'time' for param in self.free_params.values()]
+            return [param['type'] == ParamType.TIME for param in self.free_params.values()]
         time_param_list = []
         for param_name, param in self.free_params.items():
             if param_name not in self.params_fixed_by_ancestry:
-                time_param_list.append(param['type'] == 'time')
+                time_param_list.append(param['type'] == ParamType.TIME)
         return time_param_list
 
     def compute_dependent_params(self, params):
@@ -394,7 +393,7 @@ class BaseParametrizedDemography(ABC):
         pass
 
     @abstractmethod
-    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> [numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> list[numpy.ndarray]:
         pass
 
     @abstractmethod
