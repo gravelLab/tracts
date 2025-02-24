@@ -11,29 +11,20 @@ from tracts.demography.parametrized_demography import PulseEvent, ContinuousEven
 from tracts.demography.parametrized_demography_multipop import ParametrizedDemographyMultiPop
 from tracts.demography.param_types import ParamType
 
-"""
-TODO: 
-Add continuous migrations
-Add fixed parameters and parameter equations
-Add penalization function for non-resolvable constraints
-Add function to solve constraints shape
-Auto-create constraint function tyo give known ancestry fractions
-Complete function to run the optimizer
-""" 
-
-
-def autosomal_name(param):
-    return f'{param}_autosomal'
+def male(param):
+    return f'{param}_male'
     
-def X_name(param):
-    return f'{param}_X_chromosomal'
+def female(param):
+    return f'{param}_female'
 
-variants=[autosomal_name, X_name]
+variants=[male, female]
 
 class ParametrizedDemographySexBiased(ParametrizedDemographyMultiPop):
     """
-    A class representing a demographic history for a multiple populations of interest, with parametrized migrations from other populations.
-    TODO: add support for int (constant) parameters
+    A class representing a demographic history with varying rates of male and female migration.
+    Constructs a separate migration matrix for male and female individuals.
+    Each entry represent the proportion of that sex that is replaced during that migration.
+    The matrices are implemented as two subpopulations whose migrations have independent rate parameters but linked time parameters.
     """
 
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
@@ -63,7 +54,6 @@ class ParametrizedDemographySexBiased(ParametrizedDemographyMultiPop):
         found_time is the name of the parameter defining the time of migration.
         """
         for variant in variants:
-            print(variant(dest_population))
             super().add_founder_event(variant(dest_population), {population: variant(rate) for population, rate in source_populations.items()},remainder_population, found_time)
 
     @staticmethod
