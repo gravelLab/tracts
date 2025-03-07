@@ -8,7 +8,7 @@ import ruamel.yaml
 
 from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
 from tracts.demography.parametrized_demography import PulseEvent, ContinuousEvent
-from tracts.demography.param_types import ParamType
+from tracts.demography.parameter import Parameter, ParamType
 
 """
 TODO: 
@@ -44,10 +44,10 @@ class ParametrizedDemographyMultiPop(BaseParametrizedDemography):
         If one of the parameters (time or migration) is incorrect, returns an empty matrix
         """
         if has_been_fixed is None:
-            has_been_fixed = self.has_been_fixed
+            has_been_fixed = self.fixed_proportions_handler.has_been_fixed
         if has_been_fixed:
             self.logger.info(f'Generating migration matrix.')
-            params = self.compute_dependent_params(params)
+            params = self.fixed_proportions_handler.compute_dependent_params(params)
         if self.finalized is not True:
             self.finalize()
 
@@ -70,30 +70,6 @@ class ParametrizedDemographyMultiPop(BaseParametrizedDemography):
             raise ValueError(f'Population {population} is missing a founder event.')
         return self.founder_events[population].found_time
     
-    def fix_ancestry_proportions(self, params_to_fix, proportions: dict[str: list[float]]):
-        """
-        Tells the model to calculate certain rate parameters based on the known
-        ancestry proportions of the sample population
-        Proportions are calculated in driver.py
-        """
-        for param_name in params_to_fix:
-            if param_name not in self.free_params:
-                if param_name in self.dependent_params:
-                    raise KeyError(f'{param_name} is already specified by another equation.')
-                raise KeyError(f'{param_name} is not a parameter of this model.')
-            if self.free_params[param_name]['type'] != 'rate':
-                raise ValueError(f'{param_name} is not a rate parameter.')
-        if len(proportions) != len(self.population_indices):
-            raise ValueError(f'Number of given ancestry proportions is not equal to the number of population indices.')
-        if len(params_to_fix) != len(self.population_indices) - 1:
-            raise ValueError(f'Number of parameters to fix is not equal to the number of population indices - 1.')
-        self.has_been_fixed = True
-        self.params_fixed_by_ancestry = {param_name: '' for param_name in self.free_params if
-                                         param_name in params_to_fix}
-        self.known_ancestry_proportions = proportions[:-1]
-        self.reduced_constraints = [constraint for constraint in self.constraints if any(
-            param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
-
     def add_pulse_migration(self, dest_population, source_population, rate_param, time_param):
         """
         Adds a pulse migration from source population A, parametrized by time and rate
@@ -170,6 +146,9 @@ class ParametrizedDemographyMultiPop(BaseParametrizedDemography):
         )
         self.events[dest_population]=[]
 
+    def get_random_parameters():
+        return None
+
     @staticmethod
     def load_from_YAML(filepath: str | Path) -> ParametrizedDemographyMultiPop:
         """
@@ -202,4 +181,5 @@ class ParametrizedDemographyMultiPop(BaseParametrizedDemography):
                                                             migration['start_time'], migration['end_time'])
             demography.finalize()
         return demography
+    
 

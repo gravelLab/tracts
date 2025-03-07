@@ -7,7 +7,7 @@ import numpy
 import ruamel.yaml
 
 from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
-from tracts.demography.param_types import ParamType
+from tracts.demography.parameter import ParamType
 
 """
 TODO: 
@@ -74,16 +74,16 @@ class ParametrizedDemography(BaseParametrizedDemography):
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
 
-    def get_migration_matrices(self, params: list[float], has_been_fixed: bool = None) -> list[numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool = None) -> list[numpy.ndarray]:
         """
         Takes in a list of params equal to the length of free_params
         and returns a p*g migration matrix where p is the number of incoming populations and g is
         the number of generations
         If one of the parameters (time or migration) is incorrect, returns an empty matrix
         """
-        if has_been_fixed is None:
-            has_been_fixed = self.has_been_fixed
-        if has_been_fixed:
+        if solve_using_known_proportions is None:
+            solve_using_known_proportions = self.has_been_fixed
+        if solve_using_known_proportions:
             self.logger.info(f'Generating migration matrix.')
             params = self.compute_dependent_params(params)
         if self.finalized is not True:
@@ -113,7 +113,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
                 if param_name in self.dependent_params:
                     raise KeyError(f'{param_name} is already specified by another equation.')
                 raise KeyError(f'{param_name} is not a parameter of this model.')
-            if self.free_params[param_name]['type'] != 'rate':
+            if self.free_params[param_name]['type'] != ParamType.RATE:
                 raise ValueError(f'{param_name} is not a rate parameter.')
         if len(proportions) != len(self.population_indices):
             raise ValueError(f'Number of given ancestry proportions is not equal to the number of population indices.')
@@ -254,7 +254,7 @@ class SexBiasedParametrizedDemography(BaseParametrizedDemography):
                             demography.add_pulse_migration(source, proportion, pulse_time)
                     if sex_ration_yaml_key in pulse:
                         pulse_sex_ratio_param_name = pulse[sex_ration_yaml_key]
-                        demography.add_parameter(param_name=pulse_sex_ratio_param_name, bounds=[-1, 1])
+                        demography.add_parameter(param_name=pulse_sex_ratio_param_name, type=ParamType.SEX_BIAS)
             if 'migrations' in demes_data:
                 for migration in demes_data['migrations']:
                     if 'dest' in migration and migration['dest'] == parametrized_population:
