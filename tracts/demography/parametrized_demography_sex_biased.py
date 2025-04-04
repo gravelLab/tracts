@@ -2,24 +2,45 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from typing import Callable
 
 import numpy
 import ruamel.yaml
 
-from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
-from tracts.demography.parametrized_demography import PulseEvent, ContinuousEvent
-from tracts.demography.parametrized_demography_multipop import ParametrizedDemographyMultiPop
+from tracts.demography.base_parametrized_demography import BaseParametrizedDemography
+from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
+from enum import Enum
 
-def male(param):
-    return f'{param}_male'
+class SexType(Enum):
+    @staticmethod
+    def male_female_sex_type_function(multiplier: float) -> Callable[[str,str], Callable[[BaseParametrizedDemography,list[float]], float]]:
+        return (lambda rate_param, sex_bias_param:
+                    (lambda demography, params: 
+                        demography.get_param_value(rate_param, params)+
+                        multiplier*demography.get_param_value(sex_bias_param, params)*
+                        (1/2-numpy.abs(demography.get_param_value(rate_param, params)-1/2))
+                    )
+                )
+
+
+    MALE=(
+        "_male",
+        male_female_sex_type_function(-1)
+    )
+
+    FEMALE=(
+        "_female",
+        male_female_sex_type_function(1)
+    )
     
-def female(param):
-    return f'{param}_female'
+    def __init__(self, suffix: str, expression: Callable[[str,str], Callable[[BaseParametrizedDemography,list[float]], float]]):
+        self.suffix=suffix
+        self.expression=expression
 
-sex_types=[male, female]
+sex_types=[SexType.MALE, SexType.FEMALE]
 
-class ParametrizedDemographySexBiased(ParametrizedDemographyMultiPop):
+class ParametrizedDemographySexBiased(ParametrizedDemography):
     """
     A class representing a demographic history with varying rates of male and female migration.
     Constructs a separate migration matrix for male and female individuals.
@@ -34,25 +55,23 @@ class ParametrizedDemographySexBiased(ParametrizedDemographyMultiPop):
         """
         Adds a pulse migration from source population A, parametrized by time and rate
         """
-        for sex_type in sex_types:
-            super().add_pulse_migration(sex_type(dest_population), source_population, sex_type(rate_param), time_param)
         self.add_parameter(rate_param, ParamType.RATE)
         sex_bias_param=f'{rate_param}_sex_bias'
         self.add_parameter(sex_bias_param, ParamType.SEX_BIAS)
-        self.add_dependent_parameter(male(rate_param), lambda demography, params: demography.get_param_value(rate_param)*(1-demography.get_param_value(sex_bias_param)),ParamType.RATE)
-        self.add_dependent_parameter(female(rate_param), lambda demography, params: demography.get_param_value(rate_param)*(1+demography.get_param_value(sex_bias_param)),ParamType.RATE)
+        for sex_type in sex_types:
+            self.add_dependent_parameter( f"{rate_param}{sex_type.suffix}", sex_type.expression(rate_param, sex_bias_param), ParamType.RATE)
+            super().add_pulse_migration(f"{dest_population}{sex_type.suffix}", source_population, f"{rate_param}{sex_type.suffix}", time_param)
 
     def add_continuous_migration(self, dest_population, source_population, rate_param, start_param, end_param):
         """
         Adds a continuous migration from source population A, parametrized by start_time, end_time, and magnitude
         """
-        for sex_type in sex_types:
-            super().add_continuous_migration(sex_type(dest_population), source_population, sex_type(rate_param), start_param, end_param)
         self.add_parameter(rate_param, ParamType.RATE)
         sex_bias_param=f'{rate_param}_sex_bias'
         self.add_parameter(sex_bias_param, ParamType.SEX_BIAS)
-        self.add_dependent_parameter(male(rate_param), lambda demography, params: demography.get_param_value(rate_param)*(1-demography.get_param_value(sex_bias_param)),ParamType.RATE)
-        self.add_dependent_parameter(female(rate_param), lambda demography, params: demography.get_param_value(rate_param)*(1+demography.get_param_value(sex_bias_param)),ParamType.RATE)
+        for sex_type in sex_types:
+            self.add_dependent_parameter( f"{rate_param}{sex_type.suffix}", sex_type.expression(rate_param, sex_bias_param), ParamType.RATE)
+            super().add_continuous_migration( f"{dest_population}{sex_type.suffix}", source_population,  f"{rate_param}{sex_type.suffix}", start_param, end_param)
 
     def add_founder_event(self, dest_population, source_populations: dict[str, str], remainder_population: str, found_time: str) -> None:
         """
@@ -62,15 +81,17 @@ class ParametrizedDemographySexBiased(ParametrizedDemographyMultiPop):
         remainder_population is the source of the remaining migrants, such that the total migration ratio adds up to 1.
         found_time is the name of the parameter defining the time of migration.
         """
-        for sex_type in sex_types:
-            super().add_founder_event(sex_type(dest_population), {population: sex_type(rate_param) for population, rate_param in source_populations.items()},remainder_population, found_time)
-        
+
         for population, rate_param in source_populations.items():
             self.add_parameter(rate_param, ParamType.RATE)
             sex_bias_param=f'{rate_param}_sex_bias'
             self.add_parameter(sex_bias_param, ParamType.SEX_BIAS)
-            self.add_dependent_parameter(male(rate_param), lambda demography, params: demography.get_param_value(rate_param)*(1-demography.get_param_value(sex_bias_param)),ParamType.RATE)
-            self.add_dependent_parameter(female(rate_param), lambda demography, params: demography.get_param_value(rate_param)*(1+demography.get_param_value(sex_bias_param)),ParamType.RATE)
+            for sex_type in sex_types:
+                self.add_dependent_parameter( f"{rate_param}{sex_type.suffix}", sex_type.expression(rate_param, sex_bias_param), ParamType.RATE)
+
+        for sex_type in sex_types:
+            super().add_founder_event(f"{dest_population}{sex_type.suffix}", {population: f"{rate_param}{sex_type.suffix}" for population, rate_param in source_populations.items()},remainder_population, found_time)
+        
 
 
     @staticmethod

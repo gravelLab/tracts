@@ -662,7 +662,7 @@ class PhTMonoecious(PhaseTypeDistribution):
         transposed_transition_matrix = self.full_transition_matrix.transpose()
         transition_matrix_eigs = np.linalg.eig(transposed_transition_matrix)
         cond_num = np.linalg.cond(transposed_transition_matrix)
-        print("Condition Number:", cond_num)
+        #print("Condition Number:", cond_num)
         try:
             result_vector = [eigenvector for eigenvalue, eigenvector in
                              zip(transition_matrix_eigs[0], np.transpose(transition_matrix_eigs[1])) if

@@ -3,12 +3,13 @@ import numbers
 import os
 import sys
 from pathlib import Path
-
+from typing import Callable
 import numpy
 import ruamel.yaml
 
 from tracts import Population, PhTMonoecious, optimize_cob
 from tracts.demography.parametrized_demography import ParametrizedDemography
+from tracts.demography.parameter import Parameter,ParamType
 
 logger = logging.getLogger(__name__)
 
@@ -66,13 +67,16 @@ def run_tracts(driver_filename, script_dir):
 
     population_labels = model.population_indices.keys()
 
+    target_population = list(model.founder_events.keys())[0]
+
     logger.info(f'Model Parameters: {model.free_params}')
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         ancestry_proportions = calculate_ancestry_proportions(pop, population_labels)
-        model.fix_ancestry_proportions(driver_spec['fix_parameters_from_ancestry_proportions'], ancestry_proportions)
+        model.fixed_proportions_handler.fix_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {target_population:ancestry_proportions})
 
-    func = get_time_scaled_model_func(model, time_scaling_factor)
+    time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
+    func = lambda params: time_scaled_func(params)[target_population]
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
     if type(driver_spec['start_params']) is not dict:
@@ -161,26 +165,26 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
     start_params = rng.random((repetitions, num_params))
     for param_name, param_info in model.free_params.items():
         if param_name in model.params_fixed_by_ancestry:
-            start_params[:, param_info['index']] = 0
+            start_params[:, param_info.index] = 0
             continue
         if param_name not in start_param_bounds:
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
         if isinstance(start_param_bounds[param_name], numbers.Number):
-            start_params[:, param_info['index']] = start_param_bounds[param_name]
+            start_params[:, param_info.index] = start_param_bounds[param_name]
         else:
             try:
                 bounds = [float(bound) for bound in start_param_bounds[param_name].split('-')]
                 assert len(bounds) == 2
-                start_params[:, param_info['index']] *= bounds[1] - bounds[0]
-                start_params[:, param_info['index']] += bounds[0]
+                start_params[:, param_info.index] *= bounds[1] - bounds[0]
+                start_params[:, param_info.index] += bounds[0]
             except Exception as e:
                 raise ValueError("Initial values must be specified as a range (ie: 5-7) or a number.") from e
-        if param_info['type'] == 'time':
-            start_params[:, param_info['index']] *= 1 / time_scaling_factor
+        if param_info.type == ParamType.TIME:
+            start_params[:, param_info.index] *= 1 / time_scaling_factor
     # logger.info(f' Start Params: \n {start_params}')
     if model.params_fixed_by_ancestry is not None:
         start_params = numpy.transpose(
-            [start_params[:, param_info['index']] for param_name, param_info in model.free_params.items() if
+            [start_params[:, param_info.index] for param_name, param_info in model.free_params.items() if
              param_name not in model.params_fixed_by_ancestry])
     logger.info(f' Start Params: \n {start_params}')
     return start_params
@@ -193,8 +197,8 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
     return (numpy.multiply(indices_to_scale, scaling_factor - 1) + 1) * arr
 
 
-def get_time_scaled_model_func(model, time_scaling_factor):
-    return lambda params: model.get_migration_matrix(
+def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[numpy.ndarray], dict[str, numpy.ndarray]]:
+    return lambda params: model.get_migration_matrices(
         scale_select_indices(params, model.is_time_param(), time_scaling_factor))
 
 
@@ -256,7 +260,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         for population in model.population_indices.keys():
             fdat.write("\t".join(map(str, data[population])) + "\n")
 
-    optimal_model = PhTMonoecious(model.get_migration_matrix(optimal_params))
+    optimal_model = PhTMonoecious(list(model.get_migration_matrices(optimal_params).values())[0])
 
     with open(output_dir + output_filename_format.format(label='migration_matrix'), 'w') as fmig2:
         for line in optimal_model.migration_matrix:

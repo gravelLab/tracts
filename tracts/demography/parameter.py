@@ -13,16 +13,16 @@ class ParamType(Enum):
 
 
 class Parameter:
-    def __init__(self, name: str, param_type: ParamType, bound: tuple[float, float], index=None):
+    def __init__(self, name: str, param_type: ParamType, bounds: tuple[float, float], index=None):
         self.name=name
-        self.param_type=param_type
-        self.bound=bound
+        self.type=param_type
+        self.bounds=bounds
         self.index=index
         return
 
 class DependentParameter(Parameter, Callable):
-    def __init__(self, name: str, expression: Callable, param_type: ParamType, bound: tuple[float, float], index=None):
-        super().__init__(name, param_type, bound, index)
+    def __init__(self, name: str, expression: Callable, param_type: ParamType, bounds: tuple[float, float], index=None):
+        super().__init__(name, param_type, bounds, index)
         self.expression = expression
         return
         
