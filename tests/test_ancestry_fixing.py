@@ -6,6 +6,7 @@ import pytest
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir+'\\..')
 from tracts.demography.parametrized_demography import ParametrizedDemography
+from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parameter import ParamType
 
 def test_ancestry_fixing_single_population():
@@ -509,12 +510,191 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     assert np.isclose(final_proportions.sum(), 1.0)
 
 
-if __name__ == "__main__":
-    # Run the tests
-    test_ancestry_fixing_single_population()
-    test_ancestry_fixing_multiple_populations()
-    test_ancestry_fixing_three_founders()
-    test_ancestry_fixing_two_samples_three_founders()
-    test_ancestry_fixing_with_pulse_migration()
-    test_ancestry_fixing_with_pulse_migration_fixed_rate()
-    print("All tests passed!")
+def test_ancestry_fixing_sex_biased():
+    """
+    Test the ancestry fixing functionality for a sex-biased demography with two founders.
+    
+    This test:
+    1. Creates a sex-biased model with two founders
+    2. Sets up sample proportions for both male and female populations
+    3. Fixes the founding rate and sex-bias parameters using the sample proportions
+    4. Verifies that the model can take in only a founding time value and output migration matrices
+    5. Verifies that the resulting rate parameters match the sample proportions
+    6. Verifies that the final proportions of the matrices match the sample proportions
+    """
+    # Create a sex-biased model with two founders
+    model = ParametrizedDemographySexBiased(name="SexBiasedModel")
+    
+    # Add a founder event with two source populations
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time"
+    )
+    
+    # Finalize the model
+    model.finalize()
+    
+    # Define sample proportions for male and female populations
+    # 60% from source_pop1, 40% from source_pop2 for males
+    # 70% from source_pop1, 30% from source_pop2 for females
+    sample_proportions = {
+        "target_pop_male": [0.6, 0.4],  # [source_pop1, source_pop2] for males
+        "target_pop_female": [0.6, 0.4]  # [source_pop1, source_pop2] for females
+    }
+    
+    # Fix the founding rate and sex-bias parameters using the sample proportions
+    model.fixed_proportions_handler.fix_ancestry_proportions(
+        demography=model,
+        params_to_fix=["founder_rate1", "founder_rate1_sex_bias"],
+        proportions=sample_proportions
+    )
+    
+    # Verify that the model has been fixed
+    assert model.fixed_proportions_handler.has_been_fixed
+    
+    # Create a parameter list with only the founding time (since the rates are fixed)
+    test_params = [10]  # Only the founding time
+    
+    # Get the migration matrices
+    migration_matrices = model.get_migration_matrices(test_params)
+    
+    # Verify that we got migration matrices for both male and female populations
+    assert "target_pop_male" in migration_matrices
+    assert "target_pop_female" in migration_matrices
+    
+    # Get the matrices for the male and female populations
+    matrix_male = migration_matrices["target_pop_male"]
+    matrix_female = migration_matrices["target_pop_female"]
+    
+    # Verify the matrix dimensions
+    assert matrix_male.shape[0] == 11  # found_time + 1
+    assert matrix_male.shape[1] == 2  # two source populations
+    assert matrix_female.shape[0] == 11  # found_time + 1
+    assert matrix_female.shape[1] == 2  # two source populations
+     
+
+    final_proportions=model.proportions_from_matrices(migration_matrices)
+    final_proportions_male, final_proportions_female = final_proportions['target_pop_male'], final_proportions['target_pop_female']
+
+    print(final_proportions_male)
+    print("\n")
+    print(final_proportions_female)
+    # Verify that the final proportions match the sample proportions for males
+    assert np.isclose(final_proportions_male[0], 0.6)  # source_pop1 proportion for males
+    assert np.isclose(final_proportions_male[1], 0.4)  # source_pop2 proportion for males
+    
+    # Verify that the final proportions match the sample proportions for females
+    assert np.isclose(final_proportions_female[0], 0.6)  # source_pop1 proportion for females
+    assert np.isclose(final_proportions_female[1], 0.4)  # source_pop2 proportion for females
+    
+    # Verify that the sum of proportions is 1 for each population
+    assert np.isclose(final_proportions_male.sum(), 1.0)
+    assert np.isclose(final_proportions_female.sum(), 1.0)
+
+
+def test_ancestry_fixing_sex_biased_with_pulse():
+    """
+    Test the ancestry fixing functionality for a sex-biased demography with two founders and one pulse migration.
+    
+    This test:
+    1. Creates a sex-biased model with two founders and one pulse migration
+    2. Sets up sample proportions for both male and female populations
+    3. Fixes the pulse rate and sex-bias parameters using the sample proportions
+    4. Verifies that the model can take in founding time and pulse time values and output migration matrices
+    5. Verifies that the resulting rate parameters match the sample proportions
+    6. Verifies that the final proportions of the matrices match the sample proportions
+    """
+    # Create a sex-biased model with two founders and one pulse migration
+    model = ParametrizedDemographySexBiased(name="SexBiasedPulseModel")
+    
+    # Add a founder event with two source populations
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time"
+    )
+    
+    # Add a pulse migration
+    model.add_pulse_migration(
+        dest_population="target_pop",
+        source_population="source_pop1",
+        rate_param="pulse_rate",
+        time_param="pulse_time"
+    )
+    
+    # Finalize the model
+    model.finalize()
+    
+    # Define sample proportions for male and female populations
+    # 60% from source_pop1, 40% from source_pop2 for males
+    # 70% from source_pop1, 30% from source_pop2 for females
+    sample_proportions = {
+        "target_pop_male": [0.6, 0.4],  # [source_pop1, source_pop2] for males
+        "target_pop_female": [0.6, 0.4]  # [source_pop1, source_pop2] for females
+    }
+    
+    # Fix the pulse rate and sex-bias parameters using the sample proportions
+    model.fixed_proportions_handler.fix_ancestry_proportions(
+        demography=model,
+        params_to_fix=["pulse_rate", "pulse_rate_sex_bias"],
+        proportions=sample_proportions
+    )
+    
+    # Verify that the model has been fixed
+    assert model.fixed_proportions_handler.has_been_fixed
+    
+    # Create a parameter list with founding time, founding rate, and pulse time (since the pulse rate is fixed)
+    test_params = [0.5, 0, 10, 5]  # [founder_rate, founder_rate_sex_bias, found_time, pulse_time]
+    
+    # Get the migration matrices
+    migration_matrices = model.get_migration_matrices(test_params)
+    
+    # Verify that we got migration matrices for both male and female populations
+    assert "target_pop_male" in migration_matrices
+    assert "target_pop_female" in migration_matrices
+    
+    # Get the matrices for the male and female populations
+    matrix_male = migration_matrices["target_pop_male"]
+    matrix_female = migration_matrices["target_pop_female"]
+    
+    # Verify the matrix dimensions
+    assert matrix_male.shape[0] == 11  # found_time + 1
+    assert matrix_male.shape[1] == 2  # two source populations
+    assert matrix_female.shape[0] == 11  # found_time + 1
+    assert matrix_female.shape[1] == 2  # two source populations
+    
+    # Verify that the founder rates are greater than 0
+    assert matrix_male[10, 0] > 0
+    assert matrix_male[10, 1] > 0
+    assert matrix_female[10, 0] > 0
+    assert matrix_female[10, 1] > 0
+    
+    # Verify that the pulse migration is applied correctly
+    # The pulse rate should be calculated to achieve the final proportions
+    assert matrix_male[5, 0] > 0  # pulse migration at pulse time for males
+    assert matrix_female[5, 0] > 0  # pulse migration at pulse time for females
+    
+
+    print(matrix_male,"\n", matrix_female)
+    # Verify that the final proportions match the sample proportions for males
+    final_proportions=model.proportions_from_matrices(migration_matrices)
+    final_proportions_male, final_proportions_female = final_proportions['target_pop_male'], final_proportions['target_pop_female']
+
+    print(final_proportions_male,"\n", final_proportions_female)
+
+    assert np.isclose(final_proportions_male[0], 0.6)  # source_pop1 proportion for males
+    assert np.isclose(final_proportions_male[1], 0.4)  # source_pop2 proportion for males
+    
+    # Verify that the final proportions match the sample proportions for females
+    assert np.isclose(final_proportions_female[0], 0.6)  # source_pop1 proportion for females
+    assert np.isclose(final_proportions_female[1], 0.4)  # source_pop2 proportion for females
+    
+    # Verify that the sum of proportions is 1 for each population
+    assert np.isclose(final_proportions_male.sum(), 1.0)
+    assert np.isclose(final_proportions_female.sum(), 1.0)
+
+
+

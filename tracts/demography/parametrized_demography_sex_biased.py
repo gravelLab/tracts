@@ -50,6 +50,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
 
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
+        self.parametrized_populations=set()
 
     def add_pulse_migration(self, dest_population, source_population, rate_param, time_param):
         """
@@ -81,6 +82,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         remainder_population is the source of the remaining migrants, such that the total migration ratio adds up to 1.
         found_time is the name of the parameter defining the time of migration.
         """
+        self.parametrized_populations.add(dest_population)
 
         for population, rate_param in source_populations.items():
             self.add_parameter(rate_param, ParamType.RATE)
@@ -92,7 +94,21 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         for sex_type in sex_types:
             super().add_founder_event(f"{dest_population}{sex_type.suffix}", {population: f"{rate_param}{sex_type.suffix}" for population, rate_param in source_populations.items()},remainder_population, found_time)
         
-
+    def proportions_from_matrices(self, migration_matrices: dict[str, numpy.ndarray]):
+        proportions={}
+        for population in self.parametrized_populations:
+            male_matrix=migration_matrices[f'{population}{SexType.MALE.suffix}']
+            female_matrix=migration_matrices[f'{population}{SexType.FEMALE.suffix}']
+            current_male_proportions=male_matrix[-1,:]
+            current_female_proportions=female_matrix[-1,:]
+            for male_row, female_row in zip(male_matrix[-2::-1, :], female_matrix[-2::-1, :]):
+                (current_male_proportions, current_female_proportions) = (
+                    current_female_proportions * (1 - female_row.sum()) + female_row,
+                    1/2*(current_male_proportions * (1 - male_row.sum()) + male_row+current_female_proportions * (1 - female_row.sum()) + female_row)
+                )
+            proportions[f'{population}{SexType.MALE.suffix}']=current_male_proportions
+            proportions[f'{population}{SexType.FEMALE.suffix}']=current_female_proportions
+        return proportions
 
     @staticmethod
     def load_from_YAML(filepath: str | Path) -> ParametrizedDemographySexBiased:
@@ -124,6 +140,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                     if 'dest' in migration and migration['dest'] in parametrized_populations:
                         demography.add_continuous_migration(migration['dest'], migration['source'], migration['rate'],
                                                             migration['start_time'], migration['end_time'])
+            demography.parametrized_populations=parametrized_populations
             demography.finalize()
         return demography
 

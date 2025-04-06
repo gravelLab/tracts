@@ -510,7 +510,11 @@ class FixedProportionsHandler:
             for param_name, value in zip(self.params_fixed_by_ancestry, params_from_proportions):
                 params[free_params[param_name].index] = value
             return params
-        raise ValueError('An unexpected error occured while merging parameters.')
+        raise ValueError('An unexpected error occured while merging parameters.'
+                    f'\nNumber of model parameters: {len(free_params)}'
+                    f'\nNumber of parameters provided: {len(params)}'
+                    f'\nNumber of fixed parameters: {len(self.params_fixed_by_ancestry)}'
+                )
 
     def check_for_unsolvable_proportions(self, demography: BaseParametrizedDemography):
         '''
