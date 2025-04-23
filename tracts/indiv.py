@@ -3,8 +3,9 @@ from tracts.chromosome import Chropair, Chrom
 
 import tkinter as tk
 import numpy as np
+import logging
 
-
+logger=logging.getLogger(__name__)
 class Indiv:
     """ The class of diploid individuals. An individual can hence be though of
         as a list of pairs of chromosomes. Equivalently, a diploid individual
@@ -23,13 +24,20 @@ class Indiv:
     """
 
     @staticmethod
-    def from_haploids(haps: list[Haploid]):
+    def from_haploids(haps: list[Haploid], allosome_labels=[]):
+        name=haps[0].name
         if len(haps) != 2:
             raise ValueError('Two haplotypes must given to construct '
                              'a diploid individual')
 
         chroms = [Chropair(t) for t in zip(*[hap.chroms for hap in haps])]
-        return Indiv(chroms=chroms, Ls=haps[0].Ls)
+        allosomes={}
+        for key in allosome_labels:
+            allosomes[key] = [hap.allosomes[key] for hap in haps if key in hap]
+            if not allosomes[key]:
+                logger.warning(f"Allosome {key} was not found when reading individual {name} from file.")
+
+        return Indiv(chroms=chroms, Ls=haps[0].Ls, allosomes=allosomes,name=name)
 
     @staticmethod
     def from_files(paths, selectchrom=None, name=None):
@@ -45,7 +53,7 @@ class Indiv:
              for path in paths])
 
     def __init__(self, Ls=None, label="POP", fname=None, labs=("_A", "_B"),
-                 selectchrom=None, chroms=None, name=None):
+                 selectchrom=None, chroms: list[Chropair] | None = None, allosomes: dict[str, list[Chrom]]=None, name=None):
         """ Construct a diploid individual. There are several ways to build
             individuals, either from files, from existing data, or
             programmatically.
@@ -110,6 +118,7 @@ class Indiv:
             self.name = fname[0].split('/')[-1]
             self.chroms = i.chroms
             self.Ls = i.Ls
+            self.allosomes=allosomes
         self.canvas = None
 
     def plot(self, colordict, win=None):

@@ -6,11 +6,13 @@ from typing import Callable
 
 import numpy
 import ruamel.yaml
+import logging
 
-from tracts.demography.base_parametrized_demography import BaseParametrizedDemography
+from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, FixedProportionsHandler
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
 from enum import Enum
+
 
 class SexType(Enum):
     @staticmethod
@@ -48,9 +50,10 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
     The matrices are implemented as two subpopulations whose migrations have independent rate parameters but linked time parameters.
     """
 
-    def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
+    def __init__(self, name: str = "", min_time=2, max_time=numpy.inf, allosome_label=None):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
-        self.parametrized_populations=set()
+        self.parametrized_populations= set()
+        self.allosome_label=allosome_label
 
     def add_pulse_migration(self, dest_population, source_population, rate_param, time_param):
         """
@@ -99,6 +102,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         for population in self.parametrized_populations:
             male_matrix=migration_matrices[f'{population}{SexType.MALE.suffix}']
             female_matrix=migration_matrices[f'{population}{SexType.FEMALE.suffix}']
+            proportions[f'{population}_autosomal']=self.proportions_from_matrix((male_matrix+female_matrix)/2)
             current_male_proportions=male_matrix[-1,:]
             current_female_proportions=female_matrix[-1,:]
             for male_row, female_row in zip(male_matrix[-2::-1, :], female_matrix[-2::-1, :]):
@@ -106,9 +110,14 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                     current_female_proportions * (1 - female_row.sum()) + female_row,
                     1/2*(current_male_proportions * (1 - male_row.sum()) + male_row+current_female_proportions * (1 - female_row.sum()) + female_row)
                 )
-            proportions[f'{population}{SexType.MALE.suffix}']=current_male_proportions
-            proportions[f'{population}{SexType.FEMALE.suffix}']=current_female_proportions
+            proportions[f'{population}_{self.allosome_label}']=(current_male_proportions+2*current_female_proportions)/3
         return proportions
+    
+    def proportions_from_matrices_return_keys(self):
+        if not self.allosome_label:
+            self.logger.warning("The allosome label for this demography has not been specified. Defaulting to 'X'")
+            self.allosome_label="X"
+        return set([f'{population}_{label}' for label in ['autosomal', self.allosome_label] for population in self.parametrized_populations])
 
     @staticmethod
     def load_from_YAML(filepath: str | Path) -> ParametrizedDemographySexBiased:
@@ -142,5 +151,4 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                                                             migration['start_time'], migration['end_time'])
             demography.parametrized_populations=parametrized_populations
             demography.finalize()
-        return demography
-
+        return demography    

@@ -1,15 +1,17 @@
 from tracts.indiv import Indiv
 from tracts.util import eprint
-from tracts.chromosome import Chrom
+from tracts.chromosome import Chropair, Chrom, Tract
 
 import numpy as np
 import tkinter as tk
+import logging
 
 from matplotlib import pylab
 from tkinter import filedialog
 import bisect
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
 
 def collect_pop(flatdat):
     """ Organize a list of tracts into a dictionary keyed on ancestry
@@ -54,7 +56,7 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 
 class Population:
     def __init__(self, list_indivs=None, names=None, fname=None,
-                 labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False, filenames_by_individual=None):
+                 labs=("_A", "_B"), selectchrom=None, allosomes=[], ignore_length_consistency=False, filenames_by_individual=None):
         """ Construct a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
@@ -79,22 +81,24 @@ class Population:
         self.colordict = None
         self._flats = None
         self.canv = None
+        self.allosome_labels=allosomes
         if list_indivs is not None:
-            self.indivs = list_indivs
+            self.indivs: list[Indiv] = list_indivs
             self.nind = len(list_indivs)
             # should probably check that all individuals have same length!
             self.Ls = self.indivs[0].Ls
             assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), "individuals have genomes of different lengths"
             self.maxLen = max(self.Ls)
         elif filenames_by_individual is not None:
-            self.indivs = []
+            self.indivs: list[Indiv] = []
             for name, files in filenames_by_individual.items():
                 try:
                     self.indivs.append(
                         Indiv.from_files(
                             files,
                             name=name,
-                            selectchrom=selectchrom))
+                            selectchrom=selectchrom,
+                            allosomes=allosomes))
                 except Exception as e:
                     raise IndexError(f'Files for individiual {name} ({files}) could not be found.') from e
 
@@ -107,7 +111,7 @@ class Population:
                     'If this is intended, use ignore_length_consistency=True.')
             self.maxLen = max(self.Ls)
         elif fname is not None:
-            self.indivs = []
+            self.indivs: list[Indiv] = []
             for name in names:
                 try:
                     self.indivs.append(
@@ -247,7 +251,7 @@ class Population:
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1, exclude_tracts_below_cM=0):
+    def get_global_tractlengths(self, npts: int = 20, tol: float = 0.01, indlist: list = None, split_count: int = 1, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         """ tol is the tolerance for full chromosomes: sometimes there are
             small issues at the edges of the chromosomes. If a segment is
             within tol Morgans of the full chromosome, it counts as a full
@@ -257,6 +261,11 @@ class Population:
             indlist is the individuals for which we want the tractlength. To
             bootstrap over individuals, provide a bootstrapped list of
             individuals.
+            
+            Returns:
+                A tuple containing:
+                    - bins: The bins for the histogram.
+                    - dat: A dictionary with ancestry labels as keys and a histogram of tract lengths as values.
         """
         # Figure out whether we're dealing with the set of individuals
         # represented by this population or the one contained in the indlist
@@ -274,29 +283,56 @@ class Population:
             # duplicates.
             return bins_list[0], dats_list
 
-        bins = np.arange(exclude_tracts_below_cM * 0.01, self.maxLen * (1 + .5 / npts), float(self.maxLen) / npts)
-
-        bypop = defaultdict(list)
+        bypop: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
 
         for indiv in pop:
             for chrom in indiv:
                 for copy in chrom:
                     copy.smooth_unknown()
                     for tract in copy:
-                        bypop[tract.label].append({
-                            'tract': tract,
-                            'chromlen': chrom.len
-                        })
-        dat = {}
-        for label, ts in bypop.items():
+                        bypop[tract.label].append((
+                            tract,
+                            chrom.len
+                        ))
+        return self.tractlength_histogram(bypop, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM)
+
+    def tractlength_histogram(self, tracts_by_population:dict[str, list[tuple[Tract, float]]], npts: int = 20, tol: float = 0.01, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        bins = np.arange(exclude_tracts_below_cM * 0.01, self.maxLen * (1 + .5 / npts), float(self.maxLen) / npts)
+        dat: dict[str, list[np.ndarray]] = {}
+        for label, ts in tracts_by_population.items():
             # extract full length tracts
-            nonfulls = np.array([t['tract'] for t in ts if t['tract'].end - t['tract'].start < t['chromlen'] - tol])
+            nonfulls = np.array([tract for tract, chrom_length in ts if tract.end - tract.start < chrom_length - tol])
 
             hdat = np.histogram([n.len() for n in nonfulls], bins=bins)
             dat[label] = list(hdat[0])
             # append the number of fulls
             dat[label].append(len(ts) - len(nonfulls))
         return bins, dat
+
+    def get_global_allosome_tractlengths(self, allosome, npts: int = 20, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        """
+        """
+        if allosome not in self.allosome_labels:
+            raise KeyError(f"Data for chromosome {allosome} was never initialized for this population.")
+        
+        pop = self if indlist is None else Population(indlist)
+
+        bypop: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
+
+        for indiv in pop:
+            if allosome not in indiv.allosomes:
+                raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+            for chrom in indiv.allosomes[allosome]:
+                chrom.smooth_unknown()
+                for tract in chrom:
+                    bypop[tract.label].append((tract, chrom.len))
+        
+        if not bypop:
+            raise ValueError(f"Data for chromosome {allosome} does not exist on any individuals of this population.")
+        
+        return self.tractlength_histogram(bypop, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM)
+
+
 
     def bootinds(self, seed):
         """ Return a bootstrapped list of individuals in the population. Use
@@ -522,5 +558,5 @@ class Population:
     def __iter__(self):
         return self.indivs.__iter__()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Indiv:
         return self.indivs[index]

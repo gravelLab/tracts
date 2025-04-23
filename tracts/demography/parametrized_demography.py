@@ -66,15 +66,13 @@ class ParametrizedDemography(BaseParametrizedDemography):
 
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
-        self.founder_events: dict[str, FounderEvent]={}
-        self.events: dict[str: list[BaseMigrationEvent]]={}
 
     def execute_migration_events(self, migration_matrices, params):
         for population, events in self.events.items():
             for event in events:
                 event.execute(self, migration_matrices[population], params)
 
-    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool = None) -> dict[str, numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None) -> dict[str, numpy.ndarray]:
         """
         Takes in a list of params equal to the length of free_params
         and returns a p*g migration matrix for each population of interest

@@ -7,9 +7,12 @@ from typing import Callable
 import numpy
 import ruamel.yaml
 
-from tracts import Population, PhTMonoecious, optimize_cob
+from tracts.population import Population
+from tracts.core import optimize_cob
+from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
-from tracts.demography.parameter import Parameter,ParamType
+from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
+from tracts.demography.parameter import Parameter ,ParamType
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +24,17 @@ filepath_error_additional_message = ('\nPlease ensure that the file path is eith
 def locate_file_path(filename: str, script_dir: str | Path, absolute_driver_yaml_path: str | Path = None):
     # Define search methods and paths
     search_methods = [
-        (Path(filename), "using working directory"),
-        (Path(script_dir) / filename if script_dir else None, "using script directory"),
+        (Path(filename), "working directory"),
+        (Path(script_dir) / filename if script_dir else None, "script directory"),
         (
             (absolute_driver_yaml_path.parent / filename if isinstance(absolute_driver_yaml_path, Path) else Path("")),
-            "using driver yaml"
+            "driver yaml"
         )
     ]
     for filepath, method_name in search_methods:
         logger.info(f'{method_name}: {filepath}')
         if filepath.is_file():
-            logger.info(f'Found {filename} {method_name}.')
+            logger.info(f'Found {filename} using {method_name}.')
             return filepath
     for pathname in sys.path:
         if (Path(pathname) / filename).is_file():
@@ -44,7 +47,8 @@ def run_tracts(driver_filename, script_dir):
     driver_path = locate_file_path(filename=driver_filename, script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
 
-    chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
+    chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])        
+
     logger.info(f'Chromosomes: {chromosome_list}')
     individual_filenames = parse_individual_filenames(driver_spec['samples']['individual_names'],
                                                       driver_spec['samples']['filename_format'],
@@ -55,15 +59,19 @@ def run_tracts(driver_filename, script_dir):
 
     exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
 
+    # Currently assumes allosomes is a single label. May change in the future
+    allosome_label=driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else None    
+
+
     # load the population
-    pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list)
+    pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=[allosome_label])
     bins, data = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
 
     logger.info(f'Bins: {bins}')
 
     time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
 
-    model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_dir, driver_path=driver_path)
+    model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_dir, driver_path=driver_path, allosome_label=allosome_label)
 
     population_labels = model.population_indices.keys()
 
@@ -73,7 +81,17 @@ def run_tracts(driver_filename, script_dir):
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         ancestry_proportions = calculate_ancestry_proportions(pop, population_labels)
-        model.fixed_proportions_handler.fix_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {target_population:ancestry_proportions})
+        if allosome_label:
+            allosome_proportions=calculate_allosome_proportions(pop, population_labels, allosome_label)
+            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
+                driver_spec['fix_parameters_from_ancestry_proportions'],
+                {
+                    f'{target_population}_autosomal':ancestry_proportions,
+                    f'{target_population}_{allosome_label}': allosome_proportions
+                }
+            )
+        else:
+            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {target_population:ancestry_proportions})
 
     time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
     func = lambda params: time_scaled_func(params)[target_population]
@@ -82,19 +100,19 @@ def run_tracts(driver_filename, script_dir):
     if type(driver_spec['start_params']) is not dict:
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
 
-    params_found, likelihoods = run_model_multi_params(func, bound, pop, population_labels,
+    params_found, likelihoods = run_model_multi_init(func, bound, pop, population_labels,
                                                        parse_start_params(driver_spec['start_params'],
                                                                           driver_spec['repetitions'],
                                                                           driver_spec['seed'], model,
                                                                           time_scaling_factor),
-                                                       exclude_tracts_below_cM=exclude_tracts_below_cM)
+                                                       exclude_tracts_below_cM=exclude_tracts_below_cM,
+                                                       modelling_method=PhTDioecious if allosome_label else PhTMonoecious)
     formatted_likelihoods = [float(x) for x in likelihoods]
     print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
     if 'output_filename_format' in driver_spec:
         output_simulation_data(pop, optimal_params, model, driver_spec)
-
 
 def load_driver_file(driver_path):
     if driver_path is None:
@@ -106,7 +124,7 @@ def load_driver_file(driver_path):
     return driver_spec
 
 
-def load_model_from_driver(driver_spec, script_dir, driver_path):
+def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=None):
     if 'model_filename' not in driver_spec:
         raise ValueError('You must specify the file path to your model under "model_filename".')
     model_path = locate_file_path(filename=driver_spec['model_filename'],
@@ -114,11 +132,15 @@ def load_model_from_driver(driver_spec, script_dir, driver_path):
                                   absolute_driver_yaml_path=driver_path)
     if model_path is None:
         raise FileNotFoundError(f'Model yaml file could not be found. {filepath_error_additional_message}')
-    model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
+    if allosome_label:
+        model = ParametrizedDemographySexBiased.load_from_YAML(str(model_path.resolve()))
+        model.allosome_label=allosome_label
+    else:    
+        model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
     return model
 
 
-def parse_chromosomes(chromosome_spec, chromosomes=None):
+def parse_chromosomes(chromosome_spec: list | str | int, chromosomes: None | list=None):
     if chromosomes is None:
         chromosomes = []
     if isinstance(chromosome_spec, int):
@@ -135,10 +157,8 @@ def parse_chromosomes(chromosome_spec, chromosomes=None):
         raise ValueError('Chromosomes should be an int, range (ie: 1-22), or list.') from e
 
 
-def parse_individual_filenames(individual_names, filename_string, script_dir: str, labels=None, directory='',
+def parse_individual_filenames(individual_names, filename_string, script_dir: str, labels=['A', 'B'], directory='',
                                absolute_driver_yaml_path=None):
-    if labels is None:
-        labels = ['A', 'B']
 
     def _find_individual_file(individual_name, label_val):
         filepath = locate_file_path(filename=directory + filename_string.format(name=individual_name, label=label_val),
@@ -212,8 +232,26 @@ def randomize(arr, a, b):
     return ((b - a) * numpy.random.random(arr.shape) + a) * arr
 
 
-def run_model_multi_params(model_func, bound_func, population, population_labels, start_params_list,
-                           exclude_tracts_below_cM=0, modelling_method=PhTMonoecious):
+def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
+                          start_params_list: list[numpy.ndarray], exclude_tracts_below_cM: int = 0, 
+                          modelling_method: type = PhTMonoecious) -> tuple[list[numpy.ndarray], list[float]]:
+    """
+    Runs the model multiple times with different initial parameters.
+
+    Parameters:
+    - model_func (Callable): A function that takes parameters and returns migration matrices.
+    - bound_func (Callable): A function that calculates the violation score for the parameters.
+    - population (Population): The population object containing individual data.
+    - population_labels (list[str]): A list of labels corresponding to the populations.
+    - start_params_list (list[numpy.ndarray]): A list of initial parameter arrays to start the optimization.
+    - exclude_tracts_below_cM (int, optional): Minimum tract length in centimorgans to exclude from analysis. Default is 0.
+    - modelling_method (type, optional): The method used for modeling. Default is PhTMonoecious.
+
+    Returns:
+    - tuple[list[numpy.ndarray], list[float]]: A tuple containing two lists:
+        1. A list of optimal parameters found for each set of starting parameters.
+        2. A list of likelihoods corresponding to the optimal parameters.
+    """
     optimal_params = []
     likelihoods = []
     for start_params in start_params_list:
@@ -226,7 +264,7 @@ def run_model_multi_params(model_func, bound_func, population, population_labels
     return optimal_params, likelihoods
 
 
-def run_model(model_func, bound_func, population, population_labels, startparams, exclude_tracts_below_cM=0,
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, exclude_tracts_below_cM=0,
               modelling_method=PhTMonoecious):
     Ls = population.Ls
     nind = population.nind
@@ -279,6 +317,16 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
 
 def calculate_ancestry_proportions(sample_population: Population, population_labels):
     # Calculate the proportion of ancestry in each individual
+    bypopfrac = [[] for _ in range(len(population_labels))]
+    for ind in sample_population.indivs:
+        for i, population_label in enumerate(population_labels):
+            bypopfrac[i].append(ind.ancestryProps([population_label]))
+    # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
+    # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
+    return numpy.mean(bypopfrac, axis=1).flatten()
+
+def calculate_allosome_proportions(sample_population: Population, population_labels, allosome_label):
+    # Calculate the proportion of ancestry in each allosome
     bypopfrac = [[] for _ in range(len(population_labels))]
     for ind in sample_population.indivs:
         for i, population_label in enumerate(population_labels):

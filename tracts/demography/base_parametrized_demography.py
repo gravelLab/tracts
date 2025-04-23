@@ -8,6 +8,8 @@ import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 
+logger = logging.getLogger(__name__)
+
 
 class BaseFounderEvent(ABC):
 
@@ -54,7 +56,7 @@ class FounderEvent(BaseFounderEvent):
             remaining_rate -= rate
 
         if remaining_rate < 0:
-            logging.warning('Founding migration rates add up to more than 1')
+            logger.warning('Founding migration rates add up to more than 1')
 
         migration_matrix[
             start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
@@ -74,13 +76,12 @@ class BaseMigrationEvent(ABC):
         pass
 
 class BaseParametrizedDemography(ABC):
-    logger = logging.getLogger(__name__)
+    logger = logger
 
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
         self.name = name
         self.min_time = min_time
         self.max_time = max_time
-        self.events: list[BaseMigrationEvent] = []
         self.constraints = []
         self.free_params: dict[str, Parameter] = {}
         self.dependent_params = {}
@@ -88,8 +89,10 @@ class BaseParametrizedDemography(ABC):
         self.population_indices = {}
         self.reduced_constraints = []
         self.finalized = False
-        self.founder_event: FounderEvent = None
+        self.founder_events: dict[str, FounderEvent]={}
+        self.events: dict[str: list[BaseMigrationEvent]]={}        
         self.fixed_proportions_handler = FixedProportionsHandler(self.logger)
+
 
     @property
     def params_fixed_by_ancestry(self):
@@ -112,37 +115,16 @@ class BaseParametrizedDemography(ABC):
         return current_ancestry_proportions
     
     def proportions_from_matrices(self, migration_matrices: dict[str, numpy.ndarray]):
-        return {sample_pop: self.proportions_from_matrix(matrix) for sample_pop, matrix in migration_matrices.items()}
+        return {sample_pop: self.proportions_from_matrix(matrix) for sample_pop, matrix in migration_matrices.items()} 
 
-    def add_founder_event(self, source_populations: dict[str, str], remainder_population: str, found_time: str) -> None:
-        """
-        Adds a founder event. A parametrized demography must have exactly one founder event.
-        source_populations is a dict where each key is a population
-        and each value is the name of the parameter defining the migration ratio of each population
-        remainder_population is the source of the remaining migrants, such that the total migration ratio adds up to 1.
-        found_time is the name of the parameter defining the time of migration.
-        """
-
-        if self.founder_event:
-            raise ValueError('Population cannot have more than one founder event.')
-
-        for population, rate_param in source_populations.items():
-            self.add_population(population)
-            self.add_parameter(rate_param, param_type=ParamType.RATE)
-
-        self.add_population(remainder_population)
-
-        self.add_parameter(found_time, param_type=ParamType.TIME)
-        self.founder_event = FounderEvent(
-            found_time=found_time,
-            source_populations=source_populations,
-            remainder_population=remainder_population,
-        )
-
-    def get_founding_time(self):
-        if not self.founder_event:
-            raise ValueError('Missing a founder event.')
-        return self.founder_event.found_time
+    def proportions_from_matrices_return_keys(self):
+        '''
+        This method returns the expected keys from self.proportions_from_matrices().
+        It is used by FixedProportionsHandler to validate that the fixed parameter will be solvable from the given data.
+        TODO: calculate automatically from proportions_from_matrices().
+        For now, subclasses that change the behaviour of proportions_from_matrices() should have a different implementation of this method to reflect this.
+        '''
+        return set(self.founder_events.keys())
 
     def finalize(self):
         self.finalized = True
@@ -157,7 +139,7 @@ class BaseParametrizedDemography(ABC):
         """
         self.finalized = False
         if param_name in self.free_params or param_name in self.dependent_params:
-            logging.warning(f'Parameter "{param_name}" already exists.')
+            self.logger.warning(f'Parameter "{param_name}" already exists.')
             return
         if bounds is None:
             if param_type == ParamType.TIME:
@@ -265,7 +247,7 @@ class BaseParametrizedDemography(ABC):
                     [self.get_param_value(param_name, params) for param_name in constraint['param_subset']])
                 if violation < violation_score:
                     violation_score = violation
-                    logging.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
+                    self.logger.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
         else:
             if len(params) != len(self.free_params):
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
@@ -275,7 +257,7 @@ class BaseParametrizedDemography(ABC):
                 violation = constraint['expression'](
                     [self.get_param_value(param_name, full_params) for param_name in constraint['param_subset']])
                 if violation < violation_score:
-                    logging.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
+                    self.logger.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
                     violation_score = violation
         return violation_score
 
@@ -313,13 +295,13 @@ class BaseParametrizedDemography(ABC):
             for param_name, param_object in self.free_params.items():
                 violation = self.get_param_value(param_name, params) - param_object.bounds[0]
                 if violation < violation_score:
-                    logging.warning(
+                    self.logger.warning(
                         f'Lower bound for parameter {param_name} is {param_object.bounds[0]}. '
                         f'Out of bounds by: {-violation}.')
                     violation_score = violation
                 violation = param_object.bounds[1] - self.get_param_value(param_name, params)
                 if violation < violation_score:
-                    logging.warning(
+                    self.logger.warning(
                         f'Upper bound for parameter {param_name} is {param_object.bounds[1]}. '
                         f'Out of bounds by: {-violation}.')
                     violation_score = violation
@@ -334,13 +316,13 @@ class BaseParametrizedDemography(ABC):
                     continue
                 violation = self.get_param_value(param_name, full_params) - param_object.bounds[0]
                 if violation < violation_score:
-                    logging.warning(
+                    self.logger.warning(
                         f'Lower bound for parameter {param_name} is {param_object.bounds[0]}. '
                         f'Current value is {self.get_param_value(param_name, full_params)}.')
                     violation_score = violation
                 violation = param_object.bounds[1] - self.get_param_value(param_name, full_params)
                 if violation < violation_score:
-                    logging.warning(
+                    self.logger.warning(
                         f'Upper bound for parameter {param_name} is {param_object.bounds[1]}. '
                         f'Current value is {self.get_param_value(param_name, full_params)}.')
                     violation_score = violation
@@ -416,17 +398,25 @@ class FixedProportionsHandler:
         self.params_not_fixed_by_ancestry = []
         self.params_fixed_by_ancestry = {}
         self.known_ancestry_proportions: dict[str, list[float]] = None
+        self.reduced_constraints =[]
 
     @property
     def has_been_fixed(self):
         return self.known_ancestry_proportions is not None
 
-    def fix_ancestry_proportions(self, demography: BaseParametrizedDemography, params_to_fix: list[str], proportions: dict[str: list[float]]):
+    def set_up_fixed_ancestry_proportions(self, demography: BaseParametrizedDemography, params_to_fix: list[str], proportions: dict[str: list[float]]):
         """
         Tells the model to calculate certain rate parameters based on the known
         ancestry proportions of the sample populations
         Proportions are given as a dict with keys corresponding to the sample populations.
         """
+
+        if not (demography.proportions_from_matrices_return_keys() == proportions.keys()):
+            raise KeyError(
+                "The keys of the provided sample proportions do not match proportions_from_matrices():"
+                f"Expected keys: {demography.proportions_from_matrices_return_keys()}"
+                f"Provided keys: {proportions.keys()}"
+            )
         for param_name in params_to_fix:
             if param_name in demography.dependent_params:
                     raise KeyError(f'{param_name} is already specified by another equation.')
@@ -434,19 +424,22 @@ class FixedProportionsHandler:
                 raise KeyError(f'{param_name} is not a parameter of this model.')
             if demography.free_params[param_name].type not in {ParamType.RATE, ParamType.SEX_BIAS}:
                 raise ValueError(f'{param_name} is not a rate or sex bias parameter.')
-        for key in demography.founder_events:
-            if key not in proportions:
-                raise ValueError(f'Parametrized population {key} is not present in the given proportions.')
         if len(params_to_fix) != sum(len(prop)-1 for prop in proportions.values()):
             raise ValueError(
                     f'Number of parameters to fix is incorrect.'
                     f'Each population of interest can have N-1 proportions fixed'
                     f'Where N is the number of ancestral sources for that population'
                 )
+        
+        # Use a dict to maintain order. Also looping over demography.free_params rather than params_to_fix to maintain order.
         self.params_fixed_by_ancestry = {param_name: '' for param_name in demography.free_params if
                                          param_name in params_to_fix}
-        self.known_ancestry_proportions = {sample_pop:prop[:-1] for sample_pop, prop in proportions.items()}
-        demography.reduced_constraints = [constraint for constraint in demography.constraints if any(
+        
+        # Exclude the last set of proportions because they are redundant.
+        self.known_ancestry_proportions = {key:prop[:-1] for key, prop in proportions.items()}
+
+        # Keep the constraints that involve any of the fixed parameters. Not used yet.
+        self.reduced_constraints = [constraint for constraint in demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
 
     def compute_dependent_params(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
@@ -458,7 +451,7 @@ class FixedProportionsHandler:
         if len(params) == len(demography.free_params):
             full_params = params
             migration_matrix = demography.get_migration_matrices(full_params, solve_using_known_proportions=False)
-            calculated_proportions =demography.proportions_from_matrices(migration_matrix)
+            calculated_proportions = demography.proportions_from_matrices(migration_matrix)
             if numpy.all([numpy.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
                 return full_params
