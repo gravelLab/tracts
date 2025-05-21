@@ -6,13 +6,16 @@ from pathlib import Path
 from typing import Callable
 import numpy
 import ruamel.yaml
+import matplotlib.pyplot as plt
 
 from tracts.population import Population
-from tracts.core import optimize_cob
+from tracts.core import optimize_cob, optimize_cob_sex_biased
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
+from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.demography.parameter import Parameter ,ParamType
+from tracts.demography import DemographicModel
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +23,11 @@ filepath_error_additional_message = ('\nPlease ensure that the file path is eith
                                      ' or relative to the working directory, script directory,'
                                      ' or the directory of the driver yaml.')
 
-
-def locate_file_path(filename: str, script_dir: str | Path, absolute_driver_yaml_path: str | Path = None):
+def locate_file_path(filename: str, script_dir: str | Path | None, absolute_driver_yaml_path: str | Path = None):
     # Define search methods and paths
     search_methods = [
         (Path(filename), "working directory"),
-        (Path(script_dir) / filename if script_dir else None, "script directory"),
+        (Path(script_dir) / filename if script_dir else Path(""), "script directory"),
         (
             (absolute_driver_yaml_path.parent / filename if isinstance(absolute_driver_yaml_path, Path) else Path("")),
             "driver yaml"
@@ -42,77 +44,68 @@ def locate_file_path(filename: str, script_dir: str | Path, absolute_driver_yaml
             return Path(pathname) / filename
     return None
 
-
-def run_tracts(driver_filename, script_dir):
+def run_tracts(driver_filename, script_dir=None):
     driver_path = locate_file_path(filename=driver_filename, script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
-
-    chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])        
-
-    logger.info(f'Chromosomes: {chromosome_list}')
-    individual_filenames = parse_individual_filenames(driver_spec['samples']['individual_names'],
-                                                      driver_spec['samples']['filename_format'],
-                                                      labels=driver_spec['samples']['labels'],
-                                                      directory=driver_spec['samples']['directory'],
-                                                      script_dir=script_dir,
-                                                      absolute_driver_yaml_path=driver_path)
-
+    
     exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
 
     # Currently assumes allosomes is a single label. May change in the future
-    allosome_label=driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else None    
-
+    allosome_labels=driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else []
+    allosome_label= allosome_labels[0] if len(allosome_labels) > 0 else None
 
     # load the population
-    pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=[allosome_label])
-    bins, data = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
-
-    logger.info(f'Bins: {bins}')
+    pop = load_population(driver_path, driver_spec, script_dir, allosome_labels)
 
     time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
 
     model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_dir, driver_path=driver_path, allosome_label=allosome_label)
 
-    population_labels = model.population_indices.keys()
-
-    target_population = list(model.founder_events.keys())[0]
+    ancestor_labels = model.population_indices.keys()
 
     logger.info(f'Model Parameters: {model.free_params}')
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
-        ancestry_proportions = calculate_ancestry_proportions(pop, population_labels)
+        ancestry_proportions = calculate_ancestry_proportions(pop, ancestor_labels)
         if allosome_label:
-            allosome_proportions=calculate_allosome_proportions(pop, population_labels, allosome_label)
+            allosome_proportions = calculate_allosome_proportions(pop, ancestor_labels, allosome_label)
             model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
                 driver_spec['fix_parameters_from_ancestry_proportions'],
                 {
-                    f'{target_population}_autosomal':ancestry_proportions,
-                    f'{target_population}_{allosome_label}': allosome_proportions
+                    f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
+                    f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
                 }
             )
         else:
-            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {target_population:ancestry_proportions})
+            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {model.parametrized_populations[0]:ancestry_proportions})
 
     time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
-    func = lambda params: time_scaled_func(params)[target_population]
+    func = lambda params: time_scaled_func(params)
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
     if type(driver_spec['start_params']) is not dict:
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
+    
+    max_iter = driver_spec.get('maximum_iterations',None)
 
-    params_found, likelihoods = run_model_multi_init(func, bound, pop, population_labels,
-                                                       parse_start_params(driver_spec['start_params'],
+    params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
+                                                        parse_start_params(driver_spec['start_params'],
                                                                           driver_spec['repetitions'],
                                                                           driver_spec['seed'], model,
                                                                           time_scaling_factor),
-                                                       exclude_tracts_below_cM=exclude_tracts_below_cM,
-                                                       modelling_method=PhTDioecious if allosome_label else PhTMonoecious)
+                                                        max_iter=max_iter,
+                                                        exclude_tracts_below_cM=exclude_tracts_below_cM,
+                                                        modelling_method=PhTDioecious if allosome_label else PhTMonoecious)
     formatted_likelihoods = [float(x) for x in likelihoods]
     print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
+    print(f"Optimal Parameters:{optimal_params}")
     if 'output_filename_format' in driver_spec:
-        output_simulation_data(pop, optimal_params, model, driver_spec)
+        if allosome_label:
+            output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec)
+        else:
+            output_simulation_data(pop, optimal_params, model, driver_spec)
 
 def load_driver_file(driver_path):
     if driver_path is None:
@@ -123,6 +116,17 @@ def load_driver_file(driver_path):
         raise ValueError('Driver yaml file was invalid.')
     return driver_spec
 
+def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=None):
+    individual_filenames = parse_individual_filenames(driver_spec['samples']['individual_names'],
+                                                      driver_spec['samples']['filename_format'],
+                                                      labels=driver_spec['samples']['labels'],
+                                                      directory=driver_spec['samples']['directory'],
+                                                      script_dir=script_dir,
+                                                      absolute_driver_yaml_path=driver_path)
+    
+    chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
+    logger.info(f'Chromosomes: {chromosome_list}')
+    return Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [])
 
 def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=None):
     if 'model_filename' not in driver_spec:
@@ -233,7 +237,7 @@ def randomize(arr, a, b):
 
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[numpy.ndarray], exclude_tracts_below_cM: int = 0, 
+                          start_params_list: list[numpy.ndarray], max_iter: int=None, exclude_tracts_below_cM: int = 0, 
                           modelling_method: type = PhTMonoecious) -> tuple[list[numpy.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
@@ -257,6 +261,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     for start_params in start_params_list:
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
+                                                   max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                    modelling_method=modelling_method)
         optimal_params.append(params_found)
@@ -264,17 +269,24 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     return optimal_params, likelihoods
 
 
-def run_model(model_func, bound_func, population: Population, population_labels, startparams, exclude_tracts_below_cM=0,
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, max_iter=None, exclude_tracts_below_cM=0,
               modelling_method=PhTMonoecious):
+    if modelling_method == PhTDioecious:
+        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, max_iter, exclude_tracts_below_cM)
     Ls = population.Ls
     nind = population.nind
     bins, data = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
-    xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func, outofbounds_fun=bound_func, epsilon=1e-2,
+    model_func_sample_pop = lambda params:list(model_func(params).values())[0]
+    xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func_sample_pop, outofbounds_fun=bound_func, epsilon=1e-2,
                         modelling_method=modelling_method)
-    optmod = modelling_method(model_func(xopt))
+    optmod = modelling_method(model_func_sample_pop(xopt))
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
+
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, max_iter=None, exclude_tracts_below_cM=0):
+    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, maxiter=max_iter, epsilon=1e-2,verbose=1)
+    return optimal_params, optimal_likelihood
 
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
@@ -313,6 +325,91 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
 
     with open(output_dir + output_filename_format.format(label='optimal_parameters'), 'w') as fpars2:
         fpars2.write("\t".join(map(str, optimal_params)) + "\n")
+
+
+def output_simulation_data_sex_biased(sample_population: Population, optimal_params, model: ParametrizedDemographySexBiased, driver_spec):
+    """
+    Make some graphs of the data and results to see
+    """
+    if 'output_directory' in driver_spec:
+        output_dir = driver_spec['output_directory']
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+    else:
+        output_dir = ''
+
+
+    matrices = model.get_migration_matrices(optimal_params)
+
+    [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
+    output_filename_format = driver_spec['output_filename_format']
+    autosome_bins, autosome_data = sample_population.get_global_tractlengths()
+    Ls = sample_population.Ls
+    nind = sample_population.nind
+
+    allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X')
+    allosome_length = sample_population.allosome_lengths['X']
+    female_data = allosome_data[SexType.FEMALE]
+    male_data = allosome_data[SexType.MALE]
+
+    num_males = sample_population.num_males
+    num_females = sample_population.num_females
+
+    autosome_predicted={pop:PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
+    male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+    female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+    
+    for pop, pop_num in model.population_indices.items():
+        fig, axes = plt.subplots(3, 2, figsize=(12, 12))
+        fig.suptitle(f"Ancestor: {pop}")
+        print(num_males, num_females)
+
+        # 1st row: autosome data vs predicted
+        axes[0, 0].bar(autosome_bins[:-1], autosome_data[pop][:-1], width=numpy.diff(autosome_bins), align='edge', alpha=0.7, color='tab:blue')
+        axes[0, 0].set_title("Autosome Data")
+        axes[0, 0].set_xlabel("Tract Length (cM)")
+        axes[0, 0].set_ylabel("Count")
+
+        axes[0, 1].bar(autosome_bins[:-1], [nind*num_tracts for num_tracts in autosome_predicted[pop]], width=numpy.diff(autosome_bins), align='edge', alpha=0.7, color='tab:orange')
+        axes[0, 1].set_title("Autosome Predicted")
+        axes[0, 1].set_xlabel("Tract Length (cM)")
+        axes[0, 1].set_ylabel("Count")
+
+        # 2nd row: male allosome data vs predicted
+        axes[1, 0].bar(allosome_bins[:-1], male_data[pop][:-1], width=numpy.diff(allosome_bins), align='edge', alpha=0.7, color='tab:blue')
+        axes[1, 0].set_title("Male Allosome Data")
+        axes[1, 0].set_xlabel("Tract Length (cM)")
+        axes[1, 0].set_ylabel("Count")
+
+        axes[1, 1].bar(allosome_bins[:-1], [num_males * num_tracts for num_tracts in male_predicted[pop]], width=numpy.diff(allosome_bins), align='edge', alpha=0.7, color='tab:orange')
+        axes[1, 1].set_title("Male Allosome Predicted")
+        axes[1, 1].set_xlabel("Tract Length (cM)")
+        axes[1, 1].set_ylabel("Count")
+
+        # 3rd row: female allosome data vs predicted
+        axes[2, 0].bar(allosome_bins[:-1], female_data[pop][:-1], width=numpy.diff(allosome_bins), align='edge', alpha=0.7, color='tab:blue')
+        axes[2, 0].set_title("Female Allosome Data")
+        axes[2, 0].set_xlabel("Tract Length (cM)")
+        axes[2, 0].set_ylabel("Count")
+
+        axes[2, 1].bar(allosome_bins[:-1], [2*num_females * num_tracts for num_tracts in female_predicted[pop]], width=numpy.diff(allosome_bins), align='edge', alpha=0.7, color='tab:orange')
+        axes[2, 1].set_title("Female Allosome Predicted")
+        axes[2, 1].set_xlabel("Tract Length (cM)")
+        axes[2, 1].set_ylabel("Count")
+
+        print(male_predicted[pop][0], female_predicted[pop][0])
+        print(num_males*male_predicted[pop][0], 2*num_females*female_predicted[pop][0])
+        # Approximate the sum of tractlengths using the midpoint of the bins for male_predicted and female_predicted
+        male_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
+        female_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
+        male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
+        female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
+        print(f"Approximate sum of tractlengths (male predicted): {male_sum}")
+        print(f"Approximate sum of tractlengths (female predicted): {female_sum}")
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
+        plt.close(fig)
 
 
 def calculate_ancestry_proportions(sample_population: Population, population_labels):

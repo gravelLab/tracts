@@ -1,7 +1,7 @@
 demes:
   - name: EUR
   - name: AFR
-  - name: X
+  - name: S
     ancestors:
       - name: EUR
         male_to_female_ratio: mfr_i_eur  # Male-to-female ratio for this ancestor
@@ -12,14 +12,14 @@ demes:
 
 pulses:
   - sources: [EUR]
-    dest: X
+    dest: S
     proportions: [P]
     time: tp
     male_to_female_ratio: mfr_p  # Male-to-female ratio for this pulse
 
 migrations:
   - source: EUR
-    dest: X
+    dest: S
     rate: K
     start_time: tm1
     end_time: tm2

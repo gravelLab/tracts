@@ -55,13 +55,13 @@ def main():
 
         # Determine whether to append
         # Male: append only to _A file; Female: append to both
-        do_append = (g == 'female') or (g == 'male' and hap.upper() == 'A')
+        do_append = (g == 'female') or (g == 'male' and hap == 'A.bed')
         if do_append:
             with open(fpath, 'a') as fh:
                 fh.write("\n" + "\n".join(x_block) + "\n")
             print(f"Appended X block to {fname}")
         else:
-            print(f"Skipped {fname} (no X block needed)")
+            print(f"Skipped {fname} (no X block needed) ()")
 
 
 if __name__ == '__main__':

@@ -5,12 +5,12 @@ description:
 demes:
   - name: EUR
   - name: AFR
-  - name: X
+  - name: S
     ancestors: [EUR, AFR]
     proportions: [R, 1-R]
     start_time: tx
 pulses:
   - sources: [EUR]
-    dest: X
+    dest: S
     proportions: [P]
     time: t2

@@ -92,6 +92,8 @@ class BaseParametrizedDemography(ABC):
         self.founder_events: dict[str, FounderEvent]={}
         self.events: dict[str: list[BaseMigrationEvent]]={}        
         self.fixed_proportions_handler = FixedProportionsHandler(self.logger)
+        self.parametrized_populations= []
+
 
 
     @property
@@ -374,6 +376,14 @@ class BaseParametrizedDemography(ABC):
                 ' the other must be "1-a-b"')
 
         return source_populations, remainder_population
+    
+    def list_parameters(self):
+        for param_name, param_info in self.free_params.items():
+            print(f"{param_name}: {param_info.type}")
+        return
+
+    def set_up_fixed_ancestry_proportions(self, params_to_fix: list[str], proportions: dict[str: list[float]]):
+        self.fixed_proportions_handler.set_up_fixed_ancestry_proportions(self, params_to_fix, proportions)
 
     @abstractmethod
     def get_random_parameters():
@@ -414,8 +424,8 @@ class FixedProportionsHandler:
         if not (demography.proportions_from_matrices_return_keys() == proportions.keys()):
             raise KeyError(
                 "The keys of the provided sample proportions do not match proportions_from_matrices():"
-                f"Expected keys: {demography.proportions_from_matrices_return_keys()}"
-                f"Provided keys: {proportions.keys()}"
+                f"\nExpected keys: {demography.proportions_from_matrices_return_keys()}"
+                f"\nProvided keys: {proportions.keys()}"
             )
         for param_name in params_to_fix:
             if param_name in demography.dependent_params:

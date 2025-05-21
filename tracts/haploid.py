@@ -30,7 +30,8 @@ class Haploid:
         with open(path, 'r') as f:
             for line in f:
                 fields = line.split()
-
+                if len(fields) == 0:
+                    continue
                 # Skip the header, if one is present.
                 if fields[0] == 'chrom' or \
                         (fields[0] == 'Chr' and fields[1] == 'Start(bp)'):
@@ -73,7 +74,10 @@ class Haploid:
             # and checks whether its in our set.
 
             def is_selected(chrom_label):
-                return int(chrom_label) in sc
+                try:
+                    return int(chrom_label) in sc
+                except:
+                    return False
 
         # Filter the loaded data according to selectchrom using the is_selected
         # function constructed above.
@@ -85,6 +89,7 @@ class Haploid:
                 Ls.append(c.len)
                 labs.append(chrom_id)
             if chrom_id in allosome_labels:
+                #print(f'{chrom_id} in {path}')
                 allosomes[chrom_id] = Chrom(tracts=tracts)
 
 
@@ -111,13 +116,14 @@ class Haploid:
             self.chroms = lschroms
             self.labs = labs
             self.name = name
+            self.allosomes=allosomes if allosomes else {}
         else:
             h = Haploid.from_file(fname, selectchrom=selectchrom)
             self.Ls = h.Ls
             self.chroms = h.chroms
             self.labs = h.labs
             self.name = name
-            self.allosomes=allosomes if allosomes else {}
+            self.allosomes=h.allosomes
 
     def __repr__(self):
         return "haploid(lschroms=%s, name=%s, Ls=%s)" % tuple(map(repr, [self.chroms, self.name, self.Ls]))

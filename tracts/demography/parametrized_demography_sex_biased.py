@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
 from typing import Callable
 
@@ -52,7 +53,6 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
 
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf, allosome_label=None):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
-        self.parametrized_populations= set()
         self.allosome_label=allosome_label
 
     def add_pulse_migration(self, dest_population, source_population, rate_param, time_param):
@@ -85,7 +85,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         remainder_population is the source of the remaining migrants, such that the total migration ratio adds up to 1.
         found_time is the name of the parameter defining the time of migration.
         """
-        self.parametrized_populations.add(dest_population)
+        self.parametrized_populations.append(dest_population)
 
         for population, rate_param in source_populations.items():
             self.add_parameter(rate_param, ParamType.RATE)
@@ -120,35 +120,38 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         return set([f'{population}_{label}' for label in ['autosomal', self.allosome_label] for population in self.parametrized_populations])
 
     @staticmethod
-    def load_from_YAML(filepath: str | Path) -> ParametrizedDemographySexBiased:
+    def load_from_YAML(source: str | Path) -> ParametrizedDemographySexBiased:
         """
         Creates an instance of ParametrizedDemographySexBiased from a YAML file
         """
+        yaml = ruamel.yaml.YAML(typ="safe")
+        if isinstance(source, (str, bytes, os.PathLike)):
+            with open(source, 'r') as file:
+                demes_data=yaml.load(file)
+        else:
+            # Assume it's a file-like object
+            demes_data=yaml.load(source)
+        
+        assert isinstance(demes_data, dict), ".yaml file was invalid." 
         demography = ParametrizedDemographySexBiased('Unnamed Model')
-        parametrized_populations=set()
-        with open(filepath) as file, ruamel.yaml.YAML(typ="safe") as yaml:
-            demes_data = yaml.load(file)
-            assert isinstance(demes_data, dict), ".yaml file was invalid."
-            if 'model_name' in demes_data:
-                demography.name = demes_data['model_name']
+        if 'model_name' in demes_data:
+            demography.name = demes_data['model_name']
 
-            for population in demes_data['demes']:
-                if 'ancestors' in population:
-                    parametrized_populations.add(population['name'])
-                    source_populations, remainder_population = ParametrizedDemographySexBiased.parse_proportions(
-                        population['ancestors'], population['proportions'])
-                    demography.add_founder_event(population['name'], source_populations, remainder_population, population['start_time'])
-            if 'pulses' in demes_data:
-                for pulse in demes_data['pulses']:
-                    print(pulse)
-                    if 'dest' in pulse and pulse['dest'] in parametrized_populations:
-                        for source, proportion in zip(pulse['sources'], pulse['proportions']):
-                            demography.add_pulse_migration(pulse['dest'], source, proportion, pulse['time'])
-            if 'migrations' in demes_data:
-                for migration in demes_data['migrations']:
-                    if 'dest' in migration and migration['dest'] in parametrized_populations:
-                        demography.add_continuous_migration(migration['dest'], migration['source'], migration['rate'],
-                                                            migration['start_time'], migration['end_time'])
-            demography.parametrized_populations=parametrized_populations
-            demography.finalize()
+        for population in demes_data['demes']:
+            if 'ancestors' in population:
+                demography.parametrized_populations.append(population['name'])
+                source_populations, remainder_population = ParametrizedDemographySexBiased.parse_proportions(
+                    population['ancestors'], population['proportions'])
+                demography.add_founder_event(population['name'], source_populations, remainder_population, population['start_time'])
+        if 'pulses' in demes_data:
+            for pulse in demes_data['pulses']:
+                if 'dest' in pulse and pulse['dest'] in demography.parametrized_populations:
+                    for source, proportion in zip(pulse['sources'], pulse['proportions']):
+                        demography.add_pulse_migration(pulse['dest'], source, proportion, pulse['time'])
+        if 'migrations' in demes_data:
+            for migration in demes_data['migrations']:
+                if 'dest' in migration and migration['dest'] in demography.parametrized_populations:
+                    demography.add_continuous_migration(migration['dest'], migration['source'], migration['rate'],
+                                                        migration['start_time'], migration['end_time'])
+        demography.finalize()
         return demography    

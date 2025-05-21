@@ -33,14 +33,14 @@ class Indiv:
         chroms = [Chropair(t) for t in zip(*[hap.chroms for hap in haps])]
         allosomes={}
         for key in allosome_labels:
-            allosomes[key] = [hap.allosomes[key] for hap in haps if key in hap]
+            allosomes[key] = [hap.allosomes[key] for hap in haps if key in hap.allosomes]
             if not allosomes[key]:
                 logger.warning(f"Allosome {key} was not found when reading individual {name} from file.")
 
         return Indiv(chroms=chroms, Ls=haps[0].Ls, allosomes=allosomes,name=name)
 
     @staticmethod
-    def from_files(paths, selectchrom=None, name=None):
+    def from_files(paths, selectchrom=None, name=None, allosomes=None):
         """ Construct a diploid individual from two files, which describe the
             individuals haplotypes.
         """
@@ -49,8 +49,8 @@ class Indiv:
                              'a diploid individual')
 
         return Indiv.from_haploids(
-            [Haploid.from_file(path, name=name, selectchrom=selectchrom)
-             for path in paths])
+            [Haploid.from_file(path, name=name, selectchrom=selectchrom, allosome_labels=allosomes)
+             for path in paths], allosome_labels=allosomes)
 
     def __init__(self, Ls=None, label="POP", fname=None, labs=("_A", "_B"),
                  selectchrom=None, chroms: list[Chropair] | None = None, allosomes: dict[str, list[Chrom]]=None, name=None):
@@ -112,13 +112,14 @@ class Indiv:
                 self.chroms = [Chropair(chropair_len=length, label=label) for length in Ls]
             else:
                 self.chroms = chroms
+            self.allosomes=allosomes
         else:
             fnames = [fname[0] + lab + fname[1] for lab in labs]
             i = Indiv.from_files(fnames, selectchrom)
             self.name = fname[0].split('/')[-1]
             self.chroms = i.chroms
             self.Ls = i.Ls
-            self.allosomes=allosomes
+            self.allosomes=i.allosomes
         self.canvas = None
 
     def plot(self, colordict, win=None):
