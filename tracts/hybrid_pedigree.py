@@ -11,8 +11,10 @@ from functools import partial
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from scipy import integrate
 
 from tracts.phase_type_distribution import PhTDioecious
+
 
 warnings.filterwarnings("ignore")
 
@@ -98,24 +100,32 @@ def prob_of_pop_setting(ms, all_possible_migrations_list, migrations_at_T_list, 
             sex_and_gen[k, 1] = int(i)
             k += 1
     sex_and_gen[0, :] = [parent_sex, 1]
-
+    
     migrant_individuals = np.asarray(all_possible_migrations_list[ms])
     mig_setting = np.concatenate([sex_and_gen[~np.isnan(migrant_individuals), :],
                                   migrant_individuals[~np.isnan(migrant_individuals), np.newaxis],
-                                  np.zeros([np.sum(~np.isnan(migrant_individuals)), 1])], axis=1)
+                                  np.zeros([np.sum(~np.isnan(migrant_individuals)), 1])], axis=1)    
+    
+    pfmig = mig_setting[:, 0][:, np.newaxis] * (mig_setting[:,2] > 0)[:, np.newaxis] * f_migrations[mig_setting[:, 1].astype(int), :]
+    pmmig = (1 - mig_setting[:, 0][:, np.newaxis]) * (mig_setting[:,2] > 0)[:, np.newaxis] * m_migrations[mig_setting[:, 1].astype(int), :]
+    pfad = mig_setting[:, 0] * (mig_setting[:, 2] == 0) * (1 - np.sum(f_migrations[mig_setting[:, 1].astype(int), :], axis=1))
+    pmad = (1 - mig_setting[:, 0]) * (mig_setting[:, 2] == 0) * (1 - np.sum(m_migrations[mig_setting[:, 1].astype(int), :], axis=1))
 
-    pfmig = mig_setting[:, 0][:, np.newaxis] * f_migrations[mig_setting[:, 1].astype(int), :]
-    pmmig = (1 - mig_setting[:, 0][:, np.newaxis]) * m_migrations[mig_setting[:, 1].astype(int), :]
-    pfad = mig_setting[:, 0] * (1 - np.sum(f_migrations[mig_setting[:, 1].astype(int), :], axis=1))
-    pmad = (1 - mig_setting[:, 0]) * (1 - np.sum(m_migrations[mig_setting[:, 1].astype(int), :], axis=1))
+    which_pfmig = (np.array([mig_setting[:,2] > 0])*np.array([mig_setting[:,0] == 1]))[0]                  
+    which_pmmig = (np.array([mig_setting[:,2] > 0])*np.array([mig_setting[:,0] == 0]))[0]                  
+                 
+    pfmig = pfmig[np.where(which_pfmig)[0], mig_setting[which_pfmig, 2].astype(int) - 1]
+    pmmig = pmmig[np.where(which_pmmig)[0], mig_setting[which_pmmig ,2].astype(int) - 1]
+    pad = (pfad + pmad)
+    pad = pad[np.nonzero(pad)]
+    p_mig_setting = np.prod(pfmig)*np.prod(pmmig)*np.prod(pad)
+    
+    #pmig = np.zeros([np.sum(~np.isnan(migrant_individuals)), Number_pops])
 
-    pad = (pfad + pmad) * (mig_setting[:, 2] == 0)
-    pmig = np.zeros([np.sum(~np.isnan(migrant_individuals)), Number_pops])
+    #for j in range(Number_pops):
+    #    pmig[:, j] = ((pfmig + pmmig) * (mig_setting[:, 2] == j + 1)[:, np.newaxis])[:, j]
 
-    for j in range(Number_pops):
-        pmig[:, j] = ((pfmig + pmmig) * (mig_setting[:, 2] == j + 1)[:, np.newaxis])[:, j]
-
-    p_mig_setting = np.prod(np.sum(pmig, axis=1) + pad)
+    #p_mig_setting = np.prod(np.sum(pmig, axis=1) + pad)
 
     ancestral_states = np.asarray(np.nansum(pedigree * migrant_individuals[:, np.newaxis], axis=0))
     which_ancestral = np.where(np.sum(np.abs(migrations_at_T_list - ancestral_states), axis=1) == 0)[0][0]
@@ -131,8 +141,9 @@ def density_hybrid_pedigree(which_migration, migration_list, T_PED, which_pop, D
             bins = np.append(bins, which_L)
         bins = bins[bins <= which_L]  # Truncate to [0, L], where the distribution is supported
         bins = np.unique(np.sort(bins))
-
+    
     ancestral_setting = np.asarray(migration_list[which_migration])
+
     ETL_m = None
     if np.all(ancestral_setting == which_pop + 1):
         newbins = bins
@@ -142,6 +153,14 @@ def density_hybrid_pedigree(which_migration, migration_list, T_PED, which_pop, D
         counts_m = np.zeros(len(bins))
         counts_m[np.asarray(bins) >= which_L] = 1
         ETL_m = which_L
+
+    elif np.all(ancestral_setting != which_pop + 1) and np.all(ancestral_setting > 0):
+        
+        counts_f = np.nan * np.asarray(bins)
+        ETL_f = np.nan
+        counts_m = np.nan * np.asarray(bins)
+        ETL_m = np.nan        
+    
     else:
         PhT_ped = PhTDioecious(migration_matrix_f=mmat_f, migration_matrix_m=mmat_m, rho_f=rrr_f, rho_m=rrr_m,
                                sex_model=D_model, X_chromosome=is_X_chr, X_chromosome_male=is_X_chr_male,
@@ -174,7 +193,7 @@ def density_hybrid_pedigree(which_migration, migration_list, T_PED, which_pop, D
                                                                                   freq=False, hybrid_ped=True
                                                                                   )
             else:
-                counts_m = np.ones(len(bins))
+                counts_m = np.nan*np.ones(len(bins))
                 ETL_m = np.nan
     
     return counts_f, counts_m, which_migration, ETL_f, ETL_m
@@ -251,7 +270,7 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     
     if not np.isin(Dioecious_model, ['DF', 'DC']):
         raise Exception('The Dioecious model must be one in DF, DC.')
-
+        
     mean_mig_matrix = 0.5 * (mig_matrix_f + mig_matrix_m)
     survival_factors = np.ones(len(mean_mig_matrix))
     for generation_number in range(1, len(mean_mig_matrix)):
@@ -259,7 +278,8 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
                 1 - sum(mean_mig_matrix[generation_number - 1]))
     t0_proportions = np.sum((0.5 * (mig_matrix_f + mig_matrix_m)) * np.transpose(survival_factors)[:, np.newaxis],
                             axis=0)
-
+    
+    
     T = int(np.shape(mig_matrix_f)[0] - 1)  # Number of generations
     Npops = int(np.shape(mig_matrix_f)[1])
     nind_TP = 2 ** TP - 1
@@ -292,6 +312,7 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
                                               number_anc=nanc_TP,
                                               Number_pops=Npops, pedigree=the_pedigree)
 
+    
     print('-------------------------------------------------------------------\n')
     print("".join(['Computing pedigrees probabilities...\n']))
     print('-------------------------------------------------------------------\n')
@@ -321,7 +342,7 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
                                        is_X_chr=X_chr, is_X_chr_male=X_chr_male, density_function=density)
     densities_list = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
         delayed(density_hybrid_iteration)(i) for i in range(len(migrations_at_TP)))
-
+    
     print('-------------------------------------------------------------------\n')
     print("".join(['Done!\n']))
     print('-------------------------------------------------------------------\n')
@@ -338,15 +359,23 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     
     mig_out_f = [den[2] for den in densities_list if np.any(np.isnan(den[0]))]
     mig_out_m = [den[2] for den in densities_list if np.any(np.isnan(den[1]))]
-
+    
     # Re-weight pedigree probabilities
     data_prob_m = data_prob_m[~data_prob_m.which_ancestral.isin(mig_out_m)]
     prob_list_m = data_prob_m.groupby(['which_ancestral']).sum().reset_index().to_numpy()
     prob_list_m[:, 1] = prob_list_m[:, 1] / np.sum(prob_list_m[:, 1])
-
+    
+    #prob_list_f[np.where(prob_list_f[:,1]>0),0]
+    #densities_list[39]
+    #np.concatenate([migrations_at_TP[prob_list_f[np.where(prob_list_f[:,1]>0),0].astype(int),:][0],prob_list_f[np.where(prob_list_f[:,1]>0),1].T],axis=1)
+    
     data_prob_f = data_prob_f[~data_prob_f.which_ancestral.isin(mig_out_f)]
     prob_list_f = data_prob_f.groupby(['which_ancestral']).sum().reset_index().to_numpy()
     prob_list_f[:, 1] = prob_list_f[:, 1] / np.sum(prob_list_f[:, 1])
+    
+    #prob_list_f[prob_list_f[:,1]>0,:]
+    #data_prob_f[data_prob_f.which_ancestral.isin(mig_out_f)]
+
     
     if X_chr and X_chr_male:
         final_density = np.sum(np.array([l[0] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if

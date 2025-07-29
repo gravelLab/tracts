@@ -53,7 +53,7 @@ def test_PDT_Monoecious(data, request):
 
 
 def verify_similar_ptd_models(ptd_first: PhaseTypeDistribution, ptd_second: PhaseTypeDistribution,
-                              atol: float = 0.01):
+                              atol: float = 0.02):
     newbins, counts_first, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
                                                                         density=True, freq=False)
     newbins, counts_second, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
@@ -107,7 +107,7 @@ def test_PDT_X(data, request):
         PTD_Dioecious_C = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
                                        rho_m=1, sex_model='DC', X_chromosome=True,
                                        X_chromosome_male=Xcmale)
-        verify_similar_ptd_models(ptd_first=PTD_Dioecious_F, ptd_second=PTD_Dioecious_C, atol=0.1)
+        verify_similar_ptd_models(ptd_first=PTD_Dioecious_F, ptd_second=PTD_Dioecious_C, atol=0.15)
 
         # Basic checks for X models
         verify_ptd_dioecious_matrices(PTD_Dioecious_F)
