@@ -175,8 +175,6 @@ def test_population_after_fix(basic_model):
     
     basic_model.add_parameter("rate1", ParamType.RATE)
     
-    print(dir(basic_model)) 
-    
     # Fix proportions
     basic_model.fix_ancestry_proportions(["rate1"], {"pop1": [0.7, 0.3]})
     
