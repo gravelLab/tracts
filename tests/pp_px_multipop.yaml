@@ -5,12 +5,21 @@ description:
 demes:
   - name: EUR
   - name: AFR
-  - name: S
+  - name: W
+    ancestors: [EUR, AFR]
+    proportions: [Q, 1-Q]
+    start_time: tq
+    
+  - name: X
     ancestors: [EUR, AFR]
     proportions: [R, 1-R]
     start_time: tx
 pulses:
   - sources: [EUR]
-    dest: S
-    proportions: [P]
-    time: t2
+    dest: W
+    proportions: [Q1]
+    time: tq2
+  - sources: [AFR]
+    dest: X
+    proportions: [Q2]
+    time: tx2
