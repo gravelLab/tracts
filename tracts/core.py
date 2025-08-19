@@ -4,15 +4,60 @@ import numpy as np
 import scipy.optimize
 from matplotlib import pylab
 
-from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
-from tracts.demography.demographic_model import DemographicModel
-from tracts.demography.composite_demographic_model import CompositeDemographicModel
-from tracts.demography.parametrized_demography_sex_biased import SexType
-from tracts.population import Population
+from tracts.phase_type_distribution import PhaseTypeDistribution
+from tracts.demographic_model import DemographicModel
+from tracts.composite_demographic_model import CompositeDemographicModel
 from tracts.util import eprint
 
 #: Counts calls to object_func
 _counter = 0
+
+
+def choose_model(migration_matrix, use_PTD=False):
+    if use_PTD:
+        return PhaseTypeDistribution(migration_matrix)
+    return DemographicModel(migration_matrix)
+
+
+def inner_PDF(x, L, S, exp_Sx=None, alpha=None, S0_inv=None):
+    """ Calculate the CDF of tractlengths on a window L
+        S is the transition submatrix
+        Z is the normalization factor
+        Accepts precomputed values for e^Sx, e^SL, and Z
+    """
+    if x > L:
+        raise Exception('Cannot find tracts of length greater than L in a window L')
+    if exp_Sx is None:
+        exp_Sx = scipy.linalg.expm(x * S)
+    if alpha is None:
+        alpha = np.ones(len(S)) / len(S)
+    if S0_inv is None:
+        S0_inv = np.linalg.inv(S).sum(1)
+    n_states = len(alpha)
+
+    return -np.dot(alpha, np.dot((exp_Sx - np.identity(n_states)), L + S0_inv) - np.sum(x * exp_Sx, 1))
+
+
+def outer_PDF(x, L, S, exp_Sx=None, alpha=None, S0_inv=None):
+    """ Calculate the length distribution of tract lengths hitting a single
+        chromosome edge. """
+    if x > L:
+        raise Exception('Cannot find tracts of length greater than L in a window L')
+    if exp_Sx is None:
+        exp_Sx = scipy.linalg.expm(x * S)
+    if alpha is None:
+        alpha = np.ones(len(S)) / len(S)
+    if S0_inv is None:
+        S0_inv = np.linalg.inv(S).sum(1)
+    n_states = len(alpha)
+
+    return 2 * np.dot(alpha, np.dot(exp_Sx - np.identity(n_states), S0_inv))
+
+
+def Z2(L, pop):
+    """the normalizing factor, to ensure that the tract density is 1."""
+    return 1
+
 
 def plotmig(mig, colordict=None, order=None):
     if colordict is None:
@@ -111,7 +156,7 @@ optimize_bfgs = optimize
 
 def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=DemographicModel) -> np.ndarray:
+                 ll_scale=1, reset_counter=True, modelling_method=DemographicModel):
     """
     Optimize params to fit model to data using the cobyla method.
 
@@ -169,7 +214,6 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
         Defaults to true, resets the iteration counter to zero. Set to False to
         continue iteration count (e.g., if optimization continues from previous point)
     """
-    print(modelling_method)
     if func_args is None:
         func_args = []
     if reset_counter:
@@ -184,62 +228,6 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
         fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
 
     return outputs
-
-def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious) -> tuple[np.ndarray, float]:
-    """
-    """
-    if reset_counter:
-        global _counter
-        _counter = 0
-    
-    def objective_function(parameters):
-        _out_of_bounds_val = -1e32
-        global _counter
-        _counter += 1
-
-        def flush_result(result):
-            if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameters]))
-                eprint('%-8i, %-12g, %s' % (_counter, result, param_str))
-                # Misc.delayed_flush(delay=flush_delay)
-
-        if outofbounds_fun is not None:
-            # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            ooa = outofbounds_fun(parameters)
-            if ooa < 0:
-                flush_result((ooa - 1) * _out_of_bounds_val)
-                return (ooa - 1) * _out_of_bounds_val
-        else:
-            eprint("No bound function defined")
-
-        matrices = model_func(parameters)
-        [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-        autosome_bins, autosome_data = population.get_global_tractlengths()
-
-        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X')
-        allosome_length = population.allosome_lengths['X']
-        female_data = allosome_data[SexType.FEMALE]
-        male_data = allosome_data[SexType.MALE]
-        num_males = population.num_males
-        num_females = population.num_females
-
-        result = (
-            PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data.values()], len(population.indivs))+
-            PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data.values()], num_females*2)+
-            PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data.values()], num_males)
-        )
-        flush_result(result)
-        return -result
-
-    outputs = scipy.optimize.fmin_cobyla(
-        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-
-    likelihood = objective_function(outputs)
-
-    return outputs, likelihood
-
 
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, bounds=None, verbose=0,
