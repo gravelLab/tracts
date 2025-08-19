@@ -5,8 +5,8 @@ import scipy.optimize
 from matplotlib import pylab
 
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
-from tracts.models.demographic_model import DemographicModel
-from tracts.models.composite_demographic_model import CompositeDemographicModel
+from tracts.demography.demographic_model import DemographicModel
+from tracts.demography.composite_demographic_model import CompositeDemographicModel
 from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.population import Population
 from tracts.util import eprint

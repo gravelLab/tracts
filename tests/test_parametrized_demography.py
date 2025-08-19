@@ -172,11 +172,11 @@ def test_population_after_fix(basic_model):
     # Add initial populations
     basic_model.add_population("pop1")
     basic_model.add_population("pop2")
-
+    
     basic_model.add_parameter("rate1", ParamType.RATE)
     
     # Fix proportions
-    basic_model.fixed_proportions_handler.fix_ancestry_proportions(basic_model, ["rate1"], {"pop1": [0.7, 0.3]})
+    basic_model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(basic_model, ["rate1"], {"pop1": [0.7, 0.3]})
     
     # Test adding population after fixing proportions
     with pytest.raises(ValueError):
