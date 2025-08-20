@@ -1,15 +1,18 @@
 from tracts.indiv import Indiv
 from tracts.util import eprint
-from tracts.chromosome import Chrom
-
+from tracts.chromosome import Chropair, Chrom, Tract
+from tracts.demography import SexType
 import numpy as np
 import tkinter as tk
+import logging
 
 from matplotlib import pylab
 from tkinter import filedialog
 import bisect
 from collections import defaultdict
+from tracts.logs import get_current_func_info
 
+logger = logging.getLogger(__name__)
 
 def collect_pop(flatdat):
     """ Organize a list of tracts into a dictionary keyed on ancestry
@@ -53,8 +56,8 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 
 
 class Population:
-    def __init__(self, list_indivs=None, names=None, fname=None,
-                 labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False, filenames_by_individual=None):
+    def __init__(self, list_indivs: list[Indiv]=None, names=None, fname=None,
+                 labs=("_A", "_B"), selectchrom=None, allosomes=[], ignore_length_consistency=False, filenames_by_individual=None):
         """ Construct a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
@@ -79,22 +82,25 @@ class Population:
         self.colordict = None
         self._flats = None
         self.canv = None
+        self.allosome_labels=allosomes
+        self.allosome_lengths: dict[str, float]={}
+        self.indivs: list[Indiv] = []
         if list_indivs is not None:
-            self.indivs = list_indivs
+            self.indivs: list[Indiv] = list_indivs
             self.nind = len(list_indivs)
             # should probably check that all individuals have same length!
             self.Ls = self.indivs[0].Ls
             assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), "individuals have genomes of different lengths"
             self.maxLen = max(self.Ls)
         elif filenames_by_individual is not None:
-            self.indivs = []
             for name, files in filenames_by_individual.items():
                 try:
                     self.indivs.append(
                         Indiv.from_files(
                             files,
                             name=name,
-                            selectchrom=selectchrom))
+                            selectchrom=selectchrom,
+                            allosomes=allosomes))
                 except Exception as e:
                     raise IndexError(f'Files for individiual {name} ({files}) could not be found.') from e
 
@@ -107,7 +113,6 @@ class Population:
                     'If this is intended, use ignore_length_consistency=True.')
             self.maxLen = max(self.Ls)
         elif fname is not None:
-            self.indivs = []
             for name in names:
                 try:
                     self.indivs.append(
@@ -129,6 +134,48 @@ class Population:
             self.maxLen = max(self.Ls)
         else:
             raise ValueError('Population could not be loaded because individuals were not specified.')
+        
+        self.allosome_lengths=self.calculate_allosome_lengths(self.indivs, self.allosome_labels)
+        self.num_males, self.num_females = self.calculate_num_sexes(self.indivs, self.allosome_labels)
+
+
+
+    @staticmethod
+    def calculate_allosome_lengths(indivs, allosome_labels):
+        allosome_lengths={}
+        for indiv in indivs:
+            for allosome_label in allosome_labels:
+                if allosome_label in indiv.allosomes:
+                    for chrom in indiv.allosomes[allosome_label]:
+                        if allosome_label not in allosome_lengths:
+                            allosome_lengths[allosome_label] = chrom.len
+                            continue
+                        assert (allosome_lengths[allosome_label] == chrom.len), f"Allosome {allosome_label} has inconsistent length across individuals ({indiv.name}.)"
+        return allosome_lengths
+
+
+    @staticmethod
+    def calculate_num_sexes(indivs, allosome_labels):
+        # Currently only works by X chromosome. 
+        file_name, func_name, line_number = get_current_func_info()
+        if 'X' not in allosome_labels:
+            logger.warning(" X is not in the allosomes of this population.\n"
+                           "The number of males and females will be recorded as 0.\n"
+                           "If using different sex chromosomes please change this function:\n"
+                           f"{func_name} in {file_name} at line {line_number}."
+                           )
+            return 0, 0
+        
+        num_males = 0
+        num_females = 0
+        for indiv in indivs:
+            if 'X' in indiv.allosomes:
+                if len(indiv.allosomes['X'])==1:
+                    num_males+=1
+                else:
+                    num_females+=1
+        return num_males, num_females
+
 
     def split_by_props(self, count):
         """ Split this population into groups according to their ancestry
@@ -247,7 +294,7 @@ class Population:
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1, exclude_tracts_below_cM=0):
+    def get_global_tractlengths(self, npts: int = 20, tol: float = 0.01, indlist: list = None, split_count: int = 1, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         """ tol is the tolerance for full chromosomes: sometimes there are
             small issues at the edges of the chromosomes. If a segment is
             within tol Morgans of the full chromosome, it counts as a full
@@ -257,6 +304,11 @@ class Population:
             indlist is the individuals for which we want the tractlength. To
             bootstrap over individuals, provide a bootstrapped list of
             individuals.
+            
+            Returns:
+                A tuple containing:
+                    - bins: The bins for the histogram.
+                    - dat: A dictionary with ancestry labels as keys and a histogram of tract lengths as values.
         """
         # Figure out whether we're dealing with the set of individuals
         # represented by this population or the one contained in the indlist
@@ -274,29 +326,70 @@ class Population:
             # duplicates.
             return bins_list[0], dats_list
 
-        bins = np.arange(exclude_tracts_below_cM * 0.01, self.maxLen * (1 + .5 / npts), float(self.maxLen) / npts)
-
-        bypop = defaultdict(list)
+        bypop: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
 
         for indiv in pop:
             for chrom in indiv:
                 for copy in chrom:
                     copy.smooth_unknown()
                     for tract in copy:
-                        bypop[tract.label].append({
-                            'tract': tract,
-                            'chromlen': chrom.len
-                        })
-        dat = {}
-        for label, ts in bypop.items():
+                        bypop[tract.label].append((
+                            tract,
+                            chrom.len
+                        ))
+        return self.tractlength_histogram(bypop, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM)
+
+    def tractlength_histogram(self, tracts_by_population:dict[str, list[tuple[Tract, float]]], npts: int = 20, tol: float = 0.01, exclude_tracts_below_cM: float = 0, maxLen=None) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        if maxLen==None:
+            maxLen=self.maxLen
+        bins = np.arange(exclude_tracts_below_cM * 0.01, maxLen * (1 + .5 / npts), float(maxLen) / npts)
+        dat: dict[str, list[np.ndarray]] = {}
+        for label, ts in tracts_by_population.items():
             # extract full length tracts
-            nonfulls = np.array([t['tract'] for t in ts if t['tract'].end - t['tract'].start < t['chromlen'] - tol])
+            nonfulls = np.array([tract for tract, chrom_length in ts if tract.end - tract.start < chrom_length - tol])
 
             hdat = np.histogram([n.len() for n in nonfulls], bins=bins)
             dat[label] = list(hdat[0])
             # append the number of fulls
             dat[label].append(len(ts) - len(nonfulls))
         return bins, dat
+
+    def get_global_allosome_tractlengths(self, allosome, npts: int = 20, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:
+        """
+        Returns the allosomal tractlength histogram in males and the allosomal tractlength histogram in females.
+        """
+        if allosome not in self.allosome_labels:
+            raise KeyError(f"Data for chromosome {allosome} was never initialized for this population.")
+        
+        pop = self if indlist is None else Population(indlist)
+
+        bypop_male: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
+        bypop_female: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
+
+        for indiv in pop:
+            if allosome not in indiv.allosomes:
+                raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+            for chrom in indiv.allosomes[allosome]:
+                chrom.smooth_unknown()
+                for tract in chrom:
+                    if len(indiv.allosomes[allosome]) == 1:
+                        bypop_male[tract.label].append((tract, chrom.len))
+                    else:
+                        bypop_female[tract.label].append((tract, chrom.len))
+        
+        if not bypop_male and not bypop_female:
+            raise ValueError(f"Data for chromosome {allosome} does not exist on any individuals of this population.")
+        
+        L=self.allosome_lengths[allosome]
+        bins, male_dat = self.tractlength_histogram(bypop_male, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
+        _, female_data = self.tractlength_histogram(bypop_female, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
+        return (bins, 
+                {
+                    SexType.MALE: male_dat,
+                    SexType.FEMALE: female_data
+                }
+            )
+
 
     def bootinds(self, seed):
         """ Return a bootstrapped list of individuals in the population. Use
@@ -522,5 +615,5 @@ class Population:
     def __iter__(self):
         return self.indivs.__iter__()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Indiv:
         return self.indivs[index]

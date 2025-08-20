@@ -165,6 +165,7 @@ def density_hybrid_pedigree(which_migration, migration_list, T_PED, which_pop, D
         PhT_ped = PhTDioecious(migration_matrix_f=mmat_f, migration_matrix_m=mmat_m, rho_f=rrr_f, rho_m=rrr_m,
                                sex_model=D_model, X_chromosome=is_X_chr, X_chromosome_male=is_X_chr_male,
                                TPED=T_PED, setting_TP=ancestral_setting)
+           
         if np.all(PhT_ped.source_populations_f == which_pop):
             counts_f = np.zeros(len(bins))
             counts_f[np.asarray(bins) >= which_L] = 1
@@ -177,6 +178,7 @@ def density_hybrid_pedigree(which_migration, migration_list, T_PED, which_pop, D
                                                                               L=which_L, density=density_function,
                                                                               return_only=1, freq=False,
                                                                               hybrid_ped=True)
+        
         if np.all(PhT_ped.source_populations_m == which_pop):
             counts_m = np.zeros(len(bins))
             counts_m[np.asarray(bins) >= which_L] = 1
@@ -265,6 +267,9 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     array will have length len(bins)-1.     
     """
     
+    if not X_chr:
+        X_chr_male = False
+    
     if not density:
         freq = True
     
@@ -297,8 +302,10 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     elif TP == T:
         all_possible_migrations_TP = all_possible_trees_as_arrays(TP, Npops, mig_at_last=True)
         migrations_at_TP = np.array([i for i in itertools.product(np.arange(1, Npops + 1).tolist(), repeat=nanc_TP)])
-
-    prob_of_pop_setting_iteration_0 = partial(prob_of_pop_setting,
+    
+    if not X_chr_male:
+        
+        prob_of_pop_setting_iteration_0 = partial(prob_of_pop_setting,
                                               all_possible_migrations_list=all_possible_migrations_TP,
                                               migrations_at_T_list=migrations_at_TP, f_migrations=mig_matrix_f,
                                               m_migrations=mig_matrix_m, parent_sex=0, number_ind=nind_TP,
@@ -316,13 +323,15 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     print('-------------------------------------------------------------------\n')
     print("".join(['Computing pedigrees probabilities...\n']))
     print('-------------------------------------------------------------------\n')
-
-    prob_list_m_complete = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
-        delayed(prob_of_pop_setting_iteration_0)(i) for i in range(len(all_possible_migrations_TP)))
-    data_prob_m = pd.DataFrame(prob_list_m_complete, columns=['which_ancestral', 'prob'])
-
-    if not np.isclose(np.sum(data_prob_m.groupby(['which_ancestral']).sum().reset_index()['prob'].to_numpy()), 1):
-        raise Exception('Pedigree probabilities do not sum up to one.')
+    
+    if not X_chr_male:
+    
+        prob_list_m_complete = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
+            delayed(prob_of_pop_setting_iteration_0)(i) for i in range(len(all_possible_migrations_TP)))
+        data_prob_m = pd.DataFrame(prob_list_m_complete, columns=['which_ancestral', 'prob'])
+    
+        if not np.isclose(np.sum(data_prob_m.groupby(['which_ancestral']).sum().reset_index()['prob'].to_numpy()), 1):
+            raise Exception('Pedigree probabilities do not sum up to one.')
 
     prob_list_f_complete = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
         delayed(prob_of_pop_setting_iteration_1)(i) for i in range(len(all_possible_migrations_TP)))
@@ -360,10 +369,11 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     mig_out_f = [den[2] for den in densities_list if np.any(np.isnan(den[0]))]
     mig_out_m = [den[2] for den in densities_list if np.any(np.isnan(den[1]))]
     
-    # Re-weight pedigree probabilities
-    data_prob_m = data_prob_m[~data_prob_m.which_ancestral.isin(mig_out_m)]
-    prob_list_m = data_prob_m.groupby(['which_ancestral']).sum().reset_index().to_numpy()
-    prob_list_m[:, 1] = prob_list_m[:, 1] / np.sum(prob_list_m[:, 1])
+    if not X_chr_male:
+        # Re-weight pedigree probabilities
+        data_prob_m = data_prob_m[~data_prob_m.which_ancestral.isin(mig_out_m)]
+        prob_list_m = data_prob_m.groupby(['which_ancestral']).sum().reset_index().to_numpy()
+        prob_list_m[:, 1] = prob_list_m[:, 1] / np.sum(prob_list_m[:, 1])
     
     #prob_list_f[np.where(prob_list_f[:,1]>0),0]
     #densities_list[39]
