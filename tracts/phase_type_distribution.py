@@ -397,30 +397,27 @@ class PhaseTypeDistribution(ABC):
             raise Exception('full_CDF is not positive and real : ', full_val)
         return np.real(full_val)
 
-    def loglik(self, bins, Ls, data, num_samples, cutoff=0):
+    def loglik(self, bins, Ls, data: list[list[int]], num_samples, cutoff=0):
         """ Calculate the maximum-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. """
         # print('Getting the likelihood of the model.')
-        self.maxLen = max(Ls)
         # define bins that contain all possible values
         # bins=np.arange(0,self.maxLen+1./2./float(npts),self.maxLen/float(npts))
-        # ll = 0
         # print(f'npops: {self.npops}')
         predicted_tractlength_histogram = None
-        pop = None
-        # TODO: Ask if this loop is necessary
-        for pop in range(self.num_populations):
-            predicted_tractlength_histogram = self.tract_length_histogram_multi_windowed(pop, bins, Ls)
-            # print(f'pop: {pop}, models: {models}')
-            # print(f'data: {data}')
+        ll = 0
 
-        # TODO: Only use the last value of predicted_tractlength_histogram?
-        return sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
+        for pop in range(self.num_populations):
+            predicted_tractlength_histogram=self.tract_length_histogram_multi_windowed(pop, bins, Ls)
+            ll += sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(
             zip(data[pop], predicted_tractlength_histogram),
             cutoff, len(predicted_tractlength_histogram) - 1)
                    )
+
+        return ll
+    
 
 
 class PhTMonoecious(PhaseTypeDistribution):
@@ -682,8 +679,10 @@ class PhTMonoecious(PhaseTypeDistribution):
     def get_equilibrium_distribution(self):
         transposed_transition_matrix = self.full_transition_matrix.transpose()
         transition_matrix_eigs = np.linalg.eig(transposed_transition_matrix)
+
         #cond_num = np.linalg.cond(transposed_transition_matrix)
         #print("Condition Number:", cond_num)
+
         try:
             result_vector = [eigenvector for eigenvalue, eigenvector in
                              zip(transition_matrix_eigs[0], np.transpose(transition_matrix_eigs[1])) if
@@ -974,6 +973,8 @@ class PhTDioecious(PhaseTypeDistribution):
                                        exp_Sx_per_bin_m: npt.ArrayLike = None, density=False, freq=False,
                                        return_only=None, hybrid_ped=False) -> npt.ArrayLike:
         """Calculates the tractlength histogram on a window L
+        TODO: Make return_only an enum type
+        TODO: 
         """
         
         if return_only == 0 and self.X_chr_male:

@@ -8,14 +8,12 @@ class Chrom:
         chromosome has a finite, immutable length.
         """
 
-    def __init__(self, ls=None, auto=True, label="POP", tracts=None):
+    def __init__(self, ls=None, label="POP", tracts: list[Tract]=None):
         """ Constructor.
 
             Arguments:
                 ls (int, default: None):
                     The length of this chromosome, in Morgans.
-                auto (bool, default: True):
-                    Whether this chromosome is autosomal.
                 label (string, default: "POP"):
                     An identifier categorizing this chromosome.
                 tracts (list of tract objects, default: None):
@@ -25,7 +23,6 @@ class Chrom:
         """
         if tracts is None:
             self.len = ls
-            self.auto = auto
 
             # A single tract spanning the whole chromosome.
             self.tracts = [Tract(0, self.len, label)]
@@ -35,7 +32,6 @@ class Chrom:
                 raise ValueError("a nonempty list of tracts is required "
                                  "for initialization of a chromosome.")
             self.tracts = tracts
-            self.auto = auto
 
             # Set the chromosome's start attribute to the starting point of the
             # first known tract.
@@ -53,21 +49,6 @@ class Chrom:
 
             # consider the length after stripping the UNKNOWN end tracts
             self.len = self.end - self.start
-
-    # initialize a chromosome with a single tract
-    def init_unif_tracts(self, label):
-        self.tracts = [Tract(0, self.len, label)]
-
-    # initiate from a list of tracts
-    def init_list_tracts(self, tracts):
-        self.tracts = tracts
-
-    def set_sex(self):
-        """ Consider this chromosome to be a sex chromosome, in which case it
-            is not autosomal. The effect of this method is to set the auto
-            property to False.
-            """
-        self.auto = False
 
     def len(self):
         """ The length of this chromosome, in Morgans. """
@@ -215,10 +196,10 @@ class Chrom:
         self.smooth_unknown()
         return [(t.label, t.end - t.start, self.len) for t in self.tracts]
 
-    def __iter__(self):
+    def __iter__(self) -> Tract:
         return self.tracts.__iter__()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Tract:
         """ Simply wrap the underlying list's __getitem__ method. """
         return self.tracts[index]
 
@@ -231,7 +212,7 @@ class Chropair:
         diploid individuals.
     """
 
-    def __init__(self, chroms=None, chropair_len=1, auto=True, label="POP"):
+    def __init__(self, chroms: list[Chrom] | tuple[Chrom] = None, chropair_len=1, auto=True, label="POP"):
         """ Can instantiate by explictly providing two chromosomes as a tuple
             or an ancestry label, length and autosome status. """
         if chroms is None:
@@ -278,3 +259,5 @@ class Chropair:
 
     def __getitem__(self, index):
         return self.copies[index]
+    
+        
