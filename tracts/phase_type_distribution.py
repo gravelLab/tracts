@@ -1488,14 +1488,15 @@ class PhTDioecious(PhaseTypeDistribution):
                 raise Exception(
                     'Equilibrium distribution could not be calculated. '
                     'The transition matrix does not have a 0 eigenvalue.')
-
+                 
             # Compute initial state alpha
             alpha_list = [np.asarray(np.dot(eq_dist[states[:, 0] != tract_pop], S[states[:, 0] != tract_pop, :][:,
                                                                                 states[:,
                                                                                 0] == tract_pop])).flatten() if np.isin(
-                tract_pop, source_pops) else np.array([]) for tract_pop in range(NP)]
-            alpha_list = [alpha / np.sum(alpha) for alpha in alpha_list]
-
+                tract_pop, source_pops) and len(eq_dist[states[:, 0] != tract_pop]) > 0 else np.array([]) for tract_pop in range(NP)]
+                                                                                    
+            alpha_list = [alpha / np.sum(alpha) if len(alpha) > 0 else alpha for alpha in alpha_list]
+            
             return S, source_pops, sub_matrices, alpha_list
 
     def PhT_parameters_DC(self, parent_sex, T_pedigree=0, migration_setting_at_TP=None):
@@ -1537,7 +1538,8 @@ class PhTDioecious(PhaseTypeDistribution):
         alpha_list = [np.asarray(np.dot(eq_dist[pulses_copy[:, 0] != tract_pop], S[pulses_copy[:, 0] != tract_pop, :][:,
                                                                                  pulses_copy[:,
                                                                                  0] == tract_pop])).flatten() if np.isin(
-            tract_pop, source_pops) else np.array([]) for tract_pop in range(NP)]
-        alpha_list = [alpha / np.sum(alpha) for alpha in alpha_list]
-
+            tract_pop, source_pops) and len(eq_dist[pulses_copy[:, 0] != tract_pop]) > 0 else np.array([]) for tract_pop in range(NP)]
+        
+        alpha_list = [alpha / np.sum(alpha) if len(alpha) > 0 else alpha for alpha in alpha_list]
+        
         return S, source_pops, sub_matrices, alpha_list
