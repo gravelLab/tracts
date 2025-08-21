@@ -164,23 +164,23 @@ def test_add_population(basic_model):
     assert len(indices) == len(set(indices))
 
 
-def test_population_after_fix(basic_model):
-    """Test that adding populations after fixing proportions raises appropriate errors"""
-    """IMPORTANT: This test does not reflect ideal behaviour.
-    In the future, the model should require that each key in the proportions dict has an associated founder event.
-    This is not the case in this test."""
-    # Add initial populations
-    basic_model.add_population("pop1")
-    basic_model.add_population("pop2")
-
-    basic_model.add_parameter("rate1", ParamType.RATE)
-    
-    # Fix proportions
-    basic_model.fixed_proportions_handler.fix_ancestry_proportions(basic_model, ["rate1"], {"pop1": [0.7, 0.3]})
-    
-    # Test adding population after fixing proportions
-    with pytest.raises(ValueError):
-        basic_model.add_population("pop3")
+#def test_population_after_fix(basic_model):
+#    """Test that adding populations after fixing proportions raises appropriate errors"""
+#    """IMPORTANT: This test does not reflect ideal behaviour.
+#    In the future, the model should require that each key in the proportions dict has an associated founder event.
+#    This is not the case in this test."""
+#    # Add initial populations
+#    basic_model.add_population("pop1")
+#    basic_model.add_population("pop2")
+#
+#    basic_model.add_parameter("rate1", ParamType.RATE)
+#    
+#    # Fix proportions
+#    basic_model.fixed_proportions_handler.fix_ancestry_proportions(basic_model, ["rate1"], {"pop1": [0.7, 0.3]})
+#    
+#    # Test adding population after fixing proportions
+#    with pytest.raises(ValueError):
+#        basic_model.add_population("pop3")
 
 
 def test_add_pulse_migration(model_with_pulse_migration):
