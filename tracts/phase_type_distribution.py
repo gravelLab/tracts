@@ -400,6 +400,7 @@ class PhaseTypeDistribution(ABC):
     def loglik(self, bins, Ls, data: list[list[int]], num_samples, cutoff=0):
         """ Calculate the maximum-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. """
+        
         # print('Getting the likelihood of the model.')
         # define bins that contain all possible values
         # bins=np.arange(0,self.maxLen+1./2./float(npts),self.maxLen/float(npts))
@@ -409,6 +410,14 @@ class PhaseTypeDistribution(ABC):
 
         for pop in range(self.num_populations):
             predicted_tractlength_histogram=self.tract_length_histogram_multi_windowed(pop, bins, Ls)
+             
+        #    for data_tracts, predicted_tracts in itertools.islice(
+        #    zip(data[pop], predicted_tractlength_histogram),
+        #    cutoff, len(predicted_tractlength_histogram) - 1) :
+            	
+        #    	print("data: ",data_tracts,"predicted: ", num_samples*predicted_tracts, "ll: ", -num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
+        #    	data_tracts + 1.) )
+             
             ll += sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(
@@ -1095,7 +1104,7 @@ class PhTDioecious(PhaseTypeDistribution):
             exp_Sx_per_bin_f[bin_number] = scipy.linalg.expm(bin_val * S_f)
             exp_Sx_per_bin_m[bin_number] = scipy.linalg.expm(bin_val * S_m)
         for L in chrom_lengths:
-            new_histogram, scale = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
+            new_histogram, E = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
                                                                        exp_Sx_per_bin_f, exp_Sx_per_bin_m)
             histogram += new_histogram
         return histogram

@@ -87,12 +87,15 @@ def run_tracts(driver_filename, script_dir=None):
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
     
     max_iter = driver_spec.get('maximum_iterations',None)
+    
+    pop_dict = model.population_indices.items()
 
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
                                                         parse_start_params(driver_spec['start_params'],
                                                                           driver_spec['repetitions'],
                                                                           driver_spec['seed'], model,
                                                                           time_scaling_factor),
+                                                        population_dict=pop_dict,
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious)
@@ -237,7 +240,7 @@ def randomize(arr, a, b):
 
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[numpy.ndarray], max_iter: int=None, exclude_tracts_below_cM: int = 0, 
+                          start_params_list: list[numpy.ndarray], population_dict : dict, max_iter: int=None, exclude_tracts_below_cM: int = 0, 
                           modelling_method: type = PhTMonoecious) -> tuple[list[numpy.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
@@ -261,6 +264,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     for start_params in start_params_list:
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
+                                                   population_dict,
                                                    max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                    modelling_method=modelling_method)
@@ -269,10 +273,10 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     return optimal_params, likelihoods
 
 
-def run_model(model_func, bound_func, population: Population, population_labels, startparams, max_iter=None, exclude_tracts_below_cM=0,
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0,
               modelling_method=PhTMonoecious):
     if modelling_method == PhTDioecious:
-        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, max_iter, exclude_tracts_below_cM)
+        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM)
     Ls = population.Ls
     nind = population.nind
     bins, data = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
@@ -284,10 +288,9 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, max_iter=None, exclude_tracts_below_cM=0):
-    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, maxiter=max_iter, epsilon=1e-2,verbose=1)
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0):
+    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1)
     return optimal_params, optimal_likelihood
-
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
     if 'output_directory' in driver_spec:
@@ -356,13 +359,12 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     num_females = sample_population.num_females
 
     autosome_predicted={pop:PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
-    male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
-    female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+    female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+    male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
     
     for pop, pop_num in model.population_indices.items():
         fig, axes = plt.subplots(3, 2, figsize=(12, 12))
         fig.suptitle(f"Ancestor: {pop}")
-        print(num_males, num_females)
 
         # 1st row: autosome data vs predicted
         axes[0, 0].bar(autosome_bins[:-1], autosome_data[pop][:-1], width=numpy.diff(autosome_bins), align='edge', alpha=0.7, color='tab:blue')
@@ -392,20 +394,26 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[2, 0].set_xlabel("Tract Length (cM)")
         axes[2, 0].set_ylabel("Count")
 
-        axes[2, 1].bar(allosome_bins[:-1], [2*num_females * num_tracts for num_tracts in female_predicted[pop]], width=numpy.diff(allosome_bins), align='edge', alpha=0.7, color='tab:orange')
+        axes[2, 1].bar(allosome_bins[:-1], [num_females * num_tracts for num_tracts in female_predicted[pop]], width=numpy.diff(allosome_bins), align='edge', alpha=0.7, color='tab:orange')
         axes[2, 1].set_title("Female Allosome Predicted")
         axes[2, 1].set_xlabel("Tract Length (cM)")
         axes[2, 1].set_ylabel("Count")
 
-        print(male_predicted[pop][0], female_predicted[pop][0])
-        print(num_males*male_predicted[pop][0], 2*num_females*female_predicted[pop][0])
         # Approximate the sum of tractlengths using the midpoint of the bins for male_predicted and female_predicted
         male_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
         female_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
+        
         male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
         female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
-        print(f"Approximate sum of tractlengths (male predicted): {male_sum}")
-        print(f"Approximate sum of tractlengths (female predicted): {female_sum}")
+        
+        #male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
+        #female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
+        
+        print(f"Approximate sum of tractlengths per male predicted: {male_sum}")
+        print(f"Approximate sum of tractlengths per female predicted: {female_sum}")
+        
+        #print(f"Approximate sum of tractlengths per male data: {male_data_sum}")
+        #print(f"Approximate sum of tractlengths per female data: {female_data_sum}")
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))

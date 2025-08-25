@@ -186,7 +186,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
     return outputs
 
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious) -> tuple[np.ndarray, float]:
     """
     """
@@ -216,21 +216,31 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-        autosome_bins, autosome_data = population.get_global_tractlengths()
-
-        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X')
+        autosome_bins, autosome_data = population.get_global_tractlengths(exclude_tracts_below_cM=exclude_tracts_below_cM)
+        
+        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', exclude_tracts_below_cM=exclude_tracts_below_cM)
         allosome_length = population.allosome_lengths['X']
         female_data = allosome_data[SexType.FEMALE]
         male_data = allosome_data[SexType.MALE]
         num_males = population.num_males
         num_females = population.num_females
-
-        result = (
-            PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data.values()], len(population.indivs))+
-            PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data.values()], num_females*2)+
-            PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data.values()], num_males)
-        )
-        flush_result(result)
+                
+        # Reorder data values using the population labels so that populations match the correct columns in migration matrices
+        autosome_data_mapped = {dict(p_dict)[k]: v for k, v in autosome_data.items()}
+        autosome_data_mapped = [autosome_data_mapped[k] for k in sorted(autosome_data_mapped.keys())]
+        female_data_data_mapped = {dict(p_dict)[k]: v for k, v in female_data.items()}
+        female_data_data_mapped = [female_data_data_mapped[k] for k in sorted(female_data_data_mapped.keys())]
+        male_data_data_mapped = {dict(p_dict)[k]: v for k, v in male_data.items()}
+        male_data_data_mapped = [male_data_data_mapped[k] for k in sorted(male_data_data_mapped.keys())]
+        
+        result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_data_mapped], num_females)
+        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_data_mapped], num_males)
+        result = (result_autosomes + result_X_females + result_X_males)
+        flush_result(result_autosomes)
+        flush_result(result_X_females)
+        flush_result(result_X_males)
+        
         return -result
 
     outputs = scipy.optimize.fmin_cobyla(
