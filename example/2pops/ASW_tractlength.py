@@ -1,6 +1,9 @@
-from tracts.driver import run_tracts
-from pathlib import Path
 import sys
+from pathlib import Path
+
+sys.path.append('.')
+
+from tracts.driver import run_tracts
 
 script_path = Path(sys.argv[0]).resolve()
 script_directory = script_path.parent

@@ -1,12 +1,25 @@
 from collections import defaultdict
+from typing import Any
 from tracts.tract import Tract
 from tracts.chromosome import Chrom
 import numpy as np
 
 
 class Haploid:
+    """
+    A class representing a haploid genome, composed of a set of chromosomes,
+    each of which consists of a list of tracts.
+
+    Attributes:
+        Ls (list of float): The lengths of the chromosomes.
+        chroms (list of Chrom): The chromosome objects.
+        labs (list of str): Labels identifying the chromosomes.
+        name (str): An optional name for the haploid.
+    """
+
+
     @staticmethod
-    def from_file(path, name=None, selectchrom=None):
+    def from_file(path, name=None, selectchrom=None, allosome_labels=set()):
         # TODO move the loading logic from the constructor to this static
         # method. This will facilitate loading logic for future driver
         # scripts.
@@ -17,7 +30,8 @@ class Haploid:
         with open(path, 'r') as f:
             for line in f:
                 fields = line.split()
-
+                if len(fields) == 0:
+                    continue
                 # Skip the header, if one is present.
                 if fields[0] == 'chrom' or \
                         (fields[0] == 'Chr' and fields[1] == 'Start(bp)'):
@@ -34,9 +48,10 @@ class Haploid:
         # A haploid individual is essentially just a list of chromosomes, so we
         # initialize this list of chromosomes to be ultimately passed to the
         # haploid constructor.
-        chroms = []
+        chroms: list[Chrom] = []
         labs = []
-        Ls = []
+        Ls: list[int] = []
+        allosomes: dict[Any, Chrom]={}
 
         # Construct a function that tells us whether a given chromosome is
         # selected or not.
@@ -59,7 +74,10 @@ class Haploid:
             # and checks whether its in our set.
 
             def is_selected(chrom_label):
-                return int(chrom_label) in sc
+                try:
+                    return int(chrom_label) in sc
+                except:
+                    return False
 
         # Filter the loaded data according to selectchrom using the is_selected
         # function constructed above.
@@ -70,6 +88,10 @@ class Haploid:
                 chroms.append(c)
                 Ls.append(c.len)
                 labs.append(chrom_id)
+            if chrom_id in allosome_labels:
+                #print(f'{chrom_id} in {path}')
+                allosomes[chrom_id] = Chrom(tracts=tracts)
+
 
         # Organize the filtered lists according to the order of their
         # identifiers.
@@ -82,10 +104,10 @@ class Haploid:
         labs = list(
             np.array(labs)[order])
 
-        return Haploid(Ls=Ls, lschroms=chroms, labs=labs, name=name)
+        return Haploid(Ls=Ls, lschroms=chroms, labs=labs, name=name, allosomes=allosomes)
 
     def __init__(self, Ls=None, lschroms=None, fname=None, selectchrom=None,
-                 labs=None, name=None):
+                 labs=None, name=None, allosomes: dict[Any, Chrom]=None):
         if fname is None:
             if Ls is None or lschroms is None:
                 raise ValueError(
@@ -94,12 +116,14 @@ class Haploid:
             self.chroms = lschroms
             self.labs = labs
             self.name = name
+            self.allosomes=allosomes if allosomes else {}
         else:
             h = Haploid.from_file(fname, selectchrom=selectchrom)
             self.Ls = h.Ls
             self.chroms = h.chroms
             self.labs = h.labs
             self.name = name
+            self.allosomes=h.allosomes
 
     def __repr__(self):
         return "haploid(lschroms=%s, name=%s, Ls=%s)" % tuple(map(repr, [self.chroms, self.name, self.Ls]))
