@@ -23,4 +23,5 @@ time_scaling_factor: 100 #Times will be scaled down by this much when running th
 fix_parameters_from_ancestry_proportions: [R, R_sex_bias]
 output_directory: ./output_fix/
 output_filename_format: "two_pulse_{label}"
-maximum_iterations: 10
+maximum_iterations: 1
+

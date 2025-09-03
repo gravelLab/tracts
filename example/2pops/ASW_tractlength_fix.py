@@ -8,7 +8,7 @@ from tracts.driver import run_tracts
 script_path = Path(sys.argv[0]).resolve()
 script_directory = script_path.parent
 
-script_path = '/path/to/file/'
+script_path = '/path_to_tracts/tracts/example/2pops/'
 
 driver_filename = "sex_biased_fix_two_pulse.yaml"
 

@@ -633,7 +633,7 @@ class PhTMonoecious(PhaseTypeDistribution):
         for bin_number, bin_val in enumerate(bins):
             exp_Sx_per_bin[bin_number] = scipy.linalg.expm(bin_val * S)
         for L in chrom_lengths:
-            new_histogram, scale = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
+            new_histogram, ETL = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
                                                                        exp_Sx_per_bin_f, exp_Sx_per_bin_m)
             histogram += new_histogram
         return histogram

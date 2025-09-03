@@ -187,7 +187,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious) -> tuple[np.ndarray, float]:
+                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC') -> tuple[np.ndarray, float]:
     """
     """
     if reset_counter:
@@ -233,9 +233,9 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         male_data_data_mapped = {dict(p_dict)[k]: v for k, v in male_data.items()}
         male_data_data_mapped = [male_data_data_mapped[k] for k in sorted(male_data_data_mapped.keys())]
         
-        result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
-        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_data_mapped], num_females)
-        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_data_mapped], num_males)
+        result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_data_mapped], num_females)
+        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_data_mapped], num_males)
         result = (result_autosomes + result_X_females + result_X_males)
         flush_result(result_autosomes)
         flush_result(result_X_females)
