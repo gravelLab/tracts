@@ -6,6 +6,8 @@ multiple populations can be modeled. In $\texttt{tracts 2.0}$, sex-biased migrat
 and recombination rates are supported, enabling modeling and inference for 
 both autosomes and the X chromosome.
 
+---
+
 ### Installing $\texttt{tracts}$
 
 To install: 
@@ -25,6 +27,12 @@ The documentation of $\texttt{tracts 2.0}$ can be found [here](https://gravellab
 ### The papers
 A detailed introduction to the models and methods presented in $\texttt{tracts 2.0}$ is available in [this paper (_in preparation_)](). $\texttt{tracts 1.0}$ is based on [this paper](https://pubmed.ncbi.nlm.nih.gov/22491189/). 
 
+### Contact
+
+For any inquires, please file an [issue](https://github.com/gravelLab/tracts/issues) or [contact us](mailto:javier.gonzalez-delgado@ensai.fr).
+
+---
+
 ### Updates in $\texttt{tracts 2.0}$
 
 #### Software updates
@@ -43,9 +51,7 @@ A detailed introduction to the models and methods presented in $\texttt{tracts 2
 
 For details, see the $\texttt{tracts 2.0}$ [paper (_in preparation_)]().
 
-### Contact
-
-For any inquires, please file an [issue](https://github.com/gravelLab/tracts/issues) or [contact us](mailto:javier.gonzalez-delgado@ensai.fr).
+---
 
 ## Running $\texttt{tracts}$
 
@@ -130,7 +136,7 @@ copy).
     chr13		28539742	28540421	UNKNOWN	22.193		22.193
     chr13		28540421	91255067	CEU		22.193		84.7013
 
-### 3. Setting up the driver File
+### 3. Setting up the driver file
 
 $\texttt{tracts}$ is run by passing a **driver yaml file** to `tracts.run_tracts()`.
 The first part of the driver file tells $\texttt{tracts}$ how to load the sample data:
@@ -190,9 +196,9 @@ to the directory where the file is located.
 
 $\texttt{tracts}$ saves the results in the `output_directory` specified in the driver file. For autosomes, allosomes in males and allosomes in females, these include:
 
-* _bins: the bins used in the discretization
-* _dat_sample_tract_distribution: the observed counts in each bins
-* _predicted_tract_distribution: the predicted counts in each bin, according to the model
+* _bins: the bins used in the discretization.
+* _dat_sample_tract_distribution: the observed counts in each bin.
+* _predicted_tract_distribution: the predicted counts in each bin, according to the model.
 * _migration_matrix: the inferred migration matrix, with the most recent generation at the
     top, and one column per migrant population. Entry i,j in the matrix represent 
     the proportion of individuals in the admixed population who originate
@@ -204,6 +210,8 @@ $\texttt{tracts}$ saves the results in the `output_directory` specified in the d
 ### Examples
 
 In the [example](https://github.com/gravelLab/tracts/tree/master/example) folder, we provide data and multiple yaml files to run $\texttt{tracts}$ as an example.
+
+---
 
 ### FAQ
 
