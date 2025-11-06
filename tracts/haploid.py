@@ -29,6 +29,7 @@ class Haploid:
         # identifiers (strings) with lists of tract objects.
         with open(path, 'r') as f:
             for line in f:
+                header_mode = True
                 fields = line.split()
                 if len(fields) == 0:
                     continue
@@ -36,11 +37,20 @@ class Haploid:
                 if fields[0] == 'chrom' or \
                         (fields[0] == 'Chr' and fields[1] == 'Start(bp)'):
                     continue
-
-                chromd[fields[0]].append(
-                    Tract(
-                        .01 * float(fields[4]), .01 * float(fields[5]),
+                
+                try:
+                    
+                    chromd[fields[0]].append(
+                        Tract(
+                            .01 * float(fields[4]), .01 * float(fields[5]),
                         fields[3]))
+                    header_mode = False
+                    
+                except Exception as e: # To catch (different) headers in data files
+                    if header_mode:
+                        continue
+                    else:
+                        raise e #ValueError from e 
 
         # Now that the file has been parsed, we need to apply a filtering step,
         # to select only those chromosomes identified by selectchrom.
