@@ -7,6 +7,8 @@ from typing import Callable
 import numpy
 import ruamel.yaml
 import matplotlib.pyplot as plt
+import warnings
+#warnings.simplefilter('always')
 
 from tracts.population import Population
 from tracts.core import optimize_cob, optimize_cob_sex_biased
@@ -407,14 +409,26 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
 
     with open(output_dir + output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
-            fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
+            try:
+                fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
+            except KeyError:
+                autosome_data[population] = numpy.zeros(len(autosome_bins)).tolist()
+                print(f'Population {population} not found in autosome data.')
     with open(output_dir + output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
-            fdat.write("\t".join(map(str, female_data[population])) + "\n")
+            try:
+                fdat.write("\t".join(map(str, female_data[population])) + "\n")
+            except KeyError:
+                female_data[population] = numpy.zeros(len(allosome_bins)).tolist()
+                print(f'Population {population} not found in female allosome data.')
     with open(output_dir + output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
-            fdat.write("\t".join(map(str, male_data[population])) + "\n")
-        
+            try:
+                fdat.write("\t".join(map(str, male_data[population])) + "\n")
+            except KeyError:
+                male_data[population] = numpy.zeros(len(allosome_bins)).tolist()
+                print(f'Population {population} not found in male allosome data.')
+            
     with open(output_dir + output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
         for line in female_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")

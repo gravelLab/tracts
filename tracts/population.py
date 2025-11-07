@@ -369,20 +369,23 @@ class Population:
         for indiv in pop:
             if allosome not in indiv.allosomes:
                 raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+            is_male = (len(indiv.allosomes[allosome]) == 1)
+            
             for chrom in indiv.allosomes[allosome]:
                 chrom.smooth_unknown()
                 for tract in chrom:
-                    if len(indiv.allosomes[allosome]) == 1:
+                    if is_male:
                         bypop_male[tract.label].append((tract, chrom.len))
                     else:
                         bypop_female[tract.label].append((tract, chrom.len))
         
-        if not bypop_male and not bypop_female:
+        if len(bypop_male)==0 and len(bypop_female)==0:
             raise ValueError(f"Data for chromosome {allosome} does not exist on any individuals of this population.")
-        
+         
         L=self.allosome_lengths[allosome]
         bins, male_dat = self.tractlength_histogram(bypop_male, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
         _, female_data = self.tractlength_histogram(bypop_female, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
+        
         return (bins, 
                 {
                     SexType.MALE: male_dat,
