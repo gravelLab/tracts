@@ -11,7 +11,7 @@ from sklearn.preprocessing import normalize
 
 from tracts.util import all_same_sign
 
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
 
 
 def get_survival_factors(migration_matrix):
@@ -401,16 +401,19 @@ class PhaseTypeDistribution(ABC):
         """ Calculate the maximum-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. """
         
-        # print('Getting the likelihood of the model.')
+        if num_samples == 0:
+            return 0
+        
+        #print('Getting the likelihood of the model.')
         # define bins that contain all possible values
         # bins=np.arange(0,self.maxLen+1./2./float(npts),self.maxLen/float(npts))
         # print(f'npops: {self.npops}')
         predicted_tractlength_histogram = None
         ll = 0
-
+        
         for pop in range(self.num_populations):
             predicted_tractlength_histogram=self.tract_length_histogram_multi_windowed(pop, bins, Ls)
-             
+            
         #    for data_tracts, predicted_tracts in itertools.islice(
         #    zip(data[pop], predicted_tractlength_histogram),
         #    cutoff, len(predicted_tractlength_histogram) - 1) :

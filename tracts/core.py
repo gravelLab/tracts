@@ -199,10 +199,10 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         global _counter
         _counter += 1
 
-        def flush_result(result):
+        def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
                 param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameters]))
-                eprint('%-8i, %-12g, %s' % (_counter, result, param_str))
+                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
                 # Misc.delayed_flush(delay=flush_delay)
 
         if outofbounds_fun is not None:
@@ -217,35 +217,56 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         autosome_bins, autosome_data = population.get_global_tractlengths(exclude_tracts_below_cM=exclude_tracts_below_cM)
+        n_autosome_bins = len(autosome_bins)
         
         allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', exclude_tracts_below_cM=exclude_tracts_below_cM)
+        n_allosome_bins = len(allosome_bins)
         allosome_length = population.allosome_lengths['X']
         female_data = allosome_data[SexType.FEMALE]
         male_data = allosome_data[SexType.MALE]
         num_males = population.num_males
         num_females = population.num_females
                 
+        autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
+        for k, v in autosome_data.items():
+            autosome_data_mapped[dict(p_dict)[k]] = v
+        
+        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in female_data.items():
+            female_data_mapped[dict(p_dict)[k]] = v
+        
+        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in male_data.items():
+            male_data_mapped[dict(p_dict)[k]] = v
+        
         # Reorder data values using the population labels so that populations match the correct columns in migration matrices
-        autosome_data_mapped = {dict(p_dict)[k]: v for k, v in autosome_data.items()}
-        autosome_data_mapped = [autosome_data_mapped[k] for k in sorted(autosome_data_mapped.keys())]
-        female_data_data_mapped = {dict(p_dict)[k]: v for k, v in female_data.items()}
-        female_data_data_mapped = [female_data_data_mapped[k] for k in sorted(female_data_data_mapped.keys())]
-        male_data_data_mapped = {dict(p_dict)[k]: v for k, v in male_data.items()}
-        male_data_data_mapped = [male_data_data_mapped[k] for k in sorted(male_data_data_mapped.keys())]
+        #autosome_data_mapped = {dict(p_dict)[k]: v for k, v in autosome_data.items()}
+        #female_data_data_mapped = {dict(p_dict)[k]: v for k, v in female_data.items()} 
+        #male_data_data_mapped = {dict(p_dict)[k]: v for k, v in male_data.items()}
+        
+        #assert male_data_data_mapped.keys() == female_data_data_mapped.keys(), 'Different populations found in males and females.' 
+        #assert female_data_data_mapped.keys() == autosome_data_mapped.keys(), 'Different populations found in autosomes and allosomes.'
+        #TODO: In case where a population is legitimately missing, we should take the union of keys. 
+        
+        #autosome_data_mapped = [autosome_data_mapped[k] for k in sorted(autosome_data_mapped.keys())]
+        #female_data_data_mapped = [female_data_data_mapped[k] for k in sorted(female_data_data_mapped.keys())]
+        #male_data_data_mapped = [male_data_data_mapped[k] for k in sorted(male_data_data_mapped.keys())]
         
         result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
-        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_data_mapped], num_females)
-        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_data_mapped], num_males)
+        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
         result = (result_autosomes + result_X_females + result_X_males)
-        flush_result(result_autosomes)
-        flush_result(result_X_females)
-        flush_result(result_X_males)
+        flush_result(result_autosomes, 'Autosomes')
+        flush_result(result_X_females, 'Female allosomes')
+        flush_result(result_X_males, 'Male allosomes')
         
         return -result
-
+    
+    print('\n---------------------------\nOptimizing model likelihood.\n---------------------------\nIteration\t Log-likelihood\t Model parameters \t Transmission\n----------------------------------------------------------------\n')
+           
     outputs = scipy.optimize.fmin_cobyla(
         objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-
+    
     likelihood = objective_function(outputs)
 
     return outputs, likelihood
