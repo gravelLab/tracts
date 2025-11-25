@@ -365,8 +365,9 @@ class PhaseTypeDistribution(ABC):
             -----
             Accepts precomputed values for e^Sx, e^SL, and alpha.
         """
+        
         if x > L:
-            raise Exception('Cannot find tracts of length greater than L in a window L'.)
+            raise Exception('Cannot find tracts of length greater than L in a window L.')
         if exp_Sx is None:
             exp_Sx = scipy.linalg.expm(x * S)
         if alpha is None:

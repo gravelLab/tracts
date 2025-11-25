@@ -516,12 +516,13 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs, outofbound
 def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fracs_list, outofbounds_fun=None,
                             cutoff=0, verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
                             func_args=None, fixed_params=None, ll_scale=1):
-     """
-    Optimizes parameters to fit the model to data using the COBYLA method. This optimization performs well when the starting point is reasonably close to the optimum and is particularly effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
- 
+    """
+    Optimizes parameters to fit the model to data using the COBYLA method. 
+    
+    Notes
+    -------
 
     This optimization performs well when the starting point is reasonably close to the optimum and is particularly effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
- 
     """
       
     if func_args is None:
