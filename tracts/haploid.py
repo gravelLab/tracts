@@ -10,11 +10,17 @@ class Haploid:
     A class representing a haploid genome, composed of a set of chromosomes,
     each of which consists of a list of tracts.
 
-    Attributes:
-        Ls (list of float): The lengths of the chromosomes.
-        chroms (list of Chrom): The chromosome objects.
-        labs (list of str): Labels identifying the chromosomes.
-        name (str): An optional name for the haploid.
+    Attributes
+    ----------
+    
+        Ls: list of float
+        	The lengths of the chromosomes.
+        chroms: list of Chrom
+        	The chromosome objects.
+        labs: list of str
+        	Labels identifying the chromosomes.
+        name: str
+        	An optional name for the haploid.
     """
 
 

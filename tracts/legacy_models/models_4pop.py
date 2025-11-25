@@ -9,13 +9,18 @@ def pppp_pxxx_xpxx_xxpx(*params):
         non-integer time fraction.  We'll assume population 3 and 4 still replaces
         migrants from 1 and 2 after the replacement from population 1 and 2 if
         they arrive at same generation.
-        Need to add another time parameter
-        Parameters: (prop1, tstart, prop3, prop4, t3, t4)
-        In this prop1 is the initial proportion from population 1,
-        prop2=1-prop1, tstart is the arrival times of pops (1,2) t3 is the
-        arrival time of pop 3 and t4 is the arrival time of prop4
-        prop3 and prop4 are the proportion of migrants from populations 3 and 4.
 
+        Parameters
+        ----------
+        params: tuple
+            A tuple with the following entries: `(prop1, tstart, prop3, prop4, t3, t4)`.
+            `prop1` is the initial proportion from population 1,
+            `prop2=1-prop1`, `tstart` is the arrival times of pops (1,2), `t3` is the
+            arrival time of population 3 and `t4` is the arrival time of population 4.
+            `prop3` and `prop4` are the proportion of migrants from populations 3 and 4, respectively.
+
+        Notes
+        -----
         The two times are measured in units of 100 generations, because some
         python optimizers work better when all parameters have the same scale.
         """
@@ -145,7 +150,7 @@ def outofbounds_pppp_pxxx_xpxx_xxpx(*params):  # I did not change much here
 # We first define a function that calculates the final proportions of ancestry
 # based on the migration matrix
 def propfrommig(mig):
-    """Obtains the proportion of present day genomes contributed by each population"""
+    """Obtains the proportion of present day genomes contributed by each population."""
 
     current_contributions = mig[-1, :]
     for row in mig[-2::-1, :]:
@@ -160,7 +165,7 @@ def pppp_pxxx_xpxx_xxpx_fix(params, fracs):
     n_pops = 4
 
     def fun(params):
-        """function taking the missing parameters and compares results to expected ancestry proportions"""
+        """A function taking the missing parameters and compares results to expected ancestry proportions."""
         (prop1, prop3, prop4) = params
         return propfrommig(pppp_pxxx_xpxx_xxpx(
             (prop1, tstart, prop3, prop4, t3, t4, t5, prop1_secondary, prop2_secondary, prop3_secondary)))[

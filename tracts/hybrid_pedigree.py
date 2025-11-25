@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Phase-type conditioned to pedigree
+Phase-type conditioned to pedigree.
 """
 
 import itertools

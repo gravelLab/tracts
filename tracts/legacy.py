@@ -28,14 +28,15 @@ def eprint(*args, **kwargs):
 
 class Tract:
     """ A tract is the lower-level object of interest. All the remaining
-        structure is built on top of lists of tracts. In essence, a tract is
-        simply a labelled interval.
+        structure is built on top of lists of tracts. Essentially, a tract is
+        simply a labelled interval. 
     """
 
     def __init__(self, start, end, label, bpstart=None, bpend=None):
         """ Constructor.
 
-            Arguments:
+            Parameters
+            ----------
                 start (float):
                     The starting point of this tract, in Morgans.
                 end (float):
@@ -58,15 +59,15 @@ class Tract:
         self.bpend = bpend
 
     def len(self):
-        """ Get the length of the tract (in Morgans) """
+        """ Gets the length of the tract (in Morgans). """
         return self.end - self.start
 
     def get_label(self):
-        """ Get the label of the tract. """
+        """ Gets the label of the tract. """
         return self.label
 
     def copy(self):
-        """ Construct a new tract whose properties are the same as this one.
+        """ Constructs a new tract whose properties are the same as this one.
             """
         return Tract(
             self.start, self.end, self.label, self.bpstart, self.bpend)
@@ -84,14 +85,15 @@ class Chrom:
     def __init__(self, ls=None, auto=True, label="POP", tracts=None):
         """ Constructor.
 
-            Arguments:
-                ls (int, default: None):
+            Parameters
+            ----------
+                ls: int, default: None
                     The length of this chromosome, in Morgans.
-                auto (bool, default: True):
+                auto: bool, default: True
                     Whether this chromosome is autosomal.
-                label (string, default: "POP"):
+                label: string, default: "POP"
                     An identifier categorizing this chromosome.
-                tracts (list of tract objects, default: None):
+                tracts: list of tract objects, default: None
                     The list of tracts that span this chromosome. If None is
                     given, the single, unlabeled tract is created to span the
                     whole chromosome, according to the length len.
@@ -105,7 +107,7 @@ class Chrom:
             self.start = 0
         else:
             if not tracts:
-                raise ValueError("a nonempty list of tracts is required "
+                raise ValueError("A nonempty list of tracts is required "
                                  "for initialization of a chromosome.")
             self.tracts = tracts
             self.auto = auto
@@ -136,7 +138,7 @@ class Chrom:
         self.tracts = tracts
 
     def set_sex(self):
-        """ Consider this chromosome to be a sex chromosome, in which case it
+        """ Considers this chromosome to be a sex chromosome, in which case it
             is not autosomal. The effect of this method is to set the auto
             property to False.
             """
@@ -147,11 +149,11 @@ class Chrom:
         return self.len
 
     def goto(self, pos):
-        """ Find the first tract containing a given position, in Morgans, and
+        """ Finds the first tract containing a given position, in Morgans, and
             return its index in the underlying list. """
         # Use binary search for this, since the tract list is sorted.
         if pos < 0 or pos > self.len:
-            raise ValueError("cannot seek to position outside of chromosome")
+            raise ValueError("Cannot seek to position outside of chromosome.")
 
         low = 0
         high = len(self.tracts) - 1
@@ -168,21 +170,24 @@ class Chrom:
 
     # extract a particular segment from a chromosome
     def extract(self, start, end):
-        """ Extract a segment from the chromosome.
+        """ Extracts a segment from the chromosome.
 
-            Arguments:
-                start (int):
+            Parameters
+            ----------
+                start: int
                     The starting point of the desired segment to extract.
-                end (int):
+                end: int
                     The ending point of the desired segment to extract.
 
-            Returns:
+            Returns
+            ----------
                 A list of tract objects that span the desired interval.
 
-            Notes:
-                Uses the goto method of this class to identify the starting and
+            Notes
+            ----------
+                Uses the `goto` method of this class to identify the starting and
                 ending points of the segment, so if those positions are
-                invalid, goto will raise a ValueError.
+                invalid, `goto` will raise a ValueError.
             """
         startpos = self.goto(start)
         endpos = self.goto(end)
@@ -201,7 +206,7 @@ class Chrom:
                 width=0, disableddash=True, fill=colordict[current_tract.label])
 
     def _smooth(self):
-        """ Combine adjacent tracts with the same label.
+        """ Combines adjacent tracts with the same label.
             The side effect is that the entire list of tracts is copied, so
             unnecessary calls to this method should be avoided.
         """
@@ -226,7 +231,7 @@ class Chrom:
         self.tracts = newtracts
 
     def merge_ancestries(self, ancestries, newlabel):
-        """ Merge segments that are contiguous and of either the same ancestry,
+        """ Merges segments that are contiguous and of either the same ancestry,
             or that are labelled as in a given list.
 
             The label of each tract in the chromosome's inner list is checked
@@ -237,14 +242,16 @@ class Chrom:
             the resulting list is smoothed, to combine adjacent tracts whose
             labels are the same. This new list replaces the `tracts` list.
 
-            Arguments:
-                ancestries (list of strings):
+            Parameters
+            ----------
+                ancestries: list of strings
                     The ancestries to merge.
-                newlabel (string):
+                newlabel: string
                     The identifier for the new ancesty to assign to the
                     matching tracts.
 
-            Returns:
+            Returns
+            ----------
                 Nothing.
             """
         for _tract in self.tracts:
@@ -254,7 +261,7 @@ class Chrom:
         self._smooth()
 
     def _smooth_unknown(self):
-        """ Merge segments that are contiguous and of the same ancestry.  Under
+        """ Merges segments that are contiguous and of the same ancestry.  Under
             the hood, what this method does is eliminate medial segments of
             unknown ancestry, inflating the adjacent segments to fill the space
             left by the unknown ancestry.
@@ -283,7 +290,10 @@ class Chrom:
     def tractlengths(self):
         """ Gets the list of tract lengths. Make sure that proper
             smoothing is implemented.
-            returns a tuple with ancestry, length of block, and length of chromosome
+            
+            Returns
+            ----------
+                A tuple with ancestry, length of block, and length of chromosome.
             """
         self._smooth_unknown()
         return [(t.label, t.end - t.start, self.len) for t in self.tracts]
@@ -292,7 +302,7 @@ class Chrom:
         return self.tracts.__iter__()
 
     def __getitem__(self, index):
-        """ Simply wrap the underlying list's __getitem__ method. """
+        """ Simply wraps the underlying list's __getitem__ method. """
         return self.tracts[index]
 
     def __repr__(self):
@@ -300,7 +310,7 @@ class Chrom:
 
 
 class Chropair:
-    """ A pair of chromosomes. Using pairs of chromosomes allows us to model
+    """ A pair of chromosomes. Using pairs of chromosomes allows to model
         diploid individuals.
     """
 
@@ -312,7 +322,7 @@ class Chropair:
             self.len = len
         else:
             if chroms[0].len != chroms[1].len:
-                raise ValueError('chromosome pairs of different lengths!')
+                raise ValueError('Chromosome pairs of different lengths!')
             self.len = chroms[0].len
             self.copies = chroms
 
@@ -336,7 +346,7 @@ class Chropair:
         return newchrom
 
     def applychrom(self, func):
-        """apply func to chromosomes"""
+        """Applies `func` to chromosomes."""
         ls = []
         for copy in self.copies:
             ls.append(func(copy))
@@ -360,21 +370,21 @@ class Indiv:
 
         Thus, it is possible to construct instances of this class from a pair
         of instances of the haploid class, as well as directly from a sequence
-        of chropair instances.
+        of `chropair` instances.
 
         The interface for loading individuals from files uses the
         haploid-oriented approach, since individual .bed files describe only
         one haplotype. The loading process is thus the following:
 
-        1. load haploid individuals for each haplotype
-        2. combine the haploid individuals into a diploid individual
+            1. Load haploid individuals for each haplotype,
+            2. Combine the haploid individuals into a diploid individual.
     """
 
     @staticmethod
     def from_haploids(haps):
         if len(haps) != 2:
-            raise ValueError('more than two haplotypes given to construct '
-                             'a diploid individual')
+            raise ValueError('More than two haplotypes given to construct '
+                             'a diploid individual.')
 
         chroms = [Chropair(t)
                   for t in zip(*[hap.chroms for hap in haps])]
@@ -383,12 +393,12 @@ class Indiv:
 
     @staticmethod
     def from_files(paths, selectchrom=None, name=None):
-        """ Construct a diploid individual from two files, which describe the
+        """ Constructs a diploid individual from two files, which describe the
             individuals haplotypes.
         """
         if len(paths) != 2:
-            raise ValueError('more than two paths supplied to construct '
-                             'a diploid individual')
+            raise ValueError('More than two paths supplied to construct '
+                             'a diploid individual.')
 
         return Indiv.from_haploids(
             [Haploid.from_file(path, name=name, selectchrom=selectchrom)
@@ -396,54 +406,49 @@ class Indiv:
 
     def __init__(self, Ls=None, label="POP", fname=None, labs=("_A", "_B"),
                  selectchrom=None, chroms=None, name=None):
-        """ Construct a diploid individual. There are several ways to build
+        """ Constructs a diploid individual. There are several ways to build
             individuals, either from files, from existing data, or
             programmatically.
 
             The most straightforward way to build an individual is from
             existing data, by supplying only the "Ls" and "chroms" arguments.
 
-            Ls (default: None, type: list of floats):
+            Parameters
+            ----------
+            Ls: list of floats, default: None
                 The lengths of the chromosomes in the order in which they
                 appear in "chroms".
-            chroms (default: None, type: list of chropair objects):
+            chroms list of chropair objects, default: None
                 The chromosome pairs that make up this individual. See the
                 documentation for "chropair".
-
-            If "Ls" is given, but "chroms" is not, then chromosomes consisting
-            each of a single tract will be created with the label "label" and
-            lengths drawn from "Ls".
-
-            label (default: "POP", type: string):
+            label: string, default: "POP"
                 The label to use for building single-tract chromosomes when no
                 other data is given to buid this individual.
-
-            (deprecated) If the "fname" argument is given, the constructor will
-            perform path manipulation involving the components of "fname" and
-            "labs" to generate file names that are commonly used when dealing
-            with .bed files.
-
-            fname (default: None, type: 2-tuple of strings):
+            fname:  2-tuple of strings, default: None
                 Paths are generated by concatenating the first component of
-                "fname", each label from "labs" in turn, and the second
-                component of "fname".
-                > fname[0] + lab + fname[1] for lab in labs
-
-            labs (default: ("_A", "_B"), type: 2-tuple of strings):
+                `fname`, each label from `labs` in turn, and the second
+                component of `fname`.
+            labs: 2-tuple of strings, default: ("_A", "_B")
                 The labels used to identify maternal and paternal haplotypes in
                 the paths leading to .bed files.
-
-            selectchrom (default: None, type: list of integers):
+            selectchrom:  list of integers, default: None
                 This argument is forwarded as-is to haploid.from_file. It acts
                 as a filter on the chromosomes to load. The default value of
                 "None" selects all chromosomes.
-
-            Finally, some arguments are very general and are not involved in
-            the analysis of the tracts.
-
-            name (default: None, type: string):
+            name: string, default: None
                 An identifier for this individual.
 
+            Notes
+            ----------            
+            If `Ls` is given, but `chroms` is not, then chromosomes consisting
+            each of a single tract will be created with the label `label` and
+            lengths drawn from `Ls`.
+            
+            (deprecated) If the `fname` argument is given, the constructor will
+            perform path manipulation involving the components of `fname` and
+            `labs` to generate file names that are commonly used when dealing
+            with .bed files.          
+            
             The facilities in this constructor for loading individuals from
             files are deprecated. It is recommended to instead use the static
             methods from_files or from_haploids.
@@ -462,9 +467,8 @@ class Indiv:
             self.Ls = i.Ls
 
     def plot(self, colordict, win=None):
-        """Plot an individual. colordict is a dictionary mapping population label to 
-        a set of colors. E.g.: 
-        colordict = {"CEU":'r',"YRI":b}
+        """Plots an individual. colordict is a dictionary mapping population label to 
+        a set of colors. E.g.: colordict = {"CEU":'r',"YRI":b}.
         """
         if win is None:
             win = Tk.Tk()
@@ -483,11 +487,11 @@ class Indiv:
         return Haploid(self.Ls, lsc)
 
     def applychrom(self, func):
-        """ Apply the function `func` to each chromosome of the individual. """
+        """ Applies the function `func` to each chromosome of the individual. """
         return map(lambda c: c.applychrom(func), self.chroms)
 
     def ancestryAmt(self, ancestry):
-        """ Calculate the total length of the genome in segments of the given
+        """ Calculates the total length of the genome in segments of the given
             ancestry.
             """
         return np.sum(
@@ -497,7 +501,7 @@ class Indiv:
             if t.label == ancestry)
 
     def ancestryProps(self, ancestries):
-        """ Calculate the proportion of the genome represented by the given
+        """ Calculates the proportion of the genome represented by the given
             ancestries.
             """
 
@@ -537,19 +541,18 @@ class Indiv:
                 for ancestry in ancestries]
 
     def iflatten(self):
-        """ Lazily flatten this individual to the tract level.  """
+        """Lazily flattens this individual to the tract level.  """
         for _chrom in self.chroms:
             for _copy in _chrom.copies:
                 for _tract in _copy.tracts:
                     yield _tract
 
     def flat_imap(self, f):
-        """ Lazily map a function over the full underlying structure of this
-            individual.
-            The function must accept 3 parameters:
-                chrom: the chromosome pair containing the tract
-                copy: the chromosome containing the tract
-                tract: the tract itself
+        """ Lazily maps a function over the full underlying structure of this
+            individual. The function must accept 3 parameters:
+                chrom: the chromosome pair containing the tract,
+                copy: the chromosome containing the tract,
+                tract: the tract itself.
         """
         for _chrom in self.chroms:
             for _copy in _chrom.copies:
@@ -668,7 +671,7 @@ class Haploid:
 def _split_indivs(indivs, count, sort_ancestry=None):
     """ Internal function used to split a list of individuals into equally
         sized groups after sorting the individuals according to the proportion
-        of the ancestry identified by "sort_ancestry". When no "sort_ancestry"
+        of the ancestry identified by `sort_ancestry`. When no `sort_ancestry`
         is provided, the ancestry of the first tract of the first chromosome
         copy of the first chromosome of the first individual in the list is
         used.
@@ -689,7 +692,7 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 class Population:
     def __init__(self, list_indivs=None, names=None, fname=None,
                  labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False, filenames_by_individual=None):
-        """ Construct a population of diploid individuals. A population is
+        """ Constructs a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
             There are two ways to build populations, either from a dataset
@@ -699,7 +702,7 @@ class Population:
             using indiv.from_file, and to then pass that list to this
             constructor.
 
-        The population can be initialized by providing it with a list of
+            The population can be initialized by providing it with a list of
             "individual" objects, or a file format fname and a list of names.
             If reading from a file, fname should be a tuple with the start
             middle and end of the file names., where an individual file is
@@ -760,7 +763,7 @@ class Population:
             raise ValueError('Population could not be loaded because individuals were not specified.')
 
     def split_by_props(self, count):
-        """ Split this population into groups according to their ancestry
+        """ Splits this population into groups according to their ancestry
             proportions. The individuals are sorted in ascending order of their
             ancestry named "anc".
         """
@@ -771,7 +774,7 @@ class Population:
                 for g in _split_indivs(self.indivs, count)]
 
     def newgen(self):
-        """ Build a new generation from this population. """
+        """ Builds a new generation from this population. """
         return Population([self.new_indiv() for _i in range(self.nind)])
 
     def new_indiv(self):
@@ -787,13 +790,13 @@ class Population:
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
     def list_chromosome(self, chronum):
-        """ Collect the chromosomes with the given number across the whole
+        """ Collects the chromosomes with the given number across the whole
             population.
         """
         return [curr_indiv.chroms[chronum] for curr_indiv in self.indivs]
 
     def ancestry_at_pos(self, select_chrom=0, pos=0, cutoff=.0):
-        """ Find ancestry proportion at specific position. The cutoff is used
+        """ Finds ancestry proportion at specific position. The cutoff is used
             to look only at tracts that extend beyond a given position. """
         ancestry = {}
         # keep track of ancestry of long segments
@@ -824,7 +827,7 @@ class Population:
         return ancestry, totlength
 
     def ancestry_per_pos(self, select_chrom=0, npts=100, cutoff=.0):
-        """ Prepare the ancestry per position across chromosome. """
+        """ Prepares the ancestry per position across chromosome. """
         length = self.indivs[0].chroms[select_chrom].len  # Get chromosome length
         plotpts = np.arange(0, length, length / float(npts))  # Get number of points at which to
         # Plot ancestry
@@ -833,7 +836,7 @@ class Population:
                  for pt in plotpts])
 
     def applychrom(self, func, indlist=None):
-        """ Apply func to chromosomes. If no indlist is supplied, apply to all
+        """ Applies func to chromosomes. If no `indlist` is supplied, apply to all
             individuals.
         """
         ls = []
@@ -861,7 +864,7 @@ class Population:
         return list(self.iflatten(ls))
 
     def iflatten(self, indivs=None):
-        """ Flatten a list of individuals to the tract level. If the list of
+        """ Flattens a list of individuals to the tract level. If the list of
             individuals "indivs" is None, then the complete list of individuals
             contained in this population is flattened.
             The result is a generator.
@@ -874,7 +877,7 @@ class Population:
                 yield _tract
 
     def collectpop(self, flatdat):
-        """ Organize a list of tracts into a dictionary keyed on ancestry
+        """ Organizes a list of tracts into a dictionary keyed on ancestry
             labels.
         """
         dic = defaultdict(list)
@@ -885,22 +888,31 @@ class Population:
         return dic
 
     def merge_ancestries(self, ancestries, newlabel):
-        """ Treats ancestries in label list "ancestries" as a single population
-            with label "newlabel". Adjacent tracts of the new ancestry are
+        """ Treats ancestries in label list `ancestries` as a single population
+            with label `newlabel`. Adjacent tracts of the new ancestry are
             merged. """
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
     def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1, exclude_tracts_below_cM=0):
-        """ tol is the tolerance for full chromosomes: sometimes there are
-            small issues at the edges of the chromosomes. If a segment is
+        """ 
+            Parameters
+            ----------
+            tol: float, default: 0.01 
+                The tolerance for full chromosomes. 
+            indlist: list of individuals, default: None 
+                The individuals for which we want the tractlength. To
+                bootstrap over individuals, provide a bootstrapped list of
+                individuals.    
+                
+            Notes
+            ----------    
+            Sometimes there are small issues at the edges of the chromosomes. If a segment is
             within tol Morgans of the full chromosome, it counts as a full
             chromosome note that we return an extra bin with the complete
             chromosome bin, so that we have one more data point than we have
             bins.
-            indlist is the individuals for which we want the tractlength. To
-            bootstrap over individuals, provide a bootstrapped list of
-            individuals.
+            
         """
         # Figure out whether we're dealing with the set of individuals
         # represented by this population or the one contained in the indlist
@@ -945,7 +957,7 @@ class Population:
         return bins, dat
 
     def bootinds(self, seed):
-        """ Return a bootstrapped list of individuals in the population. Use
+        """ Returns a bootstrapped list of individuals in the population. Use
             with get_global_tractlength inds=... to get a bootstrapped
             sample.
             """
@@ -975,13 +987,13 @@ class Population:
         return bins, dat
 
     def get_mean_ancestry_proportions(self, ancestries):
-        """ Get the mean ancestry proportion averaged across individuals in
+        """ Gets the mean ancestry proportion averaged across individuals in
             the population.
         """
         return map(np.mean, zip(*self.get_means(ancestries)))
 
     def get_means(self, ancestries):
-        """ Get the mean ancestry proportion (only among ancestries in
+        """ Gets the mean ancestry proportion (only among ancestries in
             ancestries) for all individuals. """
         return [ind.ancestryProps(ancestries) for ind in self.indivs]
 
@@ -990,7 +1002,7 @@ class Population:
         return np.mean(byind, axis=0), np.var(byind, axis=0)
 
     def getMeansByChrom(self, ancestries):
-        """ Get the ancestry proportions in each individual of the population
+        """ Gets the ancestry proportions in each individual of the population
             for each chromosome.
         """
         return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
@@ -1018,13 +1030,22 @@ class Population:
     #     return vars
 
     def get_variance(self, ancestries):
-        """ Ancestries is a set of ancestry labels. Calculates the total variance
-            in ancestry proportions, and the genealogy variance, and the
-            assortment variance. (corresponds to the mean uncertainty about the
+        """ Calculates the total variance in ancestry proportions, and the genealogy variance, and the
+            assortment variance (the mean uncertainty about the
             proportion of genealogical ancestors, given observed ancestry
-            patterns). Note that all ancestries not listed are considered uncalled. 
+            patterns). 
+            
+            Parameters
+            ----------
+            Ancestries:
+                A set of ancestry labels.
+            
+            Notes
+            ---------- 
+            All ancestries not listed are considered uncalled. 
             For example, calling the function with a single ancestry leads to no variance.
-            (and some 0/0 errors)"""
+            (and some 0/0 errors).
+        """
 
         # the weights, corresponding (approximately) to the inverse variances
         ws = np.array(self.Ls) * 1. / np.sum(self.Ls)
@@ -1081,7 +1102,7 @@ class Population:
         Tk.mainloop()
 
     def plot_chromosome(self, i, colordict, win=None):
-        """plot a single chromosome across individuals"""
+        """Plots a single chromosome across individuals"""
         self.colordict = colordict
         ls = self.list_chromosome(i)
         if win is None:
@@ -1178,21 +1199,26 @@ class Population:
 
 class DemographicModel:
     def __init__(self, mig, max_remaining_tracts=1e-5, max_morgans=100):
-        """ Migratory model takes as an input an array containing the migration
-            proportions from a discrete number of populations over the last generations.
-            Each row is a time, each column is a population. row zero corresponds to the current
-            generation. The migration rate at the last generation (mig[-1,:]) is
-            the "founding generation" and should sum up to 1. Assume that
-            non-admixed individuals have been removed.
+        """ The migratory model.
+        
+            Parameters
+            ----------
+            mig: np.ndarray
+                An array containing the migration proportions from a discrete number of 
+                populations over the last generations. Each row is a time, each column 
+                is a population. row zero corresponds to the current generation. The migration 
+                rate at the last generation `(mig[-1,:])` is the "founding generation" and should sum 
+                up to 1. Assume that non-admixed individuals have been removed.
 
-            max_remaining_tracts is the proportion of tracts that are allowed
-            to be incomplete after cutoff Lambda
-            (Appendix 2 in Gravel: doi: 10.1534/genetics.112.139808)
-            cutoff=1-sum(b_i)
+            max_remaining_tracts: float, default: 1e-5
+                The proportion of tracts that are allowed
+                to be incomplete after cutoff Lambda (See Appendix 2 
+                in Gravel: doi: 10.1534/genetics.112.139808).
 
-            max_morgans is used to impose a cutoff to the number of Markov transitions. 
-            If the simulated morgan lengths of tracts in an infinite genome is more than 
-            max_morgans, issue a warning and stop generating new transitions
+            max_morgans: float, default: 100
+                This parameter is used to impose a cutoff to the number of Markov transitions. 
+                If the simulated morgan lengths of tracts in an infinite genome is more than 
+                `max_morgans`, the function issues a warning and stop generating new transitions.
         """
 
         small = 1e-10
@@ -1207,11 +1233,11 @@ class DemographicModel:
         # test for reasonableness of migration matrix
 
         if abs(self.totmig[-1] - 1) > small:
-            eprint("founding migration should sum up to 1. Now:", mig[-1, :], "sum up to ", self.totmig[-1])
+            eprint("Founding migration should sum up to 1. Now:", mig[-1, :], "sum up to ", self.totmig[-1])
             raise ValueError("founding migration sum is not 1")
 
         if self.totmig[0] > small:
-            eprint("migrants at last generation should be removed from sample! If this happens in optimization,"
+            eprint("Migrants at last generation should be removed from sample! If this happens in optimization,"
                    "should trigger constraint and lead to high likelihood")
             eprint("currently", self.totmig[0])
             raise ValueError("migrants from last generation are not removed")
@@ -1219,18 +1245,18 @@ class DemographicModel:
         self.totmig[0] = 0
 
         if self.totmig[1] > small:
-            eprint("migrants at penultimate generation. This should not be allowed "
+            eprint("Migrants at penultimate generation. This should not be allowed "
                    "and should result in high likelihood ")
             eprint("currently", self.totmig[1])
             raise ValueError(
                 "migrants from penultimate generation are not removed")
 
         if (self.totmig > 1).any() or (mig < 0).any():
-            eprint("migration rates should be between 0 and 1")
+            eprint("Migration rates should be between 0 and 1")
             eprint("currently", mig)
             raise ValueError("mig")
         if (mig[:-1] == 1).any():
-            eprint("warning: population was completely replaced after founding event")
+            eprint("Warning: population was completely replaced after founding event")
 
         # Tracts represents ancestry tracts as a markov model
         # states are defined by source population and generation of arrival. 
@@ -1317,8 +1343,8 @@ class DemographicModel:
         self.switchdensity()
 
     def gen_variance(self, popnum):
-        """ 1. Calculate the expected genealogy variance in the model.
-            2. Calculate the e(d) (equation 3 in MOLA (Models of Local ancestry) paper)
+        """ 1. Calculates the expected genealogy variance in the model.
+            2. Calculates the e(d) (Equation 3 in MOLA (Models of Local ancestry) paper).
             3. Generations go from 0 to self.ngen-1.
             """
         legterm = [self.proportions[self.ngen - d, popnum] ** 2 * np.prod(1 - self.totmig[:(self.ngen - d)])
@@ -1347,7 +1373,7 @@ class DemographicModel:
         self.unifmat /= self.maxrate
 
     def popNdist(self, pop):
-        """ Calculate the distribution of number of steps before exiting
+        """ Calculates the distribution of number of steps before exiting
             population. """
         if len(self.stateINpop[pop]) == 0:
             return []
@@ -1393,7 +1419,7 @@ class DemographicModel:
         return T ** i * x ** (i - 1) * np.exp(- T * x) * 1. / factorial(i - 1)
 
     def inners(self, L, x, pop):
-        """ Calculate the length distribution of tract lengths not hitting a
+        """ Calculates the length distribution of tract lengths not hitting a
             chromosome edge. """
         if x > L:
             return 0
@@ -1402,7 +1428,7 @@ class DemographicModel:
                           for i in range(len(self.ndists[pop])))
 
     def outers(self, L, x, pop):
-        """ Calculate the length distribution of tract lengths hitting a single
+        """ Calculates the length distribution of tract lengths hitting a single
             chromosome edge. """
         if x > L:
             return 0
@@ -1421,14 +1447,14 @@ class DemographicModel:
         ) + (1 - np.sum(self.ndists[pop])) * (len(self.ndists[pop]) * 1. / self.maxrate - L)
 
     def Z(self, L, pop):
-        """the normalizing factor, to ensure that the tract density is 1."""
+        """The normalizing factor, to ensure that the tract density integrates to 1."""
         return L + np.sum(
             self.ndists[pop][i] * (i + 1) * 1. / self.maxrate
             for i in range(len(self.ndists[pop]))
         ) + (1 - np.sum([self.ndists[pop]])) * len(self.ndists[pop]) * 1. / self.maxrate
 
     def switchdensity(self):
-        """ Calculate the density of ancestry switchpoints per morgan in our
+        """ Calculates the density of ancestry switchpoints per morgan in our
             model. """
         self.switchdensities = np.zeros((self.npops, self.npops))
         # could optimize by precomputing survivals earlier
@@ -1448,7 +1474,7 @@ class DemographicModel:
             list with n+1 breakpoints for n bins. We will always add an extra
             value for the full chromosomes as an extra bin at the end. The last
             bin should not go beyond the end of the longest chromosome. For
-            now, perform poor man's integral by using the bin midpoint value
+            now, the function performs poor man's integral by using the bin midpoint value
             times width. """
         self.totalPerInd = [L * self.totSwitchDens[pop] + 2. * self.proportions[0, pop] for L in Ls]
         self.totalfull = np.sum([(L * self.totSwitchDens[pop] + 2. * self.proportions[0, pop]) * self.full(L, pop)
@@ -1474,7 +1500,7 @@ class DemographicModel:
         return expect
 
     def loglik(self, bins, Ls, data, nsamp, cutoff=0):
-        """ Calculate the maximum-likelihood in a Poisson Random Field. Last
+        """ Calculates the maximum-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. """
         self.maxLen = max(Ls)
         # define bins that contain all possible values
@@ -1585,8 +1611,9 @@ class CompositeDemographicModel:
         """ Construct a composite demographic model, in which we consider split
             groups of individuals.
 
-            Arguments;
-                model_function (callable):
+            Parameters
+            ----------
+                model_function: callable
                     A function that produces a migration matrix given some
                     model parameters and fixed ancestry proportions.
                 parameters:
@@ -1606,7 +1633,7 @@ class CompositeDemographicModel:
         self.npops = self.models[0].npops
 
     def loglik(self, bins, Ls, data_list, nsamp_list, cutoff=0):
-        """ Evaluate the log-likelihood of the composite demographic model.
+        """ Evaluates the log-likelihood of the composite demographic model.
 
             To compute the log-likelihood, we combine the expected count of
             tracts per bin in each of the component demographic models into the
@@ -1615,7 +1642,7 @@ class CompositeDemographicModel:
             bin. This gives a likelihood that is directly comparable with the
             likelihoods of the component demographic models.
 
-            See demographic_model.loglik for more information about the
+            See `demographic_model.loglik` for more information about the
             specifics of the log-likelihood calculation.
         """
         # maxlen = max(Ls)
@@ -1652,9 +1679,9 @@ class CompositeDemographicModel:
                    for nsamp, mod in zip(nsamp_list, self.models))
 
     def migs(self):
-        """ Get the list of migration matrices of the component demographic
+        """ Gets the list of migration matrices of the component demographic
             models.
-            This method merely projects the "mig" attribute from the component
+            This method merely projects the `mig` attribute from the component
             models.
         """
         return [m.mig for m in self.models]
@@ -1682,59 +1709,60 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
              maxiter=None, full_output=True, func_args=None, fixed_params=None,
              ll_scale=1):
     """
-    Optimize params to fit model to data using the BFGS method.
+    Optimizes parameters to fit model to data using the BFGS method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
 
-    It should also perform better when parameters range over scales.
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
 
-    p0:
-        Initial parameters.
-    data:
-        Spectrum with data.
-    model_function:
-        Function to evaluate model spectrum. Should take arguments (params,
-        pts)
-    out_of_bounds_fun:
-        A funtion evaluating to True if the current parameters are in a
-        forbidden region.
-    cutoff:
-        the number of bins to drop at the beginning of the array. This could be
-        achieved with masks.
-    verbose:
-        If greater than zero, print optimization status every <verbose> steps.
-    flush_delay:
-        Standard output will be flushed once every <flush_delay> minutes. This
-        is useful to avoid overloading I/O on clusters.
-    epsilon:
-        Step-size to use for finite-difference derivatives.
-    gtol:
-        Convergence criterion for optimization. For more info, see
-                 help(scipy.optimize.fmin_bfgs)
-    maxiter:
-        Maximum iterations to run for.
-    full_output:
-        If True, return full outputs as described in help.
-        (scipy.optimize.fmin_bfgs)
-    func_args:
-        List of additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize.
-    fixed_params:
-        (Not yet implemented)
-        If not None, should be a list used to fix model parameters at
-        particular values. For example, if the model parameters are
-        (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
-        and m=2. The optimizer will only change T and m. Note that the bounds
-        lists must include all parameters. Optimization will fail if the fixed
-        values lie outside their bounds. A full-length p0 should be passed in;
-        values corresponding to fixed parameters are ignored.
-    ll_scale:
-        The bfgs algorithm may fail if your initial log-likelihood is too
-        large. (This appears to be a flaw in the scipy implementation.) To
-        overcome this, pass ll_scale > 1, which will simply reduce the
-        magnitude of the log-likelihood. Once in a region of reasonable
-        likelihood, you'll probably want to re-optimize with ll_scale=1.
     """
     args = (bins, Ls, data, nsamp, model_func, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
     if func_args is None:
@@ -1759,61 +1787,64 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
                  epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True):
     """
-    Optimize params to fit model to data using the cobyla method.
+    Optimizes params to fit model to data using the cobyla method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
+        reset_counter: default True
+            Resets the iteration counter to zero. Set to False to
+            continue iteration count (e.g., if optimization continues from previous point).
 
-    It should also perform better when parameters range over scales.
 
-    p0:
-        Initial parameters.
-    data:
-        Spectrum with data.
-    model_function:
-        Function to evaluate model spectrum. Should take arguments (params,
-        pts)
-    out_of_bounds_fun:
-        A funtion evaluating to True if the current parameters are in a
-        forbidden region.
-    cutoff:
-        the number of bins to drop at the beginning of the array. This could be
-        achieved with masks.
-    verbose:
-        If > 0, print optimization status every <verbose> steps.
-    flush_delay:
-        Standard output will be flushed once every <flush_delay> minutes. This
-        is useful to avoid overloading I/O on clusters.
-    epsilon:
-        Step-size to use for finite-difference derivatives.
-    gtol:
-        Convergence criterion for optimization. For more info, see
-                 help(scipy.optimize.fmin_bfgs)
-    maxiter:
-        Maximum iterations to run for.
-    full_output:
-        If True, return full outputs as in described in
-        help(scipy.optimize.fmin_bfgs)
-    func_args:
-        Additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize.
-    fixed_params:
-        If not None, should be a list used to fix model parameters at
-        particular values. For example, if the model parameters are
-        (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
-        and m=2. The optimizer will only change T and m. Note that the bounds
-        lists must include all parameters. Optimization will fail if the fixed
-        values lie outside their bounds. A full-length p0 should be passed in;
-        values corresponding to fixed parameters are ignored.
-    ll_scale:
-        The bfgs algorithm may fail if your initial log-likelihood is too
-        large. (This appears to be a flaw in the scipy implementation.) To
-        overcome this, pass ll_scale > 1, which will simply reduce the
-        magnitude of the log-likelihood. Once in a region of reasonable
-        likelihood, you'll probably want to re-optimize with ll_scale=1.
-    reset_counter:
-        Defaults to true, resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point)
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     if func_args is None:
         func_args = []
@@ -1834,61 +1865,63 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, 
                    flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
                    fixed_params=None, ll_scale=1, reset_counter=True):
     """
-    Optimize params to fit model to data using the slsq method.
+    Optimizes params to fit model to data using the slsq method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
+        reset_counter: default True
+            Resets the iteration counter to zero. Set to False to
+            continue iteration count (e.g., if optimization continues from previous point).
 
-    It should also perform better when parameters range over scales.
 
-    p0:
-        Initial parameters.
-    data:
-        Spectrum with data.
-    model_function:
-        Function to evaluate model spectrum. Should take arguments (params,
-        pts)
-    out_of_bounds_fun:
-        A funtion evaluating to True if the current parameters are in a
-        forbidden region.
-    cutoff:
-        the number of bins to drop at the beginning of the array. This could be
-        achieved with masks.
-    verbose:
-        If > 0, print optimization status every <verbose> steps.
-    flush_delay:
-        Standard output will be flushed once every <flush_delay> minutes. This
-        is useful to avoid overloading I/O on clusters.
-    epsilon:
-        Step-size to use for finite-difference derivatives.
-    gtol:
-        Convergence criterion for optimization. For more info, see
-                 help(scipy.optimize.fmin_bfgs)
-    maxiter:
-        Maximum iterations to run for.
-    full_output:
-        If True, return full outputs as in described in
-        help(scipy.optimize.fmin_bfgs)
-    func_args:
-        List of additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize.
-    fixed_params:
-        If not None, should be a list used to fix model parameters at
-        particular values. For example, if the model parameters are
-        (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
-        and m=2. The optimizer will only change T and m. Note that the bounds
-        lists must include all parameters. Optimization will fail if the fixed
-        values lie outside their bounds. A full-length p0 should be passed in;
-        values corresponding to fixed parameters are ignored.
-    ll_scale:
-        The bfgs algorithm may fail if your initial log-likelihood is too
-        large. (This appears to be a flaw in the scipy implementation.) To
-        overcome this, pass ll_scale > 1, which will simply reduce the
-        magnitude of the log-likelihood. Once in a region of reasonable
-        likelihood, you'll probably want to re-optimize with ll_scale=1.
-    reset_counter:
-        Defaults to true, resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point)
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     args = (bins, Ls, data, nsamp, model_func, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
     if bounds is None:
@@ -1919,7 +1952,7 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, 
 
 
 def _project_params_down(pin, fixed_params):
-    """ Eliminate fixed parameters from pin. Copied from Dadi (Gutenkunst et al., PLoS Genetics, 2009). """
+    """ Eliminates fixed parameters from pin. Copied from Dadi (Gutenkunst et al., PLoS Genetics, 2009). """
     if fixed_params is None:
         return pin
 
@@ -1935,7 +1968,7 @@ def _project_params_down(pin, fixed_params):
 
 
 def _project_params_up(pin, fixed_params):
-    """ Fold fixed parameters into pin. Copied from Dadi (Gutenkunst et al.,
+    """ Folds fixed parameters into pin. Copied from Dadi (Gutenkunst et al.,
         PLoS Genetics, 2009). """
     if fixed_params is None:
         return pin
@@ -1989,49 +2022,59 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs, outofbounds
                        flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
                        fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the COBYLA method.
+    Optimizes params to fit model to data using the COBYLA method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
 
-    It should also perform better when parameters range over scales.
-
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-    maxiter: Maximum iterations to run for.
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     if func_args is None:
         func_args = []
@@ -2050,53 +2093,63 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs, outofbound
                         verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
                         func_args=None, fixed_params=None, ll_scale=1, reset_counter=True):
     """
-    Optimize params to fit model to data using the cobyla method.
+    Optimizes params to fit model to data using the cobyla method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
+        reset_counter: default True
+            Resets the iteration counter to zero. Set to False to
+            continue iteration count (e.g., if optimization continues from previous point).
 
 
-    It should also perform better when parameters range over scales.
-
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-    maxiter: Maximum iterations to run for.
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
-    reset_counter:
-        Defaults to true, resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point)
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     if func_args is None:
         func_args = []
@@ -2136,50 +2189,59 @@ def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fra
                             cutoff=0, verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
                             func_args=None, fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the cobyla method.
+    Optimizes params to fit model to data using the cobyla method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
 
-
-    It should also perform better when parameters range over scales.
-
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-    maxiter: Maximum iterations to run for.
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     if func_args is None:
         func_args = []
@@ -2221,50 +2283,61 @@ def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fra
 def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs, searchvalues, outofbounds_fun=None, cutoff=0,
                           verbose=0, flush_delay=1, full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the brute force method.
-
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Optimizes params to fit model to data using the brute force method.
 
 
-    It should also perform better when parameters range over scales.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
 
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
 
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     if func_args is None:
         func_args = []
@@ -2305,50 +2378,59 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
                               outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                               full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the brute force method.
+    Optimizes params to fit model to data using the brute force method.
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+        p0:
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+            pts).
+        out_of_bounds_fun: default None
+            A function evaluating to True if the current parameters are in a
+            forbidden region.
+        cutoff: default 0
+            The number of bins to drop at the beginning of the array. This could be
+            achieved with masks.
+        verbose: default 0
+            If greater than zero, print optimization status every `verbose` steps.
+        flush_delay: default 0.5
+            Standard output will be flushed once every `flush_delay` minutes. This
+            is useful to avoid overloading I/O on clusters.
+        epsilon: default 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default 1e-5
+            Convergence criterion for optimization. For more info, see `help(scipy.optimize.fmin_bfgs)`.
+        maxiter: default None
+            Maximum iterations to run for.
+        full_output: default True
+            If True, returns full outputs as described in `help.(scipy.optimize.fmin_bfgs)`.
+        func_args: default None
+            List of additional arguments to model_func. It is assumed that `model_func`'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            `(nu1,nu2,T,m)`, then `fixed_params = [0.5,None,None,2]` will hold `nu1=0.5`
+            and `m=2`. The optimizer will only change `T` and `m`. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length `p0` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default 1
+            The bfgs algorithm may fail if your initial log-likelihood is too
+            large. (This appears to be a flaw in the scipy implementation.) To
+            overcome this, pass `ll_scale > 1`, which will simply reduce the
+            magnitude of the log-likelihood. Once in a region of reasonable
+            likelihood, you'll probably want to re-optimize with `ll_scale=1`.
 
-
-    It should also perform better when parameters range over scales.
-
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    Notes
+    ----------
+        This optimization method works well when we start reasonably close to the
+        optimum. It is best at burrowing down a single minimum. It should also 
+        perform better when parameters range over scales.
     """
     if func_args is None:
         func_args = []
@@ -2392,21 +2474,31 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
 def test_model_func(model_func, parameters, fracs_list=None, time_params=True, time_scale=100):
     """Given a demographic model function, run a few debugging tests to ensure
     that it behaves as expected, namely: 
-    1-That migration matrices sum to less than one (exactly one for the last generation
-    2-That it behaves continuously realtive to time parameters. 
+
+        1. That migration matrices sum to less than one (exactly one for the last generation,
+        2. That it behaves continuously realtive to time parameters. 
     
-    model_func: a migration model. It takes in parameters and outputs a migration matrix. 
-    parameters:  parameters for which the model will be tested. 
-    fracs_list: parameters required by some demographic models corresponding to the observed proportion of ancestry
-    from each source population
-    time_params: if True, test all parameters for continuity as if they were time parameters.
-                if a list of boolean values of the same length of parameters, only test parameters
-                corresponding to True values.
-    time_scale: the scaling of the time variables: time (in generations) = time_parameter*time_scale. This is used to
-    test continuity around integer values. 
-    returns
-    violation score (negative means that a violation has occurred)
-    and the migration matrix value as well
+    Parameters
+    ----------
+    model_func: 
+        A migration model. It takes in parameters and outputs a migration matrix. 
+    parameters:
+        Parameters for which the model will be tested. 
+    fracs_list: default None
+        Parameters required by some demographic models corresponding to the 
+        observed proportion of ancestry from each source population.
+    time_params: default True
+        If True, test all parameters for continuity as if they were time parameters. 
+        If a list of boolean values of the same length of parameters,
+         only test parameters corresponding to True values.
+    time_scale: default 100
+        The scaling of the time variables: *time (in generations) = time_parameter*time_scale*. This is used to
+        test continuity around integer values. 
+    
+    Returns
+    -------
+        A tuple with the minimum violation score (negative means that a violation has occurred)
+        and the migration matrix value as well.
     """
 
     # First test consistency of migration matrix
@@ -2476,7 +2568,7 @@ _counter = 0
 
 def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun=None, cutoff=0, verbose=0,
                        flush_delay=0, func_args=None):
-    """define the objective function for when the ancestry porportions are specified."""
+    """Defines the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
     _out_of_bounds_val = -1e32
@@ -2553,7 +2645,7 @@ _counter = 0
 
 def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func, fracs_list, outofbounds_fun=None,
                             cutoff=0, verbose=0, flush_delay=0, func_args=None, fixed_params=None):
-    """ define the objective function for when the ancestry porportions are specified."""
+    """Defines the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
     # this function will be minimized. We first calculate likelihoods (to be
