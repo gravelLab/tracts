@@ -251,26 +251,20 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     Parameters
     ----------
     
-    model_func: Callable
-    	A function that takes parameters and returns migration matrices.
-    	
-    bound_func: Callable
-    	A function that calculates the violation score for the parameters.
-    	
-    population: Population
-    	The population object containing individual data.
-    	
-    population_labels: list[str]
-    	A list of labels corresponding to the populations.
-    	
-    start_params_list: list[numpy.ndarray]
-    	A list of initial parameter arrays to start the optimization.
-    	
-    exclude_tracts_below_cM: int, optional
-    	Minimum tract length in centimorgans to exclude from analysis. Default is 0.
-    	
-    modelling_method: type, optional
-    	The method used for modeling. Default is PhTMonoecious.
+        model_func: Callable
+    	    A function that takes parameters and returns migration matrices.
+        bound_func: Callable
+    	    A function that calculates the violation score for the parameters. 	
+        population: Population
+    	    The population object containing individual data.
+        population_labels: list[str]
+    	    A list of labels corresponding to the populations.	
+        start_params_list: list[numpy.ndarray]
+    	    A list of initial parameter arrays to start the optimization.	
+        exclude_tracts_below_cM: int, optional
+    	    Minimum tract length in centimorgans to exclude from analysis. Default is 0.
+        modelling_method: type, optional
+    	    The method used for modeling. Default is PhTMonoecious.
 
     Returns
     ----------
