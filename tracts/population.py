@@ -15,7 +15,7 @@ from tracts.logs import get_current_func_info
 logger = logging.getLogger(__name__)
 
 def collect_pop(flatdat):
-    """ Organize a list of tracts into a dictionary keyed on ancestry
+    """ Organizes a list of tracts into a dictionary keyed on ancestry
         labels.
     """
     dic = defaultdict(list)
@@ -58,7 +58,7 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 class Population:
     def __init__(self, list_indivs: list[Indiv]=None, names=None, fname=None,
                  labs=("_A", "_B"), selectchrom=None, allosomes=[], ignore_length_consistency=False, filenames_by_individual=None):
-        """ Construct a population of diploid individuals. A population is
+        """ Constructs a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
             There are two ways to build populations, either from a dataset
@@ -68,7 +68,7 @@ class Population:
             using indiv.from_file, and to then pass that list to this
             constructor.
 
-        The population can be initialized by providing it with a list of
+            The population can be initialized by providing it with a list of
             "individual" objects, or a file format fname and a list of names.
             If reading from a file, fname should be a tuple with the start
             middle and end of the file names., where an individual file is
@@ -178,7 +178,7 @@ class Population:
 
 
     def split_by_props(self, count):
-        """ Split this population into groups according to their ancestry
+        """ Splits this population into groups according to their ancestry
             proportions. The individuals are sorted in ascending order of their
             ancestry named "anc".
         """
@@ -204,13 +204,13 @@ class Population:
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
     def list_chromosome(self, chronum):
-        """ Collect the chromosomes with the given number across the whole
+        """ Collects the chromosomes with the given number across the whole
             population.
         """
         return [curr_indiv.chroms[chronum] for curr_indiv in self.indivs]
 
     def ancestry_at_pos(self, select_chrom=0, pos=0, cutoff=.0):
-        """ Find ancestry proportion at specific position. The cutoff is used
+        """ Finds ancestry proportion at specific position. The cutoff is used
             to look only at tracts that extend beyond a given position. """
         ancestry = {}
         # keep track of ancestry of long segments
@@ -276,7 +276,7 @@ class Population:
         return self._flats
 
     def iflatten(self, indivs=None):
-        """ Flatten a list of individuals to the tract level. If the list of
+        """ Flattens a list of individuals to the tract level. If the list of
             individuals "indivs" is None, then the complete list of individuals
             contained in this population is flattened.
             The result is a generator.
@@ -295,20 +295,34 @@ class Population:
         self.applychrom(f)
 
     def get_global_tractlengths(self, npts: int = 20, tol: float = 0.01, indlist: list = None, split_count: int = 1, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-        """ tol is the tolerance for full chromosomes: sometimes there are
-            small issues at the edges of the chromosomes. If a segment is
-            within tol Morgans of the full chromosome, it counts as a full
-            chromosome note that we return an extra bin with the complete
-            chromosome bin, so that we have one more data point than we have
-            bins.
-            indlist is the individuals for which we want the tractlength. To
-            bootstrap over individuals, provide a bootstrapped list of
-            individuals.
+        """ 
+            Parameters
+            ----------
+                tol: float, default 0.01
+                    The tolerance for full chromosomes. 
+                npts: int, default 20
+                    The number of bins for the histogram.
+                indlist: list, default None
+                    The individuals for which we want the tractlength. To
+                    bootstrap over individuals, provide a bootstrapped list of
+                    individuals.
+                split_count: int, default 1
+                exclude_tracts_below_cM: float, default 0
             
-            Returns:
-                A tuple containing:
-                    - bins: The bins for the histogram.
-                    - dat: A dictionary with ancestry labels as keys and a histogram of tract lengths as values.
+            Returns
+            -------
+                tuple[np.ndarray, dict[str, np.ndarray]]
+                    A tuple with
+                        bins: The bins for the histogram.
+                        dat: A dictionary with ancestry labels as keys and a histogram of tract lengths as values.
+            
+            Notes
+            -----
+                Sometimes there are small issues at the edges of the chromosomes. If a segment is
+                within tol Morgans of the full chromosome, it counts as a full
+                chromosome note that we return an extra bin with the complete
+                chromosome bin, so that we have one more data point than we have
+                bins.
         """
         # Figure out whether we're dealing with the set of individuals
         # represented by this population or the one contained in the indlist
@@ -395,7 +409,7 @@ class Population:
 
 
     def bootinds(self, seed):
-        """ Return a bootstrapped list of individuals in the population. Use
+        """ Returns a bootstrapped list of individuals in the population. Use
             with get_global_tractlength inds=... to get a bootstrapped
             sample.
             """
@@ -425,14 +439,14 @@ class Population:
         return bins, dat
 
     def get_mean_ancestry_proportions(self, ancestries):
-        """ Get the mean ancestry proportion averaged across individuals in
+        """ Gets the mean ancestry proportion averaged across individuals in
             the population.
         """
         # return map(np.mean, zip(*self.get_means(ancestries)))
         return list(map(np.mean, zip(*self.get_means(ancestries))))
 
     def get_means(self, ancestries):
-        """ Get the mean ancestry proportion (only among ancestries in
+        """ Gets the mean ancestry proportion (only among ancestries in
             ancestries) for all individuals. """
         return [ind.ancestryProps(ancestries) for ind in self.indivs]
 
@@ -441,7 +455,7 @@ class Population:
         return np.mean(byind, axis=0), np.var(byind, axis=0)
 
     def getMeansByChrom(self, ancestries):
-        """ Get the ancestry proportions in each individual of the population
+        """ Gets the ancestry proportions in each individual of the population
             for each chromosome.
         """
         return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
@@ -471,11 +485,11 @@ class Population:
     def get_variance(self, ancestries):
         """ Ancestries is a set of ancestry labels. Calculates the total variance
             in ancestry proportions, and the genealogy variance, and the
-            assortment variance. (corresponds to the mean uncertainty about the
+            assortment variance (corresponds to the mean uncertainty about the
             proportion of genealogical ancestors, given observed ancestry
             patterns). Note that all ancestries not listed are considered uncalled.
             For example, calling the function with a single ancestry leads to no variance.
-            (and some 0/0 errors)"""
+            (and some 0/0 errors)."""
 
         # the weights, corresponding (approximately) to the inverse variances
         ws = np.array(self.Ls) * 1. / np.sum(self.Ls)

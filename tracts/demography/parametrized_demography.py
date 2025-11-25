@@ -10,12 +10,12 @@ import ruamel.yaml
 from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
 from tracts.demography.parameter import ParamType
 
-"""
-TODO: 
-Add constant parameters and parameter equations
-Add penalization function for non-resolvable constraints
-Add function to solve constraints shape
-"""
+
+#TODO: 
+#Add constant parameters and parameter equations
+#Add penalization function for non-resolvable constraints
+#Add function to solve constraints shape
+
 
 class PulseEvent(BaseMigrationEvent):
 
@@ -61,9 +61,8 @@ class ContinuousEvent(BaseMigrationEvent):
 class ParametrizedDemography(BaseParametrizedDemography):
     """
     A class representing a demographic history for multiple populations of interest, with parametrized migrations from other populations.
-    TODO: add support for int (constant) parameters
     """
-
+    #TODO: add support for int (constant) parameters.
 
     def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
@@ -76,9 +75,9 @@ class ParametrizedDemography(BaseParametrizedDemography):
     def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None) -> dict[str, numpy.ndarray]:
         """
         Takes in a list of params equal to the length of free_params
-        and returns a p*g migration matrix for each population of interest
-        where p is the number of incoming populations and g is the number of generations
-        If one of the parameters (time or migration) is incorrect, returns an empty matrix
+        and returns a *pg* migration matrix for each population of interest
+        where *p* is the number of incoming populations and *g* is the number of generations.
+        If one of the parameters (time or migration) is incorrect, returns an empty matrix.
         """
         if solve_using_known_proportions is None:
             solve_using_known_proportions = self.fixed_proportions_handler.has_been_fixed
@@ -109,7 +108,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
     
     def add_pulse_migration(self, dest_population, source_population, rate_param, time_param):
         """
-        Adds a pulse migration from source population A, parametrized by time and rate
+        Adds a pulse migration from source population A, parametrized by time and rate.
         """
         self.add_population(source_population)
         self.add_parameter(rate_param, param_type=ParamType.RATE)
@@ -129,7 +128,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
 
     def add_continuous_migration(self, dest_population, source_population, rate_param, start_param, end_param):
         """
-        Adds a continuous migration from source population A, parametrized by start_time, end_time, and magnitude
+        Adds a continuous migration from source population A, parametrized by start_time, end_time, and magnitude.
         """
         self.add_population(source_population)
         self.add_parameter(rate_param, param_type=ParamType.RATE)
@@ -189,7 +188,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
     @staticmethod
     def load_from_YAML(source: str | Path) -> ParametrizedDemography:
         """
-        Creates an instance of ParametrizedDemography from a YAML file
+        Creates an instance of ParametrizedDemography from a YAML file.
         """
         yaml = ruamel.yaml.YAML(typ="safe")
         if isinstance(source, (str, bytes, os.PathLike)):

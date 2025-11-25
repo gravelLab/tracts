@@ -15,21 +15,27 @@ def Erlang(i, x, T):
 
 class DemographicModel:
     def __init__(self, mig, max_remaining_tracts=1e-5, max_morgans=100):
-        """ Migratory model takes as an input an array containing the migration
+        """ A migratory model.
+        
+        Parameters
+    	----------
+        
+        mig:
+            An array containing the migration
             proportions from a discrete number of populations over the last generations.
             Each row is a time, each column is a population. row zero corresponds to the current
-            generation. The migration rate at the last generation (mig[-1,:]) is
-            the "founding generation" and should sum up to 1. Assume that
+            generation. The migration rate at the last generation ``mig[-1,:]`` is
+            the "founding generation" and should sum up to 1. Assumes that
             non-admixed individuals have been removed.
 
-            max_remaining_tracts is the proportion of tracts that are allowed
-            to be incomplete after cutoff Lambda
-            (Appendix 2 in Gravel: doi: 10.1534/genetics.112.139808)
-            cutoff=1-sum(b_i)
-
-            max_morgans is used to impose a cutoff to the number of Markov transitions.
+        max_remaining_tracts:
+            The proportion of tracts that are allowed
+            to be incomplete after cutoff Lambda (see Appendix 2 in Gravel (2012): doi: 10.1534/genetics.112.139808).
+        
+        max_morgans:
+            Used to impose a cutoff to the number of Markov transitions.
             If the simulated morgan lengths of tracts in an infinite genome is more than
-            max_morgans, issue a warning and stop generating new transitions
+            *max_morgans*, issue a warning and stop generating new transitions.
         """
         self.maxLen = None
         self.totalPerInd = None
@@ -161,9 +167,7 @@ class DemographicModel:
         self.switchdensity()
 
     def gen_variance(self, popnum):
-        """ 1. Calculate the expected genealogy variance in the model.
-            2. Calculate the e(d) (equation 3 in MOLA (Models of Local ancestry) paper)
-            3. Generations go from 0 to self.ngen-1.
+        """ Calculates (i) the expected genealogy variance in the model, (ii) the e(d) (equation 3 in MOLA (Models of Local Ancestry) paper) and (iii) the generations go from 0 to ``self.ngen-1``.
             """
         legterm = [self.proportions[self.ngen - d, popnum] ** 2 * np.prod(1 - self.totmig[:(self.ngen - d)])
                    for d in range(1, self.ngen)]
@@ -176,7 +180,7 @@ class DemographicModel:
             + self.proportions[0, popnum] * (1 / 2. ** (self.ngen - 1) - self.proportions[0, popnum])
 
     def uniformizemat(self):
-        """ Uniformize the transition matrix so that each state has the same
+        """ Uniformizes the transition matrix so that each state has the same
             total transition rate. """
         self.unifmat = self.mat.copy()
         lmat = len(self.mat)
@@ -191,7 +195,7 @@ class DemographicModel:
         self.unifmat /= self.maxrate
 
     def popNdist(self, pop):
-        """ Calculate the distribution of number of steps before exiting
+        """ Calculates the distribution of number of steps before exiting
             population. """
         if len(self.stateINpop[pop]) == 0:
             return []
@@ -231,8 +235,9 @@ class DemographicModel:
         return nDistribution
 
     def inners(self, L, x, pop):
-        """ Calculate the length distribution of tract lengths not hitting a
-            chromosome edge. """
+        """ Calculates the length distribution of tract lengths not hitting a
+            chromosome edge.
+        """
         if x > L:
             return 0
         generator = (num_steps * (L - x) * Erlang(i + 1, x, self.maxrate)
@@ -240,7 +245,7 @@ class DemographicModel:
         return sum(np.fromiter(generator, dtype=np.float64))
 
     def outers(self, L, x, pop):
-        """ Calculate the length distribution of tract lengths hitting a single
+        """ Calculates the length distribution of tract lengths hitting a single
             chromosome edge. """
         if x > L:
             return 0
@@ -251,7 +256,7 @@ class DemographicModel:
 
     def full(self, L, pop):
         """ The expected fraction of full-chromosome tracts, p. 63 May 24,
-            2011. """
+            2011."""
         generator = (self.ndists[pop][i] * (((i + 1) / float(self.maxrate) - L) + L * gammainc(i + 1, self.maxrate * L)
                                             - float(i + 1) / self.maxrate * gammainc(i + 2, self.maxrate * L))
                      for i in range(len(self.ndists[pop])))
@@ -259,13 +264,13 @@ class DemographicModel:
                 (len(self.ndists[pop]) * 1. / self.maxrate - L))
 
     def Z(self, L, pop):
-        """the normalizing factor, to ensure that the tract density is 1."""
+        """The normalizing factor, to ensure that the tract density is 1."""
         generator = (self.ndists[pop][i] * (i + 1) * 1. / self.maxrate for i in range(len(self.ndists[pop])))
         return (L + sum(np.fromiter(generator, dtype=np.float64))
                 + (1 - np.sum([self.ndists[pop]])) * len(self.ndists[pop]) * 1. / self.maxrate)
 
     def switchdensity(self):
-        """ Calculate the density of ancestry switchpoints per morgan in our
+        """ Calculates the density of ancestry switchpoints per morgan in our
             model. """
         self.switchdensities = np.zeros((self.npops, self.npops))
         # could optimize by precomputing survivals earlier
@@ -315,7 +320,7 @@ class DemographicModel:
         return expect
 
     def loglik(self, bins, Ls, data, num_samples, cutoff=0):
-        """ Calculate the maximum-likelihood in a Poisson Random Field. Last
+        """ Calculates the maximum-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. """
         # print('Getting the likelihood of the model.')
         self.maxLen = max(Ls)

@@ -57,7 +57,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
 
     def add_pulse_migration(self, dest_population, source_population, rate_param, time_param):
         """
-        Adds a pulse migration from source population A, parametrized by time and rate
+        Adds a pulse migration from source population A, parametrized by time and rate.
         """
         self.add_parameter(rate_param, ParamType.RATE)
         sex_bias_param=f'{rate_param}_sex_bias'
@@ -68,7 +68,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
 
     def add_continuous_migration(self, dest_population, source_population, rate_param, start_param, end_param):
         """
-        Adds a continuous migration from source population A, parametrized by start_time, end_time, and magnitude
+        Adds a continuous migration from source population A, parametrized by start_time, end_time, and magnitude.
         """
         self.add_parameter(rate_param, ParamType.RATE)
         sex_bias_param=f'{rate_param}_sex_bias'
@@ -122,7 +122,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
     @staticmethod
     def load_from_YAML(source: str | Path) -> ParametrizedDemographySexBiased:
         """
-        Creates an instance of ParametrizedDemographySexBiased from a YAML file
+        Creates an instance of ParametrizedDemographySexBiased from a YAML file.
         """
         yaml = ruamel.yaml.YAML(typ="safe")
         if isinstance(source, (str, bytes, os.PathLike)):

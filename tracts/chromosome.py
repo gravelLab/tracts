@@ -11,12 +11,13 @@ class Chrom:
     def __init__(self, ls=None, label="POP", tracts: list[Tract]=None):
         """ Constructor.
 
-            Arguments:
-                ls (int, default: None):
+            Parameters
+            ----------
+                ls: int, default: None
                     The length of this chromosome, in Morgans.
-                label (string, default: "POP"):
+                label: string, default: "POP"
                     An identifier categorizing this chromosome.
-                tracts (list of tract objects, default: None):
+                tracts: list of tract objects, default: None
                     The list of tracts that span this chromosome. If None is
                     given, then a single, unlabeled tract is created to span the
                     whole chromosome, according to the length len.
@@ -55,7 +56,7 @@ class Chrom:
         return self.len
 
     def goto(self, pos):
-        """ Find the first tract containing a given position, in Morgans, and
+        """ Finds the first tract containing a given position, in Morgans, and
             return its index in the underlying list. """
         # Use binary search for this, since the tract list is sorted.
         if pos < 0 or pos > self.len:
@@ -76,21 +77,24 @@ class Chrom:
 
     # extract a particular segment from a chromosome
     def extract(self, start, end):
-        """ Extract a segment from the chromosome.
+        """ Extracts a segment from the chromosome.
 
-            Arguments:
-                start (int):
+            Parameters
+            ----------
+                start: int
                     The starting point of the desired segment to extract.
-                end (int):
+                end: int
                     The ending point of the desired segment to extract.
 
-            Returns:
+            Returns
+            -------
                 A list of tract objects that span the desired interval.
 
-            Notes:
-                Uses the goto method of this class to identify the starting and
+            Notes
+            -----
+                Uses the ``goto`` method of this class to identify the starting and
                 ending points of the segment, so if those positions are
-                invalid, goto will raise a ValueError.
+                invalid, ``goto`` will raise a ValueError.
             """
         startpos = self.goto(start)
         endpos = self.goto(end)
@@ -109,7 +113,7 @@ class Chrom:
                 width=0, disableddash=True, fill=colordict[current_tract.label])
 
     def _smooth(self):
-        """ Combine adjacent tracts with the same label.
+        """ Combines adjacent tracts with the same label.
             The side effect is that the entire list of tracts is copied, so
             unnecessary calls to this method should be avoided.
         """
@@ -134,25 +138,23 @@ class Chrom:
         self.tracts = newtracts
 
     def merge_ancestries(self, ancestries, newlabel):
-        """ Merge segments that are contiguous and of either the same ancestry,
-            or that are labelled as in a given list.
+        """ Merges segments that are contiguous and either have the same ancestry or are labeled as belonging to a specified list.
 
-            The label of each tract in the chromosome's inner list is checked
-            against the labels listed in `ancestries`. If there is a match,
-            then that tract is relabelled to `newlabel`. This batch relabelling
-            allows us to consider several technically different ancestries as
-            being the same, by relabelling them to actually be the same. Then,
-            the resulting list is smoothed, to combine adjacent tracts whose
-            labels are the same. This new list replaces the `tracts` list.
+            The label of each tract in the chromosome’s inner list is checked against the labels listed in *ancestries*. 
+            If a match is found, the tract is relabeled to *newlabel*. This batch relabeling allows several technically
+            different ancestries to be treated as equivalent by assigning them the same label. The resulting list is then smoothed to combine adjacent tracts with identical labels.
+            This new list replaces the original *tracts* list.
 
-            Arguments:
-                ancestries (list of strings):
+            Parameters
+            ----------
+                ancestries: list of strings
                     The ancestries to merge.
-                newlabel (string):
+                newlabel: string    
                     The identifier for the new ancestry to assign to the
                     matching tracts.
 
-            Returns:
+            Returns
+            -------
                 Nothing.
             """
         for _tract in self.tracts:
@@ -162,10 +164,10 @@ class Chrom:
         self._smooth()
 
     def smooth_unknown(self):
-        """ Merge segments that are contiguous and of the same ancestry.  Under
-            the hood, what this method does is eliminate medial segments of
-            unknown ancestry, inflating the adjacent segments to fill the space
-            left by the unknown ancestry.
+        """ 
+        Merges segments that are contiguous and share the same ancestry.
+        Internally, this method removes segments of unknown ancestry, extending the neighboring
+        segments to occupy the space previously assigned to the unknown segments.
         """
         i = 0
         while i < len(self.tracts) - 1:
@@ -191,7 +193,7 @@ class Chrom:
     def tractlengths(self):
         """ Gets the list of tract lengths. Make sure that proper
             smoothing is implemented.
-            returns a tuple with ancestry, length of block, and length of chromosome
+            Returns a tuple with ancestry, length of block, and length of chromosome.
             """
         self.smooth_unknown()
         return [(t.label, t.end - t.start, self.len) for t in self.tracts]
@@ -208,13 +210,11 @@ class Chrom:
 
 
 class Chropair:
-    """ A pair of chromosomes. Using pairs of chromosomes allows us to model
-        diploid individuals.
+    """ A pair of chromosomes. Using chromosome pairs allows modeling of diploid individuals.
     """
 
     def __init__(self, chroms: list[Chrom] | tuple[Chrom] = None, chropair_len=1, auto=True, label="POP"):
-        """ Can instantiate by explictly providing two chromosomes as a tuple
-            or an ancestry label, length and autosome status. """
+        """ Can be instantiated either by explicitly providing two chromosomes as a tuple, or by specifying an ancestry label, length, and autosome status. """
         if chroms is None:
             self.copies = [Chrom(chropair_len, auto, label), Chrom(chropair_len, auto, label)]
             self.len = chropair_len
@@ -244,7 +244,7 @@ class Chropair:
         return newchrom
 
     def applychrom(self, func):
-        """apply func to chromosomes"""
+        """Apply *func* to chromosomes."""
         ls = []
         for copy in self.copies:
             ls.append(func(copy))

@@ -248,19 +248,29 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     """
     Runs the model multiple times with different initial parameters.
 
-    Parameters:
-    - model_func (Callable): A function that takes parameters and returns migration matrices.
-    - bound_func (Callable): A function that calculates the violation score for the parameters.
-    - population (Population): The population object containing individual data.
-    - population_labels (list[str]): A list of labels corresponding to the populations.
-    - start_params_list (list[numpy.ndarray]): A list of initial parameter arrays to start the optimization.
-    - exclude_tracts_below_cM (int, optional): Minimum tract length in centimorgans to exclude from analysis. Default is 0.
-    - modelling_method (type, optional): The method used for modeling. Default is PhTMonoecious.
+    Parameters
+    ----------
+    
+        model_func: Callable
+    	    A function that takes parameters and returns migration matrices.
+        bound_func: Callable
+    	    A function that calculates the violation score for the parameters. 	
+        population: Population
+    	    The population object containing individual data.
+        population_labels: list[str]
+    	    A list of labels corresponding to the populations.	
+        start_params_list: list[numpy.ndarray]
+    	    A list of initial parameter arrays to start the optimization.	
+        exclude_tracts_below_cM: int, optional
+    	    Minimum tract length in centimorgans to exclude from analysis. Default is 0.
+        modelling_method: type, optional
+    	    The method used for modeling. Default is PhTMonoecious.
 
-    Returns:
-    - tuple[list[numpy.ndarray], list[float]]: A tuple containing two lists:
-        1. A list of optimal parameters found for each set of starting parameters.
-        2. A list of likelihoods corresponding to the optimal parameters.
+    Returns
+    ----------
+    
+    tuple[list[numpy.ndarray], list[float]]
+    	A tuple containing two lists: (i) a list of optimal parameters found for each set of starting parameters and (ii) a list of likelihoods corresponding to the optimal parameters.
     """
     optimal_params = []
     likelihoods = []
@@ -370,7 +380,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
 
 def output_simulation_data_sex_biased(sample_population: Population, optimal_params, model: ParametrizedDemographySexBiased, driver_spec, D_model='DC'):
     """
-    Make some graphs of the data and results to see
+    Creates output graphs to compare data and the theoretical tract length distribution inferred by the model.
     """
     if 'output_directory' in driver_spec:
         output_dir = driver_spec['output_directory']

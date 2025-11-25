@@ -211,6 +211,8 @@ $\texttt{tracts}$ saves the results in the `output_directory` specified in the d
 
 In the [example](https://github.com/gravelLab/tracts/tree/master/example) folder, we provide data and multiple yaml files to run $\texttt{tracts}$ as an example.
 
+To produce tract length density functions or histograms from a pair of sex-specific migrations matrices, using any of the models presented in the [tracts 2.0 paper](), an easy-to-use jupyter notebook illustrating the functions of the `PhaseType` class is available [here](https://github.com/gravelLab/tracts/blob/devel/example/toy_example.ipynb).
+
 ---
 
 ### FAQ

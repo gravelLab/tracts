@@ -36,65 +36,57 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
              maxiter=None, full_output=True, func_args=None, fixed_params=None,
              ll_scale=1):
     """
-    Optimize params to fit model to data using the BFGS method.
+    Optimizes model parameters using the BFGS method. Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
+    
+    Parameters
+    ----------
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
-
-    It should also perform better when parameters range over scales.
-
-    p0:
-        Initial parameters.
-    data:
-        Spectrum with data.
-    model_function:
-        Function to evaluate model spectrum. Should take arguments (params,
-        pts)
-    out_of_bounds_fun:
-        A funtion evaluating to True if the current parameters are in a
-        forbidden region.
-    cutoff:
-        the number of bins to drop at the beginning of the array. This could be
-        achieved with masks.
-    verbose:
-        If greater than zero, print optimization status every <verbose> steps.
-    flush_delay:
-        Standard output will be flushed once every <flush_delay> minutes. This
-        is useful to avoid overloading I/O on clusters.
-    epsilon:
-        Step-size to use for finite-difference derivatives.
-    gtol:
-        Convergence criterion for optimization. For more info, see
-                 help(scipy.optimize.fmin_bfgs)
-    maxiter:
-        Maximum iterations to run for.
-    full_output:
-        If True, return full outputs as described in help.
-        (scipy.optimize.fmin_bfgs)
-    func_args:
-        List of additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize.
-    fixed_params:
-        (Not yet implemented)
-        If not None, should be a list used to fix model parameters at
-        particular values. For example, if the model parameters are
-        (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
-        and m=2. The optimizer will only change T and m. Note that the bounds
-        lists must include all parameters. Optimization will fail if the fixed
-        values lie outside their bounds. A full-length p0 should be passed in;
-        values corresponding to fixed parameters are ignored.
-    ll_scale:
-        The bfgs algorithm may fail if your initial log-likelihood is too
-        large. (This appears to be a flaw in the scipy implementation.) To
-        overcome this, pass ll_scale > 1, which will simply reduce the
-        magnitude of the log-likelihood. Once in a region of reasonable
-        likelihood, you'll probably want to re-optimize with ll_scale=1.
+        p0: 
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+           pts).
+        out_of_bounds_fun: default: None
+           A funtion evaluating to True if the current parameters are in a
+           forbidden region.
+        cutoff: default: 0   
+           The number of bins to drop at the beginning of the array. This could be
+           achieved with masks.
+        verbose: default: 0
+            If greater than zero, print optimization status every ``verbose`` steps.
+        flush_delay: default: 0.5
+            Standard output will be flushed once every ``flush_delay`` minutes. This
+           is useful to avoid overloading I/O on clusters.
+        epsilon: default: 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default: 1e-5
+            Convergence criterion for optimization. For more info, see
+            ``help(scipy.optimize.fmin_bfgs)``.
+        maxiter: default: None
+            Maximum iterations to run for.
+        full_output: default: True
+          If True, return full outputs as described in ``help(scipy.optimize.fmin_bfgs)``.
+        func_args: default: None
+            List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default: None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
+            and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length ``p0`` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default: 1
+            The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
     """
     args = (bins, Ls, data, nsamp, model_func, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
     if func_args is None:
         func_args = []
     if fixed_params is not None:
-        raise ValueError("fixed parameters not implemented in optimize_bfgs")
+        raise ValueError("Fixed parameters not implemented in optimize_bfgs.")
 
     outputs = scipy.optimize.fmin_bfgs(_object_func, p0, epsilon=np.array(epsilon), args=args, gtol=gtol,
                                        full_output=full_output, disp=False, maxiter=maxiter)
@@ -113,61 +105,54 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
                  epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True, modelling_method=DemographicModel) -> np.ndarray:
     """
-    Optimize params to fit model to data using the cobyla method.
+    Optimizes model parameters using the COBYLA method. Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
+    
+    Parameters
+    ----------
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
-
-    It should also perform better when parameters range over scales.
-
-    p0:
-        Initial parameters.
-    data:
-        Spectrum with data.
-    model_function:
-        Function to evaluate model spectrum. Should take arguments (params,
-        pts)
-    out_of_bounds_fun:
-        A funtion evaluating to True if the current parameters are in a
-        forbidden region.
-    cutoff:
-        the number of bins to drop at the beginning of the array. This could be
-        achieved with masks.
-    verbose:
-        If > 0, print optimization status every <verbose> steps.
-    flush_delay:
-        Standard output will be flushed once every <flush_delay> minutes. This
-        is useful to avoid overloading I/O on clusters.
-    epsilon:
-        Step-size to use for finite-difference derivatives.
-    gtol:
-        Convergence criterion for optimization. For more info, see
-                 help(scipy.optimize.fmin_bfgs)
-    maxiter:
-        Maximum iterations to run for.
-    full_output:
-        If True, return full outputs as in described in
-        help(scipy.optimize.fmin_bfgs)
-    func_args:
-        Additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize.
-    fixed_params:
-        If not None, should be a list used to fix model parameters at
-        particular values. For example, if the model parameters are
-        (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
-        and m=2. The optimizer will only change T and m. Note that the bounds
-        lists must include all parameters. Optimization will fail if the fixed
-        values lie outside their bounds. A full-length p0 should be passed in;
-        values corresponding to fixed parameters are ignored.
-    ll_scale:
-        The bfgs algorithm may fail if your initial log-likelihood is too
-        large. (This appears to be a flaw in the scipy implementation.) To
-        overcome this, pass ll_scale > 1, which will simply reduce the
-        magnitude of the log-likelihood. Once in a region of reasonable
-        likelihood, you'll probably want to re-optimize with ll_scale=1.
-    reset_counter:
-        Defaults to true, resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point)
+        p0: 
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+           pts).
+        out_of_bounds_fun: default: None
+           A funtion evaluating to True if the current parameters are in a
+           forbidden region.
+        cutoff: default: 0   
+           The number of bins to drop at the beginning of the array. This could be
+           achieved with masks.
+        verbose: default: 0
+            If greater than zero, print optimization status every ``verbose`` steps.
+        flush_delay: default: 0.5
+            Standard output will be flushed once every ``flush_delay`` minutes. This
+           is useful to avoid overloading I/O on clusters.
+        epsilon: default: 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default: 1e-5
+            Convergence criterion for optimization. For more info, see
+            ``help(scipy.optimize.fmin_bfgs)``.
+        maxiter: default: None
+            Maximum iterations to run for.
+        full_output: default: True
+          If True, return full outputs as described in ``help(scipy.optimize.fmin_bfgs)``.
+        func_args: default: None
+            List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default: None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
+            and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length ``p0`` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default: 1
+            The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
+        reset_counter: default: True
+            Resets the iteration counter to zero. Set to False to
+            continue iteration count (e.g., if optimization continues from previous point).
     """
     print(modelling_method)
     if func_args is None:
@@ -188,8 +173,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC') -> tuple[np.ndarray, float]:
-    """
-    """
+
     if reset_counter:
         global _counter
         _counter = 0
@@ -238,20 +222,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
         for k, v in male_data.items():
             male_data_mapped[dict(p_dict)[k]] = v
-        
-        # Reorder data values using the population labels so that populations match the correct columns in migration matrices
-        #autosome_data_mapped = {dict(p_dict)[k]: v for k, v in autosome_data.items()}
-        #female_data_data_mapped = {dict(p_dict)[k]: v for k, v in female_data.items()} 
-        #male_data_data_mapped = {dict(p_dict)[k]: v for k, v in male_data.items()}
-        
-        #assert male_data_data_mapped.keys() == female_data_data_mapped.keys(), 'Different populations found in males and females.' 
-        #assert female_data_data_mapped.keys() == autosome_data_mapped.keys(), 'Different populations found in autosomes and allosomes.'
-        #TODO: In case where a population is legitimately missing, we should take the union of keys. 
-        
-        #autosome_data_mapped = [autosome_data_mapped[k] for k in sorted(autosome_data_mapped.keys())]
-        #female_data_data_mapped = [female_data_data_mapped[k] for k in sorted(female_data_data_mapped.keys())]
-        #male_data_data_mapped = [male_data_data_mapped[k] for k in sorted(male_data_data_mapped.keys())]
-        
+
         result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
         result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
         result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
@@ -277,61 +248,57 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, 
                    flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
                    fixed_params=None, ll_scale=1, reset_counter=True):
     """
-    Optimize params to fit model to data using the slsq method.
+    Optimizes model parameters using the SLSQ method. 
+    
+    Parameters
+    ----------
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+        p0: 
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_function:
+            Function to evaluate model spectrum. Should take arguments (params,
+           pts).
+        out_of_bounds_fun: default: None
+           A funtion evaluating to True if the current parameters are in a
+           forbidden region.
+        cutoff: default: 0   
+           The number of bins to drop at the beginning of the array. This could be
+           achieved with masks.
+        verbose: default: 0
+            If greater than zero, print optimization status every ``verbose`` steps.
+        flush_delay: default: 0.5
+            Standard output will be flushed once every ``flush_delay`` minutes. This
+           is useful to avoid overloading I/O on clusters.
+        epsilon: default: 1e-3
+            Step-size to use for finite-difference derivatives.
+        gtol: default: 1e-5
+            Convergence criterion for optimization. For more info, see
+            ``help(scipy.optimize.fmin_bfgs)``.
+        maxiter: default: None
+            Maximum iterations to run for.
+        full_output: default: True
+          If True, return full outputs as described in ``help(scipy.optimize.fmin_bfgs)``.
+        func_args: default: None
+            List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
+            first argument is an array of parameters to optimize.
+        fixed_params: default: None
+            (Not yet implemented). If not None, should be a list used to fix model parameters at
+            particular values. For example, if the model parameters are
+            ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
+            and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
+            lists must include all parameters. Optimization will fail if the fixed
+            values lie outside their bounds. A full-length ``p0`` should be passed in;
+            values corresponding to fixed parameters are ignored.
+        ll_scale: default: 1
+            The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
+    
 
-    It should also perform better when parameters range over scales.
-
-    p0:
-        Initial parameters.
-    data:
-        Spectrum with data.
-    model_function:
-        Function to evaluate model spectrum. Should take arguments (params,
-        pts)
-    out_of_bounds_fun:
-        A funtion evaluating to True if the current parameters are in a
-        forbidden region.
-    cutoff:
-        the number of bins to drop at the beginning of the array. This could be
-        achieved with masks.
-    verbose:
-        If > 0, print optimization status every <verbose> steps.
-    flush_delay:
-        Standard output will be flushed once every <flush_delay> minutes. This
-        is useful to avoid overloading I/O on clusters.
-    epsilon:
-        Step-size to use for finite-difference derivatives.
-    gtol:
-        Convergence criterion for optimization. For more info, see
-                 help(scipy.optimize.fmin_bfgs)
-    maxiter:
-        Maximum iterations to run for.
-    full_output:
-        If True, return full outputs as in described in
-        help(scipy.optimize.fmin_bfgs)
-    func_args:
-        List of additional arguments to model_func. It is assumed that model_func's
-        first argument is an array of parameters to optimize.
-    fixed_params:
-        If not None, should be a list used to fix model parameters at
-        particular values. For example, if the model parameters are
-        (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2] will hold nu1=0.5
-        and m=2. The optimizer will only change T and m. Note that the bounds
-        lists must include all parameters. Optimization will fail if the fixed
-        values lie outside their bounds. A full-length p0 should be passed in;
-        values corresponding to fixed parameters are ignored.
-    ll_scale:
-        The bfgs algorithm may fail if your initial log-likelihood is too
-        large. (This appears to be a flaw in the scipy implementation.) To
-        overcome this, pass ll_scale > 1, which will simply reduce the
-        magnitude of the log-likelihood. Once in a region of reasonable
-        likelihood, you'll probably want to re-optimize with ll_scale=1.
-    reset_counter:
-        Defaults to true, resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point)
+    Notes   
+    -------
+    Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
+    
     """
     args = (bins, Ls, data, nsamp, model_func, outofbounds_fun, cutoff, verbose, flush_delay, func_args)
     if bounds is None:
@@ -362,7 +329,7 @@ def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, 
 
 
 def _project_params_down(pin, fixed_params):
-    """ Eliminate fixed parameters from pin. Copied from Dadi (Gutenkunst et al., PLoS Genetics, 2009). """
+    """ Eliminate fixed parameters from *pin*. Copied from Dadi (Gutenkunst *et al*., PLoS Genetics, 2009). """
     if fixed_params is None:
         return pin
 
@@ -378,7 +345,7 @@ def _project_params_down(pin, fixed_params):
 
 
 def _project_params_up(pin, fixed_params):
-    """ Fold fixed parameters into pin. Copied from Dadi (Gutenkunst et al.,
+    """ Folds fixed parameters into *pin*. Copied from Dadi (Gutenkunst *et al.*,
         PLoS Genetics, 2009). """
     if fixed_params is None:
         return pin
@@ -400,7 +367,7 @@ def _project_params_up(pin, fixed_params):
 
 def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0,
                  flush_delay=0, func_args=None, modelling_method=DemographicModel):
-    """calculates the log-likelihood value for tract length data."""
+    """Calculates the log-likelihood value for tract length data."""
     if func_args is None:
         func_args = []
     _out_of_bounds_val = -1e32
@@ -432,49 +399,9 @@ def optimize_cob_fracs(p0, bins, Ls, data, nsamp, model_func, fracs, outofbounds
                        flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,
                        fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the COBYLA method.
-
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
-
-    It should also perform better when parameters range over scales.
-
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-    maxiter: Maximum iterations to run for.
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    Optimizes parameters to fit the model to data using the COBYLA method. This optimization performs well when the starting point is reasonably close to the optimum and is particularly effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
+    
+    Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
     """
     if func_args is None:
         func_args = []
@@ -493,53 +420,64 @@ def optimize_cob_fracs2(p0, bins, Ls, data, nsamp, model_func, fracs, outofbound
                         verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
                         func_args=None, fixed_params=None, ll_scale=1, reset_counter=True):
     """
-    Optimize params to fit model to data using the cobyla method.
+    Optimize parameters to fit the model to data using the COBYLA method. 
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+    p0: 
+    	Initial parameters.
+    	
+    data:
+    	Spectrum with data.
+    	
+    model_function: 
+    	Function to evaluate model spectrum. Should take arguments (params, pts).
+    	
+    out_of_bounds_fun:
+    	A function evaluating to True if the current parameters are in a forbidden region.
+    	
+    cutoff:
+    	The number of bins to drop at the beginning of the array. This could be achieved with masks.
 
+    verbose:
+    	If > 0, print optimization status every ``verbose`` steps.
+    	
+    flush_delay:
+    	Standard output will be flushed once every ``flush_delay`` minutes. This is useful to avoid overloading I/O on clusters.
+    	
+    epsilon:
+    	Step-size to use for finite-difference derivatives.
+    	
+    gtol:
+    	Convergence criterion for optimization. For more info, see ``help(scipy.optimize.fmin_bfgs)``.
 
-    It should also perform better when parameters range over scales.
+    maxiter:
+    	Maximum iterations to run for.
+    	
+    full_output:
+    	If True, return full outputs as in described in ``help(scipy.optimize.fmin_bfgs)``.
+    	               
+    func_args:
+        Additional arguments to ``model_func``. It is assumed that ``model_func``'s
+        first argument is an array of parameters to optimize.
+        
+    fixed_params:
+        (Not yet implemented) If not None, should be a list used to fix model parameters at
+        particular values. For example, if the model parameters are
+        ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
+        and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
+        lists must include all parameters. Optimization will fail if the fixed
+        values lie outside their bounds. A full-length ``p0`` should be passed in;
+        values corresponding to fixed parameters are ignored.
+        
+    ll_scale:
+        The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
+    
 
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-    maxiter: Maximum iterations to run for.
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
-    reset_counter:
-        Defaults to true, resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point)
+    Notes
+    -------
+    This optimization performs well when the starting point is reasonably close to the optimum and is particularly effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
+ 
     """
     if func_args is None:
         func_args = []
@@ -579,51 +517,14 @@ def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fra
                             cutoff=0, verbose=0, flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True,
                             func_args=None, fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the cobyla method.
+    Optimizes parameters to fit the model to data using the COBYLA method. 
+    
+    Notes
+    -------
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
-
-
-    It should also perform better when parameters range over scales.
-
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-    maxiter: Maximum iterations to run for.
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    This optimization performs well when the starting point is reasonably close to the optimum and is particularly effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
     """
+      
     if func_args is None:
         func_args = []
 
@@ -664,50 +565,63 @@ def optimize_cob_multifracs(p0, bins, Ls, data_list, nsamp_list, model_func, fra
 def optimize_brute_fracs2(bins, Ls, data, nsamp, model_func, fracs, searchvalues, outofbounds_fun=None, cutoff=0,
                           verbose=0, flush_delay=1, full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the brute force method.
+    Optimize parameters to fit the model to data using the brute-force method. 
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+    p0: 
+    	Initial parameters.
+    	
+    data:
+    	Spectrum with data.
+    	
+    model_function: 
+    	Function to evaluate model spectrum. Should take arguments (params, pts).
+    	
+    out_of_bounds_fun:
+    	A function evaluating to True if the current parameters are in a forbidden region.
+    	
+    cutoff:
+    	The number of bins to drop at the beginning of the array. This could be achieved with masks.
 
+    verbose:
+    	If > 0, print optimization status every ``verbose`` steps.
+    	
+    flush_delay:
+    	Standard output will be flushed once every ``flush_delay`` minutes. This is useful to avoid overloading I/O on clusters.
+    	
+    epsilon:
+    	Step-size to use for finite-difference derivatives.
+    	
+    gtol:
+    	Convergence criterion for optimization. For more info, see ``help(scipy.optimize.fmin_bfgs)``.
 
-    It should also perform better when parameters range over scales.
+    maxiter:
+    	Maximum iterations to run for.
+    	
+    full_output:
+    	If True, return full outputs as in described in ``help(scipy.optimize.fmin_bfgs)``.
+    	             
+    func_args:
+        Additional arguments to ``model_func``. It is assumed that ``model_func``'s
+        first argument is an array of parameters to optimize.
+        
+    fixed_params:
+        (Not yet implemented) If not None, should be a list used to fix model parameters at
+        particular values. For example, if the model parameters are
+        ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
+        and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
+        lists must include all parameters. Optimization will fail if the fixed
+        values lie outside their bounds. A full-length ``p0`` should be passed in;
+        values corresponding to fixed parameters are ignored.
+        
+    ll_scale:
+        The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
 
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
+    Notes
+    -------
+    This optimization performs well when the starting point is reasonably close to the optimum and is most effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
+    
     """
     if func_args is None:
         func_args = []
@@ -748,51 +662,63 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
                               outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                               full_output=True, func_args=None, fixed_params=None, ll_scale=1):
     """
-    Optimize params to fit model to data using the brute force method.
+    Optimizes parameters to fit the model to data using the brute-force method. 
 
-    This optimization method works well when we start reasonably close to the
-    optimum. It is best at burrowing down a single minimum.
+    Parameters
+    ----------
+    p0: 
+    	Initial parameters.
+    	
+    data:
+    	Spectrum with data.
+    	
+    model_function: 
+    	Function to evaluate model spectrum. Should take arguments (params, pts).
+    	
+    out_of_bounds_fun:
+    	A function evaluating to True if the current parameters are in a forbidden region.
+    	
+    cutoff:
+    	The number of bins to drop at the beginning of the array. This could be achieved with masks.
 
+    verbose:
+    	If > 0, print optimization status every ``verbose`` steps.
+    	
+    flush_delay:
+    	Standard output will be flushed once every ``flush_delay`` minutes. This is useful to avoid overloading I/O on clusters.
+    	
+    epsilon:
+    	Step-size to use for finite-difference derivatives.
+    	
+    gtol:
+    	Convergence criterion for optimization. For more info, see ``help(scipy.optimize.fmin_bfgs)``.
 
-    It should also perform better when parameters range over scales.
+    maxiter:
+    	Maximum iterations to run for.
+    	
+    full_output:
+    	If True, return full outputs as in described in ``help(scipy.optimize.fmin_bfgs)``.
+    	             
+    func_args:
+        Additional arguments to ``model_func``. It is assumed that ``model_func``'s
+        first argument is an array of parameters to optimize.
+        
+    fixed_params:
+        (Not yet implemented) If not None, should be a list used to fix model parameters at
+        particular values. For example, if the model parameters are
+        ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
+        and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
+        lists must include all parameters. Optimization will fail if the fixed
+        values lie outside their bounds. A full-length ``p0`` should be passed in;
+        values corresponding to fixed parameters are ignored.
+        
+    ll_scale:
+        The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
 
-    p0: Initial parameters.
-    data: Spectrum with data.
-    model_function: Function to evaluate model spectrum. Should take arguments
-                    (params, pts)
-    out_of_bounds_fun: A funtion evaluating to True if the current parameters are in a forbidden region.
-    cutoff: the number of bins to drop at the beginning of the array. This could be achieved with masks.
-
-    verbose: If > 0, print optimization status every <verbose> steps.
-    flush_delay: Standard output will be flushed once every <flush_delay>
-                 minutes. This is useful to avoid overloading I/O on clusters.
-    epsilon: Step-size to use for finite-difference derivatives.
-    gtol: Convergence criterion for optimization. For more info,
-          see help(scipy.optimize.fmin_bfgs)
-
-
-    full_output: If True, return full outputs as in described in
-                 help(scipy.optimize.fmin_bfgs)
-    func_args: Additional arguments to model_func. It is assumed that
-               model_func's first argument is an array of parameters to
-               optimize, that its second argument is an array of sample sizes
-               for the sfs, and that its last argument is the list of grid
-               points to use in evaluation.
-    fixed_params: If not None, should be a list used to fix model parameters at
-                  particular values. For example, if the model parameters
-                  are (nu1,nu2,T,m), then fixed_params = [0.5,None,None,2]
-                  will hold nu1=0.5 and m=2. The optimizer will only change
-                  T and m. Note that the bounds lists must include all
-                  parameters. Optimization will fail if the fixed values
-                  lie outside their bounds. A full-length p0 should be passed
-                  in; values corresponding to fixed parameters are ignored.
-    ll_scale: The bfgs algorithm may fail if your initial log-likelihood is
-              too large. (This appears to be a flaw in the scipy
-              implementation.) To overcome this, pass ll_scale > 1, which will
-              simply reduce the magnitude of the log-likelihood. Once in a
-              region of reasonable likelihood, you'll probably want to
-              re-optimize with ll_scale=1.
-    """
+    Notes
+    -------
+    This optimization performs well when the starting point is reasonably close to the optimum and is most effective at converging to a single minimum. It also tends to perform better when parameters vary across different scales.
+"""
     if func_args is None:
         func_args = []
 
@@ -834,22 +760,26 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
 
 def test_model_func(model_func, parameters, fracs_list=None, time_params=True, time_scale=100):
     """Given a demographic model function, run a few debugging tests to ensure
-    that it behaves as expected, namely: 
-    1-That migration matrices sum to less than one (exactly one for the last generation)
-    2-That it behaves continuously relative to time parameters.
+    that it behaves as expected, namely: (i) that migration matrices sum to less than one (exactly one for the last generation)
+    and (ii) that it behaves continuously relative to time parameters.
     
-    model_func: a migration model. It takes in parameters and outputs a migration matrix. 
-    parameters:  parameters for which the model will be tested. 
-    fracs_list: parameters required by some demographic models corresponding to the observed proportion of ancestry
-    from each source population
-    time_params: if True, test all parameters for continuity as if they were time parameters.
-                if a list of boolean values of the same length of parameters, only test parameters
-                corresponding to True values.
-    time_scale: the scaling of the time variables: time (in generations) = time_parameter*time_scale. This is used to
-    test continuity around integer values. 
-    returns
-    violation score (negative means that a violation has occurred)
-    and the migration matrix value as well
+    Parameters
+    ----------
+        model_func: 
+    	    A migration model. It takes in parameters and outputs a migration matrix. 
+        parameters:
+    	    Parameters for which the model will be tested. 
+        fracs_list: default: None
+    	    Parameters required by some demographic models corresponding to the observed proportion of ancestry from each source population.
+        time_params: default: True
+    	    If True, test all parameters for continuity as if they were time parameters. If a list of boolean values of the same length of parameters, only test parameters corresponding to True values.
+        time_scale: default: 100
+    	    The scaling of the time variables: time (in generations) = time_parameter*time_scale. This is used to
+            test continuity around integer values. 
+    
+    Returns
+    ----------
+    Violation score (negative means that a violation has occurred) and the migration matrix value.
     """
 
     # First test consistency of migration matrix
@@ -919,7 +849,7 @@ def test_model_func(model_func, parameters, fracs_list=None, time_params=True, t
 
 def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun=None, cutoff=0, verbose=0,
                        flush_delay=0, func_args=None):
-    """define the objective function for when the ancestry porportions are specified."""
+    """Define the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
     _out_of_bounds_val = -1e32
@@ -992,7 +922,7 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func, outofbounds_f
 
 def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func, fracs_list, outofbounds_fun=None,
                             cutoff=0, verbose=0, flush_delay=0, func_args=None, fixed_params=None):
-    """ define the objective function for when the ancestry porportions are specified."""
+    """Defines the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
     # this function will be minimized. We first calculate likelihoods (to be

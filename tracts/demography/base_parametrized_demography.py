@@ -121,11 +121,12 @@ class BaseParametrizedDemography(ABC):
 
     def proportions_from_matrices_return_keys(self):
         '''
-        This method returns the expected keys from self.proportions_from_matrices().
-        It is used by FixedProportionsHandler to validate that the fixed parameter will be solvable from the given data.
-        TODO: calculate automatically from proportions_from_matrices().
-        For now, subclasses that change the behaviour of proportions_from_matrices() should have a different implementation of this method to reflect this.
+        This method returns the expected keys from ``self.proportions_from_matrices()``.
+        It is used by ``FixedProportionsHandler`` to validate that the fixed parameter will be solvable from the given data.
         '''
+        #TODO: calculate automatically from proportions_from_matrices().
+        #For now, subclasses that change the behaviour of proportions_from_matrices() should have a different implementation of this method to reflect this.
+        
         return set(self.founder_events.keys())
 
     def finalize(self):
@@ -137,7 +138,7 @@ class BaseParametrizedDemography(ABC):
 
     def add_parameter(self, param_name: str, param_type: ParamType=ParamType.UNTYPED, bounds=None):
         """
-        Adds the given parameter name to the parameters of the model
+        Adds the given parameter name to the parameters of the model.
         """
         self.finalized = False
         if param_name in self.free_params or param_name in self.dependent_params:
@@ -167,7 +168,7 @@ class BaseParametrizedDemography(ABC):
 
     def add_population(self, population_name: str):
         """
-        Adds the given population name to the populations of the model
+        Adds the given population name to the populations of the model.
         """
         if self.fixed_proportions_handler.has_been_fixed:
             raise ValueError('Cannot add populations to a model after fixing ancestry proportions.')
@@ -182,7 +183,7 @@ class BaseParametrizedDemography(ABC):
 
     def get_index(self, time_param_name: str, population_name: str, params: list[float]):
         """
-        Returns the matrix index as a tuple from the position and time. Reduces repetitive code
+        Returns the matrix index as a tuple from the position and time. Reduces repetitive code.
         """
 
         return self.get_param_value(time_param_name, params), self.population_indices[population_name]
@@ -199,7 +200,7 @@ class BaseParametrizedDemography(ABC):
     def get_param_value(self, param_name: str, params: list[float]):
         """
         Gets the correct value from the name of the parameter and the list of passed params.
-        If param_name is a number instead, uses the number directly
+        If *param_name* is a number instead, uses the number directly.
         """
         if isinstance(param_name, numbers.Number):
             return param_name
@@ -215,8 +216,7 @@ class BaseParametrizedDemography(ABC):
 
     def get_violation_score(self, params: list[float]):
         """
-        Takes in a list of params equal to the length of free_params
-        and returns a negative violation score if the resulting matrix would be or is invalid.
+        Takes in a list of params equal to the length of ``ree_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
         """
         if self.fixed_proportions_handler.has_been_fixed:
             if len(params) != len(self.free_params):
@@ -239,8 +239,8 @@ class BaseParametrizedDemography(ABC):
 
     def check_constraints(self, params: list[float]):
         """
-        Constraints take the form of a dict {'param_subset':Tuple[String], 'expression': lambda (param_subset)}
-        The violation score is the largest negative value from all the constraints
+        Constraints take the form of a dict ``{'param_subset':Tuple[String], 'expression': lambda (param_subset)}``.
+        The violation score is the largest negative value from all the constraints.
         """
         violation_score = 0
         if not self.has_been_fixed:
@@ -290,7 +290,7 @@ class BaseParametrizedDemography(ABC):
         """
         Checks the bounds on parameters.
         Bounds should be absolute restrictions on possible parameter values,
-        whereas Constraints should be restrictions on parameter values relative to each other.
+        whereas constraints should be restrictions on parameter values relative to each other.
         """
         violation_score = 0
         if not self.fixed_proportions_handler.has_been_fixed:
@@ -335,9 +335,10 @@ class BaseParametrizedDemography(ABC):
         """
         Parses the ancestry proportions used in a founding event into a dict of parametrized source populations
         and a remainder population.
-        May later be folded into the add_founder_event() method.
-        `TODO`: add support for constants in proportions
         """
+        #May later be folded into the add_founder_event() method.
+        #TODO: add support for constants in proportions
+        
         remainder_population = None
         remainder_proportion_string = None
         source_populations = {}
@@ -417,8 +418,7 @@ class FixedProportionsHandler:
     def set_up_fixed_ancestry_proportions(self, demography: BaseParametrizedDemography, params_to_fix: list[str], proportions: dict[str: list[float]]):
         """
         Tells the model to calculate certain rate parameters based on the known
-        ancestry proportions of the sample populations
-        Proportions are given as a dict with keys corresponding to the sample populations.
+        ancestry proportions of the sample populations. Proportions are given as a dict with keys corresponding to the sample populations.
         """
 
         if not (demography.proportions_from_matrices_return_keys() == proportions.keys()):
