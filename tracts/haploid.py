@@ -39,6 +39,7 @@ class Haploid:
                 fields = line.split()
                 if len(fields) == 0:
                     continue
+
                 # Skip the header, if one is present.
                 if fields[0] == 'chrom' or \
                         (fields[0] == 'Chr' and fields[1] == 'Start(bp)'):

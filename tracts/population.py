@@ -76,6 +76,7 @@ class Population:
             of individuals. Distinguishing labels for maternal and paternal
             chromosomes are given in lab.
         """
+        
         self.currentplot = None
         self.win = None
         self.chro_canvas = None
@@ -102,7 +103,7 @@ class Population:
                             selectchrom=selectchrom,
                             allosomes=allosomes))
                 except Exception as e:
-                    raise IndexError(f'Files for individiual {name} ({files}) could not be found.') from e
+                    raise IndexError(f'Files for individual {name} ({files}) could not be found.') from e
 
             self.nind = len(self.indivs)
             # Check that all individuals have the same length.
@@ -356,16 +357,16 @@ class Population:
     def tractlength_histogram(self, tracts_by_population:dict[str, list[tuple[Tract, float]]], npts: int = 20, tol: float = 0.01, exclude_tracts_below_cM: float = 0, maxLen=None) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         if maxLen==None:
             maxLen=self.maxLen
-        bins = np.arange(exclude_tracts_below_cM * 0.01, maxLen * (1 + .5 / npts), float(maxLen) / npts)
+        #bins = np.arange(exclude_tracts_below_cM * 0.01, maxLen * (1 + .5 / npts), (float(maxLen) - exclude_tracts_below_cM) / npts)
+        bins = np.linspace(exclude_tracts_below_cM * 0.01, maxLen + tol, npts + 1)
+        
         dat: dict[str, list[np.ndarray]] = {}
         for label, ts in tracts_by_population.items():
-            # extract full length tracts
-            nonfulls = np.array([tract for tract, chrom_length in ts if tract.end - tract.start < chrom_length - tol])
+            
+            corrected_lengths = np.array([tract.len() if tract.len() < chrom_length - tol else chrom_length for tract, chrom_length in ts])
+            hdat = np.histogram(corrected_lengths, bins=bins)
+            dat[label] = hdat[0]
 
-            hdat = np.histogram([n.len() for n in nonfulls], bins=bins)
-            dat[label] = list(hdat[0])
-            # append the number of fulls
-            dat[label].append(len(ts) - len(nonfulls))
         return bins, dat
 
     def get_global_allosome_tractlengths(self, allosome, npts: int = 20, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:

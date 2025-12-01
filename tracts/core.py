@@ -233,7 +233,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         
         return -result
     
-    print('\n---------------------------\nOptimizing model likelihood.\n---------------------------\nIteration\t Log-likelihood\t Model parameters \t Transmission\n----------------------------------------------------------------\n')
+    print('\n---------------------------\nOptimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
     outputs = scipy.optimize.fmin_cobyla(
         objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)

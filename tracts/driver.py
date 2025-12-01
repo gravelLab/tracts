@@ -50,7 +50,11 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     driver_path = locate_file_path(filename=driver_filename, script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
     
-    exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
+    if 'exclude_tracts_below_cM' in driver_spec:
+        exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cM']
+    else:
+        exclude_tracts_below_cM = 10
+        print('No minimum tract length specified. Make sure to include "exclude_tracts_below_cM" in the driver file. Defaulting to 10 cM.')
 
     # Currently assumes allosomes is a single label. May change in the future
     allosome_labels=driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else []
@@ -316,6 +320,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
     output_filename_format = driver_spec['output_filename_format']
     exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
     (bins, data) = sample_population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    #TODO Modify npts default parameter
     Ls = sample_population.Ls
     nind = sample_population.nind
 
@@ -352,7 +357,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         # --- 1st row: autosome ---
         axes.bar(
             bins[:-1],
-            data[pop][:-1],
+            data[pop],
             width=numpy.diff(bins),
             align='edge',
             alpha=0.6,
@@ -368,7 +373,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
             label="Predicted"
         )
         axes.set_title("Autosome", fontsize=12, fontweight="bold")
-        axes.set_xlabel("Tract Length (cM)")
+        axes.set_xlabel("Tract Length (M)")
         axes.set_ylabel("Count")
         axes.legend(frameon=False)
         axes.grid(alpha=0.3)
@@ -389,16 +394,21 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     else:
         output_dir = ''
 
-
+    output_filename_format = driver_spec['output_filename_format']
+    if 'exclude_tracts_below_cM' in driver_spec:
+        exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cM']
+    else:
+        exclude_tracts_below_cM = 10
+ 
     matrices = model.get_migration_matrices(optimal_params)
 
     [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
     output_filename_format = driver_spec['output_filename_format']
-    autosome_bins, autosome_data = sample_population.get_global_tractlengths()
+    autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     Ls = sample_population.Ls
     nind = sample_population.nind
 
-    allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X')
+    allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     allosome_length = sample_population.allosome_lengths['X']
     female_data = allosome_data[SexType.FEMALE]
     male_data = allosome_data[SexType.MALE]
@@ -410,7 +420,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
     male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
     
-    # Save resuls
+    # Save results
     
     with open(output_dir + output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
         fbins.write("\t".join(map(str, autosome_bins)))
@@ -479,7 +489,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         # --- 1st row: autosome ---
         axes[0].bar(
             autosome_bins[:-1],
-            autosome_data[pop][:-1],
+            autosome_data[pop],
             width=numpy.diff(autosome_bins),
             align='edge',
             alpha=0.6,
@@ -487,15 +497,23 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
             edgecolor='white',
             label="Data"
         )
-        axes[0].plot(
-            0.5 * (autosome_bins[:-1] + autosome_bins[1:]),
+        axes[0].step( # Plot as step to align with histogram bars
+            autosome_bins[:-1],
             [nind * num_tracts for num_tracts in autosome_predicted[pop]],
+            where="post",
             color='tab:orange',
             lw=2,
             label="Predicted"
         )
+        #axes[0].plot(
+        #    0.5 * (autosome_bins[:-1] + autosome_bins[1:]),
+        #    [nind * num_tracts for num_tracts in autosome_predicted[pop]],
+        #    color='tab:orange',
+        #    lw=2,
+        #    label="Predicted"
+        #)
         axes[0].set_title("Autosome", fontsize=12, fontweight="bold")
-        axes[0].set_xlabel("Tract Length (cM)")
+        axes[0].set_xlabel("Tract Length (M)")
         axes[0].set_ylabel("Count")
         axes[0].legend(frameon=False)
         axes[0].grid(alpha=0.3)
@@ -503,7 +521,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         # --- 2nd row: male allosome ---
         axes[1].bar(
             allosome_bins[:-1],
-            male_data[pop][:-1],
+            male_data[pop],
             width=numpy.diff(allosome_bins),
             align='edge',
             alpha=0.6,
@@ -511,15 +529,23 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
             edgecolor='white',
             label="Data"
         )
-        axes[1].plot(
-            0.5 * (allosome_bins[:-1] + allosome_bins[1:]),
+        axes[1].step(
+            allosome_bins[:-1],
             [num_males * num_tracts for num_tracts in male_predicted[pop]],
+            where="post",
             color='tab:orange',
             lw=2,
             label="Predicted"
         )
+        #axes[1].plot(
+        #    0.5 * (allosome_bins[:-1] + allosome_bins[1:]),
+        #    [num_males * num_tracts for num_tracts in male_predicted[pop]],
+        #    color='tab:orange',
+        #    lw=2,
+        #    label="Predicted"
+        #)
         axes[1].set_title("Male Allosome", fontsize=12, fontweight="bold")
-        axes[1].set_xlabel("Tract Length (cM)")
+        axes[1].set_xlabel("Tract Length (M)")
         axes[1].set_ylabel("Count")
         axes[1].legend(frameon=False)
         axes[1].grid(alpha=0.3)
@@ -527,7 +553,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         # --- 3rd row: female allosome ---
         axes[2].bar(
             allosome_bins[:-1],
-            female_data[pop][:-1],
+            female_data[pop],
             width=numpy.diff(allosome_bins),
             align='edge',
             alpha=0.6,
@@ -535,15 +561,23 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
             edgecolor='white',
             label="Data"
         )
-        axes[2].plot(
-            0.5 * (allosome_bins[:-1] + allosome_bins[1:]),
+        axes[2].step(
+            allosome_bins[:-1],
             [num_females * num_tracts for num_tracts in female_predicted[pop]],
+            where="post",
             color='tab:orange',
             lw=2,
             label="Predicted"
         )
+        #axes[2].plot(
+        #    0.5 * (allosome_bins[:-1] + allosome_bins[1:]),
+        #    [num_females * num_tracts for num_tracts in female_predicted[pop]],
+        #    color='tab:orange',
+        #    lw=2,
+        #    label="Predicted"
+        #)
         axes[2].set_title("Female Allosome", fontsize=12, fontweight="bold")
-        axes[2].set_xlabel("Tract Length (cM)")
+        axes[2].set_xlabel("Tract Length (M)")
         axes[2].set_ylabel("Count")
         axes[2].legend(frameon=False)
         axes[2].grid(alpha=0.3)
