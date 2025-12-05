@@ -201,6 +201,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         assert isinstance(demes_data, dict), ".yaml file was invalid."        
         demography = ParametrizedDemography('Unnamed Model')
 
+    
         if 'model_name' in demes_data:
             demography.name = demes_data['model_name']
 

@@ -328,7 +328,11 @@ class Population:
         # Figure out whether we're dealing with the set of individuals
         # represented by this population or the one contained in the indlist
         # parameter.
-        pop = self if indlist is None else Population(indlist)
+        if indlist is None:
+            pop = self  
+        else:
+            pop = Population(indlist)
+            pop.unknown_labels = self.unknown_labels
 
         if split_count > 1:
             # If we're doing a split analysis, then break up the population
@@ -342,10 +346,10 @@ class Population:
             return bins_list[0], dats_list
 
         bypop: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
-
         for indiv in pop:
             for chrom in indiv:
                 for copy in chrom:
+                    copy.unknown_labels = pop.unknown_labels if hasattr(pop, 'unknown_labels') else []
                     copy.smooth_unknown()
                     for tract in copy:
                         bypop[tract.label].append((
@@ -376,7 +380,11 @@ class Population:
         if allosome not in self.allosome_labels:
             raise KeyError(f"Data for chromosome {allosome} was never initialized for this population.")
         
-        pop = self if indlist is None else Population(indlist)
+        if indlist is None:
+            pop = self  
+        else:
+            pop = Population(indlist)
+            pop.unknown_labels = self.unknown_labels
 
         bypop_male: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
         bypop_female: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
@@ -387,6 +395,7 @@ class Population:
             is_male = (len(indiv.allosomes[allosome]) == 1)
             
             for chrom in indiv.allosomes[allosome]:
+                chrom.unknown_labels= pop.unknown_labels if hasattr(pop, 'unknown_labels') else []
                 chrom.smooth_unknown()
                 for tract in chrom:
                     if is_male:

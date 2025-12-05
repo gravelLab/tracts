@@ -171,14 +171,14 @@ class Chrom:
         """
         i = 0
         while i < len(self.tracts) - 1:
-            if self.tracts[i].label == 'UNKNOWN':
-                i += 1
+            if self.tracts[i].label in self.unknown_labels: #catch unknown segments at start of chromosome
+                self.tracts.pop(i)
                 continue
             else:
                 j = 0
                 while i + j < len(self.tracts) - 1:
                     j += 1
-                    if self.tracts[i + j].label == "UNKNOWN":
+                    if self.tracts[i + j].label  in self.unknown_labels:
                         self.tracts.pop(i + j)  # Remove the unknown segment
                         j -= 1
                     else:
@@ -187,7 +187,9 @@ class Chrom:
                         self.tracts[i + j].start = midpoint
                         self.tracts[i].end = midpoint
                         break
+                
                 i += 1
+        
         self._smooth()
 
     def tractlengths(self):

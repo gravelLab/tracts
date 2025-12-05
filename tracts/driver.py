@@ -18,7 +18,6 @@ from tracts.demography.parametrized_demography_sex_biased import ParametrizedDem
 from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.demography.parameter import Parameter ,ParamType
 from tracts.demography import DemographicModel
-
 logger = logging.getLogger(__name__)
 
 filepath_error_additional_message = ('\nPlease ensure that the file path is either absolute,'
@@ -57,18 +56,32 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
         print('No minimum tract length specified. Make sure to include "exclude_tracts_below_cM" in the driver file. Defaulting to 10 cM.')
 
     # Currently assumes allosomes is a single label. May change in the future
-    allosome_labels=driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else []
-    allosome_label= allosome_labels[0] if len(allosome_labels) > 0 else None
+    allosome_labels = driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else []
+    allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None
 
     # load the population
     pop = load_population(driver_path, driver_spec, script_dir, allosome_labels)
-
+    _bins, _data = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
+                                                                                                       # validate that these correspond to to model population labels
+    
+    
     time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
 
     model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_dir, driver_path=driver_path, allosome_label=allosome_label)
 
-    ancestor_labels = model.population_indices.keys()
 
+    
+    ancestor_labels = model.population_indices.keys()
+    
+
+    data_labels =  _data.keys()
+    pop.unknown_labels = driver_spec['unknown_labels_for_smoothing'] if 'unknown_labels_for_smoothing' in driver_spec else [] 
+    for label in data_labels:
+        if label not in ancestor_labels and label not in pop.unknown_labels:
+            raise ValueError("Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
+            "unknown labels: {pop.unknown_labels}")
+    
+    
     logger.info(f'Model Parameters: {model.free_params}')
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
@@ -95,7 +108,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     max_iter = driver_spec.get('maximum_iterations',None)
     
     pop_dict = model.population_indices.items()
-
+    
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
                                                         parse_start_params(driver_spec['start_params'],
                                                                           driver_spec['repetitions'],
