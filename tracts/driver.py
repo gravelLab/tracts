@@ -399,7 +399,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cM']
     else:
         exclude_tracts_below_cM = 10
- 
+
     matrices = model.get_migration_matrices(optimal_params)
 
     [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
@@ -589,14 +589,13 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
         female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
         
-        #male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
-        #female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
+        male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
+        female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
         
-        print(f"Approximate sum of {pop} allosome ractlengths per male predicted: {male_sum}")
+        print(f"Approximate sum of {pop} allosome tractlengths per male predicted: {male_sum}")
         print(f"Approximate sum of {pop} allosome tractlengths per female predicted: {female_sum}")
-        
-        #print(f"Approximate sum of tractlengths per male data: {male_data_sum}")
-        #print(f"Approximate sum of tractlengths per female data: {female_data_sum}")
+        print(f"Approximate sum of {pop} allosome tractlengths per male data: {male_data_sum}")
+        print(f"Approximate sum of {pop} allosome tractlengths per female data: {female_data_sum}")
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
