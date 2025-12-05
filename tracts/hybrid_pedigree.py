@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Phase-type conditioned to pedigree.
+This module implements the hybrid pedigree model for tract length distributions.
+It computes a mixture of Phase-Type distributions, each describing the tract length distribution conditioned on
+a pedigree structure. Dioecious admixture is considered on a finite chromosome. 
+
+See Appendix E of the manuscript for details on the model and the implementation.
 """
 
 import itertools
@@ -215,8 +219,7 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     mig_matrix_f : npt.ArrayLike
         An array containing the female migration proportions from a discrete number of populations over the last generations.
         Each row is a time, each column is a population. Row zero corresponds to the current
-        generation. T
-        The (i,j) element of this matrix specifies the proportion of female individuals from the admixed population that
+        generation. The (i,j) element of this matrix specifies the proportion of female individuals from the admixed population that
         are replaced by female individuals from population j at generation i. 
         The migration rate at the last generation (migration_matrix_f[-1,:]) is the "founding generation" and should sum up to 1. 
     mig_matrix_m : npt.ArrayLike
@@ -230,7 +233,7 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
         An integer from 0 to the number of populations - 1.         
     TP: int, default 2
         The number of generations of the pedigree. Shouldn't be higher than 3 for the sake of computational efficiency.
-    sex_model: default 'DC': TODO: This parameter does not exist
+    Dioecious_model: default 'DC'
         The Dioecious model to be considered. Takes the value 'DF' for Dioecious Fine and 'DC' for Dioecious Coarse.
     rr_f : float, default 1
         The female-specific recombination rate (positive real number).
@@ -248,7 +251,8 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     freq : bool, default False,
         If density is True, whether to return density on the frequency scale. If density is False, this 
         parameter is ignored.
-    Dioecious_model: TODO
+
+        
     Returns
     ----------
     npt.ArrayLike
@@ -275,17 +279,37 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     
     if not np.isin(Dioecious_model, ['DF', 'DC']):
         raise Exception('The Dioecious model must be one in DF, DC.')
-        
+
+    T = int(np.shape(mig_matrix_f)[0] - 1)  # Number of generations
+
     mean_mig_matrix = 0.5 * (mig_matrix_f + mig_matrix_m)
     survival_factors = np.ones(len(mean_mig_matrix))
     for generation_number in range(1, len(mean_mig_matrix)):
         survival_factors[generation_number] = survival_factors[generation_number - 1] * (
                 1 - sum(mean_mig_matrix[generation_number - 1]))
-    t0_proportions = np.sum((0.5 * (mig_matrix_f + mig_matrix_m)) * np.transpose(survival_factors)[:, np.newaxis],
-                            axis=0)
+    
+    # Compute ancestry proportions for histograms (See Appendix F.3 in the manuscript)
+
+    if not X_chr:
+        t0_proportions_f = t0_proportions_m = np.sum(
+            (0.5 * (mig_matrix_f + mig_matrix_m)) * np.transpose(survival_factors)[:, np.newaxis],
+            axis=0) # Maternally (t0_proportions_f) and paternally (t0_proportions_m) -inherited ancestry proportions are the same.
+    else:
+        # Recursive computation for the X chromosome
+
+        ancestry_proportions_m = mig_matrix_m[T, ]
+        ancestry_proportions_f = mig_matrix_f[T, ]
+        for generation_number in range(T-1, 0, -1):
+                
+            ancestry_proportions_f_prev = ancestry_proportions_f.copy()
+            ancestry_proportions_m_prev = ancestry_proportions_m.copy()
+            ancestry_proportions_m = mig_matrix_m[generation_number, ] + (1 - mig_matrix_m[generation_number, ].sum())*ancestry_proportions_f_prev
+            ancestry_proportions_f = mig_matrix_f[generation_number, ] + (1 - mig_matrix_f[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2           
+            
+        t0_proportions_f = ancestry_proportions_f
+        t0_proportions_m = ancestry_proportions_m
     
     
-    T = int(np.shape(mig_matrix_f)[0] - 1)  # Number of generations
     Npops = int(np.shape(mig_matrix_f)[1])
     nind_TP = 2 ** TP - 1
     nanc_TP = 2 ** (TP - 1)
@@ -388,22 +412,29 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
 
     
     if X_chr and X_chr_male:
-        final_density = np.sum(np.array([l[0] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
+        density_f = np.sum(np.array([l[0] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
                                          np.isin(l[2], prob_list_f[:, 0])]), axis=0)
-        Exp = np.sum(np.array([l[3] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
+        Exp_f = np.sum(np.array([l[3] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
                                np.isin(l[2], prob_list_f[:, 0])]), axis=0)
-        scale = t0_proportions[whichpop] * L / Exp if freq else 1
+        scale_f = t0_proportions_f[whichpop] * L / Exp_f if freq else 1
+        final_density = density_f * scale_f
+
     else:
-        final_density = 0.5 * (np.sum(np.array(
+        density_f = np.sum(np.array(
             [l[0] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
-             np.isin(l[2], prob_list_f[:, 0])]), axis=0) + np.sum(np.array(
+             np.isin(l[2], prob_list_f[:, 0])]), axis=0)
+        density_m = np.sum(np.array(
             [l[1] * prob_list_m[prob_list_m[:, 0] == l[2], 1] for l in densities_list if
-             np.isin(l[2], prob_list_m[:, 0])]), axis=0))
-        Exp = 0.5 * (np.sum(np.array([l[3] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
-                                      np.isin(l[2], prob_list_f[:, 0])]), axis=0) + np.sum(np.array(
+             np.isin(l[2], prob_list_m[:, 0])]), axis=0)
+        Exp_f = np.sum(np.array([l[3] * prob_list_f[prob_list_f[:, 0] == l[2], 1] for l in densities_list if
+                                      np.isin(l[2], prob_list_f[:, 0])]), axis=0)
+        Exp_m = np.sum(np.array(
             [l[4] * prob_list_m[prob_list_m[:, 0] == l[2], 1] for l in densities_list if
-             np.isin(l[2], prob_list_m[:, 0])]), axis=0))
-        scale = 2 * t0_proportions[whichpop] * L / Exp if freq else 1
+             np.isin(l[2], prob_list_m[:, 0])]), axis=0)     
+        scale_f = t0_proportions_f[whichpop] * L / Exp_f if freq else 1
+        scale_m = t0_proportions_m[whichpop] * L / Exp_m if freq else 1
+        final_density = density_f * scale_f + density_m * scale_m
+
     if density:
-        return bins, final_density*scale
-    return bingrid, np.real(np.diff(final_density)*scale)
+        return bins, final_density
+    return bingrid, np.real(np.diff(final_density))

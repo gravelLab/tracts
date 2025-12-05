@@ -74,6 +74,58 @@ def verify_similar_ptd_models(ptd_first: PhaseTypeDistribution, ptd_second: Phas
     # And the histograms
     assert numpy.all(numpy.isclose(counts_first_hist, counts_second_hist, atol=atol))
 
+# Test t0_proportions computation
+
+def verify_same_t0_proportions_unbiased(ptd_autosome: PhaseTypeDistribution,
+                              ptd_X: PhaseTypeDistribution,
+                              atol: float = 0.02):
+    
+    if ptd_autosome.X_chr or not ptd_X.X_chr:
+        raise Exception("The first and second models need to be autosomal and allosomal, respectively.")
+    if not numpy.all(numpy.isclose(ptd_autosome.migration_matrix_f, ptd_autosome.migration_matrix_m, atol=atol)):
+        raise Exception("The sex-specific migration matrices of the autosomal model must be the same for this comparison.")
+    if not numpy.all(numpy.isclose(ptd_X.migration_matrix_f, ptd_X.migration_matrix_m, atol=atol)):
+        raise Exception("The sex-specific migration matrices of the autosomal model must be the same for this comparison.")
+    if not numpy.all(numpy.isclose(ptd_autosome.migration_matrix_f, ptd_X.migration_matrix_f, atol=atol)):
+        raise Exception("The sex-specific migration matrices of both models must be the same for this comparison.")
+    if not numpy.all(numpy.isclose(ptd_autosome.migration_matrix_m, ptd_X.migration_matrix_m, atol=atol)):
+        raise Exception("The sex-specific migration matrices of both models must be the same for this comparison.")
+
+    # Check that t0_proportions are the same for autosomal and X chromosome admixture under unbiased migration.
+    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, ptd_autosome.t0_proportions_m, atol=atol))
+    assert numpy.all(numpy.isclose(ptd_X.t0_proportions_f, ptd_X.t0_proportions_m, atol=atol))
+    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, ptd_X.t0_proportions_m, atol=atol))
+
+def verify_autosomal_t0_recursive(ptd_autosome: PhaseTypeDistribution, atol: float = 0.02):
+    
+    if ptd_autosome.X_chr:
+        raise Exception("The model needs to be autosomal for this test.")
+    # Verify that the t0_proportions computed recursively are the same as the direct computation.
+
+    # Compute the autosomal t0_proportions recursively, analogously as the X chromosome case.
+
+    migration_matrix_f = ptd_autosome.migration_matrix_f_unchanged # Get migration matrices
+    migration_matrix_m = ptd_autosome.migration_matrix_m_unchanged
+    num_generations = migration_matrix_f.shape[0]
+
+    ancestry_proportions_m = migration_matrix_m[num_generations - 1, ]
+    ancestry_proportions_f = migration_matrix_f[num_generations - 1, ]
+    for generation_number in range(num_generations - 2, 0, -1):
+               
+        ancestry_proportions_f_prev = ancestry_proportions_f.copy()
+        ancestry_proportions_m_prev = ancestry_proportions_m.copy()
+        ancestry_proportions_m = migration_matrix_m[generation_number, ] + (1 - migration_matrix_m[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2 
+        ancestry_proportions_f = migration_matrix_f[generation_number, ] + (1 - migration_matrix_f[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2           
+            
+    t0_proportions_f = ancestry_proportions_f
+    t0_proportions_m = ancestry_proportions_m
+
+    # Compare the t0_proportions computed recursively with the ones computed directly.
+    print(f'Autosomal t0_proportions_f (direct): {ptd_autosome.t0_proportions_f}')
+    print(f'Autosomal t0_proportions_f (recursive): {t0_proportions_f}')
+    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, t0_proportions_f, atol=atol))
+    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_m, t0_proportions_m, atol=atol))
+
 
 @pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
                                   "migration_matrix_C", "migration_matrix_D"])
@@ -94,8 +146,31 @@ def verify_ptd_dioecious_matrices(pht: PhTDioecious):
     assert numpy.all(numpy.isclose(numpy.sum(pht.full_transition_matrix_f, axis=1), 0))
     assert numpy.all(numpy.isclose(numpy.sum(pht.full_transition_matrix_m, axis=1), 0))
 
+@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
+                                  "migration_matrix_C", "migration_matrix_D"])
+def test_t0_proportions(data, request):
+    migration_matrix = request.getfixturevalue(data)
+    
+    PTD_Dioecious_aut = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
+                                   rho_m=1, sex_model='DC', X_chromosome=False)
+    PTD_Dioecious_X = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
+                                   rho_m=1, sex_model='DC', X_chromosome = True, X_chromosome_male = False)
+    
+    verify_same_t0_proportions_unbiased(PTD_Dioecious_aut, PTD_Dioecious_X)
+    verify_autosomal_t0_recursive(PTD_Dioecious_aut) # For unbiased migration matrices
+    
+    # For biased migration rates
+    prop_of_female_migration = 0.8 # 0.5 for unbiased migration, 1 for only female migrants, 0 for only male migrants.
+    mig_m = 2*migration_matrix*(1-prop_of_female_migration)
+    mig_f = 2*migration_matrix*prop_of_female_migration
+    mig_m[-1,:] = migration_matrix[-1,:]
+    mig_f[-1,:] = migration_matrix[-1,:]
+    
+    PTD_Dioecious_aut_biased = PhTDioecious(mig_f, mig_m, rho_f=1,
+                                   rho_m=1, sex_model='DC', X_chromosome=False)
+    verify_autosomal_t0_recursive(PTD_Dioecious_aut_biased) # For biased migration matrices
 
-# TODO: The test fails with migration_matrix_D
+
 @pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
                                   "migration_matrix_C", "migration_matrix_D"])
 def test_PDT_X(data, request):
