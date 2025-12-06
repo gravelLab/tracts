@@ -165,31 +165,43 @@ class Chrom:
 
     def smooth_unknown(self):
         """ 
-        Merges segments that are contiguous and share the same ancestry.
-        Internally, this method removes segments of unknown ancestry, extending the neighboring
+        Removes segments of unknown ancestry. Unknown segments at begining and end of chromosomes are removed.
+        Internal unknwon segments are removed, extending the neighboring
         segments to occupy the space previously assigned to the unknown segments.
         """
+        while self.tracts and self.tracts[0].label in self.unknown_labels:
+            self.tracts.pop(0)
+        while self.tracts and self.tracts[-1].label in self.unknown_labels:
+            self.tracts.pop()
+        
+        if not self.tracts:
+            return
+        
+
+        
         i = 0
         while i < len(self.tracts) - 1:
-            if self.tracts[i].label in self.unknown_labels: #catch unknown segments at start of chromosome
-                self.tracts.pop(i)
-                continue
-            else:
-                j = 0
-                while i + j < len(self.tracts) - 1:
-                    j += 1
-                    if self.tracts[i + j].label  in self.unknown_labels:
-                        self.tracts.pop(i + j)  # Remove the unknown segment
-                        j -= 1
-                    else:
-                        midpoint = (self.tracts[i + j].start
-                                    + self.tracts[i].end) / 2.
-                        self.tracts[i + j].start = midpoint
-                        self.tracts[i].end = midpoint
-                        break
-                
-                i += 1
-        
+
+            
+
+            # find the first non-unknown after i
+            j = i + 1
+            while j < len(self.tracts) and self.tracts[j].label in self.unknown_labels:
+                j += 1
+
+            # at this point, i<j<=len(self.tracts)
+            # collapse unknowns (possibly zero-length slice)
+            left  = self.tracts[i]
+            right = self.tracts[j]
+
+            mid = (left.end + right.start) / 2.0
+            left.end = mid
+            right.start = mid
+
+            # remove any unknowns
+            del self.tracts[i+1:j]
+
+            i += 1
         self._smooth()
 
     def tractlengths(self):
