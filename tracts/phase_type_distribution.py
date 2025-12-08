@@ -1313,7 +1313,8 @@ class PhTDioecious(PhaseTypeDistribution):
             raise Exception('type-f CDF is not positive and real : ', normalized_CDF_f)
         if not hybrid_ped:
             return np.real(np.diff(normalized_CDF_m) * scale_m + np.diff(normalized_CDF_f) * scale_f), E
-        return bins, normalized_CDF, E
+
+        return normalized_CDF, E
 
     def tract_length_histogram_multi_windowed(self, population_number: int, bins: npt.ArrayLike,
                                               chrom_lengths: npt.ArrayLike) -> npt.ArrayLike:
@@ -1327,8 +1328,13 @@ class PhTDioecious(PhaseTypeDistribution):
             exp_Sx_per_bin_f[bin_number] = scipy.linalg.expm(bin_val * S_f)
             exp_Sx_per_bin_m[bin_number] = scipy.linalg.expm(bin_val * S_m)
         for L in chrom_lengths:
-            new_histogram, E = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
-                                                                       exp_Sx_per_bin_f, exp_Sx_per_bin_m)
+            new_histogram, E = self.tractlength_histogram_windowed(population_number = population_number, bins = bins, L= L,
+                                                                       exp_Sx_per_bin_f = exp_Sx_per_bin_f, exp_Sx_per_bin_m =exp_Sx_per_bin_m)
+        
+
+
+
+
             histogram += new_histogram
         return histogram
 
