@@ -54,6 +54,12 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     else:
         exclude_tracts_below_cM = 10
         print('No minimum tract length specified. Make sure to include "exclude_tracts_below_cM" in the driver file. Defaulting to 10 cM.')
+    
+    if 'npts' in driver_spec:
+        npts = driver_spec['npts']
+    else:
+        npts = 50
+        print('No number of bins specified. Defaulting to 50.')
 
     # Currently assumes allosomes is a single label. May change in the future
     allosome_labels = driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else []
@@ -61,7 +67,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
 
     # load the population
     pop = load_population(driver_path, driver_spec, script_dir, allosome_labels)
-    _bins, _data = pop.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
+    _bins, _data = pop.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
                                                                                                        # validate that these correspond to to model population labels
     
     
@@ -118,7 +124,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
-                                                        D_model = D_model)
+                                                        D_model = D_model, npts=npts)
     formatted_likelihoods = [float(x) for x in likelihoods]
     print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
@@ -261,7 +267,7 @@ def randomize(arr, a, b):
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
                           start_params_list: list[numpy.ndarray], population_dict : dict, max_iter: int=None, exclude_tracts_below_cM: int = 0, 
-                          modelling_method: type = PhTMonoecious, D_model = 'DC') -> tuple[list[numpy.ndarray], list[float]]:
+                          modelling_method: type = PhTMonoecious, D_model = 'DC', npts: int = 50) -> tuple[list[numpy.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -282,6 +288,8 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    Minimum tract length in centimorgans to exclude from analysis. Default is 0.
         modelling_method: type, optional
     	    The method used for modeling. Default is PhTMonoecious.
+        npts: int, optional
+            Number of bins for the tract length histogram. Default is 50.
 
     Returns
     ----------
@@ -297,19 +305,19 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
                                                    population_dict,
                                                    max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
-                                                   modelling_method=modelling_method, D_model=D_model)
+                                                   modelling_method=modelling_method, D_model=D_model, npts=npts)
         optimal_params.append(params_found)
         likelihoods.append(likelihood_found)
     return optimal_params, likelihoods
 
 
 def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0,
-              modelling_method=PhTMonoecious, D_model='DC'):
+              modelling_method=PhTMonoecious, D_model='DC', npts=0):
     if modelling_method == PhTDioecious:
-        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM, D_model=D_model)
+        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM, D_model=D_model, npts=npts)
     Ls = population.Ls
     nind = population.nind
-    bins, data = population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
     model_func_sample_pop = lambda params:list(model_func(params).values())[0]
     xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func_sample_pop, outofbounds_fun=bound_func, epsilon=1e-2,
@@ -318,8 +326,9 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0, D_model='DC'):
-    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model)
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0, D_model='DC', npts=0):
+  
+    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model, npts=npts)
     return optimal_params, optimal_likelihood
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
@@ -332,8 +341,9 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
 
     output_filename_format = driver_spec['output_filename_format']
     exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
-    (bins, data) = sample_population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
-    #TODO Modify npts default parameter
+    npts = driver_spec['npts'] if 'npts' in driver_spec else 50
+    (bins, data) = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    
     Ls = sample_population.Ls
     nind = sample_population.nind
 
@@ -413,15 +423,20 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     else:
         exclude_tracts_below_cM = 10
 
+    if 'npts' in driver_spec:
+        npts = npts['exclude_tracts_below_cM']
+    else:
+        npts = 50
+
     matrices = model.get_migration_matrices(optimal_params)
 
     [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
     output_filename_format = driver_spec['output_filename_format']
-    autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     Ls = sample_population.Ls
     nind = sample_population.nind
 
-    allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     allosome_length = sample_population.allosome_lengths['X']
     female_data = allosome_data[SexType.FEMALE]
     male_data = allosome_data[SexType.MALE]

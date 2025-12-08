@@ -121,8 +121,7 @@ def verify_autosomal_t0_recursive(ptd_autosome: PhaseTypeDistribution, atol: flo
     t0_proportions_m = ancestry_proportions_m
 
     # Compare the t0_proportions computed recursively with the ones computed directly.
-    print(f'Autosomal t0_proportions_f (direct): {ptd_autosome.t0_proportions_f}')
-    print(f'Autosomal t0_proportions_f (recursive): {t0_proportions_f}')
+
     assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, t0_proportions_f, atol=atol))
     assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_m, t0_proportions_m, atol=atol))
 
