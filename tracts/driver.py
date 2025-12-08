@@ -130,7 +130,6 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
     print(f"Optimal Parameters:{optimal_params}")
-    breakpoint()
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, D_model=D_model)
@@ -408,7 +407,8 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         plt.close(fig)
         
 
-def output_simulation_data_sex_biased(sample_population: Population, optimal_params, model: ParametrizedDemographySexBiased, driver_spec, D_model='DC'):
+def output_simulation_data_sex_biased(sample_population: Population, optimal_params, 
+                                      model: ParametrizedDemographySexBiased, driver_spec, D_model='DC'):
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model.
     """
@@ -426,7 +426,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         exclude_tracts_below_cM = 10
 
     if 'npts' in driver_spec:
-        npts = npts['exclude_tracts_below_cM']
+        npts = driver_spec['npts']
     else:
         npts = 50
 
@@ -510,7 +510,12 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
       
     
     # Plot tractlength distributions    
-    
+    autosome_predicted_ancestry = {}
+    allosome_predicted_ancestry   = {}
+    autosome_data_ancestry = {}
+    allosome_data_ancestry  = {}
+  
+
     for pop, pop_num in model.population_indices.items():
         
         fig, axes = plt.subplots(3, 1, figsize=(8, 12), constrained_layout=True)
@@ -616,6 +621,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         male_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
         female_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
         
+        bin_mids = 0.5 * (autosome_bins[:-1] + autosome_bins[1:])
         male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
         female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
         
@@ -626,11 +632,24 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         print(f"Approximate sum of {pop} allosome tractlengths per female predicted: {female_sum}")
         print(f"Approximate sum of {pop} allosome tractlengths per male data: {male_data_sum}")
         print(f"Approximate sum of {pop} allosome tractlengths per female data: {female_data_sum}")
+        
+        allosome_data_ancestry[pop] = male_data_sum + female_data_sum
+        allosome_predicted_ancestry[pop] = male_sum + female_sum
+        autosome_predicted_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_predicted[pop]]))
+        autosome_data_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_data[pop]]))
+
+  
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
         plt.close(fig)
-
+    for pop, pop_num in model.population_indices.items():
+        fraction_autosome = autosome_predicted_ancestry[pop]/numpy.sum(list(autosome_predicted_ancestry.values()))
+        fraction_allosome = allosome_predicted_ancestry[pop]/numpy.sum(list(allosome_predicted_ancestry.values()))
+        print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
+        fraction_autosome_data = autosome_data_ancestry[pop]/numpy.sum(list(autosome_data_ancestry.values()))
+        fraction_allosome_data = allosome_data_ancestry[pop]/numpy.sum(list(allosome_data_ancestry.values()))
+        print(f"Data fraction of ancestry from {pop}: autosome: {fraction_autosome_data}, allosome: {fraction_allosome_data}")
 
 def calculate_ancestry_proportions(sample_population: Population, population_labels):
     # Calculate the proportion of ancestry in each individual

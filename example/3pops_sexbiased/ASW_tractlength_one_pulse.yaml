@@ -7,10 +7,10 @@ samples:
     "NA20357", "NA20356"] # a subset of individuals, presumably for testing
   male_names : ["NA19700", "NA19703", "NA19818", "NA19834", "NA19900", "NA19908", "NA19916", "NA20126", "NA20356"] #these need to be double-checked. If not included, will assume that individuals with single X are male
   filename_format: "{name}_{label}_final.bed"
-  output_filename_format: "ASW_test_output_{label}.tracts"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
+output_filename_format: "ASW_test_output_{label}"
 model_filename: ppp.yaml
 start_params: 
   t: 5-8
