@@ -405,7 +405,7 @@ class Population:
             if allosome not in indiv.allosomes:
                 raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
             if is_male and  len(indiv.allosomes[allosome]) == 2:
-                logger.warning(f"Individual {indiv} is listed as male but has two X chromsosomes. Selecting first of the two")
+                logger.warning(f"Individual {indiv.name} is listed as male but has two X chromsosomes. Selecting first of the two")
                 assert indiv.allosomes[allosome][0].is_equal(indiv.allosomes[allosome][1]), f"Male Individual {indiv} has two different X chromosomes." 
                 indiv.allosomes[allosome] = [indiv.allosomes[allosome][0]]
             is_male = (len(indiv.allosomes[allosome]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
