@@ -91,6 +91,7 @@ class PhaseTypeDistribution(ABC):
 
     def populate_density_bins(self, bins, population_number, ETL, prop_connected, prop_isolated, exp_Sx_per_bin,
                               L, Z, s1, alpha, S, S0_inv):
+
         ETL = prop_connected * ETL + prop_isolated * L
         if not np.isclose(prop_isolated + prop_connected, 1):
             raise Exception('Probabilities of initial hyper-states do not sum up to one.')
@@ -118,9 +119,9 @@ class PhaseTypeDistribution(ABC):
                 int_val = integrate.simpson(density_values, x = bins) / prop_connected + den_at_delta / Z
                 den_val = den_cont_at_L + den_at_delta
                 if not np.isreal(den_val) or den_val < -1e-3:
-                    raise Exception('Density is not a positive real :', den_val)
+                    raise Exception(f'Density is not a positive real : {float(den_val)}.')
                 if not np.isclose(int_val, 1, atol = 1e-4):
-                    raise Exception('Density integral is not one : ', int_val, '. Bingrid might be too coarse.')
+                    raise Exception(f"Density integral is not one: {float(int_val)}. Bingrid might be too coarse.")
                 density_admixed_at_2 = float(np.real(den_val).item())
                 density_values[bin_number] = prop_connected * density_admixed_at_2 / Z + prop_isolated
                 

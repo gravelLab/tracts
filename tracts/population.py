@@ -241,7 +241,7 @@ class Population:
 
         return ancestry, totlength
 
-    def ancestry_per_pos(self, select_chrom=0, npts=100, cutoff=.0):
+    def ancestry_per_pos(self, select_chrom=0, npts=50, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
         length = self.indivs[0].chroms[Chrom].len  # Get chromosome length
         plotpts = np.arange(0, length, length / float(npts))  # Get number of points at which to
@@ -295,13 +295,13 @@ class Population:
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def get_global_tractlengths(self, npts: int = 20, tol: float = 0.01, indlist: list = None, split_count: int = 1, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    def get_global_tractlengths(self, npts: int = 50, tol: float = 0.01, indlist: list = None, split_count: int = 1, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         """ 
             Parameters
             ----------
                 tol: float, default 0.01
                     The tolerance for full chromosomes. 
-                npts: int, default 20
+                npts: int, default 50
                     The number of bins for the histogram.
                 indlist: list, default None
                     The individuals for which we want the tractlength. To
@@ -358,7 +358,7 @@ class Population:
                         ))
         return self.tractlength_histogram(bypop, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM)
 
-    def tractlength_histogram(self, tracts_by_population:dict[str, list[tuple[Tract, float]]], npts: int = 20, tol: float = 0.01, exclude_tracts_below_cM: float = 0, maxLen=None) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    def tractlength_histogram(self, tracts_by_population:dict[str, list[tuple[Tract, float]]], npts: int = 50, tol: float = 0.01, exclude_tracts_below_cM: float = 0, maxLen=None) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         if maxLen==None:
             maxLen=self.maxLen
         #bins = np.arange(exclude_tracts_below_cM * 0.01, maxLen * (1 + .5 / npts), (float(maxLen) - exclude_tracts_below_cM) / npts)
@@ -373,7 +373,7 @@ class Population:
 
         return bins, dat
 
-    def get_global_allosome_tractlengths(self, allosome, npts: int = 20, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:
+    def get_global_allosome_tractlengths(self, allosome, npts: int = 50, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:
         """
         Returns the allosomal tractlength histogram in males and the allosomal tractlength histogram in females.
         """
@@ -570,7 +570,7 @@ class Population:
         self.chro_canvas.pack(expand=tk.YES, fill=tk.BOTH)
         tk.mainloop()
 
-    def plot_ancestries(self, chrom=0, npts=100, colordict=None, cutoff=0.0):
+    def plot_ancestries(self, chrom=0, npts=50, colordict=None, cutoff=0.0):
         if colordict is None:
             colordict = {"CEU": 'blue', "YRI": 'red'}
 
@@ -596,7 +596,7 @@ class Population:
             pylab.title("Chromosome %d" % (chrom + 1,))
             pylab.axis((0, dat[0][-1], 0, 150))
 
-    def plot_all_ancestries(self, npts=100, colordict=None, startfig=0, cutoff=0):
+    def plot_all_ancestries(self, npts=50, colordict=None, startfig=0, cutoff=0):
         dat = None
         chrom = None
         pop = None
@@ -626,7 +626,7 @@ class Population:
         pylab.plot(dat[0], [100 * pos[1][pop] for pos in dat[1]], '.', color=color)
         pylab.axis([0, dat[0][-1], 0, 150])
 
-    def plot_global_tractlengths(self, colordict, npts=40, legend=True):
+    def plot_global_tractlengths(self, colordict, npts=50, legend=True):
         flatdat = self.flatpop()
         bypop = collect_pop(flatdat)
         self.maxLen = max(self.Ls)

@@ -7,6 +7,6 @@ demes:
   - name: AFR
   - name: NAT
   - name: X
-    ancestors: [EUR, AFR, NAT]
-    proportions: [REUR,RNAT, 1-REUR-RNAT]
+    ancestors: [EUR, NAT, AFR]
+    proportions: [REUR,RNAT,1-REUR-RNAT]
     start_time: t

@@ -172,15 +172,15 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC') -> tuple[np.ndarray, float]:
+                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50) -> tuple[np.ndarray, float]:
     if reset_counter:
         global _counter
         _counter = 0
     
 
-    autosome_bins, autosome_data = population.get_global_tractlengths(exclude_tracts_below_cM=exclude_tracts_below_cM) 
+    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
     n_autosome_bins = len(autosome_bins)
-    allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', exclude_tracts_below_cM=exclude_tracts_below_cM)
+    allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     n_allosome_bins = len(allosome_bins)
     allosome_length = population.allosome_lengths['X']
     female_data = allosome_data[SexType.FEMALE]
