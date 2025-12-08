@@ -1314,7 +1314,7 @@ class PhTDioecious(PhaseTypeDistribution):
         if not hybrid_ped:
             return np.real(np.diff(normalized_CDF_m) * scale_m + np.diff(normalized_CDF_f) * scale_f), E
 
-        return normalized_CDF, E
+        return bins, normalized_CDF, E
 
     def tract_length_histogram_multi_windowed(self, population_number: int, bins: npt.ArrayLike,
                                               chrom_lengths: npt.ArrayLike) -> npt.ArrayLike:
