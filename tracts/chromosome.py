@@ -222,7 +222,14 @@ class Chrom:
     def __repr__(self):
         return "chrom(tracts=%s)" % (repr(self.tracts),)
 
-
+    def is_equal(self, chrom):
+        """ Check if two chromosomes are equal, in terms of their tracts. """
+        if len(chrom.tracts) != len(self.tracts):
+            return False
+        for i in range(len(self.tracts)):
+            if not self.tracts[i].is_equal(chrom.tracts[i]):
+                return False
+        return True
 class Chropair:
     """ A pair of chromosomes. Using chromosome pairs allows modeling of diploid individuals.
     """

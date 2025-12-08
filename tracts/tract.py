@@ -47,3 +47,6 @@ class Tract:
     def __repr__(self):
         return "tract(%s, %s, %s)" % tuple(
             map(repr, [self.start, self.end, self.label]))
+    def is_equal(self, other):
+        """ Check if two tracts are equal, in terms of their start, end, and label. """
+        return self.start == other.start and self.end == other.end and self.label == other.label

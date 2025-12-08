@@ -130,6 +130,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
     print(f"Optimal Parameters:{optimal_params}")
+    breakpoint()
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, D_model=D_model)
@@ -153,9 +154,10 @@ def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=N
                                                       script_dir=script_dir,
                                                       absolute_driver_yaml_path=driver_path)
     
+    male_list = driver_spec['samples']['male_names']
     chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
     logger.info(f'Chromosomes: {chromosome_list}')
-    return Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [])
+    return Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [], male_list = male_list)
 
 def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=None):
     if 'model_filename' not in driver_spec:

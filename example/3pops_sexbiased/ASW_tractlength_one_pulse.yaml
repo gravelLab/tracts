@@ -4,9 +4,10 @@ samples:
     "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
     "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
     "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
-    "NA20357", "NA20356"
-    ] # a subset of individuals, presumably for testing
+    "NA20357", "NA20356"] # a subset of individuals, presumably for testing
+  male_names : ["NA19700", "NA19703", "NA19818", "NA19834", "NA19900", "NA19908", "NA19916", "NA20126", "NA20356"] #these need to be double-checked. If not included, will assume that individuals with single X are male
   filename_format: "{name}_{label}_final.bed"
+  output_filename_format: "ASW_test_output_{label}.tracts"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
@@ -22,5 +23,5 @@ seed: 100
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
 exclude_tracts_below_cM: 2
 npts : 100
-#fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
+fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.

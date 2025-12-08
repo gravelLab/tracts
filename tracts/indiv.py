@@ -22,7 +22,7 @@ class Indiv:
     """
 
     @staticmethod
-    def from_haploids(haps: list[Haploid], allosome_labels=[]):
+    def from_haploids(haps: list[Haploid], name = None, allosome_labels=[]):
         name=haps[0].name
         if len(haps) != 2:
             raise ValueError('Two haplotypes must given to construct '
@@ -35,7 +35,7 @@ class Indiv:
             if not allosomes[key]:
                 logger.warning(f"Allosome {key} was not found when reading individual {name} from file.")
 
-        return Indiv(chroms=chroms, Ls=haps[0].Ls, allosomes=allosomes,name=name)
+        return Indiv(chroms=chroms, Ls=haps[0].Ls, allosomes=allosomes, name=name)
 
     @staticmethod
     def from_files(paths, selectchrom=None, name=None, allosomes=None):
@@ -48,7 +48,7 @@ class Indiv:
 
         return Indiv.from_haploids(
             [Haploid.from_file(path, name=name, selectchrom=selectchrom, allosome_labels=allosomes)
-             for path in paths], allosome_labels=allosomes)
+             for path in paths], name = name, allosome_labels=allosomes)
 
     def __init__(self, Ls=None, label="POP", fname=None, labs=("_A", "_B"),
                  selectchrom=None, chroms: list[Chropair] | None = None, allosomes: dict[str, list[Chrom]]=None, name=None):
@@ -115,6 +115,10 @@ class Indiv:
         """
         if fname is None:
             self.Ls = Ls
+            if name:    
+                self.name = name
+            else:
+                self.name = fname[0].split('/')[-1]  
             if chroms is None:
                 self.chroms = [Chropair(chropair_len=length, label=label) for length in Ls]
             else:
@@ -123,7 +127,10 @@ class Indiv:
         else:
             fnames = [fname[0] + lab + fname[1] for lab in labs]
             i = Indiv.from_files(fnames, selectchrom)
-            self.name = fname[0].split('/')[-1]
+            if name:    
+                self.name = name
+            else:
+                self.name = fname[0].split('/')[-1]  
             self.chroms = i.chroms
             self.Ls = i.Ls
             self.allosomes=i.allosomes

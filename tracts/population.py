@@ -57,7 +57,7 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 
 class Population:
     def __init__(self, list_indivs: list[Indiv]=None, names=None, fname=None,
-                 labs=("_A", "_B"), selectchrom=None, allosomes=[], ignore_length_consistency=False, filenames_by_individual=None):
+                 labs=("_A", "_B"), selectchrom=None, allosomes=[], ignore_length_consistency=False, filenames_by_individual=None, male_list = None):
         """ Constructs a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
@@ -86,6 +86,10 @@ class Population:
         self.allosome_labels=allosomes
         self.allosome_lengths: dict[str, float]={}
         self.indivs: list[Indiv] = []
+        if male_list is None:
+            self.male_list: list[str] = [] # Will be populated by labels of male individuals.
+        else:
+            self.male_list = male_list 
         if list_indivs is not None:
             self.indivs: list[Indiv] = list_indivs
             self.nind = len(list_indivs)
@@ -137,7 +141,11 @@ class Population:
             raise ValueError('Population could not be loaded because individuals were not specified.')
         
         self.allosome_lengths=self.calculate_allosome_lengths(self.indivs, self.allosome_labels)
-        self.num_males, self.num_females = self.calculate_num_sexes(self.indivs, self.allosome_labels)
+        if male_list is None:
+            self.num_males, self.num_females = self.calculate_num_sexes(self.indivs, self.allosome_labels)
+        else:
+            self.num_males = len(male_list) 
+            self.num_females = self.nind -  self.num_males
 
 
 
@@ -388,31 +396,44 @@ class Population:
 
         bypop_male: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
         bypop_female: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
-
+        num_males_processed = 0;
         for indiv in pop:
+            tracts_added = False
+            is_male = False
+            if indiv.name in self.male_list:
+                is_male = True
             if allosome not in indiv.allosomes:
                 raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
-            is_male = (len(indiv.allosomes[allosome]) == 1)
+            if is_male and  len(indiv.allosomes[allosome]) == 2:
+                logger.warning(f"Individual {indiv} is listed as male but has two X chromsosomes. Selecting first of the two")
+                assert indiv.allosomes[allosome][0].is_equal(indiv.allosomes[allosome][1]), f"Male Individual {indiv} has two different X chromosomes." 
+                indiv.allosomes[allosome] = [indiv.allosomes[allosome][0]]
+            is_male = (len(indiv.allosomes[allosome]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
+            num_males_processed += is_male
             
             for chrom in indiv.allosomes[allosome]:
                 chrom.unknown_labels= pop.unknown_labels if hasattr(pop, 'unknown_labels') else []
                 chrom.smooth_unknown()
                 for tract in chrom:
+                    tracts_added = True
                     if is_male:
                         bypop_male[tract.label].append((tract, chrom.len))
                     else:
                         bypop_female[tract.label].append((tract, chrom.len))
-        
+            if tracts_added is False:
+                raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+        if len(self.male_list) not in [0, num_males_processed]:
+            raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
+                                 "{num_males_processed} males") 
         if len(bypop_male)==0 and len(bypop_female)==0:
             raise ValueError(f"Data for chromosome {allosome} does not exist on any individuals of this population.")
          
         L=self.allosome_lengths[allosome]
-        bins, male_dat = self.tractlength_histogram(bypop_male, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
+        bins, male_data = self.tractlength_histogram(bypop_male, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
         _, female_data = self.tractlength_histogram(bypop_female, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
-        
         return (bins, 
                 {
-                    SexType.MALE: male_dat,
+                    SexType.MALE: male_data,
                     SexType.FEMALE: female_data
                 }
             )
