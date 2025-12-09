@@ -62,9 +62,9 @@ def verify_similar_ptd_models(ptd_first: PhaseTypeDistribution, ptd_second: Phas
                                                                              density=True, freq=True)
     newbins, counts_second_freq, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
                                                                                density=True, freq=True)
-    counts_first_hist, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
+    outbins, counts_first_hist, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
                                                                     density=False)
-    counts_second_hist, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
+    outbins, counts_second_hist, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
                                                                       density=False)
 
     # Densities must be close
@@ -330,7 +330,7 @@ class ModelComparison:
 
     def compare_models(self, bins, L, population_number):
         PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        PTD_hist = PTD_hist_tuple[0]
+        PTD_hist = PTD_hist_tuple[1]
         demo_hist = self.demo.expectperbin([L], population_number, bins)[:-1]
         print(f'\nTractlength histogram from PTD: \n{PTD_hist}')
         print(f'\nTractlength histogram from tracts: \n{numpy.array(demo_hist)}')
@@ -338,12 +338,14 @@ class ModelComparison:
 
     def compare_models_2(self, input_bins, L, population_number):
         # TODO: Decide if this should be moved to examples
-        PTD_hist = self.PTD.tractlength_histogram_windowed(population_number, input_bins, L)
+        PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
+        PTD_hist = PTD_hist_tuple[1]
         demo_hist = self.demo.expectperbin([L], population_number, input_bins)
         plot_histogram_model_comparison(PTD_hist, demo_hist, L)
 
     def compare_models_3(self, bins, L, population_number):
-        PTD_hist = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
+        PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
+        PTD_hist = PTD_hist_tuple[1]
         # TODO: Check that the correct function name has been guessed correctly
         # PTD_CDF = PTD.tractlength_CDF_windowed(population_number, bins, L)
         PTD_CDF = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
@@ -353,7 +355,7 @@ class ModelComparison:
     def compare_models_4(self, bins, L, population_number):
         # TODO: Move to examples
         PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        PTD_hist = PTD_hist_tuple[0]
+        PTD_hist = PTD_hist_tuple[1]
         demo_hist = per_bin_noscale(self.demo, bins, L, population_number)[:-1]
         # demo_hist2 = per_bin_noscale(self.demo, bins, L, population_number)
         # TODO: demo_hist and demo_hist2 can be compared with numpy.allclose(demo_hist, demo_hist2)
@@ -371,7 +373,7 @@ class ModelComparison:
                                                        self.PTD.alpha_list[population_number]) for L in Ls])
 
         ratios = numpy.array([numpy.sum(self.demo.expectperbin([L], population_number, bins)) / numpy.sum(
-            self.PTD.tractlength_histogram_windowed(population_number, bins, L)) for L in Ls])
+            self.PTD.tractlength_histogram_windowed(population_number, bins, L)[1]) for L in Ls])
         print(f'\nRatios of expectperbin (tracts) to histogram (PhaseType): \n{ratios}')
         print(f'\nRatios divided by Z: \n{numpy.divide(ratios, Z)}')
         weird_factors = self.weird_factors(Ls, population_number)
@@ -446,5 +448,5 @@ def expectperbin_ratios(migration_matrix, input_bins, Ls, population_number):
     demo = DemographicModel(migration_matrix)
     PTD = PhTMonoecious(migration_matrix)
     demo_hist = lambda L: demo.expectperbin([L], population_number, input_bins)
-    PTD_hist = lambda L: PTD.tractlength_histogram_windowed(population_number, input_bins, L)
+    PTD_hist = lambda L: PTD.tractlength_histogram_windowed(population_number, input_bins, L)[1]
     return numpy.array([numpy.sum(demo_hist(L)) / numpy.sum(PTD_hist(L)) for L in Ls])

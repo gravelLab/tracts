@@ -598,7 +598,7 @@ class PhTMonoecious(PhaseTypeDistribution):
         -------
 
         npt.ArrayLike
-            If density is True, the corrected bins grid as described in Notes. Else, nothing is returned here.
+            If density is True, the corrected bins grid as described in Notes. Else, the bins introduced as input.
         npt.ArrayLike
             If density is True, the PhT density evaluated on the corrected bins grid. Returned on the frequency scale if freq = True.
             If density is False, the histogram values on the intervals defined by bins.
@@ -631,7 +631,7 @@ class PhTMonoecious(PhaseTypeDistribution):
             raise Exception('CDF not positive and real : ', normalized_CDF)
             # = self.normalization_factor(L, S, S0_inv, alpha) # Add test to compare Z and Zint
         scale = 2 * self.t0_proportions[population_number] * L / ETL
-        return np.real(np.diff(normalized_CDF) * scale), ETL
+        return bins, np.real(np.diff(normalized_CDF) * scale), ETL
 
     def tract_length_histogram_multi_windowed(self, population_number: int, bins: npt.ArrayLike,
                                               chrom_lengths: npt.ArrayLike) -> npt.ArrayLike:
@@ -644,7 +644,7 @@ class PhTMonoecious(PhaseTypeDistribution):
         for bin_number, bin_val in enumerate(bins):
             exp_Sx_per_bin[bin_number] = scipy.linalg.expm(bin_val * S)
         for L in chrom_lengths:
-            new_histogram, ETL = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
+            bins, new_histogram, ETL = self.tractlength_histogram_windowed(population_number, bins, L, exp_Sx_per_bin,
                                                                        exp_Sx_per_bin_f, exp_Sx_per_bin_m)
             histogram += new_histogram
         return histogram
@@ -940,7 +940,9 @@ class PhTDioecious(PhaseTypeDistribution):
             migration_matrix_m[0, :] = 0
             migration_matrix_f[0, :] = 0
 
-        if np.sum(np.abs(migration_matrix_f[-1, :])) != 1 or np.sum(np.abs(migration_matrix_m[-1, :])) != 1:
+        if not np.isclose(np.sum(np.abs(migration_matrix_f[-1, :])), 1, atol=1e-3) or not np.isclose(np.sum(np.abs(migration_matrix_m[-1, :])), 1, atol = 1e-3):
+            print('migration_matrix_f : \n', migration_matrix_f)
+            print('migration_matrix_m : \n', migration_matrix_m)
             raise Exception(
                 'Contributions from source populations at the last generation in the past must sum up to 1.')
 
@@ -1184,7 +1186,7 @@ class PhTDioecious(PhaseTypeDistribution):
         -------
 
         npt.ArrayLike
-            If density is True, the corrected bins grid as described in Notes. Else, nothing is returned here.
+            If density is True, the corrected bins grid as described in Notes. Else, the bins provided as input.
         npt.ArrayLike
             If density is True, the PhT density evaluated on the corrected bins grid. Returned on the frequency scale if freq = True.
             If density is False, the histogram values on the intervals defined by bins.
@@ -1246,9 +1248,7 @@ class PhTDioecious(PhaseTypeDistribution):
                 
         elif not xi_f and not xi_m:
             raise Exception('The state space for population',population_number, ' is empty. No tracts from population ', population_number, ' allowed.')
-        
-            
-        
+                
         
         if return_only == 0 or return_only is None:
             S_m = self.transition_matrices_m[population_number]
@@ -1280,41 +1280,63 @@ class PhTDioecious(PhaseTypeDistribution):
                                                                            exp_Sx_per_bin=exp_Sx_per_bin_f, s1=1,
                                                                            pop_number=population_number,
                                                                            hybrid_pedigree = hybrid_ped)
+        
+        # The return_only parameter is used to select only maternally or paternally inherited tracts
+        # Besides controlling the case of allosomal admixture on male individuals, it is used to return
+        # distributions corresponding to connected components in the hybrid pedigree model, that need
+        # to be combined a posteriori: connected components corresponding to maternally (resp. paternally) 
+        # -inherited alleles are first combined into one maternally (resp. paternally) -inherited distribution.
+        # Then, the resulting pair of Phase Type mixtures is combined at the end. See hybrid_pedigree.py for details.
+
+        # Return PhT distribution as a density function, at the frequency or density scale
         if density:
+            # For autosomes or X chromosome in females, both haploids copies are combined.
             if return_only is None and not self.X_chr_male:
                 scale_m = self.t0_proportions_m[population_number] * L / ETL_m  if freq else 0.5
                 scale_f = self.t0_proportions_f[population_number] * L / ETL_f  if freq else 0.5
                 return newbins, scale_m * density_per_bin_f + scale_f * density_per_bin_m, 0.5 * (ETL_m + ETL_f)
-            if return_only == 0 and not self.X_chr_male:
+            # If return_only == 0, only paternally inherited tracts are considered.
+            elif return_only == 0 and not self.X_chr_male:
                 scale_m = self.t0_proportions_m[population_number] * L / ETL_m if freq else 1
                 return newbins, scale_m * density_per_bin_m, ETL_m
-            scale_f = self.t0_proportions_f[population_number] * L / ETL_f if freq else 1
-            return newbins, scale_f * density_per_bin_f, ETL_f
+            # If return_only == 1 or X_chr_male is True (i.e. X chromosome in male individuals), only maternally inherited tracts are considered.
+            else:
+                scale_f = self.t0_proportions_f[population_number] * L / ETL_f if freq else 1
+                return newbins, scale_f * density_per_bin_f, ETL_f
+        
+        # If not density, PhT distribution is returned as a histogram.
+        
+        # For autosomes or X chromosome in females, both haploids copies are combined.
         if return_only is None and not self.X_chr_male:
             normalized_CDF = 0.5 * (normalized_CDF_f + normalized_CDF_m)
             scale_m = self.t0_proportions_m[population_number] * L / ETL_m
             scale_f = self.t0_proportions_f[population_number] * L / ETL_f
             E = (ETL_f + ETL_m) / 2
+        # If return_only == 0, only paternally inherited tracts are considered.
         elif return_only == 0 and not self.X_chr_male:
             normalized_CDF = normalized_CDF_m
             normalized_CDF_f = np.zeros(len(normalized_CDF_m))
             scale_f = 0
             scale_m = self.t0_proportions_m[population_number] * L / ETL_m
             E = ETL_m
+        # If return_only == 1 or X_chr_male is True (i.e. X chromosome in male individuals), only maternally inherited tracts are considered.
         else:
             normalized_CDF = normalized_CDF_f
             normalized_CDF_m = np.zeros(len(normalized_CDF_f))
             scale_m = 0
             scale_f = self.t0_proportions_f[population_number] * L / ETL_f
             E = ETL_f
+        
+
         if not np.all(np.isreal(normalized_CDF_m)) or np.any(normalized_CDF_m < -1e-3):
             raise Exception('type-m CDF is not positive and real : ', normalized_CDF_m)
         if not np.all(np.isreal(normalized_CDF_f)) or np.any(normalized_CDF_f < -1e-3):
             raise Exception('type-f CDF is not positive and real : ', normalized_CDF_f)
-        if not hybrid_ped:
-            return np.real(np.diff(normalized_CDF_m) * scale_m + np.diff(normalized_CDF_f) * scale_f), E
-
-        return bins, normalized_CDF, E
+        
+        if not hybrid_ped: # In the Dioecious Model, maternally and paternally -inherited distributions are combined and returned now.
+            return bins, np.real(np.diff(normalized_CDF_m) * scale_m + np.diff(normalized_CDF_f) * scale_f), E
+        else: # In the hybrid pedigree model, connected components are combined later.
+            return bins, normalized_CDF, E
 
     def tract_length_histogram_multi_windowed(self, population_number: int, bins: npt.ArrayLike,
                                               chrom_lengths: npt.ArrayLike) -> npt.ArrayLike:
@@ -1328,8 +1350,8 @@ class PhTDioecious(PhaseTypeDistribution):
             exp_Sx_per_bin_f[bin_number] = scipy.linalg.expm(bin_val * S_f)
             exp_Sx_per_bin_m[bin_number] = scipy.linalg.expm(bin_val * S_m)
         for L in chrom_lengths:
-            new_histogram, E = self.tractlength_histogram_windowed(population_number = population_number, bins = bins, L= L,
-                                                                       exp_Sx_per_bin_f = exp_Sx_per_bin_f, exp_Sx_per_bin_m =exp_Sx_per_bin_m)
+            bins, new_histogram, E = self.tractlength_histogram_windowed(population_number = population_number, bins = bins, L = L,
+                                                                       exp_Sx_per_bin_f = exp_Sx_per_bin_f, exp_Sx_per_bin_m = exp_Sx_per_bin_m)
         
 
 
