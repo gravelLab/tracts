@@ -548,11 +548,10 @@ class Indiv:
                     yield _tract
 
     def flat_imap(self, f):
-        """ Lazily maps a function over the full underlying structure of this
-            individual. The function must accept 3 parameters:
-                chrom: the chromosome pair containing the tract,
-                copy: the chromosome containing the tract,
-                tract: the tract itself.
+        """ 
+        Lazily maps a function over the full underlying structure of this
+        individual. The function must accept 3 parameters: chrom: the chromosome pair containing the tract,
+        copy: the chromosome containing the tract, tract: the tract itself.
         """
         for _chrom in self.chroms:
             for _copy in _chrom.copies:
@@ -2472,11 +2471,10 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
 
 
 def test_model_func(model_func, parameters, fracs_list=None, time_params=True, time_scale=100):
-    """Given a demographic model function, run a few debugging tests to ensure
-    that it behaves as expected, namely: 
-
-        1. That migration matrices sum to less than one (exactly one for the last generation,
-        2. That it behaves continuously realtive to time parameters. 
+    """
+    Given a demographic model function, run a few debugging tests to ensure
+    that it behaves as expected, namely: (i) that migration matrices sum to less than one (exactly one for the last generation,
+    (ii) that it behaves continuously realtive to time parameters. 
     
     Parameters
     ----------
@@ -2490,7 +2488,7 @@ def test_model_func(model_func, parameters, fracs_list=None, time_params=True, t
     time_params: default True
         If True, test all parameters for continuity as if they were time parameters. 
         If a list of boolean values of the same length of parameters,
-         only test parameters corresponding to True values.
+        only test parameters corresponding to True values.
     time_scale: default 100
         The scaling of the time variables: *time (in generations) = time_parameter*time_scale*. This is used to
         test continuity around integer values. 

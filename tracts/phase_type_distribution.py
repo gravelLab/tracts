@@ -13,7 +13,6 @@ from tracts.util import all_same_sign
 
 #warnings.filterwarnings("ignore")
 
-
 def get_survival_factors(migration_matrix):
     """
     Takes a migration matrix of T generations and returns a list of length T,
@@ -319,20 +318,20 @@ class PhaseTypeDistribution(ABC):
         Computes the length distribution of tract lengths spanning the whole chromosome of length L.
         
         Parameters
-            ----------
-                x: float
-                    The tract length at which the CDF is evaluated.
-                S: npt.ArrayLike
-                    The transition submatrix.
-                L: float
-                    The chromosome length.
-                exp_Sx: npt.ArrayLike, default None
+        ----------
+            x: float
+                The tract length at which the CDF is evaluated.
+            S: npt.ArrayLike
+                The transition submatrix.
+            L: float
+                The chromosome length.
+            xp_Sx: npt.ArrayLike, default None
                 alpha: npt.ArrayLike, default None
                 S0_inv: npt.ArrayLike, default None
             
-            Notes
-            -----
-            Accepts precomputed values for e^Sx, e^SL, and alpha.            
+        Notes
+        -----
+        Accepts precomputed values for e^Sx, e^SL, and alpha.            
                 
         """
         if exp_SL is None:
