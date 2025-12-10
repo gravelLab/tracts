@@ -10,6 +10,8 @@ from tracts.demography.composite_demographic_model import CompositeDemographicMo
 from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.population import Population
 from tracts.util import eprint
+from scipy.optimize import minimize
+from scipy.optimize import NonlinearConstraint, LinearConstraint, Bounds
 
 #: Counts calls to object_func
 _counter = 0
@@ -170,6 +172,111 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 
     return outputs
 
+
+def optimize_sex_biased(p0, population: Population, model_func, lower_bounds=None, upper_bounds=None, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=100, full_output=True, func_args=None, fixed_params=None,
+                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50) -> tuple[np.ndarray, float]:
+    """An optimization function for the sex-biased scenario. The aim is to replace the old optimize_cob with a more modern function that better uses 
+        bound information better. 
+        lower_bounds: a n_parameters list representing known lower bounds to the parameters.
+        upper_bounds: a n_parameters list representing known upper bounds to the parameters.
+        outofbounds_fun: a fucntion thar returns True if parameters ar in bound (confusingly), and negative values if parameters are out of bounds. 
+    """
+        
+    if reset_counter:
+        global _counter
+        _counter = 0
+    
+
+    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
+    n_autosome_bins = len(autosome_bins)
+    allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    n_allosome_bins = len(allosome_bins)
+    allosome_length = population.allosome_lengths['X']
+    female_data = allosome_data[SexType.FEMALE]
+    male_data = allosome_data[SexType.MALE]
+    num_males = population.num_males
+    num_females = population.num_females
+
+
+    def objective_function(parameters):
+        global _counter
+        _counter += 1
+
+        def flush_result(result, note = str()):
+            if (verbose > 0) and (_counter % verbose == 0):
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameters]))
+                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
+                # Misc.delayed_flush(delay=flush_delay)
+
+        matrices = model_func(parameters)
+        [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
+                
+        autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
+        for k, v in autosome_data.items():
+            autosome_data_mapped[dict(p_dict)[k]] = v
+        
+        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in female_data.items():
+            female_data_mapped[dict(p_dict)[k]] = v
+        
+        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in male_data.items():
+            male_data_mapped[dict(p_dict)[k]] = v
+
+        result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        result = (result_autosomes + result_X_females + result_X_males)
+        flush_result(result_autosomes, 'Autosomes')
+        flush_result(result_X_females, 'Female allosomes')
+        flush_result(result_X_males, 'Male allosomes')
+        
+        return -result
+    
+    print('\n---------------------------\nOptimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
+           
+    
+ 
+    con = NonlinearConstraint(outofbounds_fun, -np.inf, np.inf)
+    
+    breakpoint()
+    res = minimize(
+        fun=objective_function,
+        x0=p0,
+        constraints=[con
+        ],
+        method='trust-constr',
+        options={
+            'xtol': 0.001,   
+            'maxiter': maxiter,
+            'verbose': 2     
+        }
+    )
+
+    outputs = res.x
+    print("Termination message:", res.message)
+    print("Success:", res.success)
+    print("Function evaluations:", res.nfev)
+    print("Final objective value:", res.fun)
+    
+    
+    
+    
+    outputs = scipy.optimize.fmin_cobyla(
+        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    
+    likelihood = objective_function(outputs)
+
+    return outputs, likelihood
+
+
+
+
+
+
+
+
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50) -> tuple[np.ndarray, float]:
@@ -202,10 +309,10 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            ooa = outofbounds_fun(parameters)
-            if ooa < 0:
-                flush_result((ooa - 1) * _out_of_bounds_val)
-                return (ooa - 1) * _out_of_bounds_val
+            oob = outofbounds_fun(parameters)
+            if oob < 0:
+                flush_result((oob - 1) * _out_of_bounds_val)
+                return (oob - 1) * _out_of_bounds_val
         else:
             eprint("No bound function defined")
 
@@ -240,6 +347,34 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     
     print('\n---------------------------\nOptimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
+    
+    
+    
+
+    res = minimize(
+        fun=objective_function,
+        x0=p0,
+        constraints=[
+            {'type': 'ineq', 'fun': outofbounds_fun}
+        ],
+        method='COBYLA',
+        options={
+            'rhobeg': 0.01,
+            'tol': 0.0001,   
+            'maxfun': maxiter,
+            'disp': True     
+        }
+    )
+
+    outputs = res.x
+    print("Termination message:", res.message)
+    print("Success:", res.success)
+    print("Function evaluations:", res.nfev)
+    print("Final objective value:", res.fun)
+    
+    
+    
+    
     outputs = scipy.optimize.fmin_cobyla(
         objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
@@ -381,9 +516,9 @@ def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None
 
     if outofbounds_fun is not None:
         # outofbounds can return either True or a negative value to signify out-of-boundedness.
-        ooa = outofbounds_fun(params)
-        if ooa < 0:
-            result = -(ooa - 1) * _out_of_bounds_val
+        oob = outofbounds_fun(params)
+        if oob < 0:
+            result = -(oob - 1) * _out_of_bounds_val
         else:
             mod = modelling_method(model_func(params))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)

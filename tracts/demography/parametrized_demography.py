@@ -119,6 +119,15 @@ class ParametrizedDemography(BaseParametrizedDemography):
             'expression': lambda param_subset: param_subset[0] - param_subset[1] - 1,
             'message': 'Pulses cannot occur before or during the founding of the population.'
         })
+
+        self.linear_constraints.append({
+            'param_subset': (founding_time, time_param),
+            'coefficients': (1, -1),
+            'constant': -1,
+            'message': 'Pulses cannot occur before or during the founding of the population.'
+        })
+
+
         pulse_migration_event = PulseEvent(
             rate_parameter=rate_param,
             time_parameter=time_param,
@@ -139,12 +148,27 @@ class ParametrizedDemography(BaseParametrizedDemography):
             'expression': lambda param_subset: param_subset[0] - 1 - param_subset[1],
             'message': 'Migrations cannot start before or during the founding of the population.'
         })
+        self.linear_constraints.append({
+            'param_subset': (founding_time, start_param),
+            'coefficients': (1, -1),
+            'constant': -1,
+            'message': 'Migrations cannot start before or during the founding of the population.'
+        })
+
+
+
 
         if end_param:
             self.add_parameter(end_param, param_type=ParamType.TIME)
             self.constraints.append({
                 'param_subset': (start_param, end_param),
                 'expression': lambda param_subset: param_subset[0] - param_subset[1],
+                'message': 'Migrations start time cannot be more recent than end time.'
+            })
+            self.linear_constraints.append({
+                'param_subset': (start_param, end_param),
+                'coefficients': (1, -1),
+                'constant': 0,
                 'message': 'Migrations start time cannot be more recent than end time.'
             })
 

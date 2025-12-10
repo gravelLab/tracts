@@ -11,7 +11,7 @@ import warnings
 #warnings.simplefilter('always')
 
 from tracts.population import Population
-from tracts.core import optimize_cob, optimize_cob_sex_biased
+from tracts.core import optimize_cob, optimize_cob_sex_biased, optimize_sex_biased
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
@@ -111,7 +111,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     if type(driver_spec['start_params']) is not dict:
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
     
-    max_iter = driver_spec.get('maximum_iterations',None)
+    max_iter = driver_spec.get('maximum_iterations', 100)
     
     pop_dict = model.population_indices.items()
     
@@ -261,6 +261,13 @@ def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_facto
 def get_time_scaled_model_bounds(model, time_scaling_factor):
     return lambda params: model.get_violation_score(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
 
+def get_time_scaled_bounds_constraints(model, time_scaling_factor):
+    """Returns a list containing parameter upper and lower bounds, linear constraints, and nonlinear constraints.
+    bounds are hard values. Linear and nonlinear constraints are functions that return values >=0 when constraints are satisfied.
+    """
+    return lambda params: model.get_violation_score(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
+
+
 
 def randomize(arr, a, b):
     # takes an array and multiplies every element by a factor between a and b,
@@ -269,7 +276,7 @@ def randomize(arr, a, b):
 
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[numpy.ndarray], population_dict : dict, max_iter: int=None, exclude_tracts_below_cM: int = 0, 
+                          start_params_list: list[numpy.ndarray], population_dict : dict, max_iter: int=100, exclude_tracts_below_cM: int = 0, 
                           modelling_method: type = PhTMonoecious, D_model = 'DC', npts: int = 50) -> tuple[list[numpy.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
@@ -314,7 +321,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     return optimal_params, likelihoods
 
 
-def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0,
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=100, exclude_tracts_below_cM=0,
               modelling_method=PhTMonoecious, D_model='DC', npts=0):
     if modelling_method == PhTDioecious:
         return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM, D_model=D_model, npts=npts)
@@ -330,9 +337,11 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0, D_model='DC', npts=0):
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=100, exclude_tracts_below_cM=0, D_model='DC', npts=0):
   
-    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model, npts=npts)
+    #optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model, npts=npts)
+    optimal_params, optimal_likelihood = optimize_sex_biased(startparams, population, model_func, outofbounds_fun=bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model, npts=npts)
+
     return optimal_params, optimal_likelihood
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):

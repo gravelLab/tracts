@@ -7,6 +7,8 @@ import numpy
 import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
+from scipy.optimize import NonlinearConstraint, LinearConstraint, Bounds
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +85,10 @@ class BaseParametrizedDemography(ABC):
         self.min_time = min_time
         self.max_time = max_time
         self.constraints = []
+        self.linear_constraints = [] # For legacy reasons, we used to store all constraints indiscriminately in self.constraints. 
+                                     # migrating to specifying linear and nonlinear constraints separately.  
+        self.nonlinear_constraints = []
+        self.bounds = []
         self.free_params: dict[str, Parameter] = {}
         self.dependent_params = {}
         self.constant_params = {}
@@ -214,9 +220,41 @@ class BaseParametrizedDemography(ABC):
             return self.dependent_params[param_name](self, params)
         raise KeyError(f'Parameter "{param_name}" could not be found')
 
+
+    def set_bounds(self):
+        """
+        defines parameter bounds for the model. These should be absolute restrictions on possible parameter values. 
+        """
+        assert self.fixed_proportions_handler.has_been_fixed is False, "bound setting not supported for fixed-proportion demographies yet."
+        
+        lbounds = [param.bounds[0] for param in self.params.values()]
+        ubounds = [param.bounds[1] for param in self.params.values()]
+        self.Bounds = Bounds(lbounds, ubounds)
+
+
+
+
+    def set_nonlinear_constraints():
+        assert self.fixed_proportions_handler.has_been_fixed is False, "bound setting not supported for fixed-proportion demographies yet."
+        
+        
+        for constraint in self.constraints:
+                def full_expression(x):
+                    subset = [x[self.free_params[param_name].index] for param_name in constraint['param_subset']]
+                    return constraint['expression'](subset)
+
+                self.nonlinear_constraints.append( 
+                NonlinearConstraint(full_expression, lb=0, ub=numpy.inf)
+                )
+                
+                constraint['expression'](
+                    [self.get_param_value(param_name, params) for param_name in constraint['param_subset']])
+
+
+
     def get_violation_score(self, params: list[float]):
         """
-        Takes in a list of params equal to the length of ``ree_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
+        Takes in a list of params equal to the length of ``free_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
         """
         if self.fixed_proportions_handler.has_been_fixed:
             if len(params) != len(self.free_params):
