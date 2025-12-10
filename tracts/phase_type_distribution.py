@@ -325,13 +325,13 @@ class PhaseTypeDistribution(ABC):
                 The transition submatrix.
             L: float
                 The chromosome length.
-            xp_Sx: npt.ArrayLike, default None
-                alpha: npt.ArrayLike, default None
-                S0_inv: npt.ArrayLike, default None
+            exp_SL: npt.ArrayLike, default None
+            alpha: npt.ArrayLike, default None
+            S0_inv: npt.ArrayLike, default None
             
         Notes
         -----
-        Accepts precomputed values for e^Sx, e^SL, and alpha.            
+        Accepts precomputed values for e^SL, alpha and S0_inv.        
                 
         """
         if exp_SL is None:
