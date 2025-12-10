@@ -115,6 +115,8 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     
     pop_dict = model.population_indices.items()
     
+    print("Model parameters\n",[param_name for param_name in model.free_params.keys()])
+
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
                                                         parse_start_params(driver_spec['start_params'],
                                                                           driver_spec['repetitions'],
@@ -321,6 +323,7 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
     model_func_sample_pop = lambda params:list(model_func(params).values())[0]
+    breakpoint()
     xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func_sample_pop, outofbounds_fun=bound_func, epsilon=1e-2,
                         modelling_method=modelling_method)
     optmod = modelling_method(model_func_sample_pop(xopt))
