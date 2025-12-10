@@ -234,11 +234,11 @@ class BaseParametrizedDemography(ABC):
 
 
 
-    def set_nonlinear_constraints():
+    def set_nonlinear_constraints(self):
         assert self.fixed_proportions_handler.has_been_fixed is False, "bound setting not supported for fixed-proportion demographies yet."
         
         
-        for constraint in self.constraints:
+        for constraint in self.constraints: #note: many of these could be linear constraints, and we may want to check for that. 
                 def full_expression(x):
                     subset = [x[self.free_params[param_name].index] for param_name in constraint['param_subset']]
                     return constraint['expression'](subset)
@@ -247,9 +247,18 @@ class BaseParametrizedDemography(ABC):
                 NonlinearConstraint(full_expression, lb=0, ub=numpy.inf)
                 )
                 
-                constraint['expression'](
-                    [self.get_param_value(param_name, params) for param_name in constraint['param_subset']])
-
+    
+        def matrix_constraint(params):
+            min_score = np.inf
+            for migration_matrices in self.get_migration_matrices(params).values():    
+                totmig = migration_matrix.sum(1).max()
+                if 1 - totmig < min:
+                    min_score = 1 - totmig
+                return min_score
+            
+        self.nonlinear_constraints.append( 
+                NonlinearConstraint(matrix_constraint, lb=0, ub=1)
+                )
 
 
     def get_violation_score(self, params: list[float]):

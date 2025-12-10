@@ -120,12 +120,11 @@ class ParametrizedDemography(BaseParametrizedDemography):
             'message': 'Pulses cannot occur before or during the founding of the population.'
         })
 
-        self.linear_constraints.append({
-            'param_subset': (founding_time, time_param),
-            'coefficients': (1, -1),
-            'constant': -1,
-            'message': 'Pulses cannot occur before or during the founding of the population.'
-        })
+        A_matrix = np.zeros(len(self.params))
+        A[self.free_params[founding_time].index] = 1 
+        A[self.free_params[time_param].index] = -1 
+        self.linear_constraints.append(LinearConstraint(A, 1, np.inf , keep_feasible=True)) # 'Pulses cannot occur before or during the founding of the population.'
+
 
 
         pulse_migration_event = PulseEvent(
