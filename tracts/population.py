@@ -404,6 +404,22 @@ class Population:
             raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
                                  "{num_males_processed} males") 
 
+    
+    def smooth_unknowns(self, allosome_labels: list[str]='X'):
+       
+        for indiv in self:
+        
+            for allosome_label in allosome_labels:             
+                if allosome_label not in indiv.allosomes.keys():
+                    raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+                for chrom in indiv.allosomes[allosome_label]:
+                    chrom.unknown_labels= self.unknown_labels if hasattr(self, 'unknown_labels') else []
+                    chrom.smooth_unknown()
+            for chrom in indiv:
+                for copy in chrom:
+                    copy.unknown_labels = self.unknown_labels if hasattr(self, 'unknown_labels') else []
+                    copy.smooth_unknown()
+
     def get_global_allosome_tractlengths(self, allosome, npts: int = 50, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:
         """
         Returns the allosomal tractlength histogram in males and the allosomal tractlength histogram in females.
@@ -489,6 +505,33 @@ class Population:
         """
         # return map(np.mean, zip(*self.get_means(ancestries)))
         return list(map(np.mean, zip(*self.get_means(ancestries))))
+
+    def calculate_ancestry_proportions(self, population_labels, cutoff = 0.0):
+        # Calculate the proportion of ancestry in each individual
+        bypopfrac = [[] for _ in range(len(population_labels))]
+        for ind in self.indivs:
+            for i, population_label in enumerate(population_labels):
+                bypopfrac[i].append(ind.ancestryProps([population_label], cutoff = cutoff))
+        # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
+        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
+        return np.mean(bypopfrac, axis=1).flatten()
+
+    def calculate_allosome_proportions(self, population_labels, allosome_label, cutoff = 0.0):
+        # Calculate the proportion of ancestry in each allosome
+        bypopfrac = [[] for _ in range(len(population_labels))]
+        weights = []
+        for ind in self.indivs:
+            for i, population_label in enumerate(population_labels):
+                bypopfrac[i].append(ind.ancestryProps([population_label], allosome_label=allosome_label, cutoff = cutoff))
+            weights.append(1 if ind.is_male else 2)
+        # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
+        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
+
+        return np.average(bypopfrac, weights = weights, axis=1).flatten()
+
+
+
+
 
     def get_means(self, ancestries):
         """ Gets the mean ancestry proportion (only among ancestries in

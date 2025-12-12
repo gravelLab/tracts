@@ -68,7 +68,10 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     # load the population
     
     pop = load_population(driver_path, driver_spec, script_dir, allosome_labels = allosome_labels) 
-
+    pop.unknown_labels = driver_spec['unknown_labels_for_smoothing'] if 'unknown_labels_for_smoothing' in driver_spec else [] 
+    
+    pop.smooth_unknowns(allosome_labels = allosome_labels)
+    breakpoint()
     _bins, _data = pop.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
                                                                                                     # validate that these correspond to to model population labels
     
@@ -83,7 +86,10 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     
 
     data_labels =  _data.keys()
-    pop.unknown_labels = driver_spec['unknown_labels_for_smoothing'] if 'unknown_labels_for_smoothing' in driver_spec else [] 
+    
+    
+    
+    
     for label in data_labels:
         if label not in ancestor_labels and label not in pop.unknown_labels:
             raise ValueError("Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
@@ -93,9 +99,9 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     logger.info(f'Model Parameters: {model.free_params}')
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
-        ancestry_proportions = calculate_ancestry_proportions(pop, ancestor_labels)
+        ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
         if allosome_label:
-            allosome_proportions = calculate_allosome_proportions(pop, ancestor_labels, allosome_label)
+            allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
             model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
                 driver_spec['fix_parameters_from_ancestry_proportions'],
                 {
@@ -627,58 +633,44 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[2].grid(alpha=0.3)
 
         # Approximate the sum of tractlengths using the midpoint of the bins for male_predicted and female_predicted
-        male_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
-        female_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
+        #male_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
+        #female_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
         
-        bin_mids = 0.5 * (autosome_bins[:-1] + autosome_bins[1:])
-        male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
-        female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
+
+
+        #bin_mids = 0.5 * (autosome_bins[:-1] + autosome_bins[1:])
         
-        male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
-        female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
         
-        print(f"Approximate sum of {pop} allosome tractlengths per male predicted: {male_sum}")
-        print(f"Approximate sum of {pop} allosome tractlengths per female predicted: {female_sum}")
-        print(f"Approximate sum of {pop} allosome tractlengths per male data: {male_data_sum}")
-        print(f"Approximate sum of {pop} allosome tractlengths per female data: {female_data_sum}")
+        ancestry_prop_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys())
+        ancestry_prop_allosomes_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), allosome_label='X')
+        #ancestry_prop_cutoff_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys(), cutoff = autosome_bins[0])
+        #ancestry_prop_allosomes_cutoff_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), 
+        #                                                                                  allosome_label='X', cutoff = allosome_bins[0])
+        #male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
+        #female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
         
-        allosome_data_ancestry[pop] = male_data_sum + female_data_sum
-        allosome_predicted_ancestry[pop] = male_sum + female_sum
-        autosome_predicted_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_predicted[pop]]))
-        autosome_data_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_data[pop]]))
+        #male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
+        #female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
+        
+        breakpoint()
+
+        #print(f"Approximate sum of {pop} allosome tractlengths per male predicted: {male_sum}")
+        #print(f"Approximate sum of {pop} allosome tractlengths per female predicted: {female_sum}")
+        #print(f"Approximate sum of {pop} allosome tractlengths per male data: {male_data_sum}")
+        #print(f"Approximate sum of {pop} allosome tractlengths per female data: {female_data_sum}")
+        
+        #allosome_data_ancestry[pop] = male_data_sum + female_data_sum
+        #allosome_predicted_ancestry[pop] = male_sum + female_sum
+        #autosome_predicted_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_predicted[pop]]))
+        #autosome_data_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_data[pop]]))
 
   
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
         plt.close(fig)
-    for pop, pop_num in model.population_indices.items():
-        fraction_autosome = autosome_predicted_ancestry[pop]/numpy.sum(list(autosome_predicted_ancestry.values()))
-        fraction_allosome = allosome_predicted_ancestry[pop]/numpy.sum(list(allosome_predicted_ancestry.values()))
-        print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
-        fraction_autosome_data = autosome_data_ancestry[pop]/numpy.sum(list(autosome_data_ancestry.values()))
-        fraction_allosome_data = allosome_data_ancestry[pop]/numpy.sum(list(allosome_data_ancestry.values()))
-        print(f"Data fraction of ancestry from {pop}: autosome: {fraction_autosome_data}, allosome: {fraction_allosome_data}")
+    #for pop, pop_num in model.population_indices.items():
+    #    
+    #    print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
+    #    print(f"Data fraction of ancestry from {pop}: autosome: {ancestry_prop_data[pop_num]}, allosome: {ancestry_prop_allosomes_data[pop_num]}")
 
-def calculate_ancestry_proportions(sample_population: Population, population_labels):
-    # Calculate the proportion of ancestry in each individual
-    bypopfrac = [[] for _ in range(len(population_labels))]
-    for ind in sample_population.indivs:
-        for i, population_label in enumerate(population_labels):
-            bypopfrac[i].append(ind.ancestryProps([population_label]))
-    # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
-    # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
-    return numpy.mean(bypopfrac, axis=1).flatten()
-
-def calculate_allosome_proportions(sample_population: Population, population_labels, allosome_label):
-    # Calculate the proportion of ancestry in each allosome
-    bypopfrac = [[] for _ in range(len(population_labels))]
-    weights = []
-    for ind in sample_population.indivs:
-        for i, population_label in enumerate(population_labels):
-            bypopfrac[i].append(ind.ancestryProps([population_label], allosome_label=allosome_label))
-        weights.append(1 if ind.is_male else 2)
-    # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
-    # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
-
-    return numpy.average(bypopfrac, weights = weights, axis=1).flatten()
