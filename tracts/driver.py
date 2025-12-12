@@ -71,7 +71,6 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     pop.unknown_labels = driver_spec['unknown_labels_for_smoothing'] if 'unknown_labels_for_smoothing' in driver_spec else [] 
     
     pop.smooth_unknowns(allosome_labels = allosome_labels)
-    breakpoint()
     _bins, _data = pop.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
                                                                                                     # validate that these correspond to to model population labels
     
@@ -652,7 +651,6 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         #male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
         #female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
         
-        breakpoint()
 
         #print(f"Approximate sum of {pop} allosome tractlengths per male predicted: {male_sum}")
         #print(f"Approximate sum of {pop} allosome tractlengths per female predicted: {female_sum}")
