@@ -138,8 +138,9 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
     print(f"Optimal Parameters:{optimal_params}")
-    print("expanded parameters:\n")
-    print([f"{float(p):.2g}" for p in model.fixed_proportions_handler.compute_dependent_params(model, optimal_params)])
+    if 'fix_parameters_from_ancestry_proportions' in driver_spec:
+        print("expanded parameters:\n")
+        print([f"{float(p):.2g}" for p in model.fixed_proportions_handler.compute_dependent_params(model, optimal_params)])
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, D_model=D_model)
