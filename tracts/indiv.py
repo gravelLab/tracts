@@ -170,7 +170,7 @@ class Indiv:
             in self.iflatten()
             if t.label == ancestry)
 
-    def ancestryProps(self, ancestries):
+    def ancestryProps(self, ancestries, allosome_label = False):
         """ Calculates the proportion of the genome represented by the given
             ancestries.
             """
@@ -181,7 +181,7 @@ class Indiv:
         # length as well as a tuple that represents which ancestry that tract
         # belongs to.
         gen = ((t.len(), [t.len() if t.label == a else 0 for a in ancestries])
-               for t in self.iflatten())
+               for t in self.iflatten(allosome_label = allosome_label))
 
         all_lengths, all_ancestry_lengths = zip(*gen)
         total_length = float(np.sum(all_lengths))
@@ -210,8 +210,13 @@ class Indiv:
                  for i in range(nc)]
                 for ancestry in ancestries]
 
-    def iflatten(self):
+    def iflatten(self, allosome_label = False):
         """ Lazily flatten this individual to the tract level.  """
+        if allosome_label:
+            chromosome_considered = [self.allosomes[allosome_label]]
+        else:
+            chromosome_considered = self.chroms 
+
         for _chrom in self.chroms:
             for _copy in _chrom.copies:
                 for _tract in _copy.tracts:

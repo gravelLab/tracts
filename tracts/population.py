@@ -381,6 +381,29 @@ class Population:
 
         return bins, dat
 
+ 
+    def set_males(self, male_list: list[str], allosome_label: str='X'):
+        """ Sets the list of males for each individual"""
+    
+        num_males_processed = 0;
+        
+        for indiv in self:
+            if indiv.name in self.male_list:
+                indiv.is_male = True
+            else:
+                indiv.is_male = False
+            
+            if indiv.is_male and  len(indiv.allosomes[allosome_label]) == 2:
+                logger.warning(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
+                assert indiv.allosomes[allosome_label][0].is_equal(indiv.allosomes[allosome_label][1]), f"Male Individual {indiv} has two different X chromosomes." 
+                indiv.allosomes[allosome_label] = [indiv.allosomes[allosome_label][0]]
+            indiv.is_male = (len(indiv.allosomes[allosome_label]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
+            num_males_processed += indiv.is_male
+        self.males_set = True
+        if len(self.male_list) not in [0, num_males_processed]:
+            raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
+                                 "{num_males_processed} males") 
+
     def get_global_allosome_tractlengths(self, allosome, npts: int = 50, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:
         """
         Returns the allosomal tractlength histogram in males and the allosomal tractlength histogram in females.
@@ -393,38 +416,29 @@ class Population:
         else:
             pop = Population(indlist)
             pop.unknown_labels = self.unknown_labels
+        assert(self.males_set, "males should have been set using set_males before calling get_global_allosome_tractlengths")
 
         bypop_male: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
         bypop_female: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
-        num_males_processed = 0;
+        
         for indiv in pop:
             tracts_added = False
-            is_male = False
-            if indiv.name in self.male_list:
-                is_male = True
+            
             if allosome not in indiv.allosomes:
                 raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
-            if is_male and  len(indiv.allosomes[allosome]) == 2:
-                logger.warning(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
-                assert indiv.allosomes[allosome][0].is_equal(indiv.allosomes[allosome][1]), f"Male Individual {indiv} has two different X chromosomes." 
-                indiv.allosomes[allosome] = [indiv.allosomes[allosome][0]]
-            is_male = (len(indiv.allosomes[allosome]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
-            num_males_processed += is_male
             
             for chrom in indiv.allosomes[allosome]:
                 chrom.unknown_labels= pop.unknown_labels if hasattr(pop, 'unknown_labels') else []
                 chrom.smooth_unknown()
                 for tract in chrom:
                     tracts_added = True
-                    if is_male:
+                    if indiv.is_male:
                         bypop_male[tract.label].append((tract, chrom.len))
                     else:
                         bypop_female[tract.label].append((tract, chrom.len))
             if tracts_added is False:
                 raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
-        if len(self.male_list) not in [0, num_males_processed]:
-            raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
-                                 "{num_males_processed} males") 
+        
         if len(bypop_male)==0 and len(bypop_female)==0:
             raise ValueError(f"Data for chromosome {allosome} does not exist on any individuals of this population.")
          

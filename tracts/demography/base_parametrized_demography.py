@@ -447,11 +447,10 @@ class FixedProportionsHandler:
         
         # Exclude the last set of proportions because they are redundant.
         self.known_ancestry_proportions = {key:prop[:-1] for key, prop in proportions.items()}
-
+        
         # Keep the constraints that involve any of the fixed parameters. Not used yet.
         self.reduced_constraints = [constraint for constraint in demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
-
     def compute_dependent_params(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
         if not self.has_been_fixed:
             raise Exception("The demography has not been fixed yet.")
@@ -483,6 +482,7 @@ class FixedProportionsHandler:
         
         solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
                                               numpy.ones(len(self.params_fixed_by_ancestry)) * .2)
+
         full_params = self.insert_params(demography.free_params, full_params, solved_params)
         self.logger.info(f'Params after solving with ancestry proportions: {full_params}')
         return full_params

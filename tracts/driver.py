@@ -66,9 +66,11 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None
 
     # load the population
-    pop = load_population(driver_path, driver_spec, script_dir, allosome_labels)
+    
+    pop = load_population(driver_path, driver_spec, script_dir, allosome_labels = allosome_labels) 
+
     _bins, _data = pop.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
-                                                                                                       # validate that these correspond to to model population labels
+                                                                                                    # validate that these correspond to to model population labels
     
     
     time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
@@ -103,7 +105,6 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
             )
         else:
             model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {model.parametrized_populations[0]:ancestry_proportions})
-
     time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
     func = lambda params: time_scaled_func(params)
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
@@ -132,6 +133,8 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
     print(f"Optimal Parameters:{optimal_params}")
+    print("expanded parameters:\n")
+    print([f"{float(p):.2g}" for p in model.fixed_proportions_handler.compute_dependent_params(model, optimal_params)])
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, D_model=D_model)
@@ -156,9 +159,13 @@ def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=N
                                                       absolute_driver_yaml_path=driver_path)
     
     male_list = driver_spec['samples']['male_names']
+    
     chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
     logger.info(f'Chromosomes: {chromosome_list}')
-    return Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [], male_list = male_list)
+    pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [], male_list = male_list)
+    assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome. "
+    pop.set_males(male_list = male_list, allosome_label = allosome_labels[0]) 
+    return pop
 
 def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=None):
     if 'model_filename' not in driver_spec:
@@ -323,7 +330,6 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     data = [data[poplab] for poplab in population_labels]
     model_func_sample_pop = lambda params:list(model_func(params).values())[0]
-    breakpoint()
     xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func_sample_pop, outofbounds_fun=bound_func, epsilon=1e-2,
                         modelling_method=modelling_method)
     optmod = modelling_method(model_func_sample_pop(xopt))
@@ -667,9 +673,12 @@ def calculate_ancestry_proportions(sample_population: Population, population_lab
 def calculate_allosome_proportions(sample_population: Population, population_labels, allosome_label):
     # Calculate the proportion of ancestry in each allosome
     bypopfrac = [[] for _ in range(len(population_labels))]
+    weights = []
     for ind in sample_population.indivs:
         for i, population_label in enumerate(population_labels):
-            bypopfrac[i].append(ind.ancestryProps([population_label]))
+            bypopfrac[i].append(ind.ancestryProps([population_label], allosome_label=allosome_label))
+        weights.append(1 if ind.is_male else 2)
     # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
     # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
-    return numpy.mean(bypopfrac, axis=1).flatten()
+
+    return numpy.average(bypopfrac, weights = weights, axis=1).flatten()
