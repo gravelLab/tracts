@@ -173,8 +173,9 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
     return outputs
 
 
-def optimize_sex_biased(p0, population: Population, model_func, lower_bounds=None, upper_bounds=None, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=100, full_output=True, func_args=None, fixed_params=None,
+def optimize_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=100,  bounds=[], linear_constraints = [], nonlinear_constraints = [],
+                 full_output=True, func_args=None, fixed_params=None, model = None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50) -> tuple[np.ndarray, float]:
     """An optimization function for the sex-biased scenario. The aim is to replace the old optimize_cob with a more modern function that better uses 
         bound information better. 
@@ -238,14 +239,13 @@ def optimize_sex_biased(p0, population: Population, model_func, lower_bounds=Non
            
     
  
-    con = NonlinearConstraint(outofbounds_fun, -np.inf, np.inf)
+    
     
     breakpoint()
     res = minimize(
         fun=objective_function,
         x0=p0,
-        constraints=[con
-        ],
+        constraints=linear_constraints+ nonlinear_constraints+bounds,
         method='trust-constr',
         options={
             'xtol': 0.001,   
