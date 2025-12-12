@@ -452,7 +452,7 @@ class FixedProportionsHandler:
         self.reduced_constraints = [constraint for constraint in demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
     def compute_dependent_params(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
-        if not self.has_been_fixed:
+        if not self.has_been_fixed and len(params) != len(demography.free_params):
             raise Exception("The demography has not been fixed yet.")
         if known_ancestry_proportions==None:
             known_ancestry_proportions=self.known_ancestry_proportions
