@@ -177,7 +177,6 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         global _counter
         _counter = 0
     
-
     autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
     n_autosome_bins = len(autosome_bins)
     allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
@@ -188,7 +187,18 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     num_males = population.num_males
     num_females = population.num_females
 
-
+    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
+    for k, v in autosome_data.items():
+        autosome_data_mapped[dict(p_dict)[k]] = v
+        
+    female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+    for k, v in female_data.items():
+        female_data_mapped[dict(p_dict)[k]] = v
+        
+    male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+    for k, v in male_data.items():
+        male_data_mapped[dict(p_dict)[k]] = v
+    
     def objective_function(parameters):
         _out_of_bounds_val = -1e32
         global _counter
@@ -212,22 +222,6 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         
-        
-       
-
-                
-        autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-        for k, v in autosome_data.items():
-            autosome_data_mapped[dict(p_dict)[k]] = v
-        
-        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-        for k, v in female_data.items():
-            female_data_mapped[dict(p_dict)[k]] = v
-        
-        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-        for k, v in male_data.items():
-            male_data_mapped[dict(p_dict)[k]] = v
-
         result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
         result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
         result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)

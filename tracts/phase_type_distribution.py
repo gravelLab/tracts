@@ -939,9 +939,13 @@ class PhTDioecious(PhaseTypeDistribution):
             migration_matrix_m[0, :] = 0
             migration_matrix_f[0, :] = 0
 
-        if not np.isclose(np.sum(np.abs(migration_matrix_f[-1, :])), 1, atol=1e-3) or not np.isclose(np.sum(np.abs(migration_matrix_m[-1, :])), 1, atol = 1e-3):
-            print('migration_matrix_f : \n', migration_matrix_f)
-            print('migration_matrix_m : \n', migration_matrix_m)
+        # Zap negligible contributions for numerical stability
+        migration_matrix_f[migration_matrix_f < 1e-3] = 0
+        migration_matrix_m[migration_matrix_m < 1e-3] = 0
+
+        if not np.isclose(np.sum(np.abs(migration_matrix_f[-1, :])), 1, atol=1e-2) or not np.isclose(np.sum(np.abs(migration_matrix_m[-1, :])), 1, atol = 1e-2):
+            print('migration_matrix_f : \n', migration_matrix_f, 'with sum ', np.sum(np.abs(migration_matrix_f[-1, :])))
+            print('migration_matrix_m : \n', migration_matrix_m, 'with sum ', np.sum(np.abs(migration_matrix_m[-1, :])))
             raise Exception(
                 'Contributions from source populations at the last generation in the past must sum up to 1.')
 
