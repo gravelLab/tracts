@@ -164,7 +164,6 @@ class ParametrizedDemography(BaseParametrizedDemography):
         remainder_population is the source of the remaining migrants, such that the total migration ratio adds up to 1.
         found_time is the name of the parameter defining the time of migration.
         """
-
         if dest_population in self.founder_events:
             raise ValueError(f'Population {dest_population} cannot have more than one founder event.')
 

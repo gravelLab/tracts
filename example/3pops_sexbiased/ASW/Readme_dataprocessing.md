@@ -44,3 +44,16 @@ NR==FNR { seen[$1]=1; next }
 !($1 in seen) { print $1 }
 ' 20140625_related_individuals.txt ./ASW/TrioPhased/individuals.txt > ./ASW/TrioPhased/individuals_unrelated.txt
 
+Output as csv to copy in driver file
+
+awk '
+NR==FNR { seen[$1]=1; next }
+($1 in seen) { printf "\"%s\",", $1}
+' 20140625_related_individuals.txt ./ASW/TrioPhased/individuals.txt
+
+Output males in similar fashion
+
+awk '
+NR==FNR { seen[$1]=1; next }
+($1 in seen) { printf "\"%s\",", $1}
+' ./males_ASW.panel ./ASW/TrioPhased/individuals_unrelated.txt
