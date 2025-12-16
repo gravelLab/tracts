@@ -10,7 +10,7 @@ samples:
   allosomes: [X]
 model_filename: pp.yaml
 start_params: 
-  tx: 6-8
+  tx: 6:8
   R: 0
 repetitions: 2
 seed: 100

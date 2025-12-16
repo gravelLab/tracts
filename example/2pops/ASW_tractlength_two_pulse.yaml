@@ -11,10 +11,10 @@ samples:
   chromosomes: 1-22
 model_filename: pp_px.yaml
 start_params: 
-  R: 0.1-0.2
-  tx: 10-11
-  P:  0.03-0.05
-  t2: 5-6
+  R: 0.1:0.2
+  tx: 10:11
+  P:  0.03:0.05
+  t2: 5:6
 repetitions: 2
 seed: 100
 exclude_tracts_below_cM: 10

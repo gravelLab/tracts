@@ -18,8 +18,8 @@ samples:
   chromosomes: 1-22
 model_filename: pxp_xpx.yaml
 start_params: 
-  tx: 10-11
-  t2: 5-6
+  tx: 10:11
+  t2: 5:6
 repetitions: 3
 seed: 100
 exclude_tracts_below_cM: 2
