@@ -411,7 +411,7 @@ class Population:
         
             for allosome_label in allosome_labels:             
                 if allosome_label not in indiv.allosomes.keys():
-                    raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+                    raise logger.warning(f"Data for chromosome {allosome_label} does not exist on individual {indiv.name}.")
                 for chrom in indiv.allosomes[allosome_label]:
                     chrom.unknown_labels= self.unknown_labels if hasattr(self, 'unknown_labels') else []
                     chrom.smooth_unknown()
@@ -513,7 +513,7 @@ class Population:
             for i, population_label in enumerate(population_labels):
                 bypopfrac[i].append(ind.ancestryProps([population_label], cutoff = cutoff))
         # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
-        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
+        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings.
         return np.mean(bypopfrac, axis=1).flatten()
 
     def calculate_allosome_proportions(self, population_labels, allosome_label, cutoff = 0.0):
@@ -525,7 +525,7 @@ class Population:
                 bypopfrac[i].append(ind.ancestryProps([population_label], allosome_label=allosome_label, cutoff = cutoff))
             weights.append(1 if ind.is_male else 2)
         # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
-        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings
+        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings.
 
         return np.average(bypopfrac, weights = weights, axis=1).flatten()
 

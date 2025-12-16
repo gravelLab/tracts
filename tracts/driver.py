@@ -46,6 +46,7 @@ def locate_file_path(filename: str, script_dir: str | Path | None, absolute_driv
     return None
 
 def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
+
     driver_path = locate_file_path(filename=driver_filename, script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
     
@@ -74,21 +75,14 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
     _bins, _data = pop.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
                                                                                                     # validate that these correspond to to model population labels
     
-    
     time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
 
     model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_dir, driver_path=driver_path, allosome_label=allosome_label)
 
-
-    
     ancestor_labels = model.population_indices.keys()
-    
 
     data_labels =  _data.keys()
-    
-    
-    
-    
+       
     for label in data_labels:
         if label not in ancestor_labels and label not in pop.unknown_labels:
             raise ValueError("Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
@@ -242,12 +236,12 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
             start_params[:, param_info.index] = start_param_bounds[param_name]
         else:
             try:
-                bounds = [float(bound) for bound in start_param_bounds[param_name].split('-')]
+                bounds = [float(bound) for bound in start_param_bounds[param_name].split(':')] # Intervals are specified as "min:max" to avoid confusion with negative values.
                 assert len(bounds) == 2
                 start_params[:, param_info.index] *= bounds[1] - bounds[0]
                 start_params[:, param_info.index] += bounds[0]
             except Exception as e:
-                raise ValueError("Initial values must be specified as a range (ie: 5-7) or a number.") from e
+                raise ValueError("Initial values must be specified as min:max or a single value.") from e
         if param_info.type == ParamType.TIME:
             start_params[:, param_info.index] *= 1 / time_scaling_factor
     # logger.info(f' Start Params: \n {start_params}')

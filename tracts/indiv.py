@@ -174,7 +174,6 @@ class Indiv:
         """ Calculates the proportion of the genome represented by the given
             ancestries.
             """
-
         # We want to compute the sum of all the tract lengths as well as the
         # sum of the tract lengths that match ancestries given in the list
         # "ancestries", so for each tract, in this individual, we compute its
@@ -214,13 +213,16 @@ class Indiv:
         """ Lazily flatten this individual to the tract level.  """
         if allosome_label:
             chromosome_considered = [self.allosomes[allosome_label]]
+            for _chrom in chromosome_considered:
+                for _copy in _chrom:
+                    for _tract in _copy:
+                        yield _tract
         else:
             chromosome_considered = self.chroms 
-
-        for _chrom in self.chroms:
-            for _copy in _chrom.copies:
-                for _tract in _copy.tracts:
-                    yield _tract
+            for _chrom in chromosome_considered:
+                for _copy in _chrom.copies:
+                    for _tract in _copy.tracts:
+                        yield _tract
 
     def flat_imap(self, f):
         """ Lazily map a function over the full underlying structure of this
