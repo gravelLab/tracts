@@ -85,7 +85,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
        
     for label in data_labels:
         if label not in ancestor_labels and label not in pop.unknown_labels:
-            raise ValueError("Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
+            raise ValueError(f"Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
             "unknown labels: {pop.unknown_labels}")
     
     
