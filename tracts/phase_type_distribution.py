@@ -353,17 +353,20 @@ class PhaseTypeDistribution(ABC):
        
         predicted_tractlength_histogram = None
         ll = 0
-        
+
         for pop in range(self.num_populations):
             predicted_tractlength_histogram=self.tract_length_histogram_multi_windowed(pop, bins, Ls)
-                   
+
+            # Replace zeros with machine epsilon to avoid -Inf logarithms
+            predicted_tractlength_histogram[predicted_tractlength_histogram <= 0] = np.finfo(float).eps
+
             ll += sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(
             zip(data[pop], predicted_tractlength_histogram),
             cutoff, len(predicted_tractlength_histogram) - 1)
-                   )
-
+                   )           
+        
         return ll
     
 
@@ -434,7 +437,7 @@ class PhTMonoecious(PhaseTypeDistribution):
                 'Source populations cannot contribute to the admixted population at generation 0. '
                 'Contributions at generation 0 will be ignored.')
             self.migration_matrix[0, :] = 0
-            
+
         if np.any(self.migration_matrix < 0) or np.any(np.sum(self.migration_matrix, axis=1) > 1):
             raise Exception(
                 'Contributions from source populations must be non-negative and sum up to a value in [0,1].')
