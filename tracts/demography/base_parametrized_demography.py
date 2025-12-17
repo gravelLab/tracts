@@ -16,8 +16,11 @@ class BaseFounderEvent(ABC):
     def __init__(self, found_time, source_populations, remainder_population, end_time = None):
         if not source_populations:
             raise ValueError('Source populations cannot be empty.')
-        if not remainder_population:
-            raise ValueError('Remainder population cannot be empty.')
+        if not remainder_population and end_time is None:
+            raise ValueError('Remainder population cannot be empty in pulse founder event')
+        
+        if end_time is not None and remainder_population is not None:
+            raise ValueError("In continuous founder event, there should be no remainder population")
         if remainder_population in source_populations:
             raise ValueError('Source population cannot be the same as remainder population.')
         
@@ -34,37 +37,69 @@ class BaseFounderEvent(ABC):
 
 class FounderEvent(BaseFounderEvent):
 
-    def __init__(self, found_time, source_populations, remainder_population):
+    def __init__(self, found_time, source_populations, remainder_population, end_time = None):
         super().__init__(found_time=found_time, source_populations=source_populations,
-                         remainder_population=remainder_population)
+                         remainder_population=remainder_population, end_time=end_time)
 
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
         true_start_time = parametrized_demography.get_param_value(self.found_time, params)
-        start_time = math.ceil(true_start_time)
+        start_time = math.ceil(true_start_time) # a discretized value to create a matrix that can includes the event.  
+        frac_part_start = start_time - true_start_time
+        
         migration_matrix = numpy.zeros((start_time + 1, len(parametrized_demography.population_indices)))
 
-        remaining_rate = 1
+        
 
-        # Fraction of migrants that get repeated in the next generation,
-        # to ensure continuous behaviour for fractional start times.
-        repeated_migrant_fraction = start_time - true_start_time
-        # TODO: We have different rates for both sexes
-        for source_population, rate_param in self.source_populations.items():
-            rate = parametrized_demography.get_param_value(rate_param, params)
-            migration_matrix[start_time, parametrized_demography.population_indices[source_population]] = rate
-            migration_matrix[start_time - 1, parametrized_demography.population_indices[source_population]] = (
-                    rate * repeated_migrant_fraction)
-            remaining_rate -= rate
+        if self.end_time is None:
+            remaining_rate = 1.
+            # Fraction of migrants that get repeated in the next generation,
+            # to ensure continuous behaviour for fractional start times.
+            
+            # TODO: We have different rates for both sexes
+            for source_population, rate_param in self.source_populations.items():
+                rate = parametrized_demography.get_param_value(rate_param, params)
+                migration_matrix[start_time, parametrized_demography.population_indices[source_population]] = rate
+                migration_matrix[start_time - 1, parametrized_demography.population_indices[source_population]] = (
+                                rate * frac_part_start)
+                remaining_rate -= rate
 
-        if remaining_rate < 0:
-            logger.warning('Founding migration rates add up to more than 1')
+            if remaining_rate < 0:
+                logger.warning('Founding migration rates add up to more than 1')
 
-        migration_matrix[
-            start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
-        migration_matrix[start_time - 1, parametrized_demography.population_indices[
-            self.remainder_population]] = remaining_rate * repeated_migrant_fraction
+            migration_matrix[
+                start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
+            migration_matrix[start_time - 1, parametrized_demography.population_indices[
+                self.remainder_population]] = remaining_rate * frac_part_start
+
+        else: # Here we follow the logic of ContinuousEvent, modified for the first generation
+            
+            float_end_time = parametrized_demography.get_param_value(self.end_time, params)
+         
+            integer_end_time = math.ceil(float_end_time)
+            total_rate = 0
+            
+            for source_population, rate_param in self.source_populations.items():
+                total_rate += parametrized_demography.get_param_value(rate_param, params)
+            
+            for source_population, rate_param in self.source_populations.items():
+                rate = parametrized_demography.get_param_value(rate_param, params)
+                
+                migration_matrix[integer_end_time - 1, parametrized_demography.population_indices[source_population]] += (
+                    rate * (integer_end_time - float_end_time))
+        
+                for t in range(integer_end_time, start_time-1):
+                    migration_matrix[t, parametrized_demography.population_indices[source_population]] += rate
+
+                #the first generation must sum to 1
+                migration_matrix[start_time, parametrized_demography.population_indices[source_population]] += rate / total_rate 
+                # The second generation does not need to sum to one. However, we want a continuously varying matrix. If true start time is 7.00001, or 6.999
+                # we want the 7th generation to be an almost full replacement
+            
+                migration_matrix[start_time-1, parametrized_demography.population_indices[source_population]] += frac_part_start*(rate / total_rate)  + rate*(1- frac_part_start)
+
 
         return migration_matrix
+
 
 class BaseMigrationEvent(ABC):
 

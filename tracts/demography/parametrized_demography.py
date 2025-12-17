@@ -158,7 +158,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         self.events[dest_population].append(continuous_migration_event)
 
     def add_founder_event(self, dest_population: str, source_populations: dict[str, str], 
-                          remainder_population: str, found_time: str) -> None:
+                          remainder_population: str, found_time: str, end_time: str = None) -> None:
         """
         Adds a founder event. A parametrized demography must have exactly one founder event.
         source_populations is a dict where each key is a population
@@ -173,14 +173,21 @@ class ParametrizedDemography(BaseParametrizedDemography):
             self.add_population(population)
             self.add_parameter(rate_param, param_type=ParamType.RATE)
 
-        self.add_population(remainder_population)
+        
 
         self.add_parameter(found_time, param_type=ParamType.TIME)
+        if end_time is None:
+            self.add_population(remainder_population)
+        else:
+            self.add_parameter(end_time, param_type=ParamType.TIME)
+        
         self.founder_events[dest_population] = FounderEvent(
             found_time=found_time,
             source_populations=source_populations,
             remainder_population=remainder_population,
-        )
+            end_time = end_time
+            )
+        
         self.events[dest_population]=[]
 
     def get_random_parameters():
