@@ -95,7 +95,9 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                 self.add_dependent_parameter( f"{rate_param}{sex_type.suffix}", sex_type.expression(rate_param, sex_bias_param), ParamType.RATE)
 
         for sex_type in sex_types:
-            super().add_founder_event(f"{dest_population}{sex_type.suffix}", {population: f"{rate_param}{sex_type.suffix}" for population, rate_param in source_populations.items()},remainder_population, found_time)
+            super().add_founder_event(f"{dest_population}{sex_type.suffix}", {population: f"{rate_param}{sex_type.suffix}" 
+                                                                              for population, rate_param in source_populations.items()},
+                                                                              remainder_population, found_time)
         
     def proportions_from_matrices(self, migration_matrices: dict[str, numpy.ndarray]):
         proportions={}
