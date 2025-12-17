@@ -1574,8 +1574,8 @@ class PhTDioecious(PhaseTypeDistribution):
         state_left = state_left[~np.isnan(state_left)]
 
         t_left = np.sum(~np.isnan(state_left[3:])) + 1
-        m_time_f = [np.sum(pulses[(pulses[:, 1] == j) * (pulses[:, 2] == 1), 3]) for j in range(1, t_left)]
-        m_time_m = [np.sum(pulses[(pulses[:, 1] == j) * (pulses[:, 2] == 0), 3]) for j in range(1, t_left)]
+        m_time_f = [np.sum(pulses[(pulses[:, 1] == j) & (pulses[:, 2] == 1), 3]) for j in range(1, t_left)]
+        m_time_m = [np.sum(pulses[(pulses[:, 1] == j) & (pulses[:, 2] == 0), 3]) for j in range(1, t_left)]
 
         surv_prob = np.prod(
             [1 - (state_left[3:][u] * m_time_f[u] + (1 - state_left[3:][u]) * m_time_m[u]) if u + 1 > T_ped else 1 for u
@@ -1688,7 +1688,7 @@ class PhTDioecious(PhaseTypeDistribution):
                 sex_prob = 2 * np.nanprod(vec_fm_rt)
                 surv_prob = np.prod(
                     [
-                        1 - np.sum(pulses[(pulses[:, 1] == s + 1) & (pulses[:, 2] == sexes_k[s]), 3])
+                        1 - np.sum(pulses[(pulses[:, 1] == s + 1) & (pulses[:, 2]== sexes_k[s]), 3])
                         if s + 1 > T_ped else 1
                         for s in range(rtime + 1, t_state - 1)
                     ])
