@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class BaseFounderEvent(ABC):
 
-    def __init__(self, found_time, source_populations, remainder_population):
+    def __init__(self, found_time, source_populations, remainder_population, end_time = None):
         if not source_populations:
             raise ValueError('Source populations cannot be empty.')
         if not remainder_population:
@@ -22,6 +22,7 @@ class BaseFounderEvent(ABC):
             raise ValueError('Source population cannot be the same as remainder population.')
         
         self.found_time = found_time
+        self.end_time = end_time
         self.source_populations = source_populations
         self.remainder_population = remainder_population
 
