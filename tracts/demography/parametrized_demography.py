@@ -95,7 +95,8 @@ class ParametrizedDemography(BaseParametrizedDemography):
         if not self.founder_events:
             raise ValueError('Demography contains no founder events.')
 
-        migration_matrices = {population_of_interest: founder_event.execute(self, params) for population_of_interest, founder_event in self.founder_events.items()}
+        migration_matrices = {population_of_interest: founder_event.execute(self, params) 
+                              for population_of_interest, founder_event in self.founder_events.items()}
 
         self.execute_migration_events(migration_matrices=migration_matrices, params=params)
 
@@ -156,7 +157,8 @@ class ParametrizedDemography(BaseParametrizedDemography):
         )
         self.events[dest_population].append(continuous_migration_event)
 
-    def add_founder_event(self, dest_population: str, source_populations: dict[str, str], remainder_population: str, found_time: str) -> None:
+    def add_founder_event(self, dest_population: str, source_populations: dict[str, str], 
+                          remainder_population: str, found_time: str) -> None:
         """
         Adds a founder event. A parametrized demography must have exactly one founder event.
         source_populations is a dict where each key is a population
