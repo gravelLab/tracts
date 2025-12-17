@@ -1682,16 +1682,19 @@ class PhTDioecious(PhaseTypeDistribution):
 
             # Compute migration probabilities
             mig_probs = []
-            for mv, rtime in zip(mig_vectors, rec_times):
+            
+            
+            
+            surv_prob_by_generation = [1 - np.sum(pulses[(pulses[:, 1] == s + 1) & (pulses[:, 2]== sexes_k[s]), 3])
+                        if s + 1 > T_ped else 1
+                        for s in range(1, t_state - 1)
+                    ]
+            #we could precompute the cumulative product to speed up the survival probability calculation. 
+            for rtime in rec_times:
                 vec_fm_rt = vec_fm.copy()
                 vec_fm_rt[:rtime + 1] = 1
                 sex_prob = 2 * np.nanprod(vec_fm_rt)
-                surv_prob = np.prod(
-                    [
-                        1 - np.sum(pulses[(pulses[:, 1] == s + 1) & (pulses[:, 2]== sexes_k[s]), 3])
-                        if s + 1 > T_ped else 1
-                        for s in range(rtime + 1, t_state - 1)
-                    ])
+                surv_prob = np.prod(surv_prob_by_generation[rtime:])
                 mig_probs.append(prob_state * sex_prob * surv_prob)
 
             M[mig_vectors, k] = np.array(mig_probs)
