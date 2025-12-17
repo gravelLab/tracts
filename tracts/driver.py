@@ -126,7 +126,7 @@ def run_tracts(driver_filename, script_dir=None, D_model = 'DC'):
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
-                                                        D_model = D_model, npts=npts)
+                                                        D_model = D_model, npts=npts, M_for_autosomes=driver_spec.get('M_for_autosomes', False))
     formatted_likelihoods = [float(x) for x in likelihoods]
     print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
@@ -277,7 +277,7 @@ def randomize(arr, a, b):
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
                           start_params_list: list[numpy.ndarray], population_dict : dict, max_iter: int=None, exclude_tracts_below_cM: int = 0, 
-                          modelling_method: type = PhTMonoecious, D_model = 'DC', npts: int = 50) -> tuple[list[numpy.ndarray], list[float]]:
+                          modelling_method: type = PhTMonoecious, D_model = 'DC', npts: int = 50, M_for_autosomes: bool = False) -> tuple[list[numpy.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -315,16 +315,16 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
                                                    population_dict,
                                                    max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
-                                                   modelling_method=modelling_method, D_model=D_model, npts=npts)
+                                                   modelling_method=modelling_method, D_model=D_model, npts=npts, M_for_autosomes=M_for_autosomes)
         optimal_params.append(params_found)
         likelihoods.append(likelihood_found)
     return optimal_params, likelihoods
 
 
 def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0,
-              modelling_method=PhTMonoecious, D_model='DC', npts=0):
+              modelling_method=PhTMonoecious, D_model='DC', npts=0, M_for_autosomes=False):
     if modelling_method == PhTDioecious:
-        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM, D_model=D_model, npts=npts)
+        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM, D_model=D_model, npts=npts, M_for_autosomes=M_for_autosomes)
     Ls = population.Ls
     nind = population.nind
     bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
@@ -336,9 +336,9 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0, D_model='DC', npts=0):
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0, D_model='DC', npts=0, M_for_autosomes=False):
   
-    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model, npts=npts)
+    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, D_model=D_model, npts=npts, M_for_autosomes=M_for_autosomes)
     return optimal_params, optimal_likelihood
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
