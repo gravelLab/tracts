@@ -13,15 +13,13 @@ import warnings
 from functools import partial
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from joblib import Parallel, delayed
 from scipy import integrate
+from scipy.special import gammaln
 
 from tracts.phase_type_distribution import PhTDioecious
-
-
-warnings.filterwarnings("ignore")
-
 
 def get_pedigree(T):
     n_ind = 2 ** T - 1
@@ -207,7 +205,7 @@ def density_hybrid_pedigree(which_migration, migration_list, T_PED, which_pop, D
 
 def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpop, TP=2, Dioecious_model='DC',
                                  rr_f=1, rr_m=1, X_chr=False, X_chr_male=False, N_cores=1,
-                                 density=True, freq=False):
+                                 density=True, freq=False, print_progress = True):
     
     """
     This function computes the tract length distribution as a Phase-Type density or histogram on a finite 
@@ -251,6 +249,8 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     freq : bool, default False,
         If density is True, whether to return density on the frequency scale. If density is False, this 
         parameter is ignored.
+    print_progress: bool, default True
+        Whether to display progress messages.
 
         
     Returns
@@ -343,42 +343,44 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
                                               number_anc=nanc_TP,
                                               Number_pops=Npops, pedigree=the_pedigree)
 
-    
-    print('-------------------------------------------------------------------\n')
-    print("".join(['Computing pedigrees probabilities...\n']))
-    print('-------------------------------------------------------------------\n')
+    if print_progress:
+        print('-------------------------------------------------------------------\n')
+        print("".join(['Computing pedigrees probabilities...\n']))
+        print('-------------------------------------------------------------------\n')
     
     if not X_chr_male:
     
-        prob_list_m_complete = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
+        prob_list_m_complete = Parallel(n_jobs=N_cores, verbose=10*print_progress, prefer='processes')(
             delayed(prob_of_pop_setting_iteration_0)(i) for i in range(len(all_possible_migrations_TP)))
         data_prob_m = pd.DataFrame(prob_list_m_complete, columns=['which_ancestral', 'prob'])
     
         if not np.isclose(np.sum(data_prob_m.groupby(['which_ancestral']).sum().reset_index()['prob'].to_numpy()), 1):
             raise Exception('Pedigree probabilities do not sum up to one.')
 
-    prob_list_f_complete = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
+    prob_list_f_complete = Parallel(n_jobs=N_cores, verbose=10*print_progress, prefer='processes')(
         delayed(prob_of_pop_setting_iteration_1)(i) for i in range(len(all_possible_migrations_TP)))
     data_prob_f = pd.DataFrame(prob_list_f_complete, columns=['which_ancestral', 'prob'])
 
     if not np.isclose(np.sum(data_prob_f.groupby(['which_ancestral']).sum().reset_index()['prob'].to_numpy()), 1):
         raise Exception('Pedigree probabilities do not sum up to one.')
 
-    print('-------------------------------------------------------------------\n')
-    print("".join(['Done! Computing phase-type densities conditioned to each pedigree...\n']))
-    print('-------------------------------------------------------------------\n')
-    print(len(migrations_at_TP), "densities to compute using the", Dioecious_model, "model.\n")
+    if print_progress:
+        print('-------------------------------------------------------------------\n')
+        print("".join(['Done! Computing phase-type densities conditioned to each pedigree...\n']))
+        print('-------------------------------------------------------------------\n')
+        print(len(migrations_at_TP), "densities to compute using the", Dioecious_model, "model.\n")
 
     density_hybrid_iteration = partial(density_hybrid_pedigree, migration_list=migrations_at_TP, which_pop=whichpop,
                                        D_model=Dioecious_model, T_PED=TP, which_L=L,
                                        bins=bingrid, mmat_f=mig_matrix_f, mmat_m=mig_matrix_m, rrr_f=rr_f, rrr_m=rr_m,
                                        is_X_chr=X_chr, is_X_chr_male=X_chr_male, density_function=density)
-    densities_list = Parallel(n_jobs=N_cores, verbose=10, prefer='processes')(
+    densities_list = Parallel(n_jobs=N_cores, verbose=10*print_progress, prefer='processes')(
         delayed(density_hybrid_iteration)(i) for i in range(len(migrations_at_TP)))
     
-    print('-------------------------------------------------------------------\n')
-    print("".join(['Done!\n']))
-    print('-------------------------------------------------------------------\n')
+    if print_progress:
+        print('-------------------------------------------------------------------\n')
+        print("".join(['Done!\n']))
+        print('-------------------------------------------------------------------\n')
 
     bins = None
     if density:
@@ -438,3 +440,42 @@ def hybrid_pedigree_distribution(mig_matrix_f, mig_matrix_m, L, bingrid, whichpo
     if density:
         return bins, final_density
     return bingrid, np.real(np.diff(final_density))
+
+def HP_tract_length_histogram_multi_windowed(mig_f, mig_m, TP, D_model, rr_f, rr_m, X_chr, X_chr_male, N_cores, population_number: int, bins: npt.ArrayLike,
+                                              chrom_lengths: npt.ArrayLike) -> npt.ArrayLike:
+        """Calculates the tract length histogram on multiple chromosomes of lengths `chrom_lengths`.
+        """
+        histogram = np.zeros(len(bins) - 1)
+        for L in chrom_lengths:
+            bins, new_histogram = hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m,\
+                 TP = TP, Dioecious_model = D_model, L = L, bingrid = bins, whichpop = population_number, \
+                    rr_f = rr_f, rr_m = rr_m, X_chr = X_chr, X_chr_male = X_chr_male,\
+                         N_cores = N_cores, density = False, freq = False, print_progress = False)
+            histogram += new_histogram
+        return histogram
+
+def HP_loglik(mig_matrix_f, mig_matrix_m, rr_f, rr_m, TP, Dioecious_model, X_chr, X_chr_male, N_cores, bins, Ls, data: list[list[int]], num_samples, cutoff=0):
+        """ Calculates the maximum-likelihood in a Poisson Random Field. Used to fit model parameters."""
+        
+        if num_samples == 0:
+            return 0
+       
+        predicted_tractlength_histogram = None
+        ll = 0
+
+        for pop in range(np.shape(mig_matrix_f)[1]):
+            predicted_tractlength_histogram = HP_tract_length_histogram_multi_windowed(mig_f=mig_matrix_f, mig_m=mig_matrix_m, \
+                TP=TP, D_model=Dioecious_model, rr_f=1, rr_m=1, X_chr=X_chr, X_chr_male=X_chr_male, N_cores=N_cores, \
+                    population_number=pop, bins=bins, chrom_lengths=Ls)
+
+            # Replace zeros with machine epsilon to avoid -Inf logarithms
+            predicted_tractlength_histogram[predicted_tractlength_histogram <= 0] = np.finfo(float).eps
+
+            ll += sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
+            data_tracts + 1.)
+                   for data_tracts, predicted_tracts in itertools.islice(
+            zip(data[pop], predicted_tractlength_histogram),
+            cutoff, len(predicted_tractlength_histogram) - 1)
+                   )           
+        
+        return ll

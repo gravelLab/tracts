@@ -4,6 +4,7 @@ import numpy as np
 import scipy.optimize
 from matplotlib import pylab
 
+import tracts.hybrid_pedigree as HP
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
 from tracts.demography.demographic_model import DemographicModel
 from tracts.demography.composite_demographic_model import CompositeDemographicModel
@@ -172,7 +173,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50, M_for_autosomes=False) -> tuple[np.ndarray, float]:
+                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
     if reset_counter:
         global _counter
         _counter = 0
@@ -222,13 +223,27 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         
-        if M_for_autosomes: # For computational efficiency, use monoecious model for autosomes
+        # Model for autosomes
+        if ad_model_autosomes == 'M':
             result_autosomes = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        elif ad_model_autosomes == 'H-DC':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        elif ad_model_autosomes == 'H-DF':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
         else:
-            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
         
-        result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
-        result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        # Model for allosomes
+        if ad_model_allosomes == 'H-DC':
+            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+        elif ad_model_allosomes == 'H-DF':
+            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+        else:
+            result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+            result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        
         result = (result_autosomes + result_X_females + result_X_males)
         flush_result(result_autosomes, 'Autosomes')
         flush_result(result_X_females, 'Female allosomes')
@@ -236,14 +251,9 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         
         return -result
     
-    if M_for_autosomes:
-        print('\n--------------------------------------------------------------------------------------------------')
-        print('Admixture is modelled with the Monoecious model for autosomes and with the', D_model,'model for allosomes.')
-        print('--------------------------------------------------------------------------------------------------')
-    else:
-        print('\n--------------------------------------------------------------------')
-        print('Admixture is modelled with the', D_model, 'model for autosomes and allosomes.')
-        print('--------------------------------------------------------------------')
+    print('\n--------------------------------------------------------------------------------------------------')
+    print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
+    print('--------------------------------------------------------------------------------------------------')
     print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
     outputs = scipy.optimize.fmin_cobyla(
