@@ -420,15 +420,21 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         self.migration_matrix = migration_matrix.copy()
 
+        # Zap negligible contributions for numerical stability
+        self.migration_matrix[self.migration_matrix < 1e-3] = 0
+
+        if not np.isclose(np.sum(np.abs(self.migration_matrix[-1, :])), 1, atol=1e-2):
+            print('migration_matrix : \n', self.migration_matrix, 'with sum ', np.sum(np.abs(self.migration_matrix[-1, :])))
+            raise Exception(
+                'Contributions from source populations at the last generation in the past must sum up to 1.')
+
         # Check that migration matrix is well-specified
         if np.sum(np.abs(self.migration_matrix[0, :])) > 0:
             warnings.warn(
                 'Source populations cannot contribute to the admixted population at generation 0. '
                 'Contributions at generation 0 will be ignored.')
             self.migration_matrix[0, :] = 0
-        if np.sum(np.abs(self.migration_matrix[-1, :])) < 1:
-            raise Exception(
-                'Contributions from source populations at the last generation in the past must sum up to one.')
+            
         if np.any(self.migration_matrix < 0) or np.any(np.sum(self.migration_matrix, axis=1) > 1):
             raise Exception(
                 'Contributions from source populations must be non-negative and sum up to a value in [0,1].')

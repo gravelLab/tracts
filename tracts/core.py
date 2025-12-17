@@ -172,7 +172,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50) -> tuple[np.ndarray, float]:
+                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, D_model='DC', npts=50, M_for_autosomes=False) -> tuple[np.ndarray, float]:
     if reset_counter:
         global _counter
         _counter = 0
@@ -222,7 +222,11 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         
-        result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        if M_for_autosomes: # For computational efficiency, use monoecious model for autosomes
+            result_autosomes = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        else:
+            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        
         result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
         result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=D_model, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
         result = (result_autosomes + result_X_females + result_X_males)
@@ -232,7 +236,15 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         
         return -result
     
-    print('\n---------------------------\nOptimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
+    if M_for_autosomes:
+        print('\n--------------------------------------------------------------------------------------------------')
+        print('Admixture is modelled with the Monoecious model for autosomes and with the', D_model,'model for allosomes.')
+        print('--------------------------------------------------------------------------------------------------')
+    else:
+        print('\n--------------------------------------------------------------------')
+        print('Admixture is modelled with the', D_model, 'model for autosomes and allosomes.')
+        print('--------------------------------------------------------------------')
+    print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
     outputs = scipy.optimize.fmin_cobyla(
         objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
