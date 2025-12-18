@@ -8,33 +8,33 @@ samples:
     "NA19755","NA19756","NA19758","NA19759","NA19761","NA19762","NA19764","NA19770","NA19771","NA19773",
     "NA19774","NA19776","NA19777","NA19779","NA19780","NA19782","NA19783","NA19785","NA19786","NA19788",
     "NA19789","NA19792","NA19794","NA19795"] 
-  male_names : [
-    "NA19649","NA19652","NA19655","NA19658","NA19661","NA19664","NA19670","NA19676","NA19679","NA19682",
-    "NA19717","NA19720","NA19723","NA19726","NA19729","NA19732","NA19735","NA19741","NA19747","NA19750",
-    "NA19756","NA19759","NA19762","NA19771","NA19774","NA19777","NA19780","NA19783","NA19786","NA19789",
-    "NA19792","NA19795"] #see Readme_dataprocessing.md for how this was generated
+  #male_names : [
+  #  "NA19649","NA19652","NA19655","NA19658","NA19661","NA19664","NA19670","NA19676","NA19679","NA19682",
+  #  "NA19717","NA19720","NA19723","NA19726","NA19729","NA19732","NA19735","NA19741","NA19747","NA19750",
+  #  "NA19756","NA19759","NA19762","NA19771","NA19774","NA19777","NA19780","NA19783","NA19786","NA19789",
+  #  "NA19792","NA19795"] #see Readme_dataprocessing.md for how this was generated
   filename_format: "{name}_{label}_final.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
-  allosomes: [X]
+  #allosomes: [X]
 output_filename_format: "MXL_test_output_{label}"
-model_filename: ppx_xxp_pxx.yaml
+model_filename: ccc.yaml
 start_params: 
   t1: 10
-  REUR: 0.8
-  RAFR: 0.9
-  REUR2: 0.2
-  t2: 5
-  t3: 3
-  REUR_sex_bias: 0.1
-  REUR2_sex_bias: 0.1
-  RAFR_sex_bias: 0.1
+  REUR: 0.2
+  RAFR: 0.2
+  RNAT: 0.2
+  t2: 2
+  
+  #REUR_sex_bias: 0.1
+  #REUR2_sex_bias: 0.1
+  #RAFR_sex_bias: 0.1
 repetitions: 1
 seed: 100
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
 exclude_tracts_below_cM: 2
 npts : 50
-fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
+fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 output_directory: ./output_fix/
-
+ad_model_autosomes : M

@@ -178,13 +178,19 @@ def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=N
                                                       script_dir=script_dir,
                                                       absolute_driver_yaml_path=driver_path)
     
-    male_list = driver_spec['samples']['male_names']
     
+    if 'male_names' in driver_spec['samples'].keys():
+        male_list = driver_spec['samples']['male_names']
+    else:
+        male_list = None
     chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
     logger.info(f'Chromosomes: {chromosome_list}')
     pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [], male_list = male_list)
-    assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome. "
-    pop.set_males(male_list = male_list, allosome_label = allosome_labels[0]) 
+    if len(allosome_labels)>=1 and allosome_labels is not None:
+        assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome. "
+    
+    if male_list is not None:
+        pop.set_males(male_list = male_list, allosome_label = allosome_labels[0]) 
     return pop
 
 def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=None):

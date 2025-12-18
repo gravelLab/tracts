@@ -216,9 +216,13 @@ class ParametrizedDemography(BaseParametrizedDemography):
         for population in demes_data['demes']:
             if 'ancestors' in population:
                 demography.parametrized_populations.append(population['name'])
-                source_populations, remainder_population = ParametrizedDemography.parse_proportions(
-                    population['ancestors'], population['proportions'])
-                demography.add_founder_event(population['name'], source_populations, remainder_population, population['start_time'])
+                if 'end_time' in population.keys(): # Continuous founding
+                    source_populations = {pop:label for pop,label in zip(population['ancestors'], population['proportions'])}               
+                    demography.add_founder_event(population['name'], source_populations, None, population['start_time'], population['end_time'])
+                else:    
+                    source_populations, remainder_population = ParametrizedDemography.parse_proportions(
+                        population['ancestors'], population['proportions'])
+                    demography.add_founder_event(population['name'], source_populations, remainder_population, population['start_time'])
         if 'pulses' in demes_data:
             for pulse in demes_data['pulses']:
                 if 'dest' in pulse and pulse['dest'] in demography.parametrized_populations:
