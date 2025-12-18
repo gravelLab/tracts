@@ -20,21 +20,21 @@ samples:
 output_filename_format: "MXL_test_output_{label}"
 model_filename: ccc.yaml
 start_params: 
-  t1: 10
+  t1: 13.5
   REUR: 0.2
-  RAFR: 0.01
+  RAFR: 0.02
   RNAT: 0.2
-  t2: 2
+  t2: 6.8
   
   REUR_sex_bias: 0.1
-  RNAT_sex_bias: 0.1
-  RAFR_sex_bias: 0.1
+  RNAT_sex_bias: -0.4
+  RAFR_sex_bias: -0.1
 repetitions: 1
 seed: 100
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
 exclude_tracts_below_cM: 2
 npts : 50
-fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
+#fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 output_directory: ./output_fix/
 ad_model_autosomes : M

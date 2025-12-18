@@ -4,7 +4,7 @@ import math
 import os
 from pathlib import Path
 
-import numpy
+import numpy as np
 import ruamel.yaml
 
 from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
@@ -23,7 +23,7 @@ class PulseEvent(BaseMigrationEvent):
         super().__init__(rate_parameter=rate_parameter, source_population=source_population)
         self.time_parameter = time_parameter
 
-    def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: numpy.ndarray, params):
+    def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: np.ndarray, params):
         t = parametrized_demography.get_param_value(self.time_parameter, params)
         a = parametrized_demography.get_param_value(self.rate_parameter, params)
         t2 = math.floor(t)
@@ -42,7 +42,7 @@ class ContinuousEvent(BaseMigrationEvent):
         self.start_parameter = start_parameter
         self.end_parameter = end_parameter
 
-    def execute(self, parametrized_demography: ParametrizedDemography, migration_matrix: numpy.ndarray, params):
+    def execute(self, parametrized_demography: ParametrizedDemography, migration_matrix: np.ndarray, params):
         start_time = parametrized_demography.get_param_value(self.start_parameter, params)
         end_time = parametrized_demography.get_param_value(self.end_parameter, params) if self.end_parameter else 2
         t2 = math.floor(start_time)
@@ -64,7 +64,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
     """
     #TODO: add support for int (constant) parameters.
 
-    def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
+    def __init__(self, name: str = "", min_time=2, max_time=np.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
 
     def execute_migration_events(self, migration_matrices, params):
@@ -72,7 +72,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
             for event in events:
                 event.execute(self, migration_matrices[population], params)
 
-    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None) -> dict[str, numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None) -> dict[str, np.ndarray]:
         """
         Takes in a list of params equal to the length of free_params
         and returns a *pg* migration matrix for each population of interest
@@ -94,12 +94,13 @@ class ParametrizedDemography(BaseParametrizedDemography):
 
         if not self.founder_events:
             raise ValueError('Demography contains no founder events.')
-
+        
         migration_matrices = {population_of_interest: founder_event.execute(self, params) 
                               for population_of_interest, founder_event in self.founder_events.items()}
 
         self.execute_migration_events(migration_matrices=migration_matrices, params=params)
-
+        #if min(np.min(migration_matrices['X_male']), np.min(migration_matrices['X_female']))<0 :
+        #    breakpoint()
         return migration_matrices
     
     def get_founding_time(self, population):

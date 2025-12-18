@@ -428,7 +428,7 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         if not np.isclose(np.sum(np.abs(self.migration_matrix[-1, :])), 1, atol=1e-2):
             print('migration_matrix : \n', self.migration_matrix, 'with sum ', np.sum(np.abs(self.migration_matrix[-1, :])))
-            breakpoint()
+            
             raise Exception(
                 'Contributions from source populations at the last generation in the past must sum up to 1.')
 

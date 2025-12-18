@@ -3,7 +3,7 @@ import logging
 import math
 import numbers
 from abc import ABC, abstractmethod
-import numpy
+import numpy as np
 import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
@@ -30,6 +30,7 @@ class BaseFounderEvent(ABC):
         self.remainder_population = remainder_population
 
 
+
     @abstractmethod
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
         pass
@@ -46,7 +47,7 @@ class FounderEvent(BaseFounderEvent):
         start_time = math.ceil(true_start_time) # a discretized value to create a matrix that can includes the event.  
         frac_part_start = start_time - true_start_time
         
-        migration_matrix = numpy.zeros((start_time + 1, len(parametrized_demography.population_indices)))
+        migration_matrix = np.zeros((start_time + 1, len(parametrized_demography.population_indices)))
 
         
 
@@ -108,13 +109,13 @@ class BaseMigrationEvent(ABC):
         self.source_population = source_population
 
     @abstractmethod
-    def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: numpy.ndarray, params):
+    def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: np.ndarray, params):
         pass
 
 class BaseParametrizedDemography(ABC):
     logger = logger
 
-    def __init__(self, name: str = "", min_time=2, max_time=numpy.inf):
+    def __init__(self, name: str = "", min_time=2, max_time=np.inf):
         self.name = name
         self.min_time = min_time
         self.max_time = max_time
@@ -144,15 +145,15 @@ class BaseParametrizedDemography(ABC):
     def parameter_bounds(self):
         return [param.bound for param in self.free_params.values()]
 
-    def proportions_from_matrix(self, migration_matrix: numpy.ndarray):
+    def proportions_from_matrix(self, migration_matrix: np.ndarray):
         current_ancestry_proportions = migration_matrix[-1, :]
         for row in migration_matrix[-2::-1, :]:
             current_ancestry_proportions = current_ancestry_proportions * (1 - row.sum()) + row
-            if not numpy.isclose(current_ancestry_proportions.sum(), 1):
+            if not np.isclose(current_ancestry_proportions.sum(), 1):
                 raise ValueError('Current ancestry proportions do not sum to 1.')
         return current_ancestry_proportions
     
-    def proportions_from_matrices(self, migration_matrices: dict[str, numpy.ndarray]):
+    def proportions_from_matrices(self, migration_matrices: dict[str, np.ndarray]):
         return {sample_pop: self.proportions_from_matrix(matrix) for sample_pop, matrix in migration_matrices.items()} 
 
     def proportions_from_matrices_return_keys(self):
@@ -267,11 +268,17 @@ class BaseParametrizedDemography(ABC):
         violation_score = min(self.check_bounds(params), self.check_constraints(params))
         if violation_score < 0:
             return violation_score
-        breakpoint()
+        
         for migration_matrix in self.get_migration_matrices(params).values():
+            if np.min(migration_matrix)<0 :
+               breakpoint()
+            
             totmig = migration_matrix.sum(1).max()
             if 1 - totmig < violation_score:
                 violation_score = 1 - totmig
+                
+            if np.min(migration_matrix)< violation_score:
+                violation_score = min(migration_matrix)
         return violation_score
 
     def check_constraints(self, params: list[float]):
@@ -350,7 +357,7 @@ class BaseParametrizedDemography(ABC):
             else:
                 full_params = params
             # print(full_params, self.free_params)
-            #breakpoint()
+ 
             for param_name, param_object in self.free_params.items():
                 #if param_name in self.params_fixed_by_ancestry:
                 #    continue
@@ -429,7 +436,7 @@ class BaseParametrizedDemography(ABC):
         pass
 
     @abstractmethod
-    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool = None) -> dict[str, numpy.ndarray]:
+    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool = None) -> dict[str, np.ndarray]:
         pass
 
     @abstractmethod
@@ -499,7 +506,7 @@ class FixedProportionsHandler:
             full_params = params
             migration_matrix = demography.get_migration_matrices(full_params, solve_using_known_proportions=False)
             calculated_proportions = demography.proportions_from_matrices(migration_matrix)
-            if numpy.all([numpy.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
+            if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
                 return full_params
         else:
@@ -507,7 +514,7 @@ class FixedProportionsHandler:
 
         def param_objective_func(params_to_solve):
             nonlocal full_params
-            params_to_solve[numpy.isnan(params_to_solve)] = 0
+            params_to_solve[np.isnan(params_to_solve)] = 0
             full_params = self.insert_params(demography.free_params, full_params, params_to_solve)
             # self.logger.info(f'Full params: {full_params}')
             migration_matrices = demography.get_migration_matrices(
@@ -515,14 +522,16 @@ class FixedProportionsHandler:
                 solve_using_known_proportions=False)
             found_props = demography.proportions_from_matrices(migration_matrices)
             fixed_props = known_ancestry_proportions
-            diff = numpy.array([found_props[ancestor][:-1] - fixed_props[ancestor] for ancestor in fixed_props.keys()]).flatten()
+            diff = np.array([found_props[ancestor][:-1] - fixed_props[ancestor] for ancestor in fixed_props.keys()]).flatten()
             return diff
         
         solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
-                                              numpy.ones(len(self.params_fixed_by_ancestry)) * .2)
+                                              np.ones(len(self.params_fixed_by_ancestry)) * .2)
 
         full_params = self.insert_params(demography.free_params, full_params, solved_params)
         self.logger.info(f'Params after solving with ancestry proportions: {full_params}')
+        if min(full_params) < -1:
+            breakpoint()
         return full_params
 
     def insert_params(self, free_params: dict[str, Parameter], params: list[float], params_from_proportions: list[float]):
@@ -566,10 +575,10 @@ class FixedProportionsHandler:
                 params,
                 solve_using_known_proportions=False)
             diff = [prop[:-1] - self.known_ancestry_proportions[sample_pop] for sample_pop, prop in demography.proportions_from_matrices()]
-            return numpy.linalg.norm(diff)
+            return np.linalg.norm(diff)
         
         result = scipy.optimize.minimize(objective_func, demography.get_random_parameters(), bounds=demography.parameter_bounds, constraints= {'ineq', demography.check_constraints})
-        if not numpy.isclose(result.fun,0):
+        if not np.isclose(result.fun,0):
             raise ValueError(
                 'The ancestry proportions in the sample are not achievable with the provided demographic model.')
 

@@ -93,12 +93,24 @@ def model_with_founder_event(basic_model):
     basic_model.add_founder_event("destination_pop", {"source_pop1": "founder_rate1"}, "source_pop2", "found_time")
     return basic_model
 
+
+
 @pytest.fixture
 def model_with_founder_event_and_params(model_with_founder_event):
     """Fixture that provides a model with a founder event and its parameters."""
     model_with_founder_event.add_parameter("founder_rate1", ParamType.RATE)
     model_with_founder_event.add_parameter("founder_rate1_sex_bias", ParamType.SEX_BIAS)
     return model_with_founder_event
+
+@pytest.fixture
+def model_with_continuous_founder_event(basic_model):
+    """Fixture that provides a model with a founder event."""
+    basic_model.add_founder_event("destination_pop", {"source_pop1": "founder_rate1","source_pop2":"founder_rate2"}, None, "found_time", end_time = "end_time")
+    basic_model.add_parameter("founder_rate1", ParamType.RATE)
+    basic_model.add_parameter("founder_rate2", ParamType.RATE)
+    basic_model.add_parameter("founder_rate1_sex_bias", ParamType.SEX_BIAS)
+    basic_model.add_parameter("founder_rate2_sex_bias", ParamType.SEX_BIAS)
+    return basic_model
 
 # Migration fixtures
 @pytest.fixture
@@ -290,6 +302,33 @@ def test_founder_event_parameter_creation(model_with_founder_event):
     assert "founder_rate1_male" in model_with_founder_event.dependent_params
     assert "founder_rate1_female" in model_with_founder_event.dependent_params
 
+def test_continuous_founder_event_parameter_creation(model_with_continuous_founder_event):
+    """Test that founder event parameters are created correctly with sex bias"""
+    # Verify parameters were added
+    assert "founder_rate1" in model_with_continuous_founder_event.free_params
+    assert "founder_rate1_sex_bias" in model_with_continuous_founder_event.free_params
+    assert "found_time" in model_with_continuous_founder_event.free_params
+    assert "end_time" in model_with_continuous_founder_event.free_params
+    
+    # Verify parameter types
+    assert model_with_continuous_founder_event.free_params["founder_rate1"].type == ParamType.RATE
+    assert model_with_continuous_founder_event.free_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_continuous_founder_event.free_params["founder_rate1"].type == ParamType.RATE
+    assert model_with_continuous_founder_event.free_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_continuous_founder_event.free_params["found_time"].type == ParamType.TIME
+    assert model_with_continuous_founder_event.free_params["end_time"].type == ParamType.TIME
+    
+    # Verify parameter bounds
+    assert model_with_continuous_founder_event.free_params["founder_rate1"].bounds == (0, 1)
+    assert model_with_continuous_founder_event.free_params["founder_rate1_sex_bias"].bounds == (-1, 1)
+    assert model_with_continuous_founder_event.free_params["found_time"].bounds == (2, np.inf)
+    assert model_with_continuous_founder_event.free_params["founder_rate2_sex_bias"].bounds == (-1, 1)
+    assert model_with_continuous_founder_event.free_params["end_time"].bounds == (2, np.inf)
+    # Verify dependent parameters were created
+    assert "founder_rate1_male" in model_with_continuous_founder_event.dependent_params
+    assert "founder_rate1_female" in model_with_continuous_founder_event.dependent_params
+
+
 def test_founder_event_population_addition(model_with_founder_event):
     """Test that founder event adds populations correctly"""
     # Verify populations were added
@@ -325,6 +364,38 @@ def test_founder_event_sex_bias_calculation(model_with_founder_event_and_params)
     # Verify rates
     assert np.isclose(male_rate, expected_male_rate)
     assert np.isclose(female_rate, expected_female_rate)
+
+def test_continuous_founder_event_sex_bias_calculation(model_with_continuous_founder_event):
+    """Test that founder event sex bias is calculated correctly"""
+    # Finalize the model
+    model_with_continuous_founder_event.finalize()
+    
+    # Test parameter evaluation
+    founder_rate_1 = 0.2
+    bias1 = 0.1
+    founder_rate_2 = 0.2
+    bias2 = -0.7
+    found_time = 5
+    end_time=2
+    test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]  
+    
+    # Calculate expected rates
+    expected_male_rate1 = founder_rate_1-bias1 * (1/2-np.abs((1/2-founder_rate_1)))  # rate * (1 - sex_bias)
+    expected_female_rate1 = founder_rate_1+bias1 * (1/2-np.abs((1/2-founder_rate_1)))  # rate * (1 + sex_bias)
+    expected_male_rate2 = founder_rate_2-bias2 * (1/2-np.abs((1/2-founder_rate_2)))  # rate * (1 - sex_bias)
+    expected_female_rate2 = founder_rate_2+bias2 * (1/2-np.abs((1/2-founder_rate_2)))  # rate * (1 + sex_bias)
+
+    # Get actual rates from dependent parameters
+    male_rate1 = model_with_continuous_founder_event.dependent_params["founder_rate1_male"](model_with_continuous_founder_event, test_params)
+    female_rate1 = model_with_continuous_founder_event.dependent_params["founder_rate1_female"](model_with_continuous_founder_event, test_params)
+    male_rate2 = model_with_continuous_founder_event.dependent_params["founder_rate2_male"](model_with_continuous_founder_event, test_params)
+    female_rate2 = model_with_continuous_founder_event.dependent_params["founder_rate2_female"](model_with_continuous_founder_event, test_params)
+    # Verify rates
+    assert np.isclose(male_rate1, expected_male_rate1)
+    assert np.isclose(female_rate1, expected_female_rate1)
+    assert np.isclose(male_rate2, expected_male_rate2)
+    assert np.isclose(female_rate2, expected_female_rate2)
+
 
 def test_yaml_loading_basic():
     """Test loading a basic sex-biased demography from YAML"""
@@ -569,6 +640,91 @@ def test_migration_matrix_basic(model_with_both_migrations):
         assert np.isclose(migration_matrices["destination_pop_male"][t, 1], male_continuous_rate)
         assert np.isclose(migration_matrices["destination_pop_female"][t, 1], female_continuous_rate)
 
+
+
+def test_migration_matrix_continuous_founder(model_with_continuous_founder_event):
+    """Test that migration matrices are generated correctly for a basic model"""
+    # Finalize the model
+    model_with_continuous_founder_event.finalize()
+    
+
+    # Test parameter evaluation
+    founder_rate_1 = 0.2
+    bias1 = 0.1
+    founder_rate_2 = 0.2
+    bias2 = -0.7
+    found_time = 8
+    end_time=2
+    test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
+
+
+    
+    # Get migration matrices
+    migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
+    
+    # Verify matrices were created for both sexes
+    assert "destination_pop_male" in migration_matrices
+    assert "destination_pop_female" in migration_matrices
+    
+    # Verify matrix dimensions
+    maxgen = np.ceil(found_time) + 1
+    assert migration_matrices["destination_pop_male"].shape[0] == maxgen
+    assert migration_matrices["destination_pop_male"].shape[1] == 2  # number of populations
+    assert migration_matrices["destination_pop_female"].shape[0] == maxgen
+    assert migration_matrices["destination_pop_female"].shape[1] == 2
+    
+    # Verify founder rates are applied correctly
+    male_founder_rate1 = model_with_continuous_founder_event.dependent_params["founder_rate1_male"](model_with_continuous_founder_event, test_params)
+    female_founder_rate1 = model_with_continuous_founder_event.dependent_params["founder_rate1_female"](model_with_continuous_founder_event, test_params)
+    male_founder_rate2 = model_with_continuous_founder_event.dependent_params["founder_rate2_male"](model_with_continuous_founder_event, test_params)
+    female_founder_rate2 = model_with_continuous_founder_event.dependent_params["founder_rate2_female"](model_with_continuous_founder_event, test_params)
+
+    # Check that founder rates are applied correctly at the founding time
+    assert np.isclose(migration_matrices["destination_pop_male"][6, 0], male_founder_rate1)
+    assert np.isclose(migration_matrices["destination_pop_female"][6, 0], female_founder_rate1)
+    assert np.isclose(migration_matrices["destination_pop_male"][6, 1], male_founder_rate2)
+    assert np.isclose(migration_matrices["destination_pop_female"][6, 1], female_founder_rate2)
+
+
+    # Verify that rates sum to 1 for each sex at the founding time
+    assert np.isclose(migration_matrices["destination_pop_male"][maxgen-1, 0] + migration_matrices["destination_pop_male"][maxgen-1, 1], 1)
+    assert np.isclose(migration_matrices["destination_pop_female"][maxgen-1, 0] + migration_matrices["destination_pop_female"][maxgen-1, 1], 1)
+    
+    # Test parameter evaluation, no bias
+    founder_rate_1 = 0.2
+    bias1 = 0.
+    founder_rate_2 = 0.2
+    bias2 = -0.
+    found_time = 8
+    end_time=2
+    test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
+
+
+    
+    # Get migration matrices
+    migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
+    diff =migration_matrices["destination_pop_male"] - migration_matrices["destination_pop_female"]
+    assert np.isclose( np.sum(diff**2),0), f"males and females should be equal if no sex bias. "
+
+
+    # Test parameter evaluation, strong bias
+    founder_rate_1 = 0.5
+    bias1 = 1
+    founder_rate_2 = 0.5
+    bias2 = -1
+    found_time = 8
+    end_time=2
+    test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
+
+
+    
+    # Get migration matrices
+    migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
+    assert np.isclose(migration_matrices["destination_pop_male"].sum(axis=1)[0] ,0), "should have no males from pop 1"
+    assert np.isclose(migration_matrices["destination_pop_female"].sum(axis=1)[1] ,0), "should have no females from pop 2"
+
+
+
 def test_migration_matrix_multiple_populations(model_with_multiple_populations):
     """Test that migration matrices are generated correctly for multiple populations"""
     # Finalize the model
@@ -631,6 +787,14 @@ def test_migration_matrix_multiple_populations(model_with_multiple_populations):
     for t in range(5, 7):  # From start1 to end1
         assert np.isclose(migration_matrices["dest_pop2_male"][t, 0], male_continuous_rate)
         assert np.isclose(migration_matrices["dest_pop2_female"][t, 0], female_continuous_rate)
+
+
+
+
+
+
+
+
 
 def test_migration_matrix_sex_bias(model_with_both_migrations):
     """Test that sex bias is correctly applied in migration matrices"""

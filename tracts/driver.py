@@ -466,7 +466,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         npts = 50
 
     matrices = model.get_migration_matrices(optimal_params)
-
+    
     [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
     output_filename_format = driver_spec['output_filename_format']
     autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
@@ -678,14 +678,14 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         
         ancestry_prop_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys())
         ancestry_prop_allosomes_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), allosome_label='X')
-        #ancestry_prop_cutoff_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys(), cutoff = autosome_bins[0])
-        #ancestry_prop_allosomes_cutoff_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), 
-        #                                                                                  allosome_label='X', cutoff = allosome_bins[0])
-        #male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
-        #female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
+        ancestry_prop_cutoff_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys(), cutoff = autosome_bins[0])
+        ancestry_prop_allosomes_cutoff_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), 
+                                                                                          allosome_label='X', cutoff = allosome_bins[0])
+        male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
+        female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
         
-        #male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
-        #female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
+        male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
+        female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
         
 
         #print(f"Approximate sum of {pop} allosome tractlengths per male predicted: {male_sum}")
@@ -703,6 +703,6 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         plt.close(fig)
     #for pop, pop_num in model.population_indices.items():
     #    
-    #    print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
-    #    print(f"Data fraction of ancestry from {pop}: autosome: {ancestry_prop_data[pop_num]}, allosome: {ancestry_prop_allosomes_data[pop_num]}")
+        print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
+        print(f"Data fraction of ancestry from {pop}: autosome: {ancestry_prop_data[pop_num]}, allosome: {ancestry_prop_allosomes_data[pop_num]}")
 
