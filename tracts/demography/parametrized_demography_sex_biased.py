@@ -18,6 +18,10 @@ from enum import Enum
 class SexType(Enum):
     @staticmethod
     def male_female_sex_type_function(multiplier: float) -> Callable[[str,str], Callable[[BaseParametrizedDemography,list[float]], float]]:
+        """Returns a function f[multiplier] to compute the sex-specific migration rates. The float paramater refers to male (-1) or female (+1). 
+           Given a rate parameter and the accompanying sex bias, f[multiplier](rate, sex_bias) will output a function to compute the corresponding rate 
+           in a demography. 
+             """
         return (lambda rate_param, sex_bias_param:
                     (lambda demography, params: 
                         demography.get_param_value(rate_param, params)+
@@ -39,7 +43,8 @@ class SexType(Enum):
     
     def __init__(self, suffix: str, expression: Callable[[str,str], Callable[[BaseParametrizedDemography,list[float]], float]]):
         self.suffix=suffix
-        self.expression=expression
+        self.expression=expression # an expression that typically is used to compute the rate for a sex type given a overall rate and a sex bias paramter, i.e., 
+                                   # male_female_sex_type_function.  
 
 sex_types=[SexType.MALE, SexType.FEMALE]
 
@@ -63,6 +68,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         sex_bias_param=f'{rate_param}_sex_bias'
         self.add_parameter(sex_bias_param, ParamType.SEX_BIAS)
         for sex_type in sex_types:
+            # sex_specific rates are computed from an overall rate (rate_param) and a corresponding sex bias.  
             self.add_dependent_parameter( f"{rate_param}{sex_type.suffix}", sex_type.expression(rate_param, sex_bias_param), ParamType.RATE)
             super().add_pulse_migration(f"{dest_population}{sex_type.suffix}", source_population, f"{rate_param}{sex_type.suffix}", time_param)
 
@@ -77,7 +83,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
             self.add_dependent_parameter( f"{rate_param}{sex_type.suffix}", sex_type.expression(rate_param, sex_bias_param), ParamType.RATE)
             super().add_continuous_migration( f"{dest_population}{sex_type.suffix}", source_population,  f"{rate_param}{sex_type.suffix}", start_param, end_param)
 
-    def add_founder_event(self, dest_population, source_populations: dict[str, str], remainder_population: str, found_time: str) -> None:
+    def add_founder_event(self, dest_population, source_populations: dict[str, str], remainder_population: str, found_time: str, end_time:str=None) -> None:
         """
         Adds a founder event. A parametrized demography must have exactly one founder event.
         source_populations is a dict where each key is a population
@@ -97,7 +103,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         for sex_type in sex_types:
             super().add_founder_event(f"{dest_population}{sex_type.suffix}", {population: f"{rate_param}{sex_type.suffix}" 
                                                                               for population, rate_param in source_populations.items()},
-                                                                              remainder_population, found_time)
+                                                                              remainder_population, found_time, end_time = end_time)
         
     def proportions_from_matrices(self, migration_matrices: dict[str, numpy.ndarray]):
         proportions={}
@@ -142,9 +148,16 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         for population in demes_data['demes']:
             if 'ancestors' in population:
                 demography.parametrized_populations.append(population['name'])
-                source_populations, remainder_population = ParametrizedDemographySexBiased.parse_proportions(
+                if 'end_time' in population.keys(): #continuous founder event
+                    source_populations = {pop:param for pop,param in zip(population['ancestors'], population['proportions'])}
+                    remainder_population = None
+                    end_time =  population['end_time']
+                else:
+                    source_populations, remainder_population = ParametrizedDemographySexBiased.parse_proportions(
                     population['ancestors'], population['proportions'])
-                demography.add_founder_event(population['name'], source_populations, remainder_population, population['start_time'])
+                    end_time = None
+                
+                demography.add_founder_event(population['name'], source_populations, remainder_population, population['start_time'], end_time = end_time)
         if 'pulses' in demes_data:
             for pulse in demes_data['pulses']:
                 if 'dest' in pulse and pulse['dest'] in demography.parametrized_populations:

@@ -222,7 +222,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-        
+        breakpoint()
         # Model for autosomes
         if ad_model_autosomes == 'M':
             result_autosomes = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))

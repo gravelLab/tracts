@@ -252,7 +252,7 @@ class BaseParametrizedDemography(ABC):
 
     def get_violation_score(self, params: list[float]):
         """
-        Takes in a list of params equal to the length of ``ree_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
+        Takes in a list of params equal to the length of ``free_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
         """
         if self.fixed_proportions_handler.has_been_fixed:
             if len(params) != len(self.free_params):
@@ -267,6 +267,7 @@ class BaseParametrizedDemography(ABC):
         violation_score = min(self.check_bounds(params), self.check_constraints(params))
         if violation_score < 0:
             return violation_score
+        breakpoint()
         for migration_matrix in self.get_migration_matrices(params).values():
             totmig = migration_matrix.sum(1).max()
             if 1 - totmig < violation_score:
@@ -349,9 +350,10 @@ class BaseParametrizedDemography(ABC):
             else:
                 full_params = params
             # print(full_params, self.free_params)
+            #breakpoint()
             for param_name, param_object in self.free_params.items():
-                if param_name in self.params_fixed_by_ancestry:
-                    continue
+                #if param_name in self.params_fixed_by_ancestry:
+                #    continue
                 violation = self.get_param_value(param_name, full_params) - param_object.bounds[0]
                 if violation < violation_score:
                     self.logger.warning(
