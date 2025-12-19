@@ -128,7 +128,7 @@ class BaseParametrizedDemography(ABC):
         self.finalized = False
         self.founder_events: dict[str, FounderEvent]={}
         self.events: dict[str: list[BaseMigrationEvent]]={}        
-        self.fixed_proportions_handler = FixedProportionsHandler(self.logger)
+        self.fixed_proportions_handler = FixedParametersHandler(self.logger)
         self.parametrized_populations= []
 
 
@@ -449,7 +449,7 @@ class BaseParametrizedDemography(ABC):
         pass
 
 
-class FixedProportionsHandler:
+class FixedParametersHandler:
     def __init__(self, logger: logging.Logger):
         self.logger = logger
         self.params_not_fixed_by_ancestry = []

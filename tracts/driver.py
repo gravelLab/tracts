@@ -143,7 +143,12 @@ def run_tracts(driver_filename, script_dir=None):
     start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
                                       driver_spec['seed'], model, time_scaling_factor)
     print("first start parameters = ", start_params[0]) 
-    print("start matrix:", model.proportions_from_matrices(func(start_params[0])))
+    
+    
+    print("start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
+    
+    
+    
     if bound(start_params[0])<0:
         print("Warning, starting parameters are out of bounds.")
     

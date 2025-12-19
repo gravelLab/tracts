@@ -440,6 +440,7 @@ class PhTMonoecious(PhaseTypeDistribution):
             self.migration_matrix[0, :] = 0
 
         if np.any(self.migration_matrix < 0) or np.any(np.sum(self.migration_matrix, axis=1) > 1):
+            print("offending migration matrix", self.migration_matrix)
             raise Exception(
                 'Contributions from source populations must be non-negative and sum up to a value in [0,1].')
 

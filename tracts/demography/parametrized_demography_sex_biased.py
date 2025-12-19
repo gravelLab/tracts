@@ -9,7 +9,7 @@ import numpy
 import ruamel.yaml
 import logging
 
-from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, FixedProportionsHandler
+from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, FixedParametersHandler
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
 from enum import Enum
