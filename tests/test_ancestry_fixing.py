@@ -629,7 +629,7 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     migration_matrices = model_full.get_migration_matrices(params_full)
 
     calculated_proportions = model_full.proportions_from_matrices(migration_matrices)
-    breakpoint()
+    
     # Define sample proportions
     sample_proportions = {
         "target_pop_autosomal": calculated_proportions['target_pop_autosomal'] ,  # [source_pop1, source_pop2] for autosomes
