@@ -228,7 +228,8 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
         # Model for autosomes
         if ad_model_autosomes == 'M':
-            result_autosomes = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
+            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
         elif ad_model_autosomes == 'H-DC':
             result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
         elif ad_model_autosomes == 'H-DF':
@@ -256,8 +257,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         flush_result(result_X_females, 'Female allosomes')
         flush_result(result_X_males, 'Male allosomes')
         
-        flush_result( model.proportions_from_matrices(matrices), "Model ancestry pedictions") 
-
+        
         return -result
     
     print('\n--------------------------------------------------------------------------------------------------')

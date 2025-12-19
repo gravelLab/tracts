@@ -110,11 +110,14 @@ def run_tracts(driver_filename, script_dir=None):
     
     
     logger.info(f'Model Parameters: {model.free_params}')
+    ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
+    print("computed autosome proportions", ancestry_proportions )
+    allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
+    print("computed allosome proportions", allosome_proportions )
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
-        ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
+        
         if allosome_label:
-            allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
             model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
                 driver_spec['fix_parameters_from_ancestry_proportions'],
                 {
@@ -137,11 +140,15 @@ def run_tracts(driver_filename, script_dir=None):
     
     print("Model parameters\n",[param_name for param_name in model.free_params.keys()])
 
+    start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
+                                      driver_spec['seed'], model, time_scaling_factor)
+    print("first start parameters = ", start_params[0]) 
+    print("start matrix:", model.proportions_from_matrices(func(start_params[0])))
+    if bound(start_params[0])<0:
+        print("Warning, starting parameters are out of bounds.")
+    
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
-                                                        parse_start_params(driver_spec['start_params'],
-                                                                          driver_spec['repetitions'],
-                                                                          driver_spec['seed'], model,
-                                                                          time_scaling_factor),
+                                                        start_params,
                                                         population_dict=pop_dict,
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
