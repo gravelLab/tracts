@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+import numpy
 import os
 import tempfile
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
@@ -159,8 +159,8 @@ def test_dependent_parameter_creation(model_with_dependent_params):
     male_rate = model_with_dependent_params.dependent_params["rate1_male"](model_with_dependent_params, test_params)
     female_rate = model_with_dependent_params.dependent_params["rate1_female"](model_with_dependent_params, test_params)
     
-    assert np.isclose(male_rate, 0.5 * (1 - 0.3))
-    assert np.isclose(female_rate, 0.5 * (1 + 0.3))
+    assert numpy.isclose(male_rate, 0.5 * (1 - 0.3))
+    assert numpy.isclose(female_rate, 0.5 * (1 + 0.3))
 
 def test_population_sex_specific(model_with_population_and_sex_bias):
     """Test that populations are correctly handled for sex-specific operations"""
@@ -175,8 +175,8 @@ def test_population_sex_specific(model_with_population_and_sex_bias):
     male_rate = model_with_population_and_sex_bias.dependent_params["rate1_male"](model_with_population_and_sex_bias, test_params)
     female_rate = model_with_population_and_sex_bias.dependent_params["rate1_female"](model_with_population_and_sex_bias, test_params)
     
-    assert np.isclose(male_rate, 0.5 * (1 - 0.3))
-    assert np.isclose(female_rate, 0.5 * (1 + 0.3))
+    assert numpy.isclose(male_rate, 0.5 * (1 - 0.3))
+    assert numpy.isclose(female_rate, 0.5 * (1 + 0.3))
 
 def test_add_pulse_migration(model_with_pulse_migration):
     """Test adding pulse migrations with sex bias"""
@@ -266,8 +266,8 @@ def test_migration_execution(model_with_pulse_migration):
     female_rate = model_with_pulse_migration.dependent_params["rate1_female"](model_with_pulse_migration, test_params)
     
     # Check that migration rates are applied correctly
-    assert np.isclose(migration_matrices["destination_pop_male"][5, 0], male_rate)
-    assert np.isclose(migration_matrices["destination_pop_female"][5, 0], female_rate)
+    assert numpy.isclose(migration_matrices["destination_pop_male"][5, 0], male_rate)
+    assert numpy.isclose(migration_matrices["destination_pop_female"][5, 0], female_rate)
 
 def test_founder_event_parameter_creation(model_with_founder_event):
     """Test that founder event parameters are created correctly with sex bias"""
@@ -284,7 +284,7 @@ def test_founder_event_parameter_creation(model_with_founder_event):
     # Verify parameter bounds
     assert model_with_founder_event.free_params["founder_rate1"].bounds == (0, 1)
     assert model_with_founder_event.free_params["founder_rate1_sex_bias"].bounds == (-1, 1)
-    assert model_with_founder_event.free_params["found_time"].bounds == (2, np.inf)
+    assert model_with_founder_event.free_params["found_time"].bounds == (2, numpy.inf)
     
     # Verify dependent parameters were created
     assert "founder_rate1_male" in model_with_founder_event.dependent_params
@@ -323,8 +323,8 @@ def test_founder_event_sex_bias_calculation(model_with_founder_event_and_params)
     female_rate = model_with_founder_event_and_params.dependent_params["founder_rate1_female"](model_with_founder_event_and_params, test_params)
     
     # Verify rates
-    assert np.isclose(male_rate, expected_male_rate)
-    assert np.isclose(female_rate, expected_female_rate)
+    assert numpy.isclose(male_rate, expected_male_rate)
+    assert numpy.isclose(female_rate, expected_female_rate)
 
 def test_yaml_loading_basic():
     """Test loading a basic sex-biased demography from YAML"""
@@ -545,20 +545,20 @@ def test_migration_matrix_basic(model_with_both_migrations):
     female_founder_rate = model_with_both_migrations.dependent_params["founder_rate1_female"](model_with_both_migrations, test_params)
     
     # Check that founder rates are applied correctly at the founding time
-    assert np.isclose(migration_matrices["destination_pop_male"][10, 0], male_founder_rate)
-    assert np.isclose(migration_matrices["destination_pop_female"][10, 0], female_founder_rate)
+    assert numpy.isclose(migration_matrices["destination_pop_male"][10, 0], male_founder_rate)
+    assert numpy.isclose(migration_matrices["destination_pop_female"][10, 0], female_founder_rate)
     
     # Verify that rates sum to 1 for each sex at the founding time
-    assert np.isclose(migration_matrices["destination_pop_male"][10, 0] + migration_matrices["destination_pop_male"][10, 1], 1)
-    assert np.isclose(migration_matrices["destination_pop_female"][10, 0] + migration_matrices["destination_pop_female"][10, 1], 1)
+    assert numpy.isclose(migration_matrices["destination_pop_male"][10, 0] + migration_matrices["destination_pop_male"][10, 1], 1)
+    assert numpy.isclose(migration_matrices["destination_pop_female"][10, 0] + migration_matrices["destination_pop_female"][10, 1], 1)
     
     # Verify pulse migration is applied correctly
     male_pulse_rate = model_with_both_migrations.dependent_params["rate1_male"](model_with_both_migrations, test_params)
     female_pulse_rate = model_with_both_migrations.dependent_params["rate1_female"](model_with_both_migrations, test_params)
     
     # Check that pulse migration is applied correctly at the pulse time
-    assert np.isclose(migration_matrices["destination_pop_male"][3, 0], male_pulse_rate)
-    assert np.isclose(migration_matrices["destination_pop_female"][3, 0], female_pulse_rate)
+    assert numpy.isclose(migration_matrices["destination_pop_male"][3, 0], male_pulse_rate)
+    assert numpy.isclose(migration_matrices["destination_pop_female"][3, 0], female_pulse_rate)
     
     # Verify continuous migration is applied correctly
     male_continuous_rate = model_with_both_migrations.dependent_params["rate2_male"](model_with_both_migrations, test_params)
@@ -566,8 +566,8 @@ def test_migration_matrix_basic(model_with_both_migrations):
     
     # Check that continuous migration is applied correctly during the migration period
     for t in range(5, 7):  # From start1 to end1
-        assert np.isclose(migration_matrices["destination_pop_male"][t, 1], male_continuous_rate)
-        assert np.isclose(migration_matrices["destination_pop_female"][t, 1], female_continuous_rate)
+        assert numpy.isclose(migration_matrices["destination_pop_male"][t, 1], male_continuous_rate)
+        assert numpy.isclose(migration_matrices["destination_pop_female"][t, 1], female_continuous_rate)
 
 def test_migration_matrix_multiple_populations(model_with_multiple_populations):
     """Test that migration matrices are generated correctly for multiple populations"""
@@ -604,24 +604,24 @@ def test_migration_matrix_multiple_populations(model_with_multiple_populations):
     female_founder_rate1 = model_with_multiple_populations.dependent_params["founder_rate1_female"](model_with_multiple_populations, test_params)
     
     # Check that founder rates are applied correctly at the founding time for dest_pop1
-    assert np.isclose(migration_matrices["dest_pop1_male"][10, 0], male_founder_rate1)
-    assert np.isclose(migration_matrices["dest_pop1_female"][10, 0], female_founder_rate1)
+    assert numpy.isclose(migration_matrices["dest_pop1_male"][10, 0], male_founder_rate1)
+    assert numpy.isclose(migration_matrices["dest_pop1_female"][10, 0], female_founder_rate1)
     
     # Verify founder rates are applied correctly for dest_pop2
     male_founder_rate2 = model_with_multiple_populations.dependent_params["founder_rate2_male"](model_with_multiple_populations, test_params)
     female_founder_rate2 = model_with_multiple_populations.dependent_params["founder_rate2_female"](model_with_multiple_populations, test_params)
     
     # Check that founder rates are applied correctly at the founding time for dest_pop2
-    assert np.isclose(migration_matrices["dest_pop2_male"][12, 1], male_founder_rate2)
-    assert np.isclose(migration_matrices["dest_pop2_female"][12, 1], female_founder_rate2)
+    assert numpy.isclose(migration_matrices["dest_pop2_male"][12, 1], male_founder_rate2)
+    assert numpy.isclose(migration_matrices["dest_pop2_female"][12, 1], female_founder_rate2)
     
     # Verify pulse migration is applied correctly
     male_pulse_rate = model_with_multiple_populations.dependent_params["rate1_male"](model_with_multiple_populations, test_params)
     female_pulse_rate = model_with_multiple_populations.dependent_params["rate1_female"](model_with_multiple_populations, test_params)
     
     # Check that pulse migration is applied correctly at the pulse time
-    assert np.isclose(migration_matrices["dest_pop1_male"][8, 1], male_pulse_rate)
-    assert np.isclose(migration_matrices["dest_pop1_female"][8, 1], female_pulse_rate)
+    assert numpy.isclose(migration_matrices["dest_pop1_male"][8, 1], male_pulse_rate)
+    assert numpy.isclose(migration_matrices["dest_pop1_female"][8, 1], female_pulse_rate)
     
     # Verify continuous migration is applied correctly
     male_continuous_rate = model_with_multiple_populations.dependent_params["rate2_male"](model_with_multiple_populations, test_params)
@@ -629,8 +629,8 @@ def test_migration_matrix_multiple_populations(model_with_multiple_populations):
     
     # Check that continuous migration is applied correctly during the migration period
     for t in range(5, 7):  # From start1 to end1
-        assert np.isclose(migration_matrices["dest_pop2_male"][t, 0], male_continuous_rate)
-        assert np.isclose(migration_matrices["dest_pop2_female"][t, 0], female_continuous_rate)
+        assert numpy.isclose(migration_matrices["dest_pop2_male"][t, 0], male_continuous_rate)
+        assert numpy.isclose(migration_matrices["dest_pop2_female"][t, 0], female_continuous_rate)
 
 def test_migration_matrix_sex_bias(model_with_both_migrations):
     """Test that sex bias is correctly applied in migration matrices"""
@@ -647,18 +647,18 @@ def test_migration_matrix_sex_bias(model_with_both_migrations):
     # Verify that male and female rates are equal when sex_bias = 0
     male_founder_rate1 = model_with_both_migrations.dependent_params["founder_rate1_male"](model_with_both_migrations, test_params1)
     female_founder_rate1 = model_with_both_migrations.dependent_params["founder_rate1_female"](model_with_both_migrations, test_params1)
-    assert np.isclose(male_founder_rate1, female_founder_rate1)
-    assert np.isclose(migration_matrices1["destination_pop_male"][10, 0], migration_matrices1["destination_pop_female"][10, 0])
+    assert numpy.isclose(male_founder_rate1, female_founder_rate1)
+    assert numpy.isclose(migration_matrices1["destination_pop_male"][10, 0], migration_matrices1["destination_pop_female"][10, 0])
     
     male_pulse_rate1 = model_with_both_migrations.dependent_params["rate1_male"](model_with_both_migrations, test_params1)
     female_pulse_rate1 = model_with_both_migrations.dependent_params["rate1_female"](model_with_both_migrations, test_params1)
-    assert np.isclose(male_pulse_rate1, female_pulse_rate1)
-    assert np.isclose(migration_matrices1["destination_pop_male"][5, 0], migration_matrices1["destination_pop_female"][5, 0])
+    assert numpy.isclose(male_pulse_rate1, female_pulse_rate1)
+    assert numpy.isclose(migration_matrices1["destination_pop_male"][5, 0], migration_matrices1["destination_pop_female"][5, 0])
     
     male_continuous_rate1 = model_with_both_migrations.dependent_params["rate2_male"](model_with_both_migrations, test_params1)
     female_continuous_rate1 = model_with_both_migrations.dependent_params["rate2_female"](model_with_both_migrations, test_params1)
-    assert np.isclose(male_continuous_rate1, female_continuous_rate1)
-    assert np.isclose(migration_matrices1["destination_pop_male"][3, 1], migration_matrices1["destination_pop_female"][3, 1])
+    assert numpy.isclose(male_continuous_rate1, female_continuous_rate1)
+    assert numpy.isclose(migration_matrices1["destination_pop_male"][3, 1], migration_matrices1["destination_pop_female"][3, 1])
     
     # Case 2: Positive sex bias (sex_bias > 0)
     test_params2 = [0.4, 0.2, 10, 0.3, 0.1, 5, 0.2, 0.05, 7, 3]

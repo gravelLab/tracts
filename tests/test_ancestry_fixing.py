@@ -1,6 +1,6 @@
 import os
 import sys
-import numpy as np
+import numpy
 import pytest
 
 file_dir = os.path.dirname(__file__)
@@ -67,16 +67,16 @@ def test_ancestry_fixing_single_population():
     assert matrix.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
-    assert np.isclose(matrix[10, 0], 0.7)  # source_pop1 proportion at founding time
-    assert np.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
+    assert numpy.isclose(matrix[10, 0], 0.7)  # source_pop1 proportion at founding time
+    assert numpy.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
     
     # Verify that the final proportions match the sample proportions
     final_proportions = model.proportions_from_matrix(matrix)
-    assert np.isclose(final_proportions[0], 0.7)  # source_pop1 proportion
-    assert np.isclose(final_proportions[1], 0.3)  # source_pop2 proportion
+    assert numpy.isclose(final_proportions[0], 0.7)  # source_pop1 proportion
+    assert numpy.isclose(final_proportions[1], 0.3)  # source_pop2 proportion
     
     # Verify that the sum of proportions is 1
-    assert np.isclose(final_proportions.sum(), 1.0)
+    assert numpy.isclose(final_proportions.sum(), 1.0)
 
 
 def test_ancestry_fixing_multiple_populations():
@@ -149,23 +149,23 @@ def test_ancestry_fixing_multiple_populations():
     assert matrix2.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
-    assert np.isclose(matrix1[10, 0], 0.7)  # source_pop1 proportion at founding time for target_pop1
-    assert np.isclose(matrix1[10, 1], 0.3)  # source_pop2 proportion at founding time for target_pop1
-    assert np.isclose(matrix2[15, 0], 0.4)  # source_pop1 proportion at founding time for target_pop2
-    assert np.isclose(matrix2[15, 1], 0.6)  # source_pop2 proportion at founding time for target_pop2
+    assert numpy.isclose(matrix1[10, 0], 0.7)  # source_pop1 proportion at founding time for target_pop1
+    assert numpy.isclose(matrix1[10, 1], 0.3)  # source_pop2 proportion at founding time for target_pop1
+    assert numpy.isclose(matrix2[15, 0], 0.4)  # source_pop1 proportion at founding time for target_pop2
+    assert numpy.isclose(matrix2[15, 1], 0.6)  # source_pop2 proportion at founding time for target_pop2
     
     # Verify that the final proportions match the sample proportions
     final_proportions1 = model.proportions_from_matrix(matrix1)
     final_proportions2 = model.proportions_from_matrix(matrix2)
     
-    assert np.isclose(final_proportions1[0], 0.7)  # source_pop1 proportion for target_pop1
-    assert np.isclose(final_proportions1[1], 0.3)  # source_pop2 proportion for target_pop1
-    assert np.isclose(final_proportions2[0], 0.4)  # source_pop1 proportion for target_pop2
-    assert np.isclose(final_proportions2[1], 0.6)  # source_pop2 proportion for target_pop2
+    assert numpy.isclose(final_proportions1[0], 0.7)  # source_pop1 proportion for target_pop1
+    assert numpy.isclose(final_proportions1[1], 0.3)  # source_pop2 proportion for target_pop1
+    assert numpy.isclose(final_proportions2[0], 0.4)  # source_pop1 proportion for target_pop2
+    assert numpy.isclose(final_proportions2[1], 0.6)  # source_pop2 proportion for target_pop2
     
     # Verify that the sum of proportions is 1 for each population
-    assert np.isclose(final_proportions1.sum(), 1.0)
-    assert np.isclose(final_proportions2.sum(), 1.0)
+    assert numpy.isclose(final_proportions1.sum(), 1.0)
+    assert numpy.isclose(final_proportions2.sum(), 1.0)
 
 
 def test_ancestry_fixing_three_founders():
@@ -229,18 +229,18 @@ def test_ancestry_fixing_three_founders():
     assert matrix.shape[1] == 3  # three source populations
     
     # Verify that the founder rates match the sample proportions
-    assert np.isclose(matrix[10, 0], 0.4)  # source_pop1 proportion at founding time
-    assert np.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
-    assert np.isclose(matrix[10, 2], 0.3)  # source_pop3 proportion at founding time
+    assert numpy.isclose(matrix[10, 0], 0.4)  # source_pop1 proportion at founding time
+    assert numpy.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
+    assert numpy.isclose(matrix[10, 2], 0.3)  # source_pop3 proportion at founding time
     
     # Verify that the final proportions match the sample proportions
     final_proportions = model.proportions_from_matrix(matrix)
-    assert np.isclose(final_proportions[0], 0.4)  # source_pop1 proportion
-    assert np.isclose(final_proportions[1], 0.3)  # source_pop2 proportion
-    assert np.isclose(final_proportions[2], 0.3)  # source_pop3 proportion
+    assert numpy.isclose(final_proportions[0], 0.4)  # source_pop1 proportion
+    assert numpy.isclose(final_proportions[1], 0.3)  # source_pop2 proportion
+    assert numpy.isclose(final_proportions[2], 0.3)  # source_pop3 proportion
     
     # Verify that the sum of proportions is 1
-    assert np.isclose(final_proportions.sum(), 1.0)
+    assert numpy.isclose(final_proportions.sum(), 1.0)
 
 
 def test_ancestry_fixing_two_samples_three_founders():
@@ -319,30 +319,30 @@ def test_ancestry_fixing_two_samples_three_founders():
     assert matrix2.shape[1] == 3  # three source populations
     
     # Verify that the founder rates match the sample proportions for target_pop1
-    assert np.isclose(matrix1[10, 0], 0.4)  # source_pop1 proportion at founding time for target_pop1
-    assert np.isclose(matrix1[10, 1], 0.3)  # source_pop2 proportion at founding time for target_pop1
-    assert np.isclose(matrix1[10, 2], 0.3)  # source_pop3 proportion at founding time for target_pop1
+    assert numpy.isclose(matrix1[10, 0], 0.4)  # source_pop1 proportion at founding time for target_pop1
+    assert numpy.isclose(matrix1[10, 1], 0.3)  # source_pop2 proportion at founding time for target_pop1
+    assert numpy.isclose(matrix1[10, 2], 0.3)  # source_pop3 proportion at founding time for target_pop1
     
     # Verify that the founder rates match the sample proportions for target_pop2
-    assert np.isclose(matrix2[15, 0], 0.2)  # source_pop1 proportion at founding time for target_pop2
-    assert np.isclose(matrix2[15, 1], 0.3)  # source_pop2 proportion at founding time for target_pop2
-    assert np.isclose(matrix2[15, 2], 0.5)  # source_pop3 proportion at founding time for target_pop2
+    assert numpy.isclose(matrix2[15, 0], 0.2)  # source_pop1 proportion at founding time for target_pop2
+    assert numpy.isclose(matrix2[15, 1], 0.3)  # source_pop2 proportion at founding time for target_pop2
+    assert numpy.isclose(matrix2[15, 2], 0.5)  # source_pop3 proportion at founding time for target_pop2
     
     # Verify that the final proportions match the sample proportions
     final_proportions1 = model.proportions_from_matrix(matrix1)
     final_proportions2 = model.proportions_from_matrix(matrix2)
     
-    assert np.isclose(final_proportions1[0], 0.4)  # source_pop1 proportion for target_pop1
-    assert np.isclose(final_proportions1[1], 0.3)  # source_pop2 proportion for target_pop1
-    assert np.isclose(final_proportions1[2], 0.3)  # source_pop3 proportion for target_pop1
+    assert numpy.isclose(final_proportions1[0], 0.4)  # source_pop1 proportion for target_pop1
+    assert numpy.isclose(final_proportions1[1], 0.3)  # source_pop2 proportion for target_pop1
+    assert numpy.isclose(final_proportions1[2], 0.3)  # source_pop3 proportion for target_pop1
     
-    assert np.isclose(final_proportions2[0], 0.2)  # source_pop1 proportion for target_pop2
-    assert np.isclose(final_proportions2[1], 0.3)  # source_pop2 proportion for target_pop2
-    assert np.isclose(final_proportions2[2], 0.5)  # source_pop3 proportion for target_pop2
+    assert numpy.isclose(final_proportions2[0], 0.2)  # source_pop1 proportion for target_pop2
+    assert numpy.isclose(final_proportions2[1], 0.3)  # source_pop2 proportion for target_pop2
+    assert numpy.isclose(final_proportions2[2], 0.5)  # source_pop3 proportion for target_pop2
     
     # Verify that the sum of proportions is 1 for each population
-    assert np.isclose(final_proportions1.sum(), 1.0)
-    assert np.isclose(final_proportions2.sum(), 1.0)
+    assert numpy.isclose(final_proportions1.sum(), 1.0)
+    assert numpy.isclose(final_proportions2.sum(), 1.0)
 
 
 def test_ancestry_fixing_with_pulse_migration():
@@ -415,15 +415,15 @@ def test_ancestry_fixing_with_pulse_migration():
     assert matrix[10, 1] > 0
 
     # Verify that the pulse migration is applied correctly
-    assert np.isclose(matrix[5, 0], 0.2)  # pulse migration at pulse time
+    assert numpy.isclose(matrix[5, 0], 0.2)  # pulse migration at pulse time
     
     # Verify that the final proportions match the sample proportions
     final_proportions = model.proportions_from_matrix(matrix)
-    assert np.isclose(final_proportions[0], 0.6)  # source_pop1 proportion
-    assert np.isclose(final_proportions[1], 0.4)  # source_pop2 proportion
+    assert numpy.isclose(final_proportions[0], 0.6)  # source_pop1 proportion
+    assert numpy.isclose(final_proportions[1], 0.4)  # source_pop2 proportion
     
     # Verify that the sum of proportions is 1
-    assert np.isclose(final_proportions.sum(), 1.0)
+    assert numpy.isclose(final_proportions.sum(), 1.0)
 
 
 def test_ancestry_fixing_with_pulse_migration_fixed_rate():
@@ -493,8 +493,8 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     assert matrix.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
-    assert np.isclose(matrix[10, 0], 0.2)  # source_pop1 proportion at founding time
-    assert np.isclose(matrix[10, 1], 0.8)  # source_pop2 proportion at founding time
+    assert numpy.isclose(matrix[10, 0], 0.2)  # source_pop1 proportion at founding time
+    assert numpy.isclose(matrix[10, 1], 0.8)  # source_pop2 proportion at founding time
     
     # Verify that the pulse migration is applied correctly
     # The pulse rate should be calculated to achieve the final proportions
@@ -503,11 +503,11 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     
     # Verify that the final proportions match the sample proportions
     final_proportions = model.proportions_from_matrix(matrix)
-    assert np.isclose(final_proportions[0], 0.6)  # source_pop1 proportion
-    assert np.isclose(final_proportions[1], 0.4)  # source_pop2 proportion
+    assert numpy.isclose(final_proportions[0], 0.6)  # source_pop1 proportion
+    assert numpy.isclose(final_proportions[1], 0.4)  # source_pop2 proportion
     
     # Verify that the sum of proportions is 1
-    assert np.isclose(final_proportions.sum(), 1.0)
+    assert numpy.isclose(final_proportions.sum(), 1.0)
 
 
 def test_ancestry_fixing_sex_biased():
@@ -577,7 +577,7 @@ def test_ancestry_fixing_sex_biased():
     # Verify that the final proportions match the sample proportions
     for key in final_proportions.keys():
         print(final_proportions[key])
-        assert np.allclose(final_proportions[key], sample_proportions[key])
+        assert numpy.allclose(final_proportions[key], sample_proportions[key])
 
 
 def test_ancestry_fixing_sex_biased_with_pulse():
@@ -667,7 +667,7 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     final_proportions=model.proportions_from_matrices(migration_matrices)
     for key in final_proportions.keys():
         print(final_proportions[key])
-        assert np.allclose(final_proportions[key], sample_proportions[key])
+        assert numpy.allclose(final_proportions[key], sample_proportions[key])
 
 
 

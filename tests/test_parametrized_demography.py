@@ -1,6 +1,6 @@
 import os
 import tempfile
-import numpy as np
+import numpy
 
 import pytest
 
@@ -83,7 +83,7 @@ def test_initialization(basic_model):
     """Test that a new instance initializes correctly with default parameters"""
     assert basic_model.name == ""
     assert basic_model.min_time == 2
-    assert basic_model.max_time == np.inf
+    assert basic_model.max_time == numpy.inf
     assert len(basic_model.free_params) == 0
     assert len(basic_model.dependent_params) == 0
     assert len(basic_model.population_indices) == 0
@@ -126,7 +126,7 @@ def test_add_parameter(basic_model):
     basic_model.add_parameter("time1", ParamType.TIME)
     assert "time1" in basic_model.free_params
     assert basic_model.free_params["time1"].type == ParamType.TIME
-    assert basic_model.free_params["time1"].bounds == (2, np.inf)
+    assert basic_model.free_params["time1"].bounds == (2, numpy.inf)
 
 
 def test_parameter_bounds(custom_time_model):
@@ -234,23 +234,23 @@ def test_migration_matrix_basic(model_with_both_migrations):
     founder_rate = model_with_both_migrations.get_param_value("founder_rate1", test_params)
     
     # Check that founder rates are applied correctly at the founding time
-    assert np.isclose(migration_matrices["destination_pop"][10, 0], founder_rate)
+    assert numpy.isclose(migration_matrices["destination_pop"][10, 0], founder_rate)
     
     # Verify that rates sum to 1 at the founding time
-    assert np.isclose(migration_matrices["destination_pop"][10, 0] + migration_matrices["destination_pop"][10, 1], 1)
+    assert numpy.isclose(migration_matrices["destination_pop"][10, 0] + migration_matrices["destination_pop"][10, 1], 1)
     
     # Verify pulse migration is applied correctly
     pulse_rate = model_with_both_migrations.get_param_value("rate1", test_params)
     
     # Check that pulse migration is applied correctly at the pulse time
-    assert np.isclose(migration_matrices["destination_pop"][3, 0], pulse_rate)
+    assert numpy.isclose(migration_matrices["destination_pop"][3, 0], pulse_rate)
     
     # Verify continuous migration is applied correctly
     continuous_rate = model_with_both_migrations.get_param_value("rate2", test_params)
     
     # Check that continuous migration is applied correctly during the migration period
     for t in range(5, 7):  # From start1 to end1
-        assert np.isclose(migration_matrices["destination_pop"][t, 1], continuous_rate)
+        assert numpy.isclose(migration_matrices["destination_pop"][t, 1], continuous_rate)
 
 
 def test_migration_matrix_multiple_populations(model_with_multiple_populations):
@@ -278,26 +278,26 @@ def test_migration_matrix_multiple_populations(model_with_multiple_populations):
     founder_rate1 = model_with_multiple_populations.get_param_value("founder_rate1", test_params)
     
     # Check that founder rates are applied correctly at the founding time for dest_pop1
-    assert np.isclose(migration_matrices["dest_pop1"][10, 0], founder_rate1)
+    assert numpy.isclose(migration_matrices["dest_pop1"][10, 0], founder_rate1)
     
     # Verify founder rates are applied correctly for dest_pop2
     founder_rate2 = model_with_multiple_populations.get_param_value("founder_rate2", test_params)
     
     # Check that founder rates are applied correctly at the founding time for dest_pop2
-    assert np.isclose(migration_matrices["dest_pop2"][12, 1], founder_rate2)
+    assert numpy.isclose(migration_matrices["dest_pop2"][12, 1], founder_rate2)
     
     # Verify pulse migration is applied correctly
     pulse_rate = model_with_multiple_populations.get_param_value("rate1", test_params)
     
     # Check that pulse migration is applied correctly at the pulse time
-    assert np.isclose(migration_matrices["dest_pop1"][8, 1], pulse_rate)
+    assert numpy.isclose(migration_matrices["dest_pop1"][8, 1], pulse_rate)
     
     # Verify continuous migration is applied correctly
     continuous_rate = model_with_multiple_populations.get_param_value("rate2", test_params)
     
     # Check that continuous migration is applied correctly during the migration period
     for t in range(5, 7):  # From start1 to end1
-        assert np.isclose(migration_matrices["dest_pop2"][t, 0], continuous_rate)
+        assert numpy.isclose(migration_matrices["dest_pop2"][t, 0], continuous_rate)
 
 
 def test_error_migration_without_founder(basic_model):
@@ -405,12 +405,12 @@ def test_non_integer_founding_time():
     final_proportions_int = model.proportions_from_matrix(matrix_int)
     final_proportions_non_int = model.proportions_from_matrix(matrix_non_int)
     
-    assert np.isclose(final_proportions_int[0], final_proportions_non_int[0])  # source_pop1 proportion for integer model
-    assert np.isclose(final_proportions_int[1], final_proportions_non_int[1])  # source_pop2 proportion for integer model
+    assert numpy.isclose(final_proportions_int[0], final_proportions_non_int[0])  # source_pop1 proportion for integer model
+    assert numpy.isclose(final_proportions_int[1], final_proportions_non_int[1])  # source_pop2 proportion for integer model
     
     # Verify that the sum of proportions is 1 for each model
-    assert np.isclose(final_proportions_int.sum(), 1.0)
-    assert np.isclose(final_proportions_non_int.sum(), 1.0)
+    assert numpy.isclose(final_proportions_int.sum(), 1.0)
+    assert numpy.isclose(final_proportions_non_int.sum(), 1.0)
 
 
 def test_non_integer_pulse_time(model_with_pulse_migration):
@@ -449,12 +449,12 @@ def test_non_integer_pulse_time(model_with_pulse_migration):
     final_proportions_non_int = model_with_pulse_migration.proportions_from_matrix(matrix_non_int)
     
     # The final proportions should be the same for both models
-    assert np.isclose(final_proportions_int[0], final_proportions_non_int[0])  # source_pop1 proportion for integer model
-    assert np.isclose(final_proportions_int[1], final_proportions_non_int[1])  # source_pop2 proportion for integer model
+    assert numpy.isclose(final_proportions_int[0], final_proportions_non_int[0])  # source_pop1 proportion for integer model
+    assert numpy.isclose(final_proportions_int[1], final_proportions_non_int[1])  # source_pop2 proportion for integer model
     
     # Verify that the sum of proportions is 1 for each model
-    assert np.isclose(final_proportions_int.sum(), 1.0)
-    assert np.isclose(final_proportions_non_int.sum(), 1.0)
+    assert numpy.isclose(final_proportions_int.sum(), 1.0)
+    assert numpy.isclose(final_proportions_non_int.sum(), 1.0)
 
 
 def test_non_integer_continuous_migration_time(model_with_continuous_migration):
@@ -494,11 +494,11 @@ def test_non_integer_continuous_migration_time(model_with_continuous_migration):
     final_proportions_non_int = model_with_continuous_migration.proportions_from_matrix(matrix_non_int)
     
     # The final proportions should be the same for both models
-    assert np.isclose(final_proportions_int[0], final_proportions_non_int[0], atol=1e-4)  # source_pop1 proportion for integer model
-    assert np.isclose(final_proportions_int[1], final_proportions_non_int[1], atol=1e-4)  # source_pop2 proportion for integer model
+    assert numpy.isclose(final_proportions_int[0], final_proportions_non_int[0], atol=1e-4)  # source_pop1 proportion for integer model
+    assert numpy.isclose(final_proportions_int[1], final_proportions_non_int[1], atol=1e-4)  # source_pop2 proportion for integer model
     
     # Verify that the sum of proportions is 1 for each model
-    assert np.isclose(final_proportions_int.sum(), 1.0)
-    assert np.isclose(final_proportions_non_int.sum(), 1.0)
+    assert numpy.isclose(final_proportions_int.sum(), 1.0)
+    assert numpy.isclose(final_proportions_non_int.sum(), 1.0)
 
 
