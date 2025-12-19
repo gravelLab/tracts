@@ -427,7 +427,7 @@ def test_non_integer_founding_time():
     assert np.isclose(final_proportions_non_int.sum(), 1.0)
 
 
-def test_non_integer_founding_time_continuous_dounder():
+def test_non_integer_founding_time_continuous_founder():
     """
     Test that non-integer founding times are handled correctly.
     

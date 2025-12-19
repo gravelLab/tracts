@@ -44,7 +44,7 @@ class FounderEvent(BaseFounderEvent):
 
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
         true_start_time = parametrized_demography.get_param_value(self.found_time, params)
-        start_time = math.ceil(true_start_time) # a discretized value to create a matrix that can includes the event.  
+        start_time = math.ceil(true_start_time) # a discretized value to create a matrix that can include the event.  
         frac_part_start = start_time - true_start_time
         
         migration_matrix = np.zeros((start_time + 1, len(parametrized_demography.population_indices)))
@@ -78,7 +78,7 @@ class FounderEvent(BaseFounderEvent):
          
             integer_end_time = math.ceil(float_end_time)
             total_rate = 0
-            
+            #breakpoint()
             for source_population, rate_param in self.source_populations.items():
                 total_rate += parametrized_demography.get_param_value(rate_param, params)
             
@@ -145,7 +145,8 @@ class BaseParametrizedDemography(ABC):
     def parameter_bounds(self):
         return [param.bound for param in self.free_params.values()]
 
-    def proportions_from_matrix(self, migration_matrix: np.ndarray):
+    @staticmethod
+    def proportions_from_matrix(migration_matrix: np.ndarray):
         current_ancestry_proportions = migration_matrix[-1, :]
         for row in migration_matrix[-2::-1, :]:
             current_ancestry_proportions = current_ancestry_proportions * (1 - row.sum()) + row
@@ -270,8 +271,8 @@ class BaseParametrizedDemography(ABC):
             return violation_score
         
         for migration_matrix in self.get_migration_matrices(params).values():
-            if np.min(migration_matrix)<0 :
-               breakpoint()
+            #if np.min(migration_matrix)<0 :
+            #   breakpoint()
             
             totmig = migration_matrix.sum(1).max()
             if 1 - totmig < violation_score:
@@ -504,8 +505,8 @@ class FixedProportionsHandler:
         self.logger.info(f'Params before fixed-ancestry solving: {params}')
         if len(params) == len(demography.free_params):
             full_params = params
-            migration_matrix = demography.get_migration_matrices(full_params, solve_using_known_proportions=False)
-            calculated_proportions = demography.proportions_from_matrices(migration_matrix)
+            migration_matrices = demography.get_migration_matrices(full_params, solve_using_known_proportions=False)
+            calculated_proportions = demography.proportions_from_matrices(migration_matrices)
             if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
                 return full_params
@@ -530,8 +531,8 @@ class FixedProportionsHandler:
 
         full_params = self.insert_params(demography.free_params, full_params, solved_params)
         self.logger.info(f'Params after solving with ancestry proportions: {full_params}')
-        if min(full_params) < -1:
-            breakpoint()
+        #if min(full_params) < -1:
+        #    breakpoint()
         return full_params
 
     def insert_params(self, free_params: dict[str, Parameter], params: list[float], params_from_proportions: list[float]):

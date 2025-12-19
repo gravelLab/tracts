@@ -223,8 +223,8 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         
-        if np.any(female_matrix < 0) or np.any(np.sum(female_matrix, axis=1) > 1) or np.any(male_matrix < 0) or np.any(np.sum(male_matrix, axis=1) > 1):
-            breakpoint()
+        #if np.any(female_matrix < 0) or np.any(np.sum(female_matrix, axis=1) > 1) or np.any(male_matrix < 0) or np.any(np.sum(male_matrix, axis=1) > 1):
+        #    breakpoint()
 
         # Model for autosomes
         if ad_model_autosomes == 'M':
@@ -248,10 +248,16 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
             result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
         
         result = (result_autosomes + result_X_females + result_X_males)
+        
+        #proportion of ancestry
+        
+        
         flush_result(result_autosomes, 'Autosomes')
         flush_result(result_X_females, 'Female allosomes')
         flush_result(result_X_males, 'Male allosomes')
         
+        flush_result( model.proportions_from_matrices(matrices), "Model ancestry pedictions") 
+
         return -result
     
     print('\n--------------------------------------------------------------------------------------------------')
