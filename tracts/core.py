@@ -273,6 +273,107 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     return outputs, likelihood
 
 
+def optimize_cob_sex_biased_sequential(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
+                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
+    if reset_counter:
+        global _counter
+        _counter = 0
+    
+    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
+    n_autosome_bins = len(autosome_bins)
+    allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    n_allosome_bins = len(allosome_bins)
+    allosome_length = population.allosome_lengths['X']
+    female_data = allosome_data[SexType.FEMALE]
+    male_data = allosome_data[SexType.MALE]
+    num_males = population.num_males
+    num_females = population.num_females
+
+    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
+    for k, v in autosome_data.items():
+        autosome_data_mapped[dict(p_dict)[k]] = v
+        
+    female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+    for k, v in female_data.items():
+        female_data_mapped[dict(p_dict)[k]] = v
+        
+    male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+    for k, v in male_data.items():
+        male_data_mapped[dict(p_dict)[k]] = v
+    
+    def objective_function(parameters):
+        _out_of_bounds_val = -1e32
+        global _counter
+        _counter += 1
+
+        def flush_result(result, note = str()):
+            if (verbose > 0) and (_counter % verbose == 0):
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameters]))
+                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
+                # Misc.delayed_flush(delay=flush_delay)
+
+        if outofbounds_fun is not None:
+            # outofbounds can return either True or a negative value to signify out-of-boundedness.
+            ooa = outofbounds_fun(parameters)
+            if ooa < 0:
+                flush_result((ooa - 1) * _out_of_bounds_val)
+                return (ooa - 1) * _out_of_bounds_val
+        else:
+            eprint("No bound function defined")
+
+        matrices = model_func(parameters)
+        [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
+        
+        #if np.any(female_matrix < 0) or np.any(np.sum(female_matrix, axis=1) > 1) or np.any(male_matrix < 0) or np.any(np.sum(male_matrix, axis=1) > 1):
+        #    breakpoint()
+
+        # Model for autosomes
+        if ad_model_autosomes == 'M':
+            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
+            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        elif ad_model_autosomes == 'H-DC':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        elif ad_model_autosomes == 'H-DF':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        else:
+            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        
+        # Model for allosomes
+        if ad_model_allosomes == 'H-DC':
+            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+        elif ad_model_allosomes == 'H-DF':
+            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+        else:
+            result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+            result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        
+        result = (result_autosomes + result_X_females + result_X_males)
+        
+        #proportion of ancestry
+        
+        
+        flush_result(result_autosomes, 'Autosomes')
+        flush_result(result_X_females, 'Female allosomes')
+        flush_result(result_X_males, 'Male allosomes')
+        
+        
+        return -result
+    
+    print('\n--------------------------------------------------------------------------------------------------')
+    print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
+    print('--------------------------------------------------------------------------------------------------')
+    print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
+           
+    outputs = scipy.optimize.fmin_cobyla(
+        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    
+    likelihood = objective_function(outputs)
+
+    return outputs, likelihood
+
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, bounds=None, verbose=0,
                    flush_delay=1, epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None,

@@ -43,7 +43,7 @@ def test_ancestry_fixing_single_population():
     # Fix the founding rate parameter using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1"],
+        params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions
     )
     
@@ -121,7 +121,7 @@ def test_ancestry_fixing_multiple_populations():
     # Fix the founding rate parameters using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1", "founder_rate2"],
+        params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
     )
     
@@ -205,7 +205,7 @@ def test_ancestry_fixing_three_founders():
     # Fix the founding rate parameters using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1", "founder_rate2"],
+        params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
     )
     
@@ -291,7 +291,7 @@ def test_ancestry_fixing_two_samples_three_founders():
     # Fix the founding rate parameters using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1_pop1", "founder_rate2_pop1", "founder_rate1_pop2", "founder_rate2_pop2"],
+        params_to_fix_by_ancestry=["founder_rate1_pop1", "founder_rate2_pop1", "founder_rate1_pop2", "founder_rate2_pop2"],
         proportions=sample_proportions
     )
     
@@ -387,7 +387,7 @@ def test_ancestry_fixing_with_pulse_migration():
     # Fix the founding rate parameter using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1"],
+        params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions
     )
     
@@ -469,7 +469,7 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     # Fix the founding rate parameter and pulse rate using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["pulse_rate"],
+        params_to_fix_by_ancestry=["pulse_rate"],
         proportions=sample_proportions
     )
     
@@ -545,7 +545,7 @@ def test_ancestry_fixing_sex_biased():
     # Fix the founding rate and sex-bias parameters using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1", "founder_rate1_sex_bias"],
+        params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
         proportions=sample_proportions
     )
     
@@ -639,7 +639,7 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     # Fix the founding rate and sex-bias parameters using the sample proportions
     model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
         demography=model,
-        params_to_fix=["founder_rate1", "founder_rate1_sex_bias"],
+        params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
         proportions=sample_proportions
     )
     
@@ -767,3 +767,166 @@ def test_ancestry_fixing_sex_biased_with_pulse():
 
 
 
+## Test parameter fixing
+# 
+# 
+def test_parameter_fixing_single_population():
+    """
+    Test the parameter fixing functionality for a single population with two founders.
+    
+    This test:
+    1. Creates a model with two founders and no other events
+    2. Sets up sample proportions
+    3. Fixes the founding rate parameter using the sample proportions
+    4. Verifies that the model can take in only a founding time value and output a migration matrix
+    5. Verifies that the resulting rate parameter matches the sample proportions
+    6. Verifies that the final proportions of the matrix match the sample proportions
+    """
+    # Create a model with two founders
+    model = ParametrizedDemography(name="TestModel")
+    
+    # Add a founder event with two source populations
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time"
+    )
+    
+    # Finalize the model
+    model.finalize()
+    
+
+    # Define sample proportions (70% from source_pop1, 30% from source_pop2)
+    sample_proportions = {
+        "target_pop": [0.7, 0.3]  # [source_pop1, source_pop2]
+    }
+    
+    params_to_fix_by_value = {"found_time":10}
+
+    # Fix the founding rate parameter using the sample proportions
+    model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
+        demography=model,
+        params_to_fix_by_ancestry=["founder_rate1"],
+        proportions=sample_proportions, params_to_fix_by_value = params_to_fix_by_value
+    )
+    
+    # Verify that the model has been fixed
+    assert model.fixed_proportions_handler.has_been_fixed
+    
+    # Create a parameter list with the remaining parameters (since there are no free paramaters left)
+    test_params = []  
+    
+    # Get the migration matrices
+    migration_matrices = model.get_migration_matrices(test_params)
+    
+    # Verify that we got a migration matrix for the target population
+    assert "target_pop" in migration_matrices
+    
+    # Get the matrix for the target population
+    matrix = migration_matrices["target_pop"]
+    
+    # Verify the matrix dimensions
+    assert matrix.shape[0] == 11  # found_time + 1
+    assert matrix.shape[1] == 2  # two source populations
+    
+    # Verify that the founder rates match the sample proportions
+    assert np.isclose(matrix[10, 0], 0.7)  # source_pop1 proportion at founding time
+    assert np.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
+    
+    # Verify that the final proportions match the sample proportions
+    final_proportions = model.proportions_from_matrix(matrix)
+    assert np.isclose(final_proportions[0], 0.7)  # source_pop1 proportion
+    assert np.isclose(final_proportions[1], 0.3)  # source_pop2 proportion
+    
+    # Verify that the sum of proportions is 1
+    assert np.isclose(final_proportions.sum(), 1.0)
+
+
+def test_ancestry_fixing_multiple_populations():
+    """
+    Test the ancestry fixing functionality for multiple populations.
+    
+    This test:
+    1. Creates a model with two populations, each with two founders
+    2. Sets up sample proportions for each population
+    3. Fixes the founding rate parameters using the sample proportions
+    4. Verifies that the model can take in only founding time values and output migration matrices
+    5. Verifies that the resulting rate parameters match the sample proportions
+    6. Verifies that the final proportions of the matrices match the sample proportions
+    """
+    # Create a model with two populations, each with two founders
+    model = ParametrizedDemography(name="TestModel")
+    
+    # Add founder events for two populations
+    model.add_founder_event(
+        dest_population="target_pop1",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time1"
+    )
+    
+    model.add_founder_event(
+        dest_population="target_pop2",
+        source_populations={"source_pop2": "founder_rate2"},
+        remainder_population="source_pop1",
+        found_time="found_time2"
+    )
+    
+    # Finalize the model
+    model.finalize()
+    
+    # Define sample proportions
+    sample_proportions = {
+        "target_pop1": [0.7, 0.3],  # [source_pop1, source_pop2]
+        "target_pop2": [0.4, 0.6]   # [source_pop1, source_pop2]
+    }
+    
+    # Fix the founding rate parameters using the sample proportions
+    model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(
+        demography=model,
+        params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
+        proportions=sample_proportions
+    )
+    
+    # Verify that the model has been fixed
+    assert model.fixed_proportions_handler.has_been_fixed
+    
+    # Create a parameter list with only the founding times (since the rates are fixed)
+    test_params = [10, 15]  # [found_time1, found_time2]
+    
+    # Get the migration matrices
+    migration_matrices = model.get_migration_matrices(test_params)
+    
+    # Verify that we got migration matrices for both target populations
+    assert "target_pop1" in migration_matrices
+    assert "target_pop2" in migration_matrices
+    
+    # Get the matrices for the target populations
+    matrix1 = migration_matrices["target_pop1"]
+    matrix2 = migration_matrices["target_pop2"]
+    
+    # Verify the matrix dimensions
+    assert matrix1.shape[0] == 11  # found_time1 + 1
+    assert matrix1.shape[1] == 2  # two source populations
+    assert matrix2.shape[0] == 16  # found_time2 + 1
+    assert matrix2.shape[1] == 2  # two source populations
+    
+    # Verify that the founder rates match the sample proportions
+    assert np.isclose(matrix1[10, 0], 0.7)  # source_pop1 proportion at founding time for target_pop1
+    assert np.isclose(matrix1[10, 1], 0.3)  # source_pop2 proportion at founding time for target_pop1
+    assert np.isclose(matrix2[15, 0], 0.4)  # source_pop1 proportion at founding time for target_pop2
+    assert np.isclose(matrix2[15, 1], 0.6)  # source_pop2 proportion at founding time for target_pop2
+    
+    # Verify that the final proportions match the sample proportions
+    final_proportions1 = model.proportions_from_matrix(matrix1)
+    final_proportions2 = model.proportions_from_matrix(matrix2)
+    
+    assert np.isclose(final_proportions1[0], 0.7)  # source_pop1 proportion for target_pop1
+    assert np.isclose(final_proportions1[1], 0.3)  # source_pop2 proportion for target_pop1
+    assert np.isclose(final_proportions2[0], 0.4)  # source_pop1 proportion for target_pop2
+    assert np.isclose(final_proportions2[1], 0.6)  # source_pop2 proportion for target_pop2
+    
+    # Verify that the sum of proportions is 1 for each population
+    assert np.isclose(final_proportions1.sum(), 1.0)
+    assert np.isclose(final_proportions2.sum(), 1.0)    

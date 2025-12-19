@@ -81,6 +81,9 @@ class ParametrizedDemography(BaseParametrizedDemography):
         """
         if solve_using_known_proportions is None:
             solve_using_known_proportions = self.fixed_proportions_handler.has_been_fixed
+        if len(self.fixed_proportions_handler.params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
+            params = self.fixed_proportions_handler.insert_fixed_params(self, params)
+        
         if solve_using_known_proportions:
             self.logger.info(f'Generating migration matrix.')
             params = self.fixed_proportions_handler.compute_dependent_params(self, params)
