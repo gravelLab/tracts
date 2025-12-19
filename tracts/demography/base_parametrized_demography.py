@@ -249,8 +249,8 @@ class BaseParametrizedDemography(ABC):
                 
     
         def matrix_constraint(params):
-            min_score = np.inf
-            for migration_matrices in self.get_migration_matrices(params).values():    
+            min_score = numpy.inf
+            for migration_matrix in self.get_migration_matrices(params).values():    
                 totmig = migration_matrix.sum(1).max()
                 if 1 - totmig < min:
                     min_score = 1 - totmig

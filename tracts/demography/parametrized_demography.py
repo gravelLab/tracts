@@ -10,6 +10,7 @@ import ruamel.yaml
 from tracts.demography.base_parametrized_demography import BaseParametrizedDemography, BaseMigrationEvent, FounderEvent
 from tracts.demography.parameter import ParamType
 
+from scipy.optimize import NonlinearConstraint, LinearConstraint, Bounds
 
 #TODO: 
 #Add constant parameters and parameter equations
@@ -120,12 +121,10 @@ class ParametrizedDemography(BaseParametrizedDemography):
             'message': 'Pulses cannot occur before or during the founding of the population.'
         })
 
-        A_matrix = np.zeros(len(self.params))
+        A = numpy.zeros(len(self.free_params))
         A[self.free_params[founding_time].index] = 1 
         A[self.free_params[time_param].index] = -1 
-        self.linear_constraints.append(LinearConstraint(A, 1, np.inf , keep_feasible=True)) # 'Pulses cannot occur before or during the founding of the population.'
-
-
+        self.linear_constraints.append(LinearConstraint(A, 1, numpy.inf , keep_feasible=True)) # 'Pulses cannot occur before or during the founding of the population.'
 
         pulse_migration_event = PulseEvent(
             rate_parameter=rate_param,
