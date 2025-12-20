@@ -480,7 +480,9 @@ class FixedParametersHandler:
         
         self.params_fixed_by_value = {param_name: params_to_fix_by_value[param_name] for param_name in demography.free_params if
                                          param_name in params_to_fix_by_value}
-            
+        demography.fixed_parameter_values = {params_to_fix_by_value[param_name] for param_name in demography.free_params if
+                                         param_name in params_to_fix_by_value} # Store value in the demography object 
+                                                                               # --these shoul dnot change     
         
         if not (demography.proportions_from_matrices_return_keys() == proportions.keys()):
             raise KeyError(
@@ -587,21 +589,28 @@ class FixedParametersHandler:
                     f'\nNumber of fixed parameters: {len(self.params_fixed_by_ancestry)}'
                 )
 
-    def insert_fixed_params(self, non_computed_parameters: dict[str, Parameter], params_to_optimize: list[float], fixed_params: list[float]):
+    def insert_fixed_params(self, free_parameters: dict[str, Parameter], params_to_optimize: list[float], fixed_params: list[float]):
         '''
-        Used for merging the parameters fixed parameters. This should be refactored with insert solved parameters
+        Used for merging the parameters fixed parameters. This could be refactored with insert solved parameters
         with the parameters found from the known ancestry proportions
-        into a single list of parameters in the correct order for the model.
+        
         non_computed_parameters include both parameters fixed by value and parameters to be optimized over. 
-        '''
+        params_to_optimize: the list of values for the parameters fixed by neither values nor ancestry proportions
+        fixed_params: the values for the fixed parameters. 
 
-        assert (len(params_to_optimize) + len(fixed_params) == len(non_computed_parameters))
+        the list of values are presumed to be in the same order as in non-computed parameters
+
+        Output: a list of values for all the non-computed parameters. This will then be used to compute the computed paramters. 
+
+        '''
+        
+        assert (len(params_to_optimize) + len(fixed_params)+len(self.params_fixed_by_ancestry) == len(free_parameters)), f"{len(params_to_optimize)} + {len(fixed_params)}+{len(self.params_fixed_by_ancestry)} == {len(free_parameters)} non-computed parameters: {free_parameters}"
         
 
         iter_params = iter(params_to_optimize)
-        iter_params_to_solve = iter(params_from_proportions)
-        params_to_optimize = [next(iter_params_to_solve) if (param_name in self.params_fixed_by_value) else next(iter_params)
-                      for param_name in non_computed_parameters]
+        iter_fixed_params = iter(fixed_params)
+        params_to_optimize = [next(iter_fixed_params) if (param_name in self.params_fixed_by_value) else next(iter_params)  
+                      for param_name in free_parameters if param_name not in self.params_fixed_by_ancestry ]
         return params_to_optimize
         
 

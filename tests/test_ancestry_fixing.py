@@ -818,7 +818,7 @@ def test_parameter_fixing_single_population():
     test_params = []  
     
     # Get the migration matrices
-    migration_matrices = model.get_migration_matrices(test_params)
+    migration_matrices = model.get_migration_matrices(test_params, insert_fixed_parameters=True)
     
     # Verify that we got a migration matrix for the target population
     assert "target_pop" in migration_matrices

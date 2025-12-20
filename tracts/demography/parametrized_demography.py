@@ -72,7 +72,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
             for event in events:
                 event.execute(self, migration_matrices[population], params)
 
-    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None) -> dict[str, np.ndarray]:
+    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None, insert_fixed_parameters:bool = False) -> dict[str, np.ndarray]:
         """
         Takes in a list of params equal to the length of free_params
         and returns a *pg* migration matrix for each population of interest
@@ -81,8 +81,10 @@ class ParametrizedDemography(BaseParametrizedDemography):
         """
         if solve_using_known_proportions is None:
             solve_using_known_proportions = self.fixed_proportions_handler.has_been_fixed
-        if len(self.fixed_proportions_handler.params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
-            params = self.fixed_proportions_handler.insert_fixed_params(self, params)
+        if insert_fixed_parameters and len(self.fixed_proportions_handler.params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
+            
+            params = self.fixed_proportions_handler.insert_fixed_params( free_parameters=self.free_params, 
+                                                                        fixed_params=self.fixed_parameter_values, params_to_optimize=params)
         
         if solve_using_known_proportions:
             self.logger.info(f'Generating migration matrix.')
