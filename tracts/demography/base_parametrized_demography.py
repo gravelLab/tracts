@@ -518,12 +518,23 @@ class FixedParametersHandler:
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
     
 
+    def full_params_objective_func(self, parameters, demography):
+        """returns the difference between computed and model ancestry proportions, as an array."""
+        migration_matrices = demography.get_migration_matrices(
+            parameters,
+            solve_using_known_proportions=False)
+        found_props = demography.proportions_from_matrices(migration_matrices)
+        diff = np.array([found_props[ancestor][:-1] - self.known_ancestry_proportions[ancestor] 
+                for ancestor in self.known_ancestry_proportions.keys()]).flatten()
+        return diff
+
     
     def compute_dependent_params(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
         if not self.has_been_fixed and len(params) != len(demography.free_params):
             raise Exception("The demography has not been fixed yet.")
         if known_ancestry_proportions==None:
             known_ancestry_proportions=self.known_ancestry_proportions
+
         self.logger.info(f'Params before fixed-ancestry solving: {params}')
         if len(params) == len(demography.free_params):
             full_params = params
@@ -535,18 +546,14 @@ class FixedParametersHandler:
         else:
             full_params = params.copy()
 
+
         def param_objective_func(params_to_solve):
+            """Computes the difference as a function of the paramters to solve only. """
             nonlocal full_params
             params_to_solve[np.isnan(params_to_solve)] = 0
             full_params = self.insert_solved_params(demography.free_params, full_params, params_to_solve)
-            # self.logger.info(f'Full params: {full_params}')
-            migration_matrices = demography.get_migration_matrices(
-                full_params,
-                solve_using_known_proportions=False)
-            found_props = demography.proportions_from_matrices(migration_matrices)
-            fixed_props = known_ancestry_proportions
-            diff = np.array([found_props[ancestor][:-1] - fixed_props[ancestor] for ancestor in fixed_props.keys()]).flatten()
-            return diff
+            
+            return self.full_params_objective_func(full_params, demography)
         
         solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
                                               np.ones(len(self.params_fixed_by_ancestry)) * .2)
