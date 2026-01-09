@@ -118,7 +118,7 @@ def run_tracts(driver_filename, script_dir=None):
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         
         if allosome_label:
-            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
+            model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(model,
                 driver_spec['fix_parameters_from_ancestry_proportions'],
                 {
                     f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
@@ -126,9 +126,10 @@ def run_tracts(driver_filename, script_dir=None):
                 }
             )
         else:
-            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {model.parametrized_populations[0]:ancestry_proportions})
-    time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
-    func = lambda params: time_scaled_func(params)
+            model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {model.parametrized_populations[0]:ancestry_proportions})
+    
+    func = get_time_scaled_model_func(model, time_scaling_factor) # time parameters need to be rescaled for some optimizers
+    
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
     if type(driver_spec['start_params']) is not dict:
@@ -166,7 +167,7 @@ def run_tracts(driver_filename, script_dir=None):
     print(f"Optimal Parameters:{optimal_params}")
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         print("expanded parameters:\n")
-        print([f"{float(p):.2g}" for p in model.fixed_proportions_handler.compute_dependent_params(model, optimal_params)])
+        print([f"{float(p):.2g}" for p in model.fixed_parameter_handler.compute_dependent_params(model, optimal_params)])
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -212,7 +213,7 @@ def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=
                                   script_dir=script_dir,
                                   absolute_driver_yaml_path=driver_path)
     if model_path is None:
-        raise FileNotFoundError(f'Model yaml file could not be found. {filepath_error_additional_message}')
+        raise FileNotFoundError(f'Model yaml file {driver_spec["model_filename"]} could not be found. {filepath_error_additional_message}')
     if allosome_label:
         model = ParametrizedDemographySexBiased.load_from_YAML(str(model_path.resolve()))
         model.allosome_label=allosome_label
