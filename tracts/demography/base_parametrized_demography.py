@@ -164,7 +164,7 @@ class BaseParametrizedDemography(ABC):
     def proportions_from_matrices_return_keys(self):
         '''
         This method returns the expected keys from ``self.proportions_from_matrices()``.
-        It is used by ``FixedProportionsHandler`` to validate that the fixed parameter will be solvable from the given data.
+        It is used by ``FixedParametersHandler`` to validate that the fixed parameter will be solvable from the given data.
         '''
         #TODO: calculate automatically from proportions_from_matrices().
         #For now, subclasses that change the behaviour of proportions_from_matrices() should have a different implementation of this method to reflect this.
@@ -433,8 +433,9 @@ class BaseParametrizedDemography(ABC):
             print(f"{param_name}: {param_info.type}")
         return
 
-    def set_up_fixed_ancestry_proportions(self, params_to_fix: list[str], proportions: dict[str: list[float]]):
-        self.fixed_proportions_handler.set_up_fixed_ancestry_proportions(self, params_to_fix, proportions)
+    def set_up_fixed_ancestry_proportions(self, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
+                                          params_to_fix_by_value:dict[str:float]={}):
+        self.fixed_proportions_handler.set_up_fixed_ancestry_proportions(self, params_to_fix_by_ancestry, proportions, params_to_fix_by_value)
 
     @abstractmethod
     def get_random_parameters():

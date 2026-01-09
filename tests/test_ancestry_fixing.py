@@ -719,7 +719,7 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     
     # Fix the pulse rate and sex-bias parameters using the sample proportions
     model.set_up_fixed_ancestry_proportions(
-        params_to_fix=["pulse_rate", "pulse_rate_sex_bias"],
+        params_to_fix_by_ancestry=["pulse_rate", "pulse_rate_sex_bias"],
         proportions=sample_proportions
     )
     
