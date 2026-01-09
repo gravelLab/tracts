@@ -109,7 +109,7 @@ def run_tracts(driver_filename, script_dir=None):
             "unknown labels: {pop.unknown_labels}")
     
     
-    logger.info(f'Model Parameters: {model.free_params}')
+    logger.info(f'Model Base Parameters: {model.model_base_params}')
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
     print("computed autosome proportions", ancestry_proportions )
     allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
@@ -139,22 +139,22 @@ def run_tracts(driver_filename, script_dir=None):
     
     pop_dict = model.population_indices.items()
     
-    print("Model parameters\n",[param_name for param_name in model.free_params.keys()])
+    print("Model parameters\n",[param_name for param_name in model.model_base_params.keys()])
 
-    start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
+    start_param_values = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
                                       driver_spec['seed'], model, time_scaling_factor)
-    print("first start parameters = ", start_params[0]) 
+    print("first start parameters = ", start_param_values[0]) 
     
     
-    print("start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
+    print("start ancestry_proportions:", model.proportions_from_matrices(func(start_param_values[0])))
     
     
     
-    if bound(start_params[0])<0:
+    if bound(start_param_values[0])<0:
         print("Warning, starting parameters are out of bounds.")
     
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
-                                                        start_params,
+                                                        start_param_values,
                                                         population_dict=pop_dict,
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
@@ -261,11 +261,12 @@ def parse_individual_filenames(individual_names, filename_string, script_dir: st
 
 def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: ParametrizedDemography = None,
                        time_scaling_factor=1):
-    # num_params = len(model.free_params) - len(model.params_fixed_by_ancestry)
-    num_params = len(model.free_params)
+    """outputs a 1D array of starting parameters for optimization. Only returns parameters that are not fixed by ancestry""" 
+    
+    num_params = len(model.model_base_params)
     rng = numpy.random.default_rng(seed=seed)
     start_params = rng.random((repetitions, num_params))
-    for param_name, param_info in model.free_params.items():
+    for param_name, param_info in model.model_base_params.items():
         if param_name in model.params_fixed_by_ancestry:
             start_params[:, param_info.index] = 0
             continue
@@ -283,11 +284,13 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
                 raise ValueError("Initial values must be specified as min:max or a single value.") from e
         if param_info.type == ParamType.TIME:
             start_params[:, param_info.index] *= 1 / time_scaling_factor
-    # logger.info(f' Start Params: \n {start_params}')
+
     if model.params_fixed_by_ancestry is not None:
         start_params = numpy.transpose(
-            [start_params[:, param_info.index] for param_name, param_info in model.free_params.items() if
+            [start_params[:, param_info.index] for param_name, param_info in model.model_base_params.items() if
              param_name not in model.params_fixed_by_ancestry])
+    
+    
     logger.info(f' Start Params: \n {start_params}')
     return start_params
 

@@ -273,7 +273,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     return outputs, likelihood
 
 
-def optimize_cob_sex_biased_sequential(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
     if reset_counter:
@@ -325,8 +325,6 @@ def optimize_cob_sex_biased_sequential(p0, population: Population, model_func, o
         matrices = model_func(parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         
-        #if np.any(female_matrix < 0) or np.any(np.sum(female_matrix, axis=1) > 1) or np.any(male_matrix < 0) or np.any(np.sum(male_matrix, axis=1) > 1):
-        #    breakpoint()
 
         # Model for autosomes
         if ad_model_autosomes == 'M':
@@ -352,7 +350,7 @@ def optimize_cob_sex_biased_sequential(p0, population: Population, model_func, o
         
         result = (result_autosomes + result_X_females + result_X_males)
         
-        #proportion of ancestry
+        
         
         
         flush_result(result_autosomes, 'Autosomes')

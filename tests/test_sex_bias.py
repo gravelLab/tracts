@@ -149,14 +149,14 @@ def model_with_multiple_populations(basic_model):
 def test_add_sex_bias_parameter(model_with_sex_bias_param):
     """Test adding different types of parameters"""
     # Test adding sex bias parameter
-    assert "bias1" in model_with_sex_bias_param.free_params
-    assert model_with_sex_bias_param.free_params["bias1"].type == ParamType.SEX_BIAS
-    assert model_with_sex_bias_param.free_params["bias1"].bounds == (-1, 1)
+    assert "bias1" in model_with_sex_bias_param.model_base_params
+    assert model_with_sex_bias_param.model_base_params["bias1"].type == ParamType.SEX_BIAS
+    assert model_with_sex_bias_param.model_base_params["bias1"].bounds == (-1, 1)
 
 def test_sex_bias_parameter_bounds(model_with_custom_bounds_sex_bias_param):
     """Test that parameters are created with correct bounds"""
     # Test custom bounds for sex bias parameter
-    assert model_with_custom_bounds_sex_bias_param.free_params["bias1"].bounds == (-0.5, 0.5)
+    assert model_with_custom_bounds_sex_bias_param.model_base_params["bias1"].bounds == (-0.5, 0.5)
 
 def test_dependent_parameter_creation(model_with_dependent_params):
     """Test creation of sex-biased dependent parameters"""
@@ -193,12 +193,12 @@ def test_population_sex_specific(model_with_population_and_sex_bias):
 def test_add_pulse_migration(model_with_pulse_migration):
     """Test adding pulse migrations with sex bias"""
     # Verify parameters were added
-    assert "rate1" in model_with_pulse_migration.free_params
-    assert "rate1_sex_bias" in model_with_pulse_migration.free_params
-    assert "time1" in model_with_pulse_migration.free_params
-    assert "founder_rate1" in model_with_pulse_migration.free_params
-    assert "founder_rate1_sex_bias" in model_with_pulse_migration.free_params
-    assert "found_time" in model_with_pulse_migration.free_params
+    assert "rate1" in model_with_pulse_migration.model_base_params
+    assert "rate1_sex_bias" in model_with_pulse_migration.model_base_params
+    assert "time1" in model_with_pulse_migration.model_base_params
+    assert "founder_rate1" in model_with_pulse_migration.model_base_params
+    assert "founder_rate1_sex_bias" in model_with_pulse_migration.model_base_params
+    assert "found_time" in model_with_pulse_migration.model_base_params
     
     # Verify dependent parameters were created
     assert "rate1_male" in model_with_pulse_migration.dependent_params
@@ -216,13 +216,13 @@ def test_add_pulse_migration(model_with_pulse_migration):
 def test_add_continuous_migration(model_with_continuous_migration):
     """Test adding continuous migrations with sex bias"""
     # Verify parameters were added
-    assert "rate1" in model_with_continuous_migration.free_params
-    assert "rate1_sex_bias" in model_with_continuous_migration.free_params
-    assert "start1" in model_with_continuous_migration.free_params
-    assert "end1" in model_with_continuous_migration.free_params
-    assert "founder_rate1" in model_with_continuous_migration.free_params
-    assert "founder_rate1_sex_bias" in model_with_continuous_migration.free_params
-    assert "found_time" in model_with_continuous_migration.free_params
+    assert "rate1" in model_with_continuous_migration.model_base_params
+    assert "rate1_sex_bias" in model_with_continuous_migration.model_base_params
+    assert "start1" in model_with_continuous_migration.model_base_params
+    assert "end1" in model_with_continuous_migration.model_base_params
+    assert "founder_rate1" in model_with_continuous_migration.model_base_params
+    assert "founder_rate1_sex_bias" in model_with_continuous_migration.model_base_params
+    assert "found_time" in model_with_continuous_migration.model_base_params
     
     # Verify dependent parameters were created
     assert "rate1_male" in model_with_continuous_migration.dependent_params
@@ -240,17 +240,17 @@ def test_add_continuous_migration(model_with_continuous_migration):
 def test_migration_parameter_creation(model_with_pulse_migration):
     """Test that sex bias parameters are created correctly for migrations"""
     # Verify sex bias parameter
-    assert "rate1_sex_bias" in model_with_pulse_migration.free_params
-    assert model_with_pulse_migration.free_params["rate1_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_pulse_migration.free_params["rate1_sex_bias"].bounds == (-1, 1)
+    assert "rate1_sex_bias" in model_with_pulse_migration.model_base_params
+    assert model_with_pulse_migration.model_base_params["rate1_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_pulse_migration.model_base_params["rate1_sex_bias"].bounds == (-1, 1)
     
     # Add continuous migration
     model_with_pulse_migration.add_continuous_migration("destination_pop", "source_pop1", "rate2", "start1", "end1")
     
     # Verify sex bias parameter
-    assert "rate2_sex_bias" in model_with_pulse_migration.free_params
-    assert model_with_pulse_migration.free_params["rate2_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_pulse_migration.free_params["rate2_sex_bias"].bounds == (-1, 1)
+    assert "rate2_sex_bias" in model_with_pulse_migration.model_base_params
+    assert model_with_pulse_migration.model_base_params["rate2_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_pulse_migration.model_base_params["rate2_sex_bias"].bounds == (-1, 1)
 
 def test_migration_execution(model_with_pulse_migration):
     """Test that migrations are executed correctly for both sexes"""
@@ -284,19 +284,19 @@ def test_migration_execution(model_with_pulse_migration):
 def test_founder_event_parameter_creation(model_with_founder_event):
     """Test that founder event parameters are created correctly with sex bias"""
     # Verify parameters were added
-    assert "founder_rate1" in model_with_founder_event.free_params
-    assert "founder_rate1_sex_bias" in model_with_founder_event.free_params
-    assert "found_time" in model_with_founder_event.free_params
+    assert "founder_rate1" in model_with_founder_event.model_base_params
+    assert "founder_rate1_sex_bias" in model_with_founder_event.model_base_params
+    assert "found_time" in model_with_founder_event.model_base_params
     
     # Verify parameter types
-    assert model_with_founder_event.free_params["founder_rate1"].type == ParamType.RATE
-    assert model_with_founder_event.free_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_founder_event.free_params["found_time"].type == ParamType.TIME
+    assert model_with_founder_event.model_base_params["founder_rate1"].type == ParamType.RATE
+    assert model_with_founder_event.model_base_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_founder_event.model_base_params["found_time"].type == ParamType.TIME
     
     # Verify parameter bounds
-    assert model_with_founder_event.free_params["founder_rate1"].bounds == (0, 1)
-    assert model_with_founder_event.free_params["founder_rate1_sex_bias"].bounds == (-1, 1)
-    assert model_with_founder_event.free_params["found_time"].bounds == (2, np.inf)
+    assert model_with_founder_event.model_base_params["founder_rate1"].bounds == (0, 1)
+    assert model_with_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1, 1)
+    assert model_with_founder_event.model_base_params["found_time"].bounds == (2, np.inf)
     
     # Verify dependent parameters were created
     assert "founder_rate1_male" in model_with_founder_event.dependent_params
@@ -305,25 +305,25 @@ def test_founder_event_parameter_creation(model_with_founder_event):
 def test_continuous_founder_event_parameter_creation(model_with_continuous_founder_event):
     """Test that founder event parameters are created correctly with sex bias"""
     # Verify parameters were added
-    assert "founder_rate1" in model_with_continuous_founder_event.free_params
-    assert "founder_rate1_sex_bias" in model_with_continuous_founder_event.free_params
-    assert "found_time" in model_with_continuous_founder_event.free_params
-    assert "end_time" in model_with_continuous_founder_event.free_params
+    assert "founder_rate1" in model_with_continuous_founder_event.model_base_params
+    assert "founder_rate1_sex_bias" in model_with_continuous_founder_event.model_base_params
+    assert "found_time" in model_with_continuous_founder_event.model_base_params
+    assert "end_time" in model_with_continuous_founder_event.model_base_params
     
     # Verify parameter types
-    assert model_with_continuous_founder_event.free_params["founder_rate1"].type == ParamType.RATE
-    assert model_with_continuous_founder_event.free_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_continuous_founder_event.free_params["founder_rate1"].type == ParamType.RATE
-    assert model_with_continuous_founder_event.free_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_continuous_founder_event.free_params["found_time"].type == ParamType.TIME
-    assert model_with_continuous_founder_event.free_params["end_time"].type == ParamType.TIME
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1"].type == ParamType.RATE
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1"].type == ParamType.RATE
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1_sex_bias"].type == ParamType.SEX_BIAS
+    assert model_with_continuous_founder_event.model_base_params["found_time"].type == ParamType.TIME
+    assert model_with_continuous_founder_event.model_base_params["end_time"].type == ParamType.TIME
     
     # Verify parameter bounds
-    assert model_with_continuous_founder_event.free_params["founder_rate1"].bounds == (0, 1)
-    assert model_with_continuous_founder_event.free_params["founder_rate1_sex_bias"].bounds == (-1, 1)
-    assert model_with_continuous_founder_event.free_params["found_time"].bounds == (2, np.inf)
-    assert model_with_continuous_founder_event.free_params["founder_rate2_sex_bias"].bounds == (-1, 1)
-    assert model_with_continuous_founder_event.free_params["end_time"].bounds == (2, np.inf)
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1"].bounds == (0, 1)
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1, 1)
+    assert model_with_continuous_founder_event.model_base_params["found_time"].bounds == (2, np.inf)
+    assert model_with_continuous_founder_event.model_base_params["founder_rate2_sex_bias"].bounds == (-1, 1)
+    assert model_with_continuous_founder_event.model_base_params["end_time"].bounds == (2, np.inf)
     # Verify dependent parameters were created
     assert "founder_rate1_male" in model_with_continuous_founder_event.dependent_params
     assert "founder_rate1_female" in model_with_continuous_founder_event.dependent_params
@@ -436,14 +436,14 @@ migrations:
         assert "dest_pop1_female" in model.founder_events
         
         # Verify parameters
-        assert "found_time" in model.free_params
-        assert "rate1" in model.free_params
-        assert "rate1_sex_bias" in model.free_params
-        assert "time1" in model.free_params
-        assert "rate2" in model.free_params
-        assert "rate2_sex_bias" in model.free_params
-        assert "start1" in model.free_params
-        assert "end1" in model.free_params
+        assert "found_time" in model.model_base_params
+        assert "rate1" in model.model_base_params
+        assert "rate1_sex_bias" in model.model_base_params
+        assert "time1" in model.model_base_params
+        assert "rate2" in model.model_base_params
+        assert "rate2_sex_bias" in model.model_base_params
+        assert "start1" in model.model_base_params
+        assert "end1" in model.model_base_params
         
         # Verify dependent parameters
         assert "rate1_male" in model.dependent_params
@@ -516,22 +516,22 @@ migrations:
         assert "dest_pop2_female" in model.founder_events
         
         # Verify parameters
-        assert "found_time1" in model.free_params
-        assert "found_time2" in model.free_params
-        assert "rate1" in model.free_params
-        assert "rate1_sex_bias" in model.free_params
-        assert "time1" in model.free_params
-        assert "rate2" in model.free_params
-        assert "rate2_sex_bias" in model.free_params
-        assert "time2" in model.free_params
-        assert "rate3" in model.free_params
-        assert "rate3_sex_bias" in model.free_params
-        assert "start1" in model.free_params
-        assert "end1" in model.free_params
-        assert "rate4" in model.free_params
-        assert "rate4_sex_bias" in model.free_params
-        assert "start2" in model.free_params
-        assert "end2" in model.free_params
+        assert "found_time1" in model.model_base_params
+        assert "found_time2" in model.model_base_params
+        assert "rate1" in model.model_base_params
+        assert "rate1_sex_bias" in model.model_base_params
+        assert "time1" in model.model_base_params
+        assert "rate2" in model.model_base_params
+        assert "rate2_sex_bias" in model.model_base_params
+        assert "time2" in model.model_base_params
+        assert "rate3" in model.model_base_params
+        assert "rate3_sex_bias" in model.model_base_params
+        assert "start1" in model.model_base_params
+        assert "end1" in model.model_base_params
+        assert "rate4" in model.model_base_params
+        assert "rate4_sex_bias" in model.model_base_params
+        assert "start2" in model.model_base_params
+        assert "end2" in model.model_base_params
         
         # Verify dependent parameters
         assert "rate1_male" in model.dependent_params
