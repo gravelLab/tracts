@@ -146,6 +146,7 @@ def run_tracts(driver_filename, script_dir=None):
     print("first start parameters = ", start_param_values[0]) 
     
     
+
     print("start ancestry_proportions:", model.proportions_from_matrices(func(start_param_values[0])))
     
     
@@ -167,7 +168,7 @@ def run_tracts(driver_filename, script_dir=None):
     print(f"Optimal Parameters:{optimal_params}")
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         print("expanded parameters:\n")
-        print([f"{float(p):.2g}" for p in model.fixed_parameter_handler.compute_dependent_params(model, optimal_params)])
+        print([f"{float(p):.2g}" for p in model.fixed_parameter_handler.compute_params_fixed_by_ancestry(model, optimal_params)])
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -261,7 +262,7 @@ def parse_individual_filenames(individual_names, filename_string, script_dir: st
 
 def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: ParametrizedDemography = None,
                        time_scaling_factor=1):
-    """outputs a 1D array of starting parameters for optimization. Only returns parameters that are not fixed by ancestry""" 
+    """outputs a 1D array of starting parameters for optimization. Returns all base_model_parameters""" 
     
     num_params = len(model.model_base_params)
     rng = numpy.random.default_rng(seed=seed)
@@ -285,10 +286,10 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
         if param_info.type == ParamType.TIME:
             start_params[:, param_info.index] *= 1 / time_scaling_factor
 
-    if model.params_fixed_by_ancestry is not None:
-        start_params = numpy.transpose(
-            [start_params[:, param_info.index] for param_name, param_info in model.model_base_params.items() if
-             param_name not in model.params_fixed_by_ancestry])
+    #if model.params_fixed_by_ancestry is not None:
+    #    start_params = numpy.transpose(
+    #        [start_params[:, param_info.index] for param_name, param_info in model.model_base_params.items() if
+    #         param_name not in model.params_fixed_by_ancestry])
     
     
     logger.info(f' Start Params: \n {start_params}')

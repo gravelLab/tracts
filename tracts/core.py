@@ -274,7 +274,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
 
 def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None, free_param_idx = None
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
     if reset_counter:
         global _counter
@@ -302,27 +302,29 @@ def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, 
     for k, v in male_data.items():
         male_data_mapped[dict(p_dict)[k]] = v
     
-    def objective_function(parameters):
+    
+
+    def objective_function(model_base_parameters):
         _out_of_bounds_val = -1e32
         global _counter
         _counter += 1
 
         def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameters]))
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in model_base_parameters]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
-                # Misc.delayed_flush(delay=flush_delay)
+                # I don't understand why this needs to be defined here. 
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            ooa = outofbounds_fun(parameters)
+            ooa = outofbounds_fun(model_base_parameters)
             if ooa < 0:
                 flush_result((ooa - 1) * _out_of_bounds_val)
                 return (ooa - 1) * _out_of_bounds_val
         else:
             eprint("No bound function defined")
 
-        matrices = model_func(parameters)
+        matrices = model_func(model_base_parameters)
         [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
         
 
@@ -360,13 +362,20 @@ def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, 
         
         return -result
     
+    def reduced_objective_function(free_parameters):
+        full_parameters = 0*p0 #use starting parameters to have the right length
+        full_parameters[free_idx] = free_parameters
+        full_parameters[fixed_by_value_idx] = fixed_values #TODO!
+        return objective_function(model_base_parameters)
+    
+    reduced_p0 = p0[free_idx]
     print('\n--------------------------------------------------------------------------------------------------')
     print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
     print('--------------------------------------------------------------------------------------------------')
     print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
     outputs = scipy.optimize.fmin_cobyla(
-        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+        reduced_objective_function, reduced_p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
     likelihood = objective_function(outputs)
 

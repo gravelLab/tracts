@@ -74,7 +74,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
 
     def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None, insert_fixed_parameters:bool = False) -> dict[str, np.ndarray]:
         """
-        Takes in a list of params equal to the length of model_base_parameters
+        Takes in a list of params equal to the length of model_base_params
         and returns a *pg* migration matrix for each population of interest
         where *p* is the number of incoming populations and *g* is the number of generations.
         If one of the parameters (time or migration) is incorrect, returns an empty matrix.
@@ -88,7 +88,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         
         if solve_using_known_proportions:
             self.logger.info(f'Generating migration matrix.')
-            params = self.fixed_parameter_handler.compute_dependent_params(self, params)
+            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(self, params)
         if self.finalized is not True:
             self.finalize()
 

@@ -271,7 +271,7 @@ class BaseParametrizedDemography(ABC):
             violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
             if violation_score < 0:
                 return violation_score
-            params = self.fixed_parameter_handler.compute_dependent_params(self, params)
+            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(self, params)
         self.logger.info(f'Running bounds check.')
         violation_score = min(self.check_bounds(params), self.check_constraints(params))
         if violation_score < 0:
@@ -533,14 +533,14 @@ class FixedParametersHandler:
         return diff
 
     
-    def compute_dependent_params(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
+    def compute_params_fixed_by_ancestry(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
         if not self.has_been_fixed and len(params) != len(demography.model_base_params):
             raise Exception("The demography has not been fixed yet.")
         if known_ancestry_proportions==None:
             known_ancestry_proportions=self.known_ancestry_proportions
 
         self.logger.info(f'Params before fixed-ancestry solving: {params}')
-        if len(params) == len(demography.model_base_params):
+        if len(params) == len(demography.model_base_params): # Check if you are already satsifying the proportions
             full_params = params
             migration_matrices = demography.get_migration_matrices(full_params, solve_using_known_proportions=False)
             calculated_proportions = demography.proportions_from_matrices(migration_matrices)
