@@ -274,7 +274,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
 
 def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None, free_param_idx = None
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None, free_param_idx = None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
     if reset_counter:
         global _counter
