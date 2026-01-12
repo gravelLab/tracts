@@ -273,8 +273,8 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     return outputs, likelihood
 
 
-def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None, free_param_idx = None,
+def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, fixed_parameter_handler, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, 
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
     if reset_counter:
         global _counter
@@ -362,11 +362,19 @@ def optimize_cob_sex_biased_fixedvalues(p0, population: Population, model_func, 
         
         return -result
     
+    free_idx = fixed_parameter_handler.get_free_parameter_indices()
+    fixed_by_value_idx, fixed_values = fixed_parameter_handler.get_fixed_by_value_indices_values()
+    
+
+
+
+
     def reduced_objective_function(free_parameters):
         full_parameters = 0*p0 #use starting parameters to have the right length
         full_parameters[free_idx] = free_parameters
-        full_parameters[fixed_by_value_idx] = fixed_values #TODO!
-        return objective_function(model_base_parameters)
+        full_parameters[fixed_by_value_idx] = fixed_values 
+        full_parameters = fixed_parameter_handler.compute_params_fixed_by_ancestry(full_parameters) 
+        return objective_function(full_parameters)
     
     reduced_p0 = p0[free_idx]
     print('\n--------------------------------------------------------------------------------------------------')

@@ -88,7 +88,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         
         if solve_using_known_proportions:
             self.logger.info(f'Generating migration matrix.')
-            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(self, params)
+            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(params)
         if self.finalized is not True:
             self.finalize()
 

@@ -41,7 +41,7 @@ def test_ancestry_fixing_single_population():
     }
     
     # Fix the founding rate parameter using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions
@@ -119,7 +119,7 @@ def test_ancestry_fixing_multiple_populations():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
@@ -203,7 +203,7 @@ def test_ancestry_fixing_three_founders():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
@@ -289,7 +289,7 @@ def test_ancestry_fixing_two_samples_three_founders():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1_pop1", "founder_rate2_pop1", "founder_rate1_pop2", "founder_rate2_pop2"],
         proportions=sample_proportions
@@ -385,7 +385,7 @@ def test_ancestry_fixing_with_pulse_migration():
     }
     
     # Fix the founding rate parameter using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions
@@ -467,7 +467,7 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     }
     
     # Fix the founding rate parameter and pulse rate using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["pulse_rate"],
         proportions=sample_proportions
@@ -543,7 +543,7 @@ def test_ancestry_fixing_sex_biased():
     }
     
     # Fix the founding rate and sex-bias parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
         proportions=sample_proportions
@@ -637,7 +637,7 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     }
     
     # Fix the founding rate and sex-bias parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
         proportions=sample_proportions
@@ -718,7 +718,7 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     }
     
     # Fix the pulse rate and sex-bias parameters using the sample proportions
-    model.set_up_fixed_ancestry_proportions(
+    model.set_up_fixed_parameters(
         params_to_fix_by_ancestry=["pulse_rate", "pulse_rate_sex_bias"],
         proportions=sample_proportions
     )
@@ -805,7 +805,7 @@ def test_parameter_fixing_single_population():
     params_to_fix_by_value = {"found_time":10}
 
     # Fix the founding rate parameter using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions, params_to_fix_by_value = params_to_fix_by_value
@@ -883,7 +883,7 @@ def test_ancestry_fixing_multiple_populations():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_ancestry_proportions(
+    model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
