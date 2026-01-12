@@ -81,7 +81,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         """
         if solve_using_known_proportions is None: # If unspecified, determine from class state
             solve_using_known_proportions = self.fixed_parameter_handler.has_been_fixed
-        if insert_fixed_parameters and len(self.fixed_parameter_handler.params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
+        if insert_fixed_parameters and len(self.fixed_parameter_handler.user_params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
             
             params = self.fixed_parameter_handler.insert_fixed_params( model_base_params=self.model_base_params, 
                                                                         fixed_params=self.fixed_parameter_values, params_to_optimize=params)

@@ -140,7 +140,7 @@ class BaseParametrizedDemography(ABC):
     
     @property
     def params_fixed_by_value(self):
-        return self.fixed_parameter_handler.params_fixed_by_value
+        return self.fixed_parameter_handler.user_params_fixed_by_value
     @property
     def has_been_fixed(self):
         return self.fixed_parameter_handler.has_been_fixed
@@ -439,7 +439,7 @@ class BaseParametrizedDemography(ABC):
     def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
                                           params_to_fix_by_value:dict[str:float]={}):
         self.fixed_parameter_handler.set_up_fixed_parameters(demography = self, params_to_fix_by_ancestry=params_to_fix_by_ancestry, 
-                                                                       proportions=proportions, params_to_fix_by_value=params_to_fix_by_value)
+                                                                       proportions=proportions, user_params_to_fix_by_value=params_to_fix_by_value)
 
                                           
     @abstractmethod
@@ -466,15 +466,25 @@ class FixedParametersHandler:
         self.params_fixed_by_ancestry = {}
         self.known_ancestry_proportions: dict[str, list[float]] = None
         self.reduced_constraints =[]
-        self.params_fixed_by_value = {}
+        self.user_params_fixed_by_value = {}
         self.demography = None
 
     @property
     def has_been_fixed(self):
         return self.known_ancestry_proportions is not None
 
+
+    def order_fixed_param_dict(self, fixed_params_dict: dict[str: float]):
+    
+        return {param_name: fixed_params_dict[param_name] for param_name in self.demography.model_base_params if
+                                         param_name in fixed_params_dict}
+    def get_sorted_indices(self, param_list):
+        """Gives the list of indices as they appear in model_base_params""" 
+        return [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name in param_list]
+
     def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
-                                          params_to_fix_by_value:dict[str:float]={}
+                                          user_params_to_fix_by_value:dict[str:float]={}
                                           ):
         """
         Tells the model to calculate certain rate parameters based on the known
@@ -484,18 +494,19 @@ class FixedParametersHandler:
         """
 
         self.demography = demography
-        self.params_fixed_by_value = {param_name: params_to_fix_by_value[param_name] for param_name in demography.model_base_params if
-                                         param_name in params_to_fix_by_value}
-        self.params_fixed_by_value_indices = [index for index, param_name in enumerate(demography.model_base_params) if
-                                         param_name in params_to_fix_by_value]
-        self.params_fixed_by_values_values = [value for _, value in self.params_fixed_by_value.items()]
+        self.user_params_fixed_by_value = self.order_fixed_param_dict(user_params_to_fix_by_value)
         
-        self.free_parameters_indices = [index for index, param_name in enumerate(demography.model_base_params) if
-                                         param_name not in params_to_fix_by_value and param_name not in params_to_fix_by_ancestry]
+        self.current_fixed_parameters = self.user_params_fixed_by_value.copy()
+        self.params_fixed_by_value_indices = list(self.get_sorted_indices(user_params_to_fix_by_value.keys()))
+
+        self.params_fixed_by_values_values =list(self.user_params_fixed_by_value.values())
+        
+        self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name not in user_params_to_fix_by_value and param_name not in params_to_fix_by_ancestry]
         
 
-        self.demography.fixed_parameter_values = {params_to_fix_by_value[param_name] for param_name in demography.model_base_params if
-                                         param_name in params_to_fix_by_value} # Store value in the demography object 
+        self.demography.fixed_parameter_values = {user_params_to_fix_by_value[param_name] for param_name in demography.model_base_params if
+                                         param_name in user_params_to_fix_by_value} # Store value in the demography object 
                                                                                # --these should not change     
         
         if len(params_to_fix_by_ancestry)!= 0 and not (self.demography.proportions_from_matrices_return_keys() == proportions.keys()):
@@ -531,12 +542,53 @@ class FixedParametersHandler:
         self.reduced_constraints = [constraint for constraint in self.demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
     
-    def get_fixed_by_value_indices_values(self):
-        return (self.params_fixed_by_value_indices, self.params_fixed_by_values_values)
+    #def get_fixed_by_value_indices_values(self):
+    #    return (list(self.params_fixed_by_value_indices), list(self.params_fixed_by_values_values))
     
-    def get_free_parameter_indices(self): 
-        return self.free_parameters_indices
+    #def get_free_parameter_indices(self): 
+    #    return self.free_parameters_indices
+    
+    def extend_parameters(self,free_parameters):
+        """takes in the core paramters for the demography and extends them to include the fixed parameters."""
+        full_parameters = np.zeros(len(self.demography.model_base_params))
+        full_parameters[self.free_parameters_indices] = free_parameters
+        full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
+        return self.compute_params_fixed_by_ancestry(full_parameters) 
 
+    def indices_to_labels(self, indices: list[int]):
+        """Takes in a list of indices and returns the corresponding parameter names."""
+        
+        keys = list(self.demography.model_base_params.keys())
+        return [keys[i] for i in indices]
+    
+
+    def reduce_parameters(self, full_parameters):
+        """Takes in the full set of parameters for the demography and reduces them to only the free parameters."""
+        return full_parameters[self.free_parameters_indices]
+
+    def add_fixed_parameters(self, new_fixed_params: dict[str: float]):
+        intersection = set(new_fixed_params.keys()).intersection(set(self.user_params_fixed_by_value.keys()))
+        assert not intersection, f'Parameters {intersection} are already fixed by value.' 
+        self.current_fixed_parameters.update(new_fixed_params)
+        self.current_fixed_parameters = self.order_fixed_param_dict(self.current_fixed_parameters)
+        self.params_fixed_by_value_indices = self.get_sorted_indices(self.current_fixed_parameters.keys())
+
+        self.params_fixed_by_values_values =self.current_fixed_parameters.values()
+        
+        self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]
+        
+    
+    def release_fixed_parameters(self, freed_params: list[str]):
+        self.current_fixed_parameters = {param_name: value for param_name, value in self.current_fixed_parameters.items() if param_name not in freed_params}
+
+        self.params_fixed_by_value_indices = self.get_sorted_indices(self.current_fixed_parameters.keys())
+
+        self.params_fixed_by_values_values =self.current_fixed_parameters.values()
+        
+        self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]
+        
 
     def full_params_objective_func(self, parameters):
         
@@ -621,6 +673,8 @@ class FixedParametersHandler:
                     f'\nNumber of fixed parameters: {len(self.params_fixed_by_ancestry)}'
                 )
 
+    
+
     def insert_fixed_params(self, model_base_params: dict[str, Parameter], params_to_optimize: list[float], fixed_params: list[float]):
         '''
         Used for merging the parameters fixed parameters. This could be refactored with insert solved parameters
@@ -641,7 +695,7 @@ class FixedParametersHandler:
 
         iter_params = iter(params_to_optimize)
         iter_fixed_params = iter(fixed_params)
-        params_to_optimize = [next(iter_fixed_params) if (param_name in self.params_fixed_by_value) else next(iter_params)  
+        params_to_optimize = [next(iter_fixed_params) if (param_name in self.user_params_fixed_by_value) else next(iter_params)  
                       for param_name in model_base_params if param_name not in self.params_fixed_by_ancestry ]
         return params_to_optimize
         

@@ -11,6 +11,7 @@ from tracts.demography.composite_demographic_model import CompositeDemographicMo
 from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.population import Population
 from tracts.util import eprint
+from tracts.demography.parameter import ParamType
 
 #: Counts calls to object_func
 _counter = 0
@@ -303,8 +304,15 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         male_data_mapped[dict(p_dict)[k]] = v
     
     
+    free_sex_bias_parameters = {param:0 for param, value in fixed_parameter_handler.demography.model_base_params.items() if 
+                                (value.type == ParamType.SEX_BIAS) and 
+                                (param not in fixed_parameter_handler.user_params_fixed_by_value) and 
+                                (param not in fixed_parameter_handler.params_fixed_by_ancestry)}
 
-    def objective_function(model_base_parameters):
+    fixed_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
+    
+
+    def objective_function(model_base_parameters, include_allosomes = True):
         _out_of_bounds_val = -1e32
         global _counter
         _counter += 1
@@ -339,55 +347,80 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         else:
             result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
         
-        # Model for allosomes
-        if ad_model_allosomes == 'H-DC':
-            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
-        elif ad_model_allosomes == 'H-DF':
-            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+        if include_allosomes:
+            # Model for allosomes
+            if ad_model_allosomes == 'H-DC':
+                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+            elif ad_model_allosomes == 'H-DF':
+                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+            else:
+                result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+                result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        
+            result = (result_autosomes + result_X_females + result_X_males)
+            flush_result(result_X_females, 'Female allosomes')
+            flush_result(result_X_males, 'Male allosomes')
         else:
-            result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
-            result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
-        
-        result = (result_autosomes + result_X_females + result_X_males)
-        
-        
+            result = result_autosomes
         
         
         flush_result(result_autosomes, 'Autosomes')
-        flush_result(result_X_females, 'Female allosomes')
-        flush_result(result_X_males, 'Male allosomes')
+        
         
         
         return -result
     
-    free_idx = fixed_parameter_handler.get_free_parameter_indices()
-    fixed_by_value_idx, fixed_values = fixed_parameter_handler.get_fixed_by_value_indices_values()
+
     
 
 
 
 
-    def reduced_objective_function(free_parameters):
-        full_parameters = 0*p0 #use starting parameters to have the right length
-        full_parameters[free_idx] = free_parameters
-        full_parameters[fixed_by_value_idx] = fixed_values 
-        full_parameters = fixed_parameter_handler.compute_params_fixed_by_ancestry(full_parameters) 
-        return objective_function(full_parameters)
-    
-    reduced_p0 = p0[free_idx]
+    def reduced_objective_function(free_parameters, include_allosomes = True):
+        
+        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters), include_allosomes=include_allosomes)
+  
+    def reduced_outofbounds_fun(free_parameters):
+        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters))
+
+    reduced_p0 = fixed_parameter_handler.reduce_parameters(p0)
+
     print('\n--------------------------------------------------------------------------------------------------')
     print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
     print('--------------------------------------------------------------------------------------------------')
     print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
-    outputs = scipy.optimize.fmin_cobyla(
-        reduced_objective_function, reduced_p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
     
-    likelihood = objective_function(outputs)
+    outputs = scipy.optimize.fmin_cobyla(
+        reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    
+    optimized_parameters = fixed_parameter_handler.extend_parameters(outputs)
 
-    return outputs, likelihood
+
+    new_fixed_parameters_names = fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)
+    new_fixed_values = optimized_parameters[fixed_parameter_handler.free_parameters_indices]
+    new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
+
+    fixed_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
+
+
+    fixed_parameter_handler.add_fixed_parameters(new_fixed_parameters)
+    reduced_params = fixed_parameter_handler.reduce_parameters(optimized_parameters)
+    
+    reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = True)
+    outputs = scipy.optimize.fmin_cobyla(
+        reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+
+
+
+
+    likelihood = reduced_objective_function(outputs)
+    return fixed_parameter_handler.extend_parameters(outputs), likelihood
+
+    
 
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, bounds=None, verbose=0,

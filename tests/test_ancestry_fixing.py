@@ -808,7 +808,7 @@ def test_parameter_fixing_single_population():
     model.fixed_parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
-        proportions=sample_proportions, params_to_fix_by_value = params_to_fix_by_value
+        proportions=sample_proportions, user_params_to_fix_by_value = params_to_fix_by_value
     )
     
     # Verify that the model has been fixed
