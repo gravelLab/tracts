@@ -72,23 +72,24 @@ class ParametrizedDemography(BaseParametrizedDemography):
             for event in events:
                 event.execute(self, migration_matrices[population], params)
 
-    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool | None = None, insert_fixed_parameters:bool = False) -> dict[str, np.ndarray]:
+    def get_migration_matrices(self, params: list[float]) -> dict[str, np.ndarray]:
         """
         Takes in a list of params equal to the length of model_base_params
         and returns a *pg* migration matrix for each population of interest
         where *p* is the number of incoming populations and *g* is the number of generations.
         If one of the parameters (time or migration) is incorrect, returns an empty matrix.
         """
-        if solve_using_known_proportions is None: # If unspecified, determine from class state
-            solve_using_known_proportions = self.fixed_parameter_handler.has_been_fixed
-        if insert_fixed_parameters and len(self.fixed_parameter_handler.user_params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
-            
-            params = self.fixed_parameter_handler.insert_fixed_params( model_base_params=self.model_base_params, 
-                                                                        fixed_params=self.fixed_parameter_values, params_to_optimize=params)
-        
-        if solve_using_known_proportions:
-            self.logger.info(f'Generating migration matrix.')
-            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(params)
+        #This is old code that handled parameter fixing within this function. Now, parameter fixing is handled externally.
+        #if solve_using_known_proportions is None: # If unspecified, determine from class state
+        #    solve_using_known_proportions = self.fixed_parameter_handler.has_been_fixed
+        #if insert_fixed_parameters and len(self.fixed_parameter_handler.user_params_fixed_by_value)>0: #insert fixed parameters. This happens before we fix parameters by ancestry
+        #    
+        #    params = self.fixed_parameter_handler.insert_fixed_params( model_base_params=self.model_base_params, 
+        #                                                                fixed_params=self.fixed_parameter_values, params_to_optimize=params)
+        #
+        #if solve_using_known_proportions:
+        #    self.logger.info(f'Generating migration matrix.')
+        #    params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(params)
         if self.finalized is not True:
             self.finalize()
 
