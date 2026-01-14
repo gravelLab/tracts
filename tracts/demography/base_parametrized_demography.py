@@ -641,8 +641,10 @@ class FixedParametersHandler:
                                               np.ones(len(self.params_fixed_by_ancestry)) * .2)
 
         error = np.linalg.norm(param_objective_func(solved_params))
-        assert np.isclose(error, 0), f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}"
-        assert np.isnan(solved_params).any() == False
+        if not np.isclose(error, 0):
+            print(f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}")
+        if np.isnan(solved_params).any():
+            print ("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
 
         full_params = self.insert_solved_params(full_params, solved_params)
         

@@ -149,8 +149,10 @@ def run_tracts(driver_filename, script_dir=None):
     
     
     
-    print("start ancestry_proportions:", model.proportions_from_matrices(func(start_param_values[0])))
-    
+    try: 
+        print("start ancestry_proportions:", model.proportions_from_matrices(func(start_param_values[0])))
+    except ValueError:
+        print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
     
     
     if bound(start_param_values[0])<0:
