@@ -51,8 +51,8 @@ def test_ancestry_fixing_single_population():
     assert model.fixed_parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rate is fixed)
-    test_params = [10]  # Only the founding time
-    
+    test_free_params = [10]  # Only the founding time
+    test_params = [0,10] #the first parameter should be rewritten
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
     
@@ -78,6 +78,82 @@ def test_ancestry_fixing_single_population():
     # Verify that the sum of proportions is 1
     assert np.isclose(final_proportions.sum(), 1.0)
 
+
+def test_ancestry_fixing_single_population_with_fixed_param():
+    """
+    Test the ancestry fixing functionality for a single population with two founders.
+    
+    This test:
+    1. Creates a model with two founders and no other events
+    2. Sets up sample proportions
+    3. Fixes the founding rate parameter using the sample proportions
+    4. Verifies that the model can take in only a founding time value and output a migration matrix
+    5. Verifies that the resulting rate parameter matches the sample proportions
+    6. Verifies that the final proportions of the matrix match the sample proportions
+    """
+    # Create a model with two founders
+    model = ParametrizedDemography(name="TestModel")
+    
+    # Add a founder event with two source populations
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time"
+    )
+    
+    # Finalize the model
+    model.finalize()
+    
+    # Define sample proportions (70% from source_pop1, 30% from source_pop2)
+    sample_proportions = {
+        "target_pop": [0.7, 0.3]  # [source_pop1, source_pop2]
+    }
+    
+    # Fix the start time
+    fixed_time =10
+    fixed_params = {"found_time": fixed_time}
+    # Fix the founding rate parameter using the sample proportions
+    
+    
+    model.fixed_parameter_handler.set_up_fixed_parameters(
+        demography=model,
+        params_to_fix_by_ancestry=["founder_rate1"],
+        user_params_to_fix_by_value=fixed_params,
+        proportions=sample_proportions
+    )
+    
+    # Verify that the model has been fixed
+    assert model.fixed_parameter_handler.has_been_fixed
+    
+    # There are no free parameters !
+    test_free_params = []  # Only the founding time
+    
+    test_params = [0, fixed_time + 5] # these values should be rewritten!
+    # Get the migration matrices
+    migration_matrices = model.get_migration_matrices(test_params)
+    
+    # Verify that we got a migration matrix for the target population
+    assert "target_pop" in migration_matrices
+    
+    # Get the matrix for the target population
+    matrix = migration_matrices["target_pop"]
+    
+    # Verify the matrix dimensions
+    assert matrix.shape[0] == 11  # found_time + 1
+    assert matrix.shape[1] == 2  # two source populations
+    
+    # Verify that the founder rates match the sample proportions
+    assert np.isclose(matrix[10, 0], 0.7)  # source_pop1 proportion at founding time
+    assert np.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
+    
+    # Verify that the final proportions match the sample proportions
+    final_proportions = model.proportions_from_matrix(matrix)
+    assert np.isclose(final_proportions[0], 0.7)  # source_pop1 proportion
+    assert np.isclose(final_proportions[1], 0.3)  # source_pop2 proportion
+    
+    # Verify that the sum of proportions is 1
+    assert np.isclose(final_proportions.sum(), 1.0)
 
 def test_ancestry_fixing_multiple_populations():
     """
@@ -343,6 +419,13 @@ def test_ancestry_fixing_two_samples_three_founders():
     # Verify that the sum of proportions is 1 for each population
     assert np.isclose(final_proportions1.sum(), 1.0)
     assert np.isclose(final_proportions2.sum(), 1.0)
+
+
+
+
+
+
+
 
 
 def test_ancestry_fixing_with_pulse_migration():

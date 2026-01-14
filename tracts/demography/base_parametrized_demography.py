@@ -234,13 +234,13 @@ class BaseParametrizedDemography(ABC):
         return self.get_param_value(time_param_name, params), self.population_indices[population_name]
 
     def is_time_param(self):
-        if not self.fixed_parameter_handler.has_been_fixed:
-            return [param.type == ParamType.TIME for param in self.model_base_params.values()]
-        time_param_list = []
-        for param_name, param in self.model_base_params.items():
-            if param_name not in self.fixed_parameter_handler.params_fixed_by_ancestry:
-                time_param_list.append(param.type == ParamType.TIME)
-        return time_param_list
+        #if not self.fixed_parameter_handler.has_been_fixed:
+        return [param.type == ParamType.TIME for param in self.model_base_params.values()]
+        #time_param_list = []
+        #for param_name, param in self.model_base_params.items():
+        #   if param_name not in self.fixed_parameter_handler.params_fixed_by_ancestry:
+        #        time_param_list.append(param.type == ParamType.TIME)
+        #return time_param_list
 
     def get_param_value(self, param_name: str, params: list[float]):
         """
@@ -619,6 +619,7 @@ class FixedParametersHandler:
                         for sample_pop in known_ancestry_proportions.keys()]):
                 return full_params
         else:#TODO: Not necessary
+            raise ValueError("The provided params must be the full set of demography parameters when computing parameters fixed by ancestry proportions.") 
             full_params = params.copy()
 
 
