@@ -175,6 +175,7 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
 def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
+    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
     if reset_counter:
         global _counter
         _counter = 0
@@ -277,6 +278,9 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, fixed_parameter_handler, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, 
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
+    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
+
+    
     if reset_counter:
         global _counter
         _counter = 0
@@ -313,6 +317,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     
 
     def objective_function(model_base_parameters, include_allosomes = True):
+        """parameters are in optimizer space"""
         _out_of_bounds_val = -1e32
         global _counter
         _counter += 1
@@ -377,13 +382,13 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
 
 
-
-    def reduced_objective_function(free_parameters, include_allosomes = True):
+    
+    def reduced_objective_function(free_parameters_opt, include_allosomes = True):
         
-        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters), include_allosomes=include_allosomes)
+        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt), include_allosomes=include_allosomes)#full parameters in optimier space
   
-    def reduced_outofbounds_fun(free_parameters):
-        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters))
+    def reduced_outofbounds_fun(free_parameters_opt):
+        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt)) #full parameters in optimier space
 
     reduced_p0 = fixed_parameter_handler.reduce_parameters(p0)
 

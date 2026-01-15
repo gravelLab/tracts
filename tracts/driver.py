@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Callable
-import numpy
+import numpy as np
 import ruamel.yaml
 import matplotlib.pyplot as plt
 import warnings
@@ -134,6 +134,12 @@ def run_tracts(driver_filename, script_dir=None):
     
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
+
+    #The following should be moved to core.py or demography.py 
+    time_scaling_function = lambda x:time_scaling_factor * x # This converts from optimizer units to physical units
+    scaling_functions = {ParamType.TIME: time_scaling_function} 
+    model.fixed_parameter_handler.scaling_functions = scaling_functions
+
     if type(driver_spec['start_params']) is not dict:
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
     
@@ -144,7 +150,12 @@ def run_tracts(driver_filename, script_dir=None):
     print("Model parameters\n",[param_name for param_name in model.model_base_params.keys()])
 
     start_param_values = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
-                                      driver_spec['seed'], model, time_scaling_factor)
+                                      driver_spec['seed'], model, time_scaling_factor) #parameters are in optimization units
+    
+    #TODO: the following should be removed or moved to testing
+    assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
+                                           model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
+    
     print("first start parameters = ", start_param_values[0]) 
     
     
@@ -158,6 +169,9 @@ def run_tracts(driver_filename, script_dir=None):
     if bound(start_param_values[0])<0:
         print("Warning, starting parameters are out of bounds.")
     
+
+
+
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
                                                         start_param_values,
                                                         population_dict=pop_dict,
@@ -173,7 +187,7 @@ def run_tracts(driver_filename, script_dir=None):
     print(f"Optimal Parameters:{optimal_params}")
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         print("expanded parameters:\n")
-        print([f"{float(p):.2g}" for p in model.fixed_parameter_handler.compute_dependent_params(model, optimal_params)])
+        print([f"{float(p):.2g}" for p in optimal_params])
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -270,7 +284,7 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
     """outputs a 1D array of starting parameters for optimization. Returns all base_model_parameters""" 
     
     num_params = len(model.model_base_params)
-    rng = numpy.random.default_rng(seed=seed)
+    rng = np.random.default_rng(seed=seed)
     start_params = rng.random((repetitions, num_params))
     for param_name, param_info in model.model_base_params.items():
         if param_name in model.params_fixed_by_ancestry:
@@ -289,10 +303,10 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
             except Exception as e:
                 raise ValueError("Initial values must be specified as min:max or a single value.") from e
         if param_info.type == ParamType.TIME:
-            start_params[:, param_info.index] *= 1 / time_scaling_factor
+            start_params[:, param_info.index] *= 1 / time_scaling_factor #TODO: This should be generalized to other scaling functions.
 
     #if model.params_fixed_by_ancestry is not None:
-    #    start_params = numpy.transpose(
+    #    start_params = np.transpose(
     #        [start_params[:, param_info.index] for param_name, param_info in model.model_base_params.items() if
     #         param_name not in model.params_fixed_by_ancestry])
     
@@ -305,10 +319,10 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
     if len(indices_to_scale) != len(arr):
         raise ValueError(
             f'Length of array ({len(arr)}) was not equal to length of indices_to_scale ({len(indices_to_scale)}).')
-    return (numpy.multiply(indices_to_scale, scaling_factor - 1) + 1) * arr
+    return (np.multiply(indices_to_scale, scaling_factor - 1) + 1) * arr
 
 
-def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[numpy.ndarray], dict[str, numpy.ndarray]]:
+def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[np.ndarray], dict[str, np.ndarray]]:
     return lambda params: model.get_migration_matrices(
         scale_select_indices(params, model.is_time_param(), time_scaling_factor))
 
@@ -320,14 +334,14 @@ def get_time_scaled_model_bounds(model, time_scaling_factor):
 def randomize(arr, a, b):
     # takes an array and multiplies every element by a factor between a and b,
     # uniformly.
-    return ((b - a) * numpy.random.random(arr.shape) + a) * arr
+    return ((b - a) * np.random.random(arr.shape) + a) * arr
 
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[numpy.ndarray], population_dict : dict, fixed_parameter_handler = None , 
+                          start_params_list: list[np.ndarray], population_dict : dict, fixed_parameter_handler = None , 
                           max_iter: int=None, exclude_tracts_below_cM: int = 0, 
                           modelling_method: type = PhTMonoecious, ad_model_autosomes = 'DC', 
-                          ad_model_allosomes = 'DC', npts: int = 50) -> tuple[list[numpy.ndarray], list[float]]:
+                          ad_model_allosomes = 'DC', npts: int = 50) -> tuple[list[np.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -342,7 +356,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    The population object containing individual data.
         population_labels: list[str]
     	    A list of labels corresponding to the populations.	
-        start_params_list: list[numpy.ndarray]
+        start_params_list: list[np.ndarray]
     	    A list of initial parameter arrays to start the optimization.	
         exclude_tracts_below_cM: int, optional
     	    Minimum tract length in centimorgans to exclude from analysis. Default is 0.
@@ -354,7 +368,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     Returns
     ----------
     
-    tuple[list[numpy.ndarray], list[float]]
+    tuple[list[np.ndarray], list[float]]
     	A tuple containing two lists: (i) a list of optimal parameters found for each set of starting parameters and (ii) a list of likelihoods corresponding to the optimal parameters.
     """
     optimal_params = []
@@ -435,7 +449,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         for popnum in range(len(data)):
             fpred2.write("\t".join(map(
                 str,
-                nind * numpy.array(optimal_model.tract_length_histogram_multi_windowed(popnum, bins, Ls))))
+                nind * np.array(optimal_model.tract_length_histogram_multi_windowed(popnum, bins, Ls))))
                          + "\n")
 
     with open(output_dir + output_filename_format.format(label='optimal_parameters'), 'w') as fpars2:
@@ -452,7 +466,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         axes.bar(
             bins[:-1],
             data[pop],
-            width=numpy.diff(bins),
+            width=np.diff(bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -461,7 +475,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         )
         axes.plot(
             0.5 * (bins[:-1] + bins[1:]),
-            nind * numpy.array(optimal_model.tract_length_histogram_multi_windowed(pop_num, bins, Ls)),
+            nind * np.array(optimal_model.tract_length_histogram_multi_windowed(pop_num, bins, Ls)),
             color='tab:orange',
             lw=2,
             label="Predicted"
@@ -547,21 +561,21 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
             try:
                 fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
             except KeyError:
-                autosome_data[population] = numpy.zeros(len(autosome_bins)).tolist()
+                autosome_data[population] = np.zeros(len(autosome_bins)).tolist()
                 print(f'Population {population} not found in autosome data.')
     with open(output_dir + output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
             try:
                 fdat.write("\t".join(map(str, female_data[population])) + "\n")
             except KeyError:
-                female_data[population] = numpy.zeros(len(allosome_bins)).tolist()
+                female_data[population] = np.zeros(len(allosome_bins)).tolist()
                 print(f'Population {population} not found in female allosome data.')
     with open(output_dir + output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
             try:
                 fdat.write("\t".join(map(str, male_data[population])) + "\n")
             except KeyError:
-                male_data[population] = numpy.zeros(len(allosome_bins)).tolist()
+                male_data[population] = np.zeros(len(allosome_bins)).tolist()
                 print(f'Population {population} not found in male allosome data.')
             
     with open(output_dir + output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
@@ -610,7 +624,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[0].bar(
             autosome_bins[:-1],
             autosome_data[pop],
-            width=numpy.diff(autosome_bins),
+            width=np.diff(autosome_bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -642,7 +656,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[1].bar(
             allosome_bins[:-1],
             male_data[pop],
-            width=numpy.diff(allosome_bins),
+            width=np.diff(allosome_bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -674,7 +688,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[2].bar(
             allosome_bins[:-1],
             female_data[pop],
-            width=numpy.diff(allosome_bins),
+            width=np.diff(allosome_bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',

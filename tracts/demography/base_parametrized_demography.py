@@ -45,6 +45,8 @@ class FounderEvent(BaseFounderEvent):
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
         true_start_time = parametrized_demography.get_param_value(self.found_time, params)
         start_time = math.ceil(true_start_time) # a discretized value to create a matrix that can include the event.  
+        assert true_start_time >= 1, f'Founder event time must be at least 1 generation ago. current start time is {true_start_time}. If this happens at start of simulation, it may be a problem with parameter scaling. '
+        
         frac_part_start = start_time - true_start_time
         
         migration_matrix = np.zeros((start_time + 1, len(parametrized_demography.population_indices)))
@@ -468,6 +470,7 @@ class FixedParametersHandler:
         self.reduced_constraints =[]
         self.user_params_fixed_by_value = {}
         self.demography = None
+        self.scaling_functions = {}
 
     @property
     def has_been_fixed(self):
@@ -480,8 +483,24 @@ class FixedParametersHandler:
                                          param_name in fixed_params_dict}
     def get_sorted_indices(self, param_list):
         """Gives the list of indices as they appear in model_base_params""" 
-        return [index for index, param_name in enumerate(self.demography.model_base_params) if
-                                         param_name in param_list]
+        return np.array([index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name in param_list], dtype=int)
+
+    def convert_to_physical_params(self, optimizer_params):
+        """converts optimizer parameters from optimization units to physical units, for example log-scaling rates.
+        Right now only scaling times by a factor 100. Much better would be to use log scaling, etc. 
+        scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
+        assert optimizer_params.ndim == 1
+        converted_params = optimizer_params.copy()
+        for index in range(len(optimizer_params)):
+            param_name = list(self.demography.model_base_params.keys())[index]
+            param_type = self.demography.model_base_params[param_name].type
+            
+
+            if param_type in self.scaling_functions.keys():
+                converted_params[index] = self.scaling_functions[param_type](converted_params[index])
+
+        return converted_params
 
     def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
                                           user_params_to_fix_by_value:dict[str:float]={}
@@ -497,8 +516,8 @@ class FixedParametersHandler:
         self.user_params_fixed_by_value = self.order_fixed_param_dict(user_params_to_fix_by_value)
         
         self.current_fixed_parameters = self.user_params_fixed_by_value.copy()
-        self.params_fixed_by_value_indices = list(self.get_sorted_indices(user_params_to_fix_by_value.keys()))  
-        self.params_fixed_by_ancestry_indices = list(self.get_sorted_indices(params_to_fix_by_ancestry))
+        self.params_fixed_by_value_indices = self.get_sorted_indices(user_params_to_fix_by_value.keys())  
+        self.params_fixed_by_ancestry_indices = self.get_sorted_indices(params_to_fix_by_ancestry)
 
 
         self.params_fixed_by_values_values =list(self.user_params_fixed_by_value.values())
@@ -551,7 +570,9 @@ class FixedParametersHandler:
     #    return self.free_parameters_indices
     
     def extend_parameters(self, free_parameters, prior_full_parameters = None):
-        """takes in the core paramters for the demography and extends them to include the fixed parameters."""
+        """takes in the core paramters for the demography and extends them to include the fixed parameters.
+        free_parameters are in optimization space. Output is in optimization space
+        """
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
         full_parameters[self.free_parameters_indices] = free_parameters
         full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
@@ -616,9 +637,9 @@ class FixedParametersHandler:
         assert (len(params) == len(self.demography.model_base_params))
         # Check if you are already satsifying the proportions
         full_params = params
-        migration_matrices = self.demography.get_migration_matrices(full_params)
+        migration_matrices = self.demography.get_migration_matrices(self.convert_to_physical_params(full_params))
         try:
-            calculated_proportions = self.demography.proportions_from_matrices(migration_matrices)
+            calculated_proportions = self.demography.proportions_from_matrices(migration_matrices)  
             if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
                 return full_params
@@ -634,7 +655,9 @@ class FixedParametersHandler:
             nonlocal full_params
             params_to_solve[np.isnan(params_to_solve)] = 0
             full_params = self.insert_solved_params(full_params, params_to_solve)
-            
+            try: value = self.full_params_objective_func(full_params)
+            except ValueError as e:
+                raise ValueError(f"problem computing migration matrices with parameters {full_params}.") from e
             return self.full_params_objective_func(full_params)
         
         solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
@@ -662,8 +685,9 @@ class FixedParametersHandler:
 
         
         '''
+        assert self.params_fixed_by_ancestry_indices.dtype == int
         output_params = np.array(full_params, dtype=float, copy=True) 
-        output_params[np.array(self.params_fixed_by_ancestry_indices)] = np.array(param_values_from_proportions)
+        output_params[self.params_fixed_by_ancestry_indices] = np.array(param_values_from_proportions)
         
         return output_params
 

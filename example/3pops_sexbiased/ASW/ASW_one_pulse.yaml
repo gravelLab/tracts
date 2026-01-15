@@ -32,4 +32,4 @@ npts : 50
 #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 output_directory: ./output_fix/
-M_for_autosomes: True
+ad_model_autosomes : M
