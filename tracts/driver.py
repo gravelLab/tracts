@@ -9,7 +9,7 @@ import ruamel.yaml
 import matplotlib.pyplot as plt
 import warnings
 #warnings.simplefilter('always')
-
+from scipy.special import logit, expit
 from tracts.population import Population
 from tracts.core import optimize_cob, optimize_cob_sex_biased_fixed_values
 import tracts.hybrid_pedigree as HP
@@ -141,11 +141,30 @@ def run_tracts(driver_filename, script_dir=None):
 
 
     #The following should be moved to core.py or base_demography.py (in the FixedParamHandler class)
-    time_to_physical_function = lambda x:time_scaling_factor * x # This converts from optimizer units to physical units
-    to_physical_params_functions = {ParamType.TIME: time_to_physical_function} 
+    time_to_physical_function = lambda x:np.exp(x) # This converts from optimizer units to physical units
+    rate_to_physical_function = lambda x: expit(x)
+    def to_minus1_plus1(x):
+        return 2 * expit(x) - 1
     
-    time_to_optimizer_function = lambda x: x/time_scaling_factor
-    to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function}
+    sex_bias_to_physical_function = to_minus1_plus1
+    
+
+
+    
+    to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
+                                    ParamType.RATE: rate_to_physical_function, 
+                                    ParamType.SEX_BIAS: sex_bias_to_physical_function} 
+    
+
+    time_to_optimizer_function = lambda x: np.log(x)
+    rate_to_optimizer_function = lambda x: logit(x)
+    def from_minus1_plus1(y):
+        return np.log1p(y) - np.log1p(-y)
+    sex_bias_to_optimizer_function = from_minus1_plus1
+
+    to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
+                                    ParamType.RATE: rate_to_optimizer_function, 
+                                    ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
     model.fixed_parameter_handler.to_physical_params_functions = to_physical_params_functions
     model.fixed_parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
 
@@ -159,31 +178,33 @@ def run_tracts(driver_filename, script_dir=None):
     
     print("Model parameters :",[param_name for param_name in model.model_base_params.keys()])
 
-    start_param_values = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
-                                      driver_spec['seed'], model, time_scaling_factor) #parameters are in optimization units
+    physical_start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
+                                      driver_spec['seed'], model, time_scaling_factor)
+    opt_start_params = [model.fixed_parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
     
+    assert np.isclose(physical_start_params, model.fixed_parameter_handler.convert_to_physical_params(opt_start_params[0])).all()
     #TODO: the following should be removed or moved to testing
-    assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
-                                           model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
+    #assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
+    #                                       model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
     
-    print("Initial parameters : ", start_param_values[0]) 
+    print("Initial parameters : ", opt_start_params[0]) 
     
     
     
     try: 
-        print("Initial ancestry proportions :", model.proportions_from_matrices(func(start_param_values[0])))
+        print("Initial ancestry proportions :", model.proportions_from_matrices(func(opt_start_params[0])))
     except ValueError:
         print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
     
     
-    if bound(start_param_values[0])<0:
+    if bound(opt_start_params[0])<0:
         print("Warning, starting parameters are out of bounds.")
     
 
 
 
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
-                                                        start_param_values,
+                                                        opt_start_params,
                                                         population_dict=pop_dict,
                                                         fixed_parameter_handler=model.fixed_parameter_handler,
                                                         max_iter=max_iter,
@@ -194,7 +215,7 @@ def run_tracts(driver_filename, script_dir=None):
     print('---------------------------------------------------------------------')
     print("Likelihoods found :"+ str(formatted_likelihoods))
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
-    optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
+    optimal_params = model.fixed_parameter_handler.convert_to_physical_params(optimal_params)
     optimal_params_dict = {k: float(v) for k, v in zip(model.model_base_params.keys(), optimal_params)}
     print("Optimal parameters :" + str(optimal_params_dict))
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
@@ -294,7 +315,7 @@ def parse_individual_filenames(individual_names, filename_string, script_dir: st
 
 def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: ParametrizedDemography = None,
                        time_scaling_factor=1):
-    """outputs a 1D array of starting parameters for optimization. Returns all base_model_parameters""" 
+    """outputs a 1D array of starting parameters for optimization. Returns all base_model_parameters in physical units""" 
     
     num_params = len(model.model_base_params)
     rng = np.random.default_rng(seed=seed)
@@ -315,13 +336,7 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
                 start_params[:, param_info.index] += bounds[0]
             except Exception as e:
                 raise ValueError("Initial values must be specified as min:max or a single value.") from e
-        if param_info.type == ParamType.TIME:
-            start_params[:, param_info.index] *= 1 / time_scaling_factor #TODO: This should be generalized to other scaling functions.
-
-    #if model.params_fixed_by_ancestry is not None:
-    #    start_params = np.transpose(
-    #        [start_params[:, param_info.index] for param_name, param_info in model.model_base_params.items() if
-    #         param_name not in model.params_fixed_by_ancestry])
+        
     
     
     logger.info(f' Start Params: \n {start_params}')
@@ -337,11 +352,11 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[np.ndarray], dict[str, np.ndarray]]:
     return lambda params: model.get_migration_matrices(
-        scale_select_indices(params, model.is_time_param(), time_scaling_factor))
+        model.fixed_parameter_handler.convert_to_physical_params(params))
 
 
 def get_time_scaled_model_bounds(model, time_scaling_factor):
-    return lambda params: model.get_violation_score(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
+    return lambda params: model.get_violation_score(model.fixed_parameter_handler.convert_to_physical_params(params))
 
 
 def randomize(arr, a, b):

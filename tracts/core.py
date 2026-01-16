@@ -961,6 +961,8 @@ def test_model_func(model_func, parameters, fracs_list=None, time_params=True, t
     Returns
     ----------
     Violation score (negative means that a violation has occurred) and the migration matrix value.
+
+    #TODO: I believe that this function is deprecated. Confirm and remove if so.
     """
 
     # First test consistency of migration matrix
