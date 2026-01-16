@@ -470,8 +470,8 @@ class FixedParametersHandler:
         self.reduced_constraints =[]
         self.user_params_fixed_by_value = {}
         self.demography = None
-        self.to_physical_param_functions = {}
-        self.to_optimizer_param_functions = {}
+        self.to_physical_params_functions = {}
+        self.to_optimizer_params_functions = {}
 
     @property
     def has_been_fixed(self):

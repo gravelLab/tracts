@@ -145,7 +145,7 @@ def run_tracts(driver_filename, script_dir=None):
     to_physical_params_functions = {ParamType.TIME: time_to_physical_function} 
     
     time_to_optimizer_function = lambda x: x/time_scaling_factor
-    to_optimizer_params_functions = to_physical_params_functions = {ParamType.TIME: time_to_optimizer_function}
+    to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function}
     model.fixed_parameter_handler.to_physical_params_functions = to_physical_params_functions
     model.fixed_parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
 
