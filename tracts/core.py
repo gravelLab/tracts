@@ -383,6 +383,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt, units="opt"), include_allosomes=include_allosomes) #Full parameters in optimizer space
   
     def reduced_outofbounds_fun(free_parameters_opt):
+
         return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
 
     reduced_p0 = fixed_parameter_handler.reduce_parameters(p0)

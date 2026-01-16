@@ -503,7 +503,7 @@ class FixedParametersHandler:
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
             if param_type == ParamType.TIME:
                 if converted_params[index] > 15:
-                    breakpoint()
+                    print(f'Time parameter {param_name} is too large after conversion to physical units: {converted_params[index]}. Check scaling functions.')
 
         return converted_params
 
@@ -651,60 +651,64 @@ class FixedParametersHandler:
     def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions=None, units = "phys"):
         """This happens in physical units "phys" by default, else "opt" for optimizer units"""
         if units == "opt":
-            params = self.convert_to_physical_params(params)
+            params_phys = self.convert_to_physical_params(params)
         else: 
             assert units == "phys", "units must be 'phys' or 'opt'"
-
-        if not self.has_been_fixed and len(params) != len(self.demography.model_base_params): #TODO: discard the second condition?
+            params_phys = params.copy()
+        if not self.has_been_fixed and len(params_phys) != len(self.demography.model_base_params): #TODO: discard the second condition?
             raise Exception("The demography has not been fixed yet.")
         if known_ancestry_proportions==None:
             known_ancestry_proportions=self.known_ancestry_proportions
 
-        self.logger.info(f'Params before fixed-ancestry solving: {params}')
-        assert (len(params) == len(self.demography.model_base_params))
+        self.logger.info(f'Params before fixed-ancestry solving: {params_phys}')
+        assert (len(params_phys) == len(self.demography.model_base_params))
         
      
-        migration_matrices = self.demography.get_migration_matrices(params)
+        migration_matrices = self.demography.get_migration_matrices(params_phys)
         
         try:
             calculated_proportions = self.demography.proportions_from_matrices(migration_matrices)  
             if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
                 if units == "opt":
-                    params = self.convert_to_optimizer_params(params)
-                return params
+                    params_phys = self.convert_to_optimizer_params(params_phys)
+                return params_phys
         except ValueError: #This catches cases where the parameters produce invalid matrices
             pass
 
 
 
-        def param_objective_func(params_to_solve): ##TODO: right now the parameters to solve are in arbitrary units. Would be good to convert them as appropriate.  
-            """Computes the difference as a function of the paramters to solve only. """
-            nonlocal params
+        def param_objective_func(params_to_solve): ##This should be in optimizer units to avoid unphysical values 
+            """Computes the difference as a function of the paramters to solve only. Should be in optimizer units to avoid impossible values"""
+            nonlocal params_phys
             params_to_solve[np.isnan(params_to_solve)] = 0
-            params = self.insert_solved_params(params, params_to_solve)
-            try: value = self.full_params_objective_func(params)
+            params_opt = self.convert_to_optimizer_params(params_phys)
+            params_phys = self.convert_to_physical_params(self.insert_solved_params(params_opt, params_to_solve)) 
+            try: value = self.full_params_objective_func(params_phys, units = "phys") #the parameters to solve will be interpreted in optimizer units
             except ValueError as e:
-                raise ValueError(f"problem computing migration matrices with parameters {params}.") from e
-            return self.full_params_objective_func(params)
+                raise ValueError(f"problem computing migration matrices with opt parameters {params_opt}parameters {params_phys}.") from e
+            return value
         
-        solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
+        try: 
+            solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
                                               np.ones(len(self.params_fixed_by_ancestry)) * .2)
-
+        except ValueError as e:
+            raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
-            print(f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}")
+            print(f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}, solved_params = {solved_params}")
+            #breakpoint()
         if np.isnan(solved_params).any():
             print ("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
 
-        params = self.insert_solved_params(params, solved_params)
+        params_phys = self.convert_to_physical_params(self.insert_solved_params(self.convert_to_optimizer_params(params_phys), solved_params))
         
-        self.logger.info(f'Params after solving with ancestry proportions: {params}')
+        self.logger.info(f'Params after solving with ancestry proportions: {params_phys}')
          
         if units == "opt":
-            params = self.convert_to_optimizer_params(params)
+            params_phys = self.convert_to_optimizer_params(params_phys)
         
-        return params
+        return params_phys
 
     def insert_solved_params(self, full_params: list[float], param_values_from_proportions: list[float]):
         '''
