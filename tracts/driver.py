@@ -51,6 +51,11 @@ def run_tracts(driver_filename, script_dir=None):
     driver_path = locate_file_path(filename=driver_filename, script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
     
+    print('------------------------------------------------------------------------------------------------\n')
+    print('Running tracts 2.0 with driver file:', driver_filename,'\n')
+    print('Reading data, demographic model and driver specifications...\n')
+    print('------------------------------------------------------------------------------------------------\n')
+
     # Set autosomal and allosomal models for admixture
     if 'ad_model_autosomes' in driver_spec:
         ad_model_autosomes = driver_spec['ad_model_autosomes']
@@ -111,9 +116,9 @@ def run_tracts(driver_filename, script_dir=None):
     
     logger.info(f'Model Base Parameters: {model.model_base_params}')
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
-    print("computed autosome proportions", ancestry_proportions )
+    print("\nComputed autosome proportions :", ancestry_proportions )
     allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
-    print("computed allosome proportions", allosome_proportions )
+    print("Computed allosome proportions :", allosome_proportions )
 
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
         
@@ -147,7 +152,7 @@ def run_tracts(driver_filename, script_dir=None):
     
     pop_dict = model.population_indices.items()
     
-    print("Model parameters\n",[param_name for param_name in model.model_base_params.keys()])
+    print("Model parameters :",[param_name for param_name in model.model_base_params.keys()])
 
     start_param_values = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
                                       driver_spec['seed'], model, time_scaling_factor) #parameters are in optimization units
@@ -156,12 +161,12 @@ def run_tracts(driver_filename, script_dir=None):
     assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
                                            model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
     
-    print("first start parameters = ", start_param_values[0]) 
+    print("Initial parameters : ", start_param_values[0]) 
     
     
     
     try: 
-        print("start ancestry_proportions:", model.proportions_from_matrices(func(start_param_values[0])))
+        print("Initial ancestry proportions :", model.proportions_from_matrices(func(start_param_values[0])))
     except ValueError:
         print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
     
@@ -181,13 +186,16 @@ def run_tracts(driver_filename, script_dir=None):
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
                                                         ad_model_autosomes = ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
     formatted_likelihoods = [float(x) for x in likelihoods]
-    print(f"Likelihoods found: {formatted_likelihoods}")
+    print('---------------------------------------------------------------------')
+    print("Likelihoods found :"+ str(formatted_likelihoods))
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
-    print(f"Optimal Parameters:{optimal_params}")
+    optimal_params_dict = {k: float(v) for k, v in zip(model.model_base_params.keys(), optimal_params)}
+    print("Optimal parameters :" + str(optimal_params_dict))
     if 'fix_parameters_from_ancestry_proportions' in driver_spec:
-        print("expanded parameters:\n")
+        print("Expanded parameters:\n")
         print([f"{float(p):.2g}" for p in optimal_params])
+    print('---------------------------------------------------------------------')
     if 'output_filename_format' in driver_spec:
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -751,6 +759,9 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
         plt.close(fig)
+    
+    print('Results saved to : ' + output_dir)
+
     #for pop, pop_num in model.population_indices.items():
     #    
     #print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
