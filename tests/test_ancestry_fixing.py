@@ -783,7 +783,7 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     raw_test_params[0]= 0.0  #messing values to be filled in
     raw_test_params[1]=0.  #messing values to be filled in  
     test_params = model.fixed_parameter_handler.compute_params_fixed_by_ancestry(raw_test_params)
-    test_params2 = model.fixed_parameter_handler.extend_parameters(test_free_params, prior_full_parameters=raw_test_params)
+    
     assert len(test_params) == 6
     assert np.allclose(test_params, params_full)
 

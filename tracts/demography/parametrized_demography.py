@@ -66,7 +66,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
 
     def __init__(self, name: str = "", min_time=2, max_time=np.inf):
         super().__init__(name=name, min_time=min_time, max_time=max_time)
-
+        
     def execute_migration_events(self, migration_matrices, params):
         for population, events in self.events.items():
             for event in events:

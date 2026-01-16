@@ -133,6 +133,7 @@ class BaseParametrizedDemography(ABC):
         self.events: dict[str: list[BaseMigrationEvent]]={}        
         self.fixed_parameter_handler = FixedParametersHandler(self.logger)
         self.parametrized_populations= []
+        
 
 
 
