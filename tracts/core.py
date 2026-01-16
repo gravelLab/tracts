@@ -376,26 +376,21 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         
         
         return -result
-    
-
-    
-
-
-
-    
+        
     def reduced_objective_function(free_parameters_opt, include_allosomes = True):
         
-        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt), include_allosomes=include_allosomes)#full parameters in optimier space
+        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt), include_allosomes=include_allosomes) #Full parameters in optimizer space
   
     def reduced_outofbounds_fun(free_parameters_opt):
-        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt)) #full parameters in optimier space
+        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt)) #Full parameters in optimizer space
 
     reduced_p0 = fixed_parameter_handler.reduce_parameters(p0)
 
     print('\n--------------------------------------------------------------------------------------------------')
     print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
-    print('--------------------------------------------------------------------------------------------------')
-    print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
+    print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)))
+    print('--------------------------------------------------------------------------------------------------')    
+    print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
            
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
     
@@ -404,23 +399,24 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     
     optimized_parameters = fixed_parameter_handler.extend_parameters(outputs)
 
-
     new_fixed_parameters_names = fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)
     new_fixed_values = optimized_parameters[fixed_parameter_handler.free_parameters_indices]
     new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
 
     fixed_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
 
-
     fixed_parameter_handler.add_fixed_parameters(new_fixed_parameters)
     reduced_params = fixed_parameter_handler.reduce_parameters(optimized_parameters)
+
+    print('--------------------------------------------------------------------------------------------------')    
+    print('Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
+    print('Non-sex-bias parameters fixed at values from previous optimization step : ' + str({k: float(v) for k, v in new_fixed_parameters.items()}))
+    print('--------------------------------------------------------------------------------------------------')    
+    print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
     
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = True)
     outputs = scipy.optimize.fmin_cobyla(
         reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-
-
-
 
     likelihood = reduced_objective_function(outputs)
     return fixed_parameter_handler.extend_parameters(outputs), likelihood
