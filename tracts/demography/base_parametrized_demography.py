@@ -470,7 +470,8 @@ class FixedParametersHandler:
         self.reduced_constraints =[]
         self.user_params_fixed_by_value = {}
         self.demography = None
-        self.scaling_functions = {}
+        self.to_physical_param_functions = {}
+        self.to_optimizer_param_functions = {}
 
     @property
     def has_been_fixed(self):
@@ -487,8 +488,7 @@ class FixedParametersHandler:
                                          param_name in param_list], dtype=int)
 
     def convert_to_physical_params(self, optimizer_params):
-        """converts optimizer parameters from optimization units to physical units, for example log-scaling rates.
-        Right now only scaling times by a factor 100. Much better would be to use log scaling, etc. 
+        """converts optimizer parameters from optimization units to physical units, for example log-scaling rates. 
         scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
         assert optimizer_params.ndim == 1
         converted_params = optimizer_params.copy()
@@ -497,10 +497,25 @@ class FixedParametersHandler:
             param_type = self.demography.model_base_params[param_name].type
             
 
-            if param_type in self.scaling_functions.keys():
-                converted_params[index] = self.scaling_functions[param_type](converted_params[index])
+            if param_type in self.to_physical_params_functions.keys():
+                converted_params[index] = self.to_physical_params_functions[param_type](converted_params[index])
 
         return converted_params
+
+
+    def convert_to_optimizer_params(self, physical_params):
+        """converts parameters from optimization units to physical units, for example inverse log-scaling rates.
+        scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
+        assert optimizer_params.ndim == 1
+        converted_params = optimizer_params.copy()
+        for index in range(len(optimizer_params)):
+            param_name = list(self.demography.model_base_params.keys())[index]
+            param_type = self.demography.model_base_params[param_name].type
+            if param_type in self.to_optimizer_params_functions.keys():
+                converted_params[index] = self.to_optimizer_params_functions[param_type](converted_params[index])
+
+        return converted_params
+
 
     def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
                                           user_params_to_fix_by_value:dict[str:float]={}

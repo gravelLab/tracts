@@ -324,9 +324,9 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
         def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in model_base_parameters]))
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in fixed_parameter_handler.convert_to_physical_params(model_base_parameters)]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
-                # I don't understand why this needs to be defined here. 
+                # TODO: Seems like we should be able to define this outside the objective function?. 
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.

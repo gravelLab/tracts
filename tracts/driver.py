@@ -135,10 +135,15 @@ def run_tracts(driver_filename, script_dir=None):
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
 
-    #The following should be moved to core.py or demography.py 
-    time_scaling_function = lambda x:time_scaling_factor * x # This converts from optimizer units to physical units
-    scaling_functions = {ParamType.TIME: time_scaling_function} 
-    model.fixed_parameter_handler.scaling_functions = scaling_functions
+    #The following should be moved to core.py or base_demography.py (in the FixedParamHandler class)
+    time_to_physical_function = lambda x:time_scaling_factor * x # This converts from optimizer units to physical units
+    to_physical_params_functions = {ParamType.TIME: time_to_physical_function} 
+    
+    time_to_optimizer_function = lambda x: x/time_scaling_factor
+    to_optimizer_params_functions = to_physical_params_functions = {ParamType.TIME: time_to_optimizer_function}
+    model.fixed_parameter_handler.to_physical_params_functions = to_physical_params_functions
+    model.fixed_parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+
 
     if type(driver_spec['start_params']) is not dict:
         raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
