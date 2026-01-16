@@ -776,8 +776,8 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     assert np.allclose(computed_params, params_full)
     
     assert (model.fixed_parameter_handler.free_parameters_indices == [2,3,4,5])
-    assert (model.fixed_parameter_handler.params_fixed_by_value_indices == [])
-    assert (model.fixed_parameter_handler.params_fixed_by_ancestry_indices == [0,1])
+    assert (model.fixed_parameter_handler.params_fixed_by_value_indices.size == 0)
+    assert (model.fixed_parameter_handler.params_fixed_by_ancestry_indices.tolist() == [0,1])
 
     raw_test_params = params_full.copy()
     raw_test_params[0]= 0.0  #messing values to be filled in

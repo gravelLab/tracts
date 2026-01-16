@@ -487,9 +487,10 @@ class FixedParametersHandler:
                                          param_name in param_list], dtype=int)
 
     def convert_to_physical_params(self, optimizer_params):
-        """converts optimizer parameters from optimization units to physical units, for example log-scaling rates.
+        """Converts optimizer parameters from optimization units to physical units, for example log-scaling rates.
         Right now only scaling times by a factor 100. Much better would be to use log scaling, etc. 
         scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
+        optimizer_params = np.asarray(optimizer_params) 
         assert optimizer_params.ndim == 1
         converted_params = optimizer_params.copy()
         for index in range(len(optimizer_params)):

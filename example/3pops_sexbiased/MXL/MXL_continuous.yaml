@@ -18,7 +18,7 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
 output_filename_format: "MXL_test_output_{label}"
-model_filename: ccc.yaml
+model_filename: ppp.yaml
 start_params: 
   t1: 13.5
   REUR: 0.2
