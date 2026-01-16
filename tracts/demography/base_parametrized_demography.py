@@ -500,6 +500,9 @@ class FixedParametersHandler:
 
             if param_type in self.to_physical_params_functions.keys():
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
+            if param_type == ParamType.TIME:
+                if converted_params[index] > 15:
+                    breakpoint()
 
         return converted_params
 
@@ -666,12 +669,12 @@ class FixedParametersHandler:
             calculated_proportions = self.demography.proportions_from_matrices(migration_matrices)  
             if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
+                if units == "opt":
+                    params = self.convert_to_optimizer_params(params)
                 return params
         except ValueError: #This catches cases where the parameters produce invalid matrices
             pass
-        #else:#TODO: Not necessary
-        #    raise ValueError("The provided params must be the full set of demography parameters when computing parameters fixed by ancestry proportions.") 
-        #    full_params = params.copy()
+
 
 
         def param_objective_func(params_to_solve): ##TODO: right now the parameters to solve are in arbitrary units. Would be good to convert them as appropriate.  
@@ -699,7 +702,7 @@ class FixedParametersHandler:
          
         if units == "opt":
             params = self.convert_to_optimizer_params(params)
-
+        
         return params
 
     def insert_solved_params(self, full_params: list[float], param_values_from_proportions: list[float]):
