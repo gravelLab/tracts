@@ -379,10 +379,10 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         
     def reduced_objective_function(free_parameters_opt, include_allosomes = True):
         
-        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt), include_allosomes=include_allosomes) #Full parameters in optimizer space
+        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt, units="opt"), include_allosomes=include_allosomes) #Full parameters in optimizer space
   
     def reduced_outofbounds_fun(free_parameters_opt):
-        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt)) #Full parameters in optimizer space
+        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
 
     reduced_p0 = fixed_parameter_handler.reduce_parameters(p0)
 
@@ -397,7 +397,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     outputs = scipy.optimize.fmin_cobyla(
         reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
-    optimized_parameters = fixed_parameter_handler.extend_parameters(outputs)
+    optimized_parameters = fixed_parameter_handler.extend_parameters(outputs, units="opt")
 
     new_fixed_parameters_names = fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)
     new_fixed_values = optimized_parameters[fixed_parameter_handler.free_parameters_indices]
@@ -419,7 +419,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
 
     likelihood = reduced_objective_function(outputs)
-    return fixed_parameter_handler.extend_parameters(outputs), likelihood
+    return fixed_parameter_handler.extend_parameters(outputs, units = "opt"), likelihood
 
     
 
