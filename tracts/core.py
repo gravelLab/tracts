@@ -270,7 +270,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     outputs = scipy.optimize.fmin_cobyla(
         objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
-    likelihood = objective_function(outputs)
+    likelihood = -objective_function(outputs)
 
     return outputs, likelihood
 
@@ -393,7 +393,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)))
     print('--------------------------------------------------------------------------------------------------')    
     print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
-           
+
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
     
     outputs = scipy.optimize.fmin_cobyla(
@@ -420,7 +420,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     outputs = scipy.optimize.fmin_cobyla(
         reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
 
-    likelihood = reduced_objective_function(outputs)
+    likelihood = -reduced_objective_function(outputs)
     return fixed_parameter_handler.extend_parameters(outputs, units = "opt"), likelihood
 
     
