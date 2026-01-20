@@ -179,32 +179,35 @@ def run_tracts(driver_filename, script_dir=None):
     print("Model parameters :",[param_name for param_name in model.model_base_params.keys()])
 
     physical_start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
-                                      driver_spec['seed'], model, time_scaling_factor)
-    opt_start_params = [model.fixed_parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
+                                      driver_spec['seed'], model)
     
-    assert np.isclose(physical_start_params, model.fixed_parameter_handler.convert_to_physical_params(opt_start_params[0])).all()
+    print ("Physical start params :", physical_start_params[0]) 
+    optimizer_start_params = [model.fixed_parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
+    
+
+    assert np.isclose(physical_start_params, model.fixed_parameter_handler.convert_to_physical_params(optimizer_start_params[0])).all()
     #TODO: the following should be removed or moved to testing
     #assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
     #                                       model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
     
-    print("Initial parameters : ", opt_start_params[0]) 
+    print("Initial parameters : ", optimizer_start_params[0]) 
     
     
     
     try: 
-        print("Initial ancestry proportions :", model.proportions_from_matrices(func(opt_start_params[0])))
+        print("Initial ancestry proportions :", model.proportions_from_matrices(func(optimizer_start_params[0])))
     except ValueError:
         print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
     
     
-    if bound(opt_start_params[0])<0:
+    if bound(optimizer_start_params[0])<0:
         print("Warning, starting parameters are out of bounds.")
     
 
 
 
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
-                                                        opt_start_params,
+                                                        optimizer_start_params,
                                                         population_dict=pop_dict,
                                                         fixed_parameter_handler=model.fixed_parameter_handler,
                                                         max_iter=max_iter,
