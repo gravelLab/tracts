@@ -4,6 +4,9 @@ import os
 import tempfile
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parameter import ParamType
+small = 10**-9
+large = 1/small
+
 
 # Basic model fixtures
 @pytest.fixture
@@ -151,7 +154,7 @@ def test_add_sex_bias_parameter(model_with_sex_bias_param):
     # Test adding sex bias parameter
     assert "bias1" in model_with_sex_bias_param.model_base_params
     assert model_with_sex_bias_param.model_base_params["bias1"].type == ParamType.SEX_BIAS
-    assert model_with_sex_bias_param.model_base_params["bias1"].bounds == (-1, 1)
+    assert model_with_sex_bias_param.model_base_params["bias1"].bounds == (-1+small, 1-small)
 
 def test_sex_bias_parameter_bounds(model_with_custom_bounds_sex_bias_param):
     """Test that parameters are created with correct bounds"""
@@ -242,7 +245,7 @@ def test_migration_parameter_creation(model_with_pulse_migration):
     # Verify sex bias parameter
     assert "rate1_sex_bias" in model_with_pulse_migration.model_base_params
     assert model_with_pulse_migration.model_base_params["rate1_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_pulse_migration.model_base_params["rate1_sex_bias"].bounds == (-1, 1)
+    assert model_with_pulse_migration.model_base_params["rate1_sex_bias"].bounds == (-1+small, 1-small)
     
     # Add continuous migration
     model_with_pulse_migration.add_continuous_migration("destination_pop", "source_pop1", "rate2", "start1", "end1")
@@ -250,7 +253,7 @@ def test_migration_parameter_creation(model_with_pulse_migration):
     # Verify sex bias parameter
     assert "rate2_sex_bias" in model_with_pulse_migration.model_base_params
     assert model_with_pulse_migration.model_base_params["rate2_sex_bias"].type == ParamType.SEX_BIAS
-    assert model_with_pulse_migration.model_base_params["rate2_sex_bias"].bounds == (-1, 1)
+    assert model_with_pulse_migration.model_base_params["rate2_sex_bias"].bounds == (-1+small, 1-small)
 
 def test_migration_execution(model_with_pulse_migration):
     """Test that migrations are executed correctly for both sexes"""
@@ -294,8 +297,8 @@ def test_founder_event_parameter_creation(model_with_founder_event):
     assert model_with_founder_event.model_base_params["found_time"].type == ParamType.TIME
     
     # Verify parameter bounds
-    assert model_with_founder_event.model_base_params["founder_rate1"].bounds == (0, 1)
-    assert model_with_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1, 1)
+    assert model_with_founder_event.model_base_params["founder_rate1"].bounds == (small, 1-small)
+    assert model_with_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1+small, 1-small)
     assert model_with_founder_event.model_base_params["found_time"].bounds == (2, np.inf)
     
     # Verify dependent parameters were created
@@ -318,11 +321,12 @@ def test_continuous_founder_event_parameter_creation(model_with_continuous_found
     assert model_with_continuous_founder_event.model_base_params["found_time"].type == ParamType.TIME
     assert model_with_continuous_founder_event.model_base_params["end_time"].type == ParamType.TIME
     
+   
     # Verify parameter bounds
-    assert model_with_continuous_founder_event.model_base_params["founder_rate1"].bounds == (0, 1)
-    assert model_with_continuous_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1, 1)
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1"].bounds == (small, 1-small)
+    assert model_with_continuous_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1+small, 1-small)
     assert model_with_continuous_founder_event.model_base_params["found_time"].bounds == (2, np.inf)
-    assert model_with_continuous_founder_event.model_base_params["founder_rate2_sex_bias"].bounds == (-1, 1)
+    assert model_with_continuous_founder_event.model_base_params["founder_rate2_sex_bias"].bounds == (-1+small, 1-small)
     assert model_with_continuous_founder_event.model_base_params["end_time"].bounds == (2, np.inf)
     # Verify dependent parameters were created
     assert "founder_rate1_male" in model_with_continuous_founder_event.dependent_params

@@ -7,6 +7,10 @@ import pytest
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
 
+from tracts.demography.parameter import small
+
+
+
 
 @pytest.fixture
 def basic_model():
@@ -128,7 +132,7 @@ def test_add_parameter(basic_model):
     basic_model.add_parameter("rate1", ParamType.RATE)
     assert "rate1" in basic_model.model_base_params
     assert basic_model.model_base_params["rate1"].type == ParamType.RATE
-    assert basic_model.model_base_params["rate1"].bounds == (0, 1)
+    assert basic_model.model_base_params["rate1"].bounds == (small, 1-small)
     
     # Test adding time parameter
     basic_model.add_parameter("time1", ParamType.TIME)
