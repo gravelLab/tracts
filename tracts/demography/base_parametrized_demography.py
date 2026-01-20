@@ -492,7 +492,7 @@ class FixedParametersHandler:
         """converts optimizer parameters from optimization units to physical units, for example log-scaling rates. 
         scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
         optimizer_params = np.asarray(optimizer_params) 
-        assert optimizer_params.ndim == 1
+        assert np.asarray(optimizer_params).ndim == 1
         converted_params = optimizer_params.copy()
         for index in range(len(optimizer_params)):
             param_name = list(self.demography.model_base_params.keys())[index]
@@ -511,7 +511,9 @@ class FixedParametersHandler:
     def convert_to_optimizer_params(self, physical_params):
         """converts parameters from optimization units to physical units, for example inverse log-scaling rates.
         scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
-        assert np.array(physical_params).ndim == 1
+
+        assert np.asarray(physical_params).ndim == 1
+
         converted_params = physical_params.copy()
         for index in range(len(physical_params)):
             param_name = list(self.demography.model_base_params.keys())[index]
