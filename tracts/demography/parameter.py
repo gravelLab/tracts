@@ -2,11 +2,15 @@ from enum import Enum
 import numpy
 from collections.abc import Callable
 
+small = 10**-9  
+large = 1/small
+
 class ParamType(Enum):
-    TIME=(0,numpy.inf)
-    RATE=(0,1)
-    SEX_BIAS=(-1,1)
-    UNTYPED=(-numpy.inf,numpy.inf)
+    
+    TIME=(small,large)
+    RATE=(small,1-small)
+    SEX_BIAS=(-1+small,1-small)
+    UNTYPED=(-large,large)
 
     def __init__(self, lower_bound, upper_bound):
         self.bounds=(lower_bound, upper_bound)
