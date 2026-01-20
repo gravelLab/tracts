@@ -286,9 +286,9 @@ class BaseParametrizedDemography(ABC):
             totmig = migration_matrix.sum(1).max()
             if 1 - totmig < violation_score:
                 violation_score = 1 - totmig
-                
-            if np.min(migration_matrix)< violation_score:
-                violation_score = min(migration_matrix)
+
+            if np.min(migration_matrix) < violation_score:
+                violation_score = np.min(migration_matrix)
         return violation_score
 
     def check_constraints(self, params: list[float]):
@@ -511,7 +511,7 @@ class FixedParametersHandler:
     def convert_to_optimizer_params(self, physical_params):
         """converts parameters from optimization units to physical units, for example inverse log-scaling rates.
         scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
-        assert physical_params.ndim == 1
+        assert np.array(physical_params).ndim == 1
         converted_params = physical_params.copy()
         for index in range(len(physical_params)):
             param_name = list(self.demography.model_base_params.keys())[index]
