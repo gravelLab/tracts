@@ -40,16 +40,16 @@ def locate_file_path(filename, absolute_driver_yaml_path=None):
 def run_tracts(driver_filename):
     driver_path = locate_file_path(driver_filename)
     driver_spec = load_driver_file(driver_path)
-
-    chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
+    breakpoint()
+    chromosome_list = parse_chromosomes(driver_spec.samples.chromosomes)
     logger.info(f'Chromosomes: {chromosome_list}')
-    individual_filenames = parse_individual_filenames(driver_spec['samples']['individual_names'],
-                                                      driver_spec['samples']['filename_format'],
-                                                      labels=driver_spec['samples']['labels'],
-                                                      directory=driver_spec['samples']['directory'],
+    individual_filenames = parse_individual_filenames(driver_spec.samples.individual_names,
+                                                      driver_spec.samples.filename_format,
+                                                      labels=driver_spec.samples.labels,
+                                                      directory=driver_spec.samples.directory,
                                                       absolute_driver_yaml_path=driver_path)
 
-    exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
+    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
 
     # load the population
     pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list)
@@ -57,52 +57,109 @@ def run_tracts(driver_filename):
 
     logger.info(f'Bins: {bins}')
 
-    time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
+    time_scaling_factor = driver_spec.time_scaling_factor
 
     model = load_model_from_driver(driver_spec, driver_path)
 
     population_labels = model.population_indices.keys()
 
     logger.info(f'Model Parameters: {model.free_params}')
-
-    if 'fix_parameters_from_ancestry_proportions' in driver_spec:
+    if hasattr(driver_spec, fix_parameters_from_ancestry_proportions):
         ancestry_proportions = calculate_ancestry_proportions(pop, population_labels)
-        model.fix_ancestry_proportions(driver_spec['fix_parameters_from_ancestry_proportions'], ancestry_proportions)
+        model.fix_ancestry_proportions(driver_spec.fix_parameters_from_ancestry_proportions, ancestry_proportions)
 
     func = get_time_scaled_model_func(model, time_scaling_factor)
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
-    if type(driver_spec['start_params']) is not dict:
-        raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
+    #if type(driver_spec['start_params']) is not dict:
+    #    raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
 
     params_found, likelihoods = run_model_multi_params(func, bound, pop, population_labels,
-                                                       parse_start_params(driver_spec['start_params'],
-                                                                          driver_spec['repetitions'],
-                                                                          driver_spec['seed'], model,
+                                                       parse_start_params(driver_spec.start_params,
+                                                                          driver_spec.repetitions,
+                                                                          driver_spec.seed, model,
                                                                           time_scaling_factor),
                                                        exclude_tracts_below_cM=exclude_tracts_below_cM)
     formatted_likelihoods = [float(x) for x in likelihoods]
     print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
-    if 'output_filename_format' in driver_spec:
+    if hasattr(driver_spec, output_filename_format):
         output_simulation_data(pop, optimal_params, model, driver_spec)
 
 
-def load_driver_file(driver_path):
+import ruamel.yaml as yaml
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List
+
+
+# ---------- Models ----------
+
+class SamplesConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    directory: str
+    individual_names: List[str]
+    filename_format: str
+    labels: List[str] = Field(default_factory=lambda: ["A", "B"])
+    chromosomes: str
+
+
+class StartParamsConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+
+class InferenceConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    samples: SamplesConfig
+    model_filename: str
+    start_params: StartParamsConfig
+    repetitions: int =1 
+    seed: int
+    exclude_tracts_below_cm: float = 1
+    time_scaling_factor: float = 1
+    fix_parameters_from_ancestry_proportions: List[str] = []
+    output_directory: str = ""
+    output_filename_format: str = ""
+
+
+# ---------- Loader ----------
+
+def load_driver_file(driver_path: str) -> InferenceConfig:
     if driver_path is None:
         raise OSError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
-    with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
-        driver_spec = yaml.load(file)
-    if not isinstance(driver_spec, dict):
-        raise ValueError('Driver yaml file was invalid.')
-    return driver_spec
+    
+    yaml_loader = yaml.YAML(typ="safe")
+
+    with open(driver_path, "r") as f:
+        driver_spec = yaml_loader.load(f)
+
+    return InferenceConfig.model_validate(driver_spec)
+
+
+
+
+
+ 
+
+
+#def load_driver_file(driver_path):
+#    if driver_path is None:
+#        raise OSError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
+#    with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
+#        driver_spec = yaml.load(file)
+#    if not isinstance(driver_spec, dict):
+#        raise ValueError('Driver yaml file was invalid.')
+#    return driver_spec
 
 
 def load_model_from_driver(driver_spec, driver_path):
-    if 'model_filename' not in driver_spec:
-        raise ValueError('You must specify the file path to your model under "model_filename".')
-    model_path = locate_file_path(driver_spec['model_filename'], driver_path)
+    
+    #if 'model_filename' not in driver_spec:
+    #    raise ValueError('You must specify the file path to your model under "model_filename".')
+    model_path = locate_file_path(driver_spec.model_filename, driver_path)
     if model_path is None:
         raise OSError(f'Model yaml file could not be found. {filepath_error_additional_message}')
     model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
@@ -157,13 +214,18 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
         if param_name in model.params_fixed_by_ancestry:
             start_params[:, param_info['index']] = 0
             continue
-        if param_name not in start_param_bounds:
+            
+        try: 
+            raise()
+            getattr(start_param_bounds, param_name)
+        except:
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
-        if isinstance(start_param_bounds[param_name], numbers.Number):
-            start_params[:, param_info['index']] = start_param_bounds[param_name]
+
+        if isinstance(getattr(start_param_bounds, param_name), numbers.Number):
+            start_params[:, param_info['index']] = getattr(start_param_bounds, param_name)
         else:
             try:
-                bounds = [float(bound) for bound in start_param_bounds[param_name].split('-')]
+                bounds = [float(bound) for bound in getattr(start_param_bounds, param_name).split('-')]
                 assert len(bounds) == 2
                 start_params[:, param_info['index']] *= bounds[1] - bounds[0]
                 start_params[:, param_info['index']] += bounds[0]
@@ -230,15 +292,14 @@ def run_model(model_func, bound_func, population, population_labels, startparams
 
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
-    if 'output_directory' in driver_spec:
-        output_dir = driver_spec['output_directory']
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
-    else:
-        output_dir = ''
 
-    output_filename_format = driver_spec['output_filename_format']
-    exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
+    output_dir = driver_spec.output_directory
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+
+    output_filename_format = driver_spec.output_filename_format
+    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
     (bins, data) = sample_population.get_global_tractlengths(npts=50, exclude_tracts_below_cM=exclude_tracts_below_cM)
     Ls = sample_population.Ls
     nind = sample_population.nind
