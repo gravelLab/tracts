@@ -16,6 +16,7 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
 output_filename_format: "ASW_test_output_{label}"
+output_directory: "./output/"
 model_filename: ppp.yaml
 start_params: 
   t: 5:8
@@ -26,7 +27,7 @@ start_params:
 repetitions: 1
 seed: 100
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
-exclude_tracts_below_cM: 2
+exclude_tracts_below_cm: 2
 npts : 50
 #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
