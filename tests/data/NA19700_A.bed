@@ -1,0 +1,6 @@
+Chr	Start(bp)	End(bp)	Vit	Start(cM)	End(cM)	Fbk	Confidence	Posterior(EUR,AFR)
+1    0    0.5    EUR    0.0    0.5    EUR    1.0    0.0,1.0
+1    0.5  1.0    AFR    0.5    1.0    AFR    1.0    1.0,0.0
+X    0  0.7    EUR    0    0.7    EUR    1.0    1.0,0.0
+X    0.7  1    AFR    0.7    1    AFR    1.0    1.0,0.0
+

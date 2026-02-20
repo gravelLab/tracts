@@ -11,8 +11,8 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
 model_filename: pp.yaml
 start_params: 
-  R: 0.1-0.2
-  tx: 5-8
+  R: 0.1:0.2
+  tx: 5:8
 repetitions: 3
 seed: 100
 exclude_tracts_below_cm: 10

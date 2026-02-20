@@ -5,3 +5,5 @@
 build/
 .idea/
 docs/build
+*.egg-info/
+*.pdf
