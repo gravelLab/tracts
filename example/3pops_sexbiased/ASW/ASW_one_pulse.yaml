@@ -17,7 +17,7 @@ samples:
   allosomes: [X]
 output_filename_format: "ASW_test_output_{label}"
 output_directory: "./output/"
-model_filename: ppp.yaml
+model_filename: ../models/ppp.yaml
 start_params: 
   t: 5:8
   REUR: 0.4
@@ -31,5 +31,5 @@ exclude_tracts_below_cm: 2
 npts : 50
 #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
-output_directory: ./output_fix/
-M_for_autosomes: False
+#M_for_autosomes: False
+ad_model_autosomes: DC

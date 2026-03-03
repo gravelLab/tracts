@@ -142,13 +142,14 @@ def run_tracts(driver_filename, script_dir=None):
     pop_dict = model.population_indices.items()
     
     print("Model parameters\n",[param_name for param_name in model.free_params.keys()])
-
+    
     start_params = parse_start_params(driver_spec.start_params, driver_spec.repetitions, 
                                       driver_spec.seed, model, time_scaling_factor)
-    print("first start parameters = ", start_params[0]) 
+    
+    print("First start parameters = ", start_params[0]) 
     
     
-    print("start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
+    print("Start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
     
     
     
@@ -219,6 +220,7 @@ class InferenceConfig(BaseModel):
     output_directory: str = ""
     output_filename_format: str
     ad_model_autosomes: str = "M"
+    ad_model_allosomes: str = "DC"
 
 
 # ---------- Loader ----------
@@ -338,19 +340,19 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
     num_params = len(model.free_params)
     rng = numpy.random.default_rng(seed=seed)
     start_params = rng.random((repetitions, num_params))
+     
     for param_name, param_info in model.free_params.items():
         if param_name in model.params_fixed_by_ancestry:
             start_params[:, param_info.index] = 0
             continue
-            
+
         try: 
             getattr(start_param_bounds, param_name)
         except:
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
 
-
         if isinstance(getattr(start_param_bounds, param_name), numbers.Number):
-            start_params[:, param_info['index']] = getattr(start_param_bounds, param_name)
+            start_params[:, param_info.index] = getattr(start_param_bounds, param_name)
         else:
             try:
                 bounds = [float(bound) for bound in getattr(start_param_bounds, param_name).split(':')] # Intervals are specified as "min:max" to avoid confusion with negative values.
@@ -541,28 +543,29 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model.
     """
-    if 'output_directory' in driver_spec:
-        output_dir = driver_spec['output_directory']
+    
+    if hasattr(driver_spec, 'output_directory'):
+        output_dir = driver_spec.output_directory
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
     else:
         output_dir = ''
 
-    output_filename_format = driver_spec['output_filename_format']
-    if 'exclude_tracts_below_cM' in driver_spec:
-        exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cM']
+    output_filename_format = driver_spec.output_filename_format
+    if hasattr(driver_spec, 'exclude_tracts_below_cM'):
+        exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cM
     else:
         exclude_tracts_below_cM = 10
 
-    if 'npts' in driver_spec:
-        npts = driver_spec['npts']
+    if hasattr(driver_spec, 'npts'):
+        npts = driver_spec.npts
     else:
         npts = 50
 
     matrices = model.get_migration_matrices(optimal_params)
     
     [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-    output_filename_format = driver_spec['output_filename_format']
+    output_filename_format = driver_spec.output_filename_format
     autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     Ls = sample_population.Ls
     nind = sample_population.nind
