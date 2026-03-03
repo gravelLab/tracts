@@ -182,7 +182,7 @@ def run_tracts(driver_filename, script_dir=None):
 import ruamel.yaml as yaml
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List
-
+from pydantic_core import PydanticUndefined
 
 # ---------- Models ----------
 
@@ -211,7 +211,7 @@ class InferenceConfig(BaseModel):
     start_params: StartParamsConfig
     repetitions: int =1 
     seed: int
-    maximum_iterations: int|None=None
+    maximum_iterations: int|None=None 
     npts: int = 50
     exclude_tracts_below_cm: float = 1
     time_scaling_factor: float = 1
@@ -231,14 +231,20 @@ def load_driver_file(driver_path: str) -> InferenceConfig:
 
     with open(driver_path, "r") as f:
         driver_spec = yaml_loader.load(f)
+    
+    missing = [] # Check for required missing parameters in the driver file
+    for name, field in InferenceConfig.model_fields.items():
+        # Field is required if it has no default and no default factory
+        is_required = field.default is PydanticUndefined and field.default_factory is None
+        # Only add to missing if it's required and not in driver_spec
+        if is_required and name not in driver_spec:
+            missing.append(name)
+
+    if missing:
+        raise ValueError(f"Missing required driver parameters: {', '.join(missing)}")
 
     return InferenceConfig.model_validate(driver_spec)
 
-
-
-
-
- 
 
 
 #def load_driver_file(driver_path):
