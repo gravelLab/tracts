@@ -27,6 +27,7 @@ filepath_error_additional_message = ('\nPlease ensure that the file path is eith
 
 def locate_file_path(filename: str, script_dir: str | Path | None, absolute_driver_yaml_path: str | Path = None):
     # Define search methods and paths
+
     search_methods = [
         (Path(filename), "working directory"),
         (Path(script_dir) / filename if script_dir else Path(""), "script directory"),
@@ -35,6 +36,7 @@ def locate_file_path(filename: str, script_dir: str | Path | None, absolute_driv
             "driver yaml"
         )
     ]
+
     for filepath, method_name in search_methods:
         logger.info(f'{method_name}: {filepath}')
         if filepath.is_file():
@@ -50,10 +52,11 @@ def run_tracts(driver_filename, script_dir=None):
 
     driver_path = locate_file_path(filename=driver_filename, script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
+
     
     # Set autosomal and allosomal models for admixture
-    if 'ad_model_autosomes' in driver_spec:
-        ad_model_autosomes = driver_spec['ad_model_autosomes']
+    if hasattr(driver_spec, 'ad_model_autosomes') :
+        ad_model_autosomes = driver_spec.ad_model_autosomes
         if not ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
             print('The model for autosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), M (for Monoecious), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_autosomes = DC by default.')
             ad_model_autosomes = 'DC'
@@ -61,8 +64,8 @@ def run_tracts(driver_filename, script_dir=None):
         print('Model for autosomal admixture not specified. Setting DC by default.')
         ad_model_autosomes = 'DC'
     
-    if 'ad_model_allosomes' in driver_spec:
-        ad_model_allosomes = driver_spec['ad_model_allosomes']
+    if hasattr(driver_spec, 'ad_model_allosomes'):
+        ad_model_allosomes = driver_spec.ad_model_allosomes
         if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
             print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
             ad_model_allosomes = 'DC'
@@ -70,32 +73,27 @@ def run_tracts(driver_filename, script_dir=None):
         print('Model for allosomal admixture not specified. Setting DC by default.')
         ad_model_allosomes = 'DC'
 
-    if 'exclude_tracts_below_cM' in driver_spec:
-        exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cM']
-    else:
-        exclude_tracts_below_cM = 10
-        print('No minimum tract length specified. Make sure to include "exclude_tracts_below_cM" in the driver file. Defaulting to 10 cM.')
+
+    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
+    print(f'excluding_tracts_below Defaulting to {exclude_tracts_below_cM} cM.')
     
-    if 'npts' in driver_spec:
-        npts = driver_spec['npts']
-    else:
-        npts = 50
-        print('No number of bins specified. Defaulting to 50.')
+
+    npts = driver_spec.npts
 
     # Currently assumes allosomes is a single label. May change in the future
-    allosome_labels = driver_spec['samples']['allosomes'] if 'allosomes' in driver_spec['samples'] else []
+    allosome_labels = driver_spec.samples.allosomes
     allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None
 
     # Load the population
     
     pop = load_population(driver_path, driver_spec, script_dir, allosome_labels = allosome_labels) 
-    pop.unknown_labels = driver_spec['unknown_labels_for_smoothing'] if 'unknown_labels_for_smoothing' in driver_spec else [] 
+    pop.unknown_labels = driver_spec.unknown_labels_for_smoothing
     
     pop.smooth_unknowns(allosome_labels = allosome_labels)
     _bins, _data = pop.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) # we do this here just to get the population labels and 
                                                                                                     # validate that these correspond to to model population labels
     
-    time_scaling_factor = driver_spec['time_scaling_factor'] if 'time_scaling_factor' in driver_spec else 1
+    time_scaling_factor = driver_spec.time_scaling_factor
 
     model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_dir, driver_path=driver_path, allosome_label=allosome_label)
 
@@ -110,42 +108,48 @@ def run_tracts(driver_filename, script_dir=None):
     
     
     logger.info(f'Model Parameters: {model.free_params}')
+
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
     print("computed autosome proportions", ancestry_proportions )
-    allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
-    print("computed allosome proportions", allosome_proportions )
+    
+    if len(allosome_labels)>=1:
+        allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
+        print("computed allosome proportions", allosome_proportions )
 
-    if 'fix_parameters_from_ancestry_proportions' in driver_spec:
+    if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
         
         if allosome_label:
             model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
-                driver_spec['fix_parameters_from_ancestry_proportions'],
+                driver_spec.fix_parameters_from_ancestry_proportions,
                 {
                     f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
                     f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
                 }
             )
         else:
-            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, driver_spec['fix_parameters_from_ancestry_proportions'], {model.parametrized_populations[0]:ancestry_proportions})
+            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, 
+            driver_spec.fix_parameters_from_ancestry_proportions, 
+            {model.parametrized_populations[0]:ancestry_proportions})
     time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
     func = lambda params: time_scaled_func(params)
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
-    if type(driver_spec['start_params']) is not dict:
-        raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
+    #if type(driver_spec.start_params) is not dict:
+    #    raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
     
-    max_iter = driver_spec.get('maximum_iterations',None)
+    max_iter = driver_spec.maximum_iterations
     
     pop_dict = model.population_indices.items()
     
     print("Model parameters\n",[param_name for param_name in model.free_params.keys()])
-
-    start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
-                                      driver_spec['seed'], model, time_scaling_factor)
-    print("first start parameters = ", start_params[0]) 
+    
+    start_params = parse_start_params(driver_spec.start_params, driver_spec.repetitions, 
+                                      driver_spec.seed, model, time_scaling_factor)
+    
+    print("First start parameters = ", start_params[0]) 
     
     
-    print("start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
+    print("Start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
     
     
     
@@ -159,56 +163,127 @@ def run_tracts(driver_filename, script_dir=None):
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
                                                         ad_model_autosomes = ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
+
     formatted_likelihoods = [float(x) for x in likelihoods]
     print(f"Likelihoods found: {formatted_likelihoods}")
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
+
     print(f"Optimal Parameters:{optimal_params}")
-    if 'fix_parameters_from_ancestry_proportions' in driver_spec:
+    if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
         print("expanded parameters:\n")
         print([f"{float(p):.2g}" for p in model.fixed_proportions_handler.compute_dependent_params(model, optimal_params)])
-    if 'output_filename_format' in driver_spec:
+    if hasattr(driver_spec, "output_filename_format"):
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
         else:
             output_simulation_data(pop, optimal_params, model, driver_spec)
 
-def load_driver_file(driver_path):
+
+import ruamel.yaml as yaml
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List
+from pydantic_core import PydanticUndefined
+
+# ---------- Models ----------
+
+class SamplesConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    directory: str
+    individual_names: List[str]
+    male_names: List[str] = []
+    filename_format: str
+    labels: List[str] = Field(default_factory=lambda: ["A", "B"])
+    chromosomes: str
+    allosomes: List[str]=[]
+
+
+class StartParamsConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+
+class InferenceConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    unknown_labels_for_smoothing : List[str] = []
+    samples: SamplesConfig
+    model_filename: str
+    start_params: StartParamsConfig
+    repetitions: int =1 
+    seed: int
+    maximum_iterations: int|None=None 
+    npts: int = 50
+    exclude_tracts_below_cm: float = 1
+    time_scaling_factor: float = 1
+    fix_parameters_from_ancestry_proportions: List[str] = []
+    output_directory: str = ""
+    output_filename_format: str
+    ad_model_autosomes: str = "M"
+    ad_model_allosomes: str = "DC"
+
+
+# ---------- Loader ----------
+
+def load_driver_file(driver_path: str) -> InferenceConfig:
     if driver_path is None:
-        raise FileNotFoundError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
-    with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
-        driver_spec = yaml.load(file)
-    if not isinstance(driver_spec, dict):
-        raise ValueError('Driver yaml file was invalid.')
-    return driver_spec
+        raise OSError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
+    
+    yaml_loader = yaml.YAML(typ="safe")
+
+    with open(driver_path, "r") as f:
+        driver_spec = yaml_loader.load(f)
+    
+    missing = [] # Check for required missing parameters in the driver file
+    for name, field in InferenceConfig.model_fields.items():
+        # Field is required if it has no default and no default factory
+        is_required = field.default is PydanticUndefined and field.default_factory is None
+        # Only add to missing if it's required and not in driver_spec
+        if is_required and name not in driver_spec:
+            missing.append(name)
+
+    if missing:
+        raise ValueError(f"Missing required driver parameters: {', '.join(missing)}")
+
+    return InferenceConfig.model_validate(driver_spec)
+
+
+
+#def load_driver_file(driver_path):
+#    if driver_path is None:
+#        raise OSError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
+#    with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
+#        driver_spec = yaml.load(file)
+#    if not isinstance(driver_spec, dict):
+#        raise ValueError('Driver yaml file was invalid.')
+#    return driver_spec
 
 def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=None):
-    individual_filenames = parse_individual_filenames(driver_spec['samples']['individual_names'],
-                                                      driver_spec['samples']['filename_format'],
-                                                      labels=driver_spec['samples']['labels'],
-                                                      directory=driver_spec['samples']['directory'],
+    individual_filenames = parse_individual_filenames(driver_spec.samples.individual_names,
+                                                      driver_spec.samples.filename_format,
+                                                      labels=driver_spec.samples.labels,
+                                                      directory=driver_spec.samples.directory,
                                                       script_dir=script_dir,
                                                       absolute_driver_yaml_path=driver_path)
     
     
-    if 'male_names' in driver_spec['samples'].keys():
-        male_list = driver_spec['samples']['male_names']
-    else:
-        male_list = None
-    chromosome_list = parse_chromosomes(driver_spec['samples']['chromosomes'])
+    male_list = driver_spec.samples.male_names
+ 
+    chromosome_list = parse_chromosomes(driver_spec.samples.chromosomes)
     logger.info(f'Chromosomes: {chromosome_list}')
     pop = Population(filenames_by_individual=individual_filenames, selectchrom=chromosome_list, allosomes=allosome_labels if allosome_labels else [], male_list = male_list)
     if len(allosome_labels)>=1 and allosome_labels is not None:
         assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome. "
     
-    if male_list is not None:
+    if len(male_list)>0:
         pop.set_males(male_list = male_list, allosome_label = allosome_labels[0]) 
     return pop
 
+
 def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=None):
-    if 'model_filename' not in driver_spec:
+    if not hasattr( driver_spec, 'model_filename') :
         raise ValueError('You must specify the file path to your model under "model_filename".')
-    model_path = locate_file_path(filename=driver_spec['model_filename'],
+    model_path = locate_file_path(filename=driver_spec.model_filename,
                                   script_dir=script_dir,
                                   absolute_driver_yaml_path=driver_path)
     if model_path is None:
@@ -219,6 +294,7 @@ def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=
     else:    
         model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
     return model
+
 
 
 def parse_chromosomes(chromosome_spec: list | str | int, chromosomes: None | list=None):
@@ -264,17 +340,23 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
     num_params = len(model.free_params)
     rng = numpy.random.default_rng(seed=seed)
     start_params = rng.random((repetitions, num_params))
+     
     for param_name, param_info in model.free_params.items():
         if param_name in model.params_fixed_by_ancestry:
             start_params[:, param_info.index] = 0
             continue
-        if param_name not in start_param_bounds:
+
+        try: 
+            getattr(start_param_bounds, param_name)
+        except:
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
-        if isinstance(start_param_bounds[param_name], numbers.Number):
-            start_params[:, param_info.index] = start_param_bounds[param_name]
+
+        if isinstance(getattr(start_param_bounds, param_name), numbers.Number):
+            start_params[:, param_info.index] = getattr(start_param_bounds, param_name)
         else:
             try:
-                bounds = [float(bound) for bound in start_param_bounds[param_name].split(':')] # Intervals are specified as "min:max" to avoid confusion with negative values.
+                bounds = [float(bound) for bound in getattr(start_param_bounds, param_name).split(':')] # Intervals are specified as "min:max" to avoid confusion with negative values.
+
                 assert len(bounds) == 2
                 start_params[:, param_info.index] *= bounds[1] - bounds[0]
                 start_params[:, param_info.index] += bounds[0]
@@ -380,18 +462,20 @@ def run_model_sex_biased(model_func, bound_func, population: Population, populat
     return optimal_params, optimal_likelihood
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
-    if 'output_directory' in driver_spec:
-        output_dir = driver_spec['output_directory']
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
-    else:
-        output_dir = ''
 
-    output_filename_format = driver_spec['output_filename_format']
-    exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cm'] if 'exclude_tracts_below_cm' in driver_spec else 10
-    npts = driver_spec['npts'] if 'npts' in driver_spec else 50
+
+    output_dir = driver_spec.output_directory
+    if not os.path.exists(output_dir) and len(output_dir)>0:
+        os.mkdir(output_dir)
+
+
+    output_filename_format = driver_spec.output_filename_format
+    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
+
+    npts = driver_spec.npts
     (bins, data) = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-    
+
+
     Ls = sample_population.Ls
     nind = sample_population.nind
 
@@ -459,28 +543,29 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model.
     """
-    if 'output_directory' in driver_spec:
-        output_dir = driver_spec['output_directory']
+    
+    if hasattr(driver_spec, 'output_directory'):
+        output_dir = driver_spec.output_directory
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
     else:
         output_dir = ''
 
-    output_filename_format = driver_spec['output_filename_format']
-    if 'exclude_tracts_below_cM' in driver_spec:
-        exclude_tracts_below_cM = driver_spec['exclude_tracts_below_cM']
+    output_filename_format = driver_spec.output_filename_format
+    if hasattr(driver_spec, 'exclude_tracts_below_cM'):
+        exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cM
     else:
         exclude_tracts_below_cM = 10
 
-    if 'npts' in driver_spec:
-        npts = driver_spec['npts']
+    if hasattr(driver_spec, 'npts'):
+        npts = driver_spec.npts
     else:
         npts = 50
 
     matrices = model.get_migration_matrices(optimal_params)
     
     [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-    output_filename_format = driver_spec['output_filename_format']
+    output_filename_format = driver_spec.output_filename_format
     autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     Ls = sample_population.Ls
     nind = sample_population.nind
