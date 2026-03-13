@@ -31,5 +31,5 @@ exclude_tracts_below_cm: 2
 npts : 50
 #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
-#M_for_autosomes: False
 ad_model_autosomes: DC
+ad_model_allosomes: DC
