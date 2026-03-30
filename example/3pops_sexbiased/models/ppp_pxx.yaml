@@ -1,0 +1,19 @@
+model_name: Two pulses
+description:
+  A demes model with flexible parameters. Represents a population X founded a generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
+time_units: generations
+demes:
+  - name: EUR
+  - name: NAT
+  - name: X
+    ancestors: [EUR, AFR, NAT]
+    proportions: [REUR, RAFR, 1-REUR-RAFR]
+    start_time: t1
+
+pulses:
+
+
+  - sources: [EUR]
+    dest: X
+    proportions: [REUR2]
+    time: t2

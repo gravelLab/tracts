@@ -7,6 +7,10 @@ import pytest
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
 
+from tracts.demography.parameter import small
+
+
+
 
 @pytest.fixture
 def basic_model():
@@ -90,7 +94,7 @@ def test_initialization(basic_model):
     assert basic_model.name == ""
     assert basic_model.min_time == 2
     assert basic_model.max_time == np.inf
-    assert len(basic_model.free_params) == 0
+    assert len(basic_model.model_base_params) == 0
     assert len(basic_model.dependent_params) == 0
     assert len(basic_model.population_indices) == 0
     assert basic_model.finalized is False
@@ -115,7 +119,7 @@ def test_initialization_with_all_params(complete_model):
     assert complete_model.name == "CompleteModel"
     assert complete_model.min_time == 10
     assert complete_model.max_time == 200
-    assert len(complete_model.free_params) == 0
+    assert len(complete_model.model_base_params) == 0
     assert len(complete_model.dependent_params) == 0
     assert len(complete_model.population_indices) == 0
     assert complete_model.finalized is False
@@ -126,26 +130,26 @@ def test_add_parameter(basic_model):
     """Test adding different types of parameters"""
     # Test adding rate parameter
     basic_model.add_parameter("rate1", ParamType.RATE)
-    assert "rate1" in basic_model.free_params
-    assert basic_model.free_params["rate1"].type == ParamType.RATE
-    assert basic_model.free_params["rate1"].bounds == (0, 1)
+    assert "rate1" in basic_model.model_base_params
+    assert basic_model.model_base_params["rate1"].type == ParamType.RATE
+    assert basic_model.model_base_params["rate1"].bounds == (small, 1-small)
     
     # Test adding time parameter
     basic_model.add_parameter("time1", ParamType.TIME)
-    assert "time1" in basic_model.free_params
-    assert basic_model.free_params["time1"].type == ParamType.TIME
-    assert basic_model.free_params["time1"].bounds == (2, np.inf)
+    assert "time1" in basic_model.model_base_params
+    assert basic_model.model_base_params["time1"].type == ParamType.TIME
+    assert basic_model.model_base_params["time1"].bounds == (2, np.inf)
 
 
 def test_parameter_bounds(custom_time_model):
     """Test that parameters are created with correct bounds"""
     # Test custom bounds for rate parameter
     custom_time_model.add_parameter("rate1", ParamType.RATE, bounds=(0.1, 0.5))
-    assert custom_time_model.free_params["rate1"].bounds == (0.1, 0.5)
+    assert custom_time_model.model_base_params["rate1"].bounds == (0.1, 0.5)
     
     # Test custom bounds for time parameter
     custom_time_model.add_parameter("time1", ParamType.TIME, bounds=(10, 50))
-    assert custom_time_model.free_params["time1"].bounds == (10, 50)
+    assert custom_time_model.model_base_params["time1"].bounds == (10, 50)
 
 
 def test_add_population(basic_model):
@@ -191,19 +195,19 @@ def test_add_population(basic_model):
 #        basic_model.add_population("pop3")
 
 def test_continuous_founder_event(model_with_continuous_founder_event):
-    assert "found_time" in model_with_continuous_founder_event.free_params
-    assert "end_time" in model_with_continuous_founder_event.free_params
-    assert "founder_rate1" in model_with_continuous_founder_event.free_params
-    assert "founder_rate2" in model_with_continuous_founder_event.free_params
+    assert "found_time" in model_with_continuous_founder_event.model_base_params
+    assert "end_time" in model_with_continuous_founder_event.model_base_params
+    assert "founder_rate1" in model_with_continuous_founder_event.model_base_params
+    assert "founder_rate2" in model_with_continuous_founder_event.model_base_params
 
 
 def test_add_pulse_migration(model_with_pulse_migration):
     """Test adding pulse migrations"""
     # Verify parameters were added
-    assert "rate1" in model_with_pulse_migration.free_params
-    assert "time1" in model_with_pulse_migration.free_params
-    assert "founder_rate1" in model_with_pulse_migration.free_params
-    assert "found_time" in model_with_pulse_migration.free_params
+    assert "rate1" in model_with_pulse_migration.model_base_params
+    assert "time1" in model_with_pulse_migration.model_base_params
+    assert "founder_rate1" in model_with_pulse_migration.model_base_params
+    assert "found_time" in model_with_pulse_migration.model_base_params
     
     # Verify events were added
     model_with_pulse_migration.finalize()
@@ -214,11 +218,11 @@ def test_add_pulse_migration(model_with_pulse_migration):
 def test_add_continuous_migration(model_with_continuous_migration):
     """Test adding continuous migrations"""
     # Verify parameters were added
-    assert "rate1" in model_with_continuous_migration.free_params
-    assert "start1" in model_with_continuous_migration.free_params
-    assert "end1" in model_with_continuous_migration.free_params
-    assert "founder_rate1" in model_with_continuous_migration.free_params
-    assert "found_time" in model_with_continuous_migration.free_params
+    assert "rate1" in model_with_continuous_migration.model_base_params
+    assert "start1" in model_with_continuous_migration.model_base_params
+    assert "end1" in model_with_continuous_migration.model_base_params
+    assert "founder_rate1" in model_with_continuous_migration.model_base_params
+    assert "found_time" in model_with_continuous_migration.model_base_params
     
     # Verify events were added
     model_with_continuous_migration.finalize()

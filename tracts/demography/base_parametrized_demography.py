@@ -45,6 +45,8 @@ class FounderEvent(BaseFounderEvent):
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
         true_start_time = parametrized_demography.get_param_value(self.found_time, params)
         start_time = math.ceil(true_start_time) # a discretized value to create a matrix that can include the event.  
+        assert true_start_time >= 1, f'Founder event time must be at least 1 generation ago. current start time is {true_start_time}. If this happens at start of simulation, it may be a problem with parameter scaling. '
+        
         frac_part_start = start_time - true_start_time
         
         migration_matrix = np.zeros((start_time + 1, len(parametrized_demography.population_indices)))
@@ -78,7 +80,7 @@ class FounderEvent(BaseFounderEvent):
          
             integer_end_time = math.ceil(float_end_time)
             total_rate = 0
-            #breakpoint()
+
             for source_population, rate_param in self.source_populations.items():
                 total_rate += parametrized_demography.get_param_value(rate_param, params)
             
@@ -120,7 +122,8 @@ class BaseParametrizedDemography(ABC):
         self.min_time = min_time
         self.max_time = max_time
         self.constraints = []
-        self.free_params: dict[str, Parameter] = {}
+        self.model_base_params: dict[str, Parameter] = {}
+        self.fixed_params: dict[str, Parameter] = {}
         self.dependent_params = {}
         self.constant_params = {}
         self.population_indices = {}
@@ -128,22 +131,26 @@ class BaseParametrizedDemography(ABC):
         self.finalized = False
         self.founder_events: dict[str, FounderEvent]={}
         self.events: dict[str: list[BaseMigrationEvent]]={}        
-        self.fixed_proportions_handler = FixedParametersHandler(self.logger)
+        self.fixed_parameter_handler = FixedParametersHandler(self.logger)
         self.parametrized_populations= []
+        
 
 
 
     @property
     def params_fixed_by_ancestry(self):
-        return self.fixed_proportions_handler.params_fixed_by_ancestry
+        return self.fixed_parameter_handler.params_fixed_by_ancestry
     
     @property
+    def params_fixed_by_value(self):
+        return self.fixed_parameter_handler.user_params_fixed_by_value
+    @property
     def has_been_fixed(self):
-        return self.fixed_proportions_handler.has_been_fixed
+        return self.fixed_parameter_handler.has_been_fixed
 
     @property
     def parameter_bounds(self):
-        return [param.bound for param in self.free_params.values()]
+        return [param.bound for param in self.model_base_params.values()]
 
     @staticmethod
     def proportions_from_matrix(migration_matrix: np.ndarray):
@@ -160,7 +167,7 @@ class BaseParametrizedDemography(ABC):
     def proportions_from_matrices_return_keys(self):
         '''
         This method returns the expected keys from ``self.proportions_from_matrices()``.
-        It is used by ``FixedProportionsHandler`` to validate that the fixed parameter will be solvable from the given data.
+        It is used by ``FixedParametersHandler`` to validate that the fixed parameter will be solvable from the given data.
         '''
         #TODO: calculate automatically from proportions_from_matrices().
         #For now, subclasses that change the behaviour of proportions_from_matrices() should have a different implementation of this method to reflect this.
@@ -169,17 +176,18 @@ class BaseParametrizedDemography(ABC):
 
     def finalize(self):
         self.finalized = True
-        for index, param_name in enumerate(self.free_params):
-            self.free_params[param_name].index = index
+        for index, param_name in enumerate(self.model_base_params):
+            self.model_base_params[param_name].index = index
         for index, population_name in enumerate(self.population_indices):
             self.population_indices[population_name] = index
 
     def add_parameter(self, param_name: str, param_type: ParamType=ParamType.UNTYPED, bounds=None):
         """
-        Adds the given parameter name to the parameters of the model.
+        Adds the given parameter name to the free parameters of the model. Free parameters include all parameters that can be optimized directly. 
+        They may become fixed during optimization
         """
         self.finalized = False
-        if param_name in self.free_params or param_name in self.dependent_params:
+        if param_name in self.model_base_params or param_name in self.dependent_params:
             self.logger.warning(f'Parameter "{param_name}" already exists.')
             return
         if bounds is None:
@@ -187,10 +195,12 @@ class BaseParametrizedDemography(ABC):
                 bounds = (self.min_time, self.max_time)
             else:
                 bounds = param_type.bounds
-        self.free_params[param_name] = Parameter(param_name, param_type, bounds)
+        self.model_base_params[param_name] = Parameter(param_name, param_type, bounds)
 
 
     def add_dependent_parameter(self, param_name: str, expression: function[["BaseParametrizedDemography",list[float]], float], param_type: ParamType=ParamType.UNTYPED, bounds=None):
+        """Dependent parameters cannot be optimized directly. This is used in sex-biased migration to define a sex-specific migration rate computed from an overall migration
+         rate and sex """
         if param_name in self.dependent_params:
             raise ValueError(f'Dependent parameter "{param_name}" already exists.')
         if bounds is None:
@@ -199,8 +209,8 @@ class BaseParametrizedDemography(ABC):
             else:
                 bounds = param_type.bounds
         self.dependent_params[param_name]=DependentParameter(param_name, expression, param_type, bounds)
-        if param_name in self.free_params:
-            self.free_params.pop(param_name)
+        if param_name in self.model_base_params:
+            self.model_base_params.pop(param_name)
         
 
 
@@ -208,7 +218,7 @@ class BaseParametrizedDemography(ABC):
         """
         Adds the given population name to the populations of the model.
         """
-        if self.fixed_proportions_handler.has_been_fixed:
+        if self.fixed_parameter_handler.has_been_fixed:
             raise ValueError('Cannot add populations to a model after fixing ancestry proportions.')
         self.finalized = False
         if population_name not in self.population_indices:
@@ -227,13 +237,13 @@ class BaseParametrizedDemography(ABC):
         return self.get_param_value(time_param_name, params), self.population_indices[population_name]
 
     def is_time_param(self):
-        if not self.fixed_proportions_handler.has_been_fixed:
-            return [param.type == ParamType.TIME for param in self.free_params.values()]
-        time_param_list = []
-        for param_name, param in self.free_params.items():
-            if param_name not in self.fixed_proportions_handler.params_fixed_by_ancestry:
-                time_param_list.append(param.type == ParamType.TIME)
-        return time_param_list
+        #if not self.fixed_parameter_handler.has_been_fixed:
+        return [param.type == ParamType.TIME for param in self.model_base_params.values()]
+        #time_param_list = []
+        #for param_name, param in self.model_base_params.items():
+        #   if param_name not in self.fixed_parameter_handler.params_fixed_by_ancestry:
+        #        time_param_list.append(param.type == ParamType.TIME)
+        #return time_param_list
 
     def get_param_value(self, param_name: str, params: list[float]):
         """
@@ -244,42 +254,41 @@ class BaseParametrizedDemography(ABC):
             return param_name
         if not self.finalized:
             raise ValueError('Cannot get parameter value before the model is finalized.')
-        if param_name in self.free_params:
-            return params[self.free_params[param_name].index]
+        if param_name in self.model_base_params:
+            return params[self.model_base_params[param_name].index]
         if param_name in self.constant_params:
             return self.constant_params[param_name].value
         if param_name in self.dependent_params:
-            return self.dependent_params[param_name](self, params)
+            return self.dependent_params[param_name](self, params) 
         raise KeyError(f'Parameter "{param_name}" could not be found')
 
     def get_violation_score(self, params: list[float]):
         """
-        Takes in a list of params equal to the length of ``free_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
+        Takes in a list of params equal to the length of ``model_base_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
         """
-        if self.fixed_proportions_handler.has_been_fixed:
-            if len(params) != len(self.free_params):
+        if self.fixed_parameter_handler.has_been_fixed:
+            if len(params) != len(self.model_base_params):
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
             else:
                 full_params = params
             violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
             if violation_score < 0:
                 return violation_score
-            params = self.fixed_proportions_handler.compute_dependent_params(self, params)
+            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(params)
         self.logger.info(f'Running bounds check.')
         violation_score = min(self.check_bounds(params), self.check_constraints(params))
         if violation_score < 0:
             return violation_score
         
         for migration_matrix in self.get_migration_matrices(params).values():
-            #if np.min(migration_matrix)<0 :
-            #   breakpoint()
+
             
             totmig = migration_matrix.sum(1).max()
             if 1 - totmig < violation_score:
                 violation_score = 1 - totmig
-                
-            if np.min(migration_matrix)< violation_score:
-                violation_score = min(migration_matrix)
+
+            if np.min(migration_matrix) < violation_score:
+                violation_score = np.min(migration_matrix)
         return violation_score
 
     def check_constraints(self, params: list[float]):
@@ -296,7 +305,7 @@ class BaseParametrizedDemography(ABC):
                     violation_score = violation
                     self.logger.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
         else:
-            if len(params) != len(self.free_params):
+            if len(params) != len(self.model_base_params):
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
             else:
                 full_params = params
@@ -319,15 +328,15 @@ class BaseParametrizedDemography(ABC):
         # self.logger.info(f'Params: {params}, params')
         if len(params_from_proportions) != len(self.params_fixed_by_ancestry):
             raise ValueError('Incorrect number of parameters to be solved')
-        if len(params) + len(params_from_proportions) == len(self.free_params):
+        if len(params) + len(params_from_proportions) == len(self.model_base_params):
             iter_params = iter(params)
             iter_params_to_solve = iter(params_from_proportions)
             params = [next(iter_params_to_solve) if (param_name in self.params_fixed_by_ancestry) else next(iter_params)
-                      for param_name in self.free_params]
+                      for param_name in self.model_base_params]
             return params
-        if len(params) == len(self.free_params):
+        if len(params) == len(self.model_base_params):
             for param_name, value in zip(self.params_fixed_by_ancestry, params_from_proportions):
-                params[self.free_params[param_name]['index']] = value
+                params[self.model_base_params[param_name]['index']] = value
             return params
         raise ValueError('An unexpected error occured while merging parameters.')
 
@@ -338,8 +347,8 @@ class BaseParametrizedDemography(ABC):
         whereas constraints should be restrictions on parameter values relative to each other.
         """
         violation_score = 0
-        if not self.fixed_proportions_handler.has_been_fixed:
-            for param_name, param_object in self.free_params.items():
+        if not self.fixed_parameter_handler.has_been_fixed:
+            for param_name, param_object in self.model_base_params.items():
                 violation = self.get_param_value(param_name, params) - param_object.bounds[0]
                 if violation < violation_score:
                     self.logger.warning(
@@ -353,13 +362,13 @@ class BaseParametrizedDemography(ABC):
                         f'Out of bounds by: {-violation}.')
                     violation_score = violation
         else:
-            if len(params) != len(self.free_params):
+            if len(params) != len(self.model_base_params):
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
             else:
                 full_params = params
-            # print(full_params, self.free_params)
+            # print(full_params, self.model_base_params)
  
-            for param_name, param_object in self.free_params.items():
+            for param_name, param_object in self.model_base_params.items():
                 #if param_name in self.params_fixed_by_ancestry:
                 #    continue
                 violation = self.get_param_value(param_name, full_params) - param_object.bounds[0]
@@ -425,19 +434,22 @@ class BaseParametrizedDemography(ABC):
         return source_populations, remainder_population
     
     def list_parameters(self):
-        for param_name, param_info in self.free_params.items():
+        for param_name, param_info in self.model_base_params.items():
             print(f"{param_name}: {param_info.type}")
         return
 
-    def set_up_fixed_ancestry_proportions(self, params_to_fix: list[str], proportions: dict[str: list[float]]):
-        self.fixed_proportions_handler.set_up_fixed_ancestry_proportions(self, params_to_fix, proportions)
+    def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
+                                          params_to_fix_by_value:dict[str:float]={}):
+        self.fixed_parameter_handler.set_up_fixed_parameters(demography = self, params_to_fix_by_ancestry=params_to_fix_by_ancestry, 
+                                                                       proportions=proportions, user_params_to_fix_by_value=params_to_fix_by_value)
 
+                                          
     @abstractmethod
     def get_random_parameters():
         pass
 
     @abstractmethod
-    def get_migration_matrices(self, params: list[float], solve_using_known_proportions: bool = None) -> dict[str, np.ndarray]:
+    def get_migration_matrices(self, params: list[float]) -> dict[str, np.ndarray]:
         pass
 
     @abstractmethod
@@ -456,125 +468,300 @@ class FixedParametersHandler:
         self.params_fixed_by_ancestry = {}
         self.known_ancestry_proportions: dict[str, list[float]] = None
         self.reduced_constraints =[]
+        self.user_params_fixed_by_value = {}
+        self.demography = None
+        self.to_physical_params_functions = {}
+        self.to_optimizer_params_functions = {}
 
     @property
     def has_been_fixed(self):
         return self.known_ancestry_proportions is not None
 
-    def set_up_fixed_ancestry_proportions(self, demography: BaseParametrizedDemography, params_to_fix: list[str], proportions: dict[str: list[float]]):
+
+    def order_fixed_param_dict(self, fixed_params_dict: dict[str: float]):
+    
+        return {param_name: fixed_params_dict[param_name] for param_name in self.demography.model_base_params if
+                                         param_name in fixed_params_dict}
+    def get_sorted_indices(self, param_list):
+        """Gives the list of indices as they appear in model_base_params""" 
+        return np.array([index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name in param_list], dtype=int)
+
+    def convert_to_physical_params(self, optimizer_params):
+
+        """converts optimizer parameters from optimization units to physical units, for example log-scaling rates. 
+        scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
+        optimizer_params = np.asarray(optimizer_params) 
+        assert np.asarray(optimizer_params).ndim == 1
+        converted_params = optimizer_params.copy()
+        for index in range(len(optimizer_params)):
+            param_name = list(self.demography.model_base_params.keys())[index]
+            param_type = self.demography.model_base_params[param_name].type
+            
+
+            if param_type in self.to_physical_params_functions.keys():
+                converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
+            if param_type == ParamType.TIME:
+                if converted_params[index] > 15:
+                    print(f'Time parameter {param_name} is too large after conversion to physical units: {converted_params[index]}. Check scaling functions.')
+
+        return converted_params
+
+
+    def convert_to_optimizer_params(self, physical_params):
+        """converts parameters from optimization units to physical units, for example inverse log-scaling rates.
+        scaling_functions is a dictionary mapping param types to functions that convert physical to optimization units."""
+
+        assert np.asarray(physical_params).ndim == 1
+
+        converted_params = physical_params.copy()
+        for index in range(len(physical_params)):
+            param_name = list(self.demography.model_base_params.keys())[index]
+            param_type = self.demography.model_base_params[param_name].type
+            if param_type in self.to_optimizer_params_functions.keys():
+                converted_params[index] = self.to_optimizer_params_functions[param_type](physical_params[index])
+
+        return converted_params
+
+
+    def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
+                                          user_params_to_fix_by_value:dict[str:float]={}
+                                          ):
         """
         Tells the model to calculate certain rate parameters based on the known
         ancestry proportions of the sample populations. Proportions are given as a dict with keys corresponding to the sample populations.
+
+        We can fix parameters by value or to match global ancestry proportion. 
         """
 
-        if not (demography.proportions_from_matrices_return_keys() == proportions.keys()):
+        self.demography = demography
+        self.user_params_fixed_by_value = self.order_fixed_param_dict(user_params_to_fix_by_value)
+        
+        self.current_fixed_parameters = self.user_params_fixed_by_value.copy()
+        self.params_fixed_by_value_indices = self.get_sorted_indices(user_params_to_fix_by_value.keys())  
+        self.params_fixed_by_ancestry_indices = self.get_sorted_indices(params_to_fix_by_ancestry)
+
+
+        self.params_fixed_by_values_values =list(self.user_params_fixed_by_value.values())
+        
+        self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name not in user_params_to_fix_by_value and param_name not in params_to_fix_by_ancestry]
+        
+
+        self.demography.fixed_parameter_values = {user_params_to_fix_by_value[param_name] for param_name in demography.model_base_params if
+                                         param_name in user_params_to_fix_by_value} # Store value in the demography object 
+                                                                               # --these should not change     
+        
+        if len(params_to_fix_by_ancestry)!= 0 and not (self.demography.proportions_from_matrices_return_keys() == proportions.keys()):
             raise KeyError(
                 "The keys of the provided sample proportions do not match proportions_from_matrices():"
                 f"\nExpected keys: {demography.proportions_from_matrices_return_keys()}"
                 f"\nProvided keys: {proportions.keys()}"
             )
-        for param_name in params_to_fix:
+        for param_name in params_to_fix_by_ancestry:
             if param_name in demography.dependent_params:
                     raise KeyError(f'{param_name} is already specified by another equation.')
-            if param_name not in demography.free_params:
+            if param_name not in demography.model_base_params:
                 raise KeyError(f'{param_name} is not a parameter of this model.')
-            if demography.free_params[param_name].type not in {ParamType.RATE, ParamType.SEX_BIAS}:
+            if param_name in demography.fixed_params:
+                raise KeyError(f'{param_name} is already a fixed parameter.')
+            if demography.model_base_params[param_name].type not in {ParamType.RATE, ParamType.SEX_BIAS}:
                 raise ValueError(f'{param_name} is not a rate or sex bias parameter.')
-        if len(params_to_fix) != sum(len(prop)-1 for prop in proportions.values()):
+        if len(params_to_fix_by_ancestry) not in [0, sum(len(prop)-1 for prop in proportions.values())]:
             raise ValueError(
                     f'Number of parameters to fix is incorrect.'
                     f'Each population of interest can have N-1 proportions fixed'
                     f'Where N is the number of ancestral sources for that population'
                 )
         
-        # Use a dict to maintain order. Also looping over demography.free_params rather than params_to_fix to maintain order.
-        self.params_fixed_by_ancestry = {param_name: '' for param_name in demography.free_params if
-                                         param_name in params_to_fix}
+        # Use a dict to maintain order. Also looping over demography.model_base_params rather than params_to_fix to maintain order.
+        self.params_fixed_by_ancestry = {param_name: '' for param_name in demography.model_base_params if
+                                         param_name in params_to_fix_by_ancestry}
         
-        # Exclude the last set of proportions because they are redundant.
+        # Exclude the last set of proportions because they are redundant (proportions must sum to 1)
         self.known_ancestry_proportions = {key:prop[:-1] for key, prop in proportions.items()}
         
         # Keep the constraints that involve any of the fixed parameters. Not used yet.
-        self.reduced_constraints = [constraint for constraint in demography.constraints if any(
+        self.reduced_constraints = [constraint for constraint in self.demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
-    def compute_dependent_params(self, demography: BaseParametrizedDemography, params: list[float], known_ancestry_proportions=None):
-        if not self.has_been_fixed and len(params) != len(demography.free_params):
+    
+    #def get_fixed_by_value_indices_values(self):
+    #    return (list(self.params_fixed_by_value_indices), list(self.params_fixed_by_values_values))
+    
+    #def get_free_parameter_indices(self): 
+    #    return self.free_parameters_indices
+    
+    def extend_parameters(self, free_parameters, units = "phys"):
+        """takes in the core paramters for the demography and extends them to include the fixed parameters.
+        free_parameters are in optimization space.This happens in physical units "phys" by default, else "opt" for optimizer units
+        TODO: remove the need for this option by always working in physical units here."""
+               
+                             
+        full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
+        full_parameters[self.free_parameters_indices] = free_parameters
+        full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
+        
+        return self.compute_params_fixed_by_ancestry(full_parameters, units = units) 
+
+
+    def indices_to_labels(self, indices: list[int]):
+        """Takes in a list of indices and returns the corresponding parameter names."""
+        
+        keys = list(self.demography.model_base_params.keys())
+        return [keys[i] for i in indices]
+    
+
+    def reduce_parameters(self, full_parameters):
+        """Takes in the full set of parameters for the demography and reduces them to only the free parameters."""
+        return full_parameters[self.free_parameters_indices]
+
+    def add_fixed_parameters(self, new_fixed_params: dict[str: float]):
+        intersection = set(new_fixed_params.keys()).intersection(set(self.user_params_fixed_by_value.keys()))
+        assert not intersection, f'Parameters {intersection} are already fixed by value.' 
+        self.current_fixed_parameters.update(new_fixed_params)
+        self.current_fixed_parameters = self.order_fixed_param_dict(self.current_fixed_parameters)
+        self.params_fixed_by_value_indices = self.get_sorted_indices(self.current_fixed_parameters.keys())
+
+        self.params_fixed_by_values_values =self.current_fixed_parameters.values()
+        
+        self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]
+        
+    
+    def release_fixed_parameters(self, freed_params: list[str]):
+        self.current_fixed_parameters = {param_name: value for param_name, value in self.current_fixed_parameters.items() if param_name not in freed_params}
+
+        self.params_fixed_by_value_indices = self.get_sorted_indices(self.current_fixed_parameters.keys())
+
+        self.params_fixed_by_values_values =self.current_fixed_parameters.values()
+        
+        self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
+                                         param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]
+        
+
+    def full_params_objective_func(self, parameters, units = "phys"):
+        
+        """returns the difference between computed and model ancestry proportions, as an array."""
+        
+        migration_matrices = self.demography.get_migration_matrices(parameters)
+        found_props = self.demography.proportions_from_matrices(migration_matrices)
+        diff = np.array([found_props[ancestor][:-1] - self.known_ancestry_proportions[ancestor] 
+                for ancestor in self.known_ancestry_proportions.keys()]).flatten()
+        return diff
+
+    
+    def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions=None, units = "phys"):
+        """This happens in physical units "phys" by default, else "opt" for optimizer units"""
+        if units == "opt":
+            params_phys = self.convert_to_physical_params(params)
+        else: 
+            assert units == "phys", "units must be 'phys' or 'opt'"
+            params_phys = params.copy()
+        if not self.has_been_fixed and len(params_phys) != len(self.demography.model_base_params): #TODO: discard the second condition?
             raise Exception("The demography has not been fixed yet.")
         if known_ancestry_proportions==None:
             known_ancestry_proportions=self.known_ancestry_proportions
-        self.logger.info(f'Params before fixed-ancestry solving: {params}')
-        if len(params) == len(demography.free_params):
-            full_params = params
-            migration_matrices = demography.get_migration_matrices(full_params, solve_using_known_proportions=False)
-            calculated_proportions = demography.proportions_from_matrices(migration_matrices)
+
+        self.logger.info(f'Params before fixed-ancestry solving: {params_phys}')
+        assert (len(params_phys) == len(self.demography.model_base_params))
+        
+     
+        migration_matrices = self.demography.get_migration_matrices(params_phys)
+        
+        try:
+            calculated_proportions = self.demography.proportions_from_matrices(migration_matrices)  
             if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
                         for sample_pop in known_ancestry_proportions.keys()]):
-                return full_params
-        else:
-            full_params = params.copy()
+                if units == "opt":
+                    params_phys = self.convert_to_optimizer_params(params_phys)
+                return params_phys
+        except ValueError: #This catches cases where the parameters produce invalid matrices
+            pass
 
-        def param_objective_func(params_to_solve):
-            nonlocal full_params
+
+
+        def param_objective_func(params_to_solve): ##This should be in optimizer units to avoid unphysical values 
+            """Computes the difference as a function of the paramters to solve only. Should be in optimizer units to avoid impossible values"""
+            nonlocal params_phys
             params_to_solve[np.isnan(params_to_solve)] = 0
-            full_params = self.insert_params(demography.free_params, full_params, params_to_solve)
-            # self.logger.info(f'Full params: {full_params}')
-            migration_matrices = demography.get_migration_matrices(
-                full_params,
-                solve_using_known_proportions=False)
-            found_props = demography.proportions_from_matrices(migration_matrices)
-            fixed_props = known_ancestry_proportions
-            diff = np.array([found_props[ancestor][:-1] - fixed_props[ancestor] for ancestor in fixed_props.keys()]).flatten()
-            return diff
+            params_opt = self.convert_to_optimizer_params(params_phys)
+            params_phys = self.convert_to_physical_params(self.insert_solved_params(params_opt, params_to_solve)) 
+            try: value = self.full_params_objective_func(params_phys, units = "phys") #the parameters to solve will be interpreted in optimizer units
+            except ValueError as e:
+                raise ValueError(f"problem computing migration matrices with opt parameters {params_opt}parameters {params_phys}.") from e
+            return value
         
-        solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
+        try: 
+            solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
                                               np.ones(len(self.params_fixed_by_ancestry)) * .2)
+        except ValueError as e:
+            raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
+        error = np.linalg.norm(param_objective_func(solved_params))
+        if not np.isclose(error, 0):
+            print(f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}, solved_params = {solved_params}")
+            #breakpoint()
+        if np.isnan(solved_params).any():
+            print ("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
 
-        full_params = self.insert_params(demography.free_params, full_params, solved_params)
-        self.logger.info(f'Params after solving with ancestry proportions: {full_params}')
-        #if min(full_params) < -1:
-        #    breakpoint()
-        return full_params
+        params_phys = self.convert_to_physical_params(self.insert_solved_params(self.convert_to_optimizer_params(params_phys), solved_params))
+        
+        self.logger.info(f'Params after solving with ancestry proportions: {params_phys}')
+         
+        if units == "opt":
+            params_phys = self.convert_to_optimizer_params(params_phys)
+        
+        return params_phys
 
-    def insert_params(self, free_params: dict[str, Parameter], params: list[float], params_from_proportions: list[float]):
+    def insert_solved_params(self, full_params: list[float], param_values_from_proportions: list[float]):
         '''
+        param_values_from_proportions includes only values for those parameters fixed by ancestry proportions. 
         Used for merging the parameters solved by the primary optimizer
         with the parameters found from the known ancestry proportions
         into a single list of parameters in the correct order for the model.
+
+        
         '''
-        if not self.has_been_fixed:
-            raise Exception("The insert_params method must be called only on demographies with known ancestry proportions")
+        assert self.params_fixed_by_ancestry_indices.dtype == int
+        output_params = np.array(full_params, dtype=float, copy=True) 
+        output_params[self.params_fixed_by_ancestry_indices] = np.array(param_values_from_proportions)
         
-        if len(params_from_proportions) != len(self.params_fixed_by_ancestry):
-            raise ValueError('Incorrect number of parameters to be solved')
+        return output_params
+
+    
+
+    def insert_fixed_params(self, model_base_params: dict[str, Parameter], params_to_optimize: list[float], fixed_params: list[float]):
+        '''
+        Used for merging the parameters fixed parameters. This could be refactored with insert solved parameters
+        with the parameters found from the known ancestry proportions
         
-        # This is the case when 'params' contains only the completely free parameters, in order:
-        if len(params) + len(params_from_proportions) == len(free_params):
-            iter_params = iter(params)
-            iter_params_to_solve = iter(params_from_proportions)
-            params = [next(iter_params_to_solve) if (param_name in self.params_fixed_by_ancestry) else next(iter_params)
-                      for param_name in free_params]
-            return params
+        non_computed_parameters include both parameters fixed by value and parameters to be optimized over. 
+        params_to_optimize: the list of values for the parameters fixed by neither values nor ancestry proportions
+        fixed_params: the values for the fixed parameters. 
+
+        the list of values are presumed to be in the same order as in non-computed parameters
+
+        Output: a list of values for all the non-computed parameters. This will then be used to compute the computed paramters. 
+
+        '''
         
-        # This is the case when 'params' contains both sets of parameters, in order,
-        # And values corresponding to fixed parameters are to be replaced in the list.
-        if len(params) == len(free_params):
-            for param_name, value in zip(self.params_fixed_by_ancestry, params_from_proportions):
-                params[free_params[param_name].index] = value
-            return params
-        raise ValueError('An unexpected error occured while merging parameters.'
-                    f'\nNumber of model parameters: {len(free_params)}'
-                    f'\nNumber of parameters provided: {len(params)}'
-                    f'\nNumber of fixed parameters: {len(self.params_fixed_by_ancestry)}'
-                )
+        assert (len(params_to_optimize) + len(fixed_params)+len(self.params_fixed_by_ancestry) == len(model_base_params)), f"{len(params_to_optimize)} + {len(fixed_params)}+{len(self.params_fixed_by_ancestry)} == {len(model_base_params)} non-computed parameters: {model_base_params}"
+        
+
+        iter_params = iter(params_to_optimize)
+        iter_fixed_params = iter(fixed_params)
+        params_to_optimize = [next(iter_fixed_params) if (param_name in self.user_params_fixed_by_value) else next(iter_params)  
+                      for param_name in model_base_params if param_name not in self.params_fixed_by_ancestry ]
+        return params_to_optimize
+        
+
+
 
     def check_for_unsolvable_proportions(self, demography: BaseParametrizedDemography):
         '''
         Checks that the demography has an assignment of (full) parameters that results in the chosen proportions.
         '''
         def objective_func(params):
-            migration_matrices = demography.get_migration_matrices(
-                params,
-                solve_using_known_proportions=False)
+            migration_matrices = demography.get_migration_matrices(params)
             diff = [prop[:-1] - self.known_ancestry_proportions[sample_pop] for sample_pop, prop in demography.proportions_from_matrices()]
             return np.linalg.norm(diff)
         

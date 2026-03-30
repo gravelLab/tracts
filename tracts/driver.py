@@ -4,14 +4,14 @@ import os
 import sys
 from pathlib import Path
 from typing import Callable
-import numpy
+import numpy as np
 import ruamel.yaml
 import matplotlib.pyplot as plt
 import warnings
 #warnings.simplefilter('always')
-
+from scipy.special import logit, expit
 from tracts.population import Population
-from tracts.core import optimize_cob, optimize_cob_sex_biased
+from tracts.core import optimize_cob, optimize_cob_sex_biased_fixed_values
 import tracts.hybrid_pedigree as HP
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
@@ -54,6 +54,11 @@ def run_tracts(driver_filename, script_dir=None):
     driver_spec = load_driver_file(driver_path)
 
     
+    print('------------------------------------------------------------------------------------------------\n')
+    print('Running tracts 2.0 with driver file:', driver_filename,'\n')
+    print('Reading data, demographic model and driver specifications...\n')
+    print('------------------------------------------------------------------------------------------------\n')
+
     # Set autosomal and allosomal models for admixture
     if hasattr(driver_spec, 'ad_model_autosomes') :
         ad_model_autosomes = driver_spec.ad_model_autosomes
@@ -110,11 +115,11 @@ def run_tracts(driver_filename, script_dir=None):
     logger.info(f'Model Parameters: {model.free_params}')
 
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
-    print("computed autosome proportions", ancestry_proportions )
+    print("Computed autosome proportions", ancestry_proportions )
     
     if len(allosome_labels)>=1:
         allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
-        print("computed allosome proportions", allosome_proportions )
+        print("Computed allosome proportions", allosome_proportions )
 
     if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
         
@@ -127,45 +132,93 @@ def run_tracts(driver_filename, script_dir=None):
                 }
             )
         else:
-            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model, 
-            driver_spec.fix_parameters_from_ancestry_proportions, 
-            {model.parametrized_populations[0]:ancestry_proportions})
-    time_scaled_func = get_time_scaled_model_func(model, time_scaling_factor)
-    func = lambda params: time_scaled_func(params)
+            model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec['fix_parameters_from_ancestry_proportions'], 
+                                                                           proportions= {model.parametrized_populations[0]:ancestry_proportions})
+    else:
+        model.set_up_fixed_parameters([],{})
+    func = get_time_scaled_model_func(model, time_scaling_factor) # time parameters need to be rescaled for some optimizers
+    
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
-    #if type(driver_spec.start_params) is not dict:
-    #    raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
+
+    #The following should be moved to core.py or base_demography.py (in the FixedParamHandler class)
+    time_to_physical_function = lambda x:np.exp(x) # This converts from optimizer units to physical units
+    rate_to_physical_function = lambda x: expit(x)
+    def to_minus1_plus1(x):
+        return 2 * expit(x) - 1
+    
+    sex_bias_to_physical_function = to_minus1_plus1
+    
+
+
+    
+    to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
+                                    ParamType.RATE: rate_to_physical_function, 
+                                    ParamType.SEX_BIAS: sex_bias_to_physical_function} 
+    
+
+    time_to_optimizer_function = lambda x: np.log(x)
+    rate_to_optimizer_function = lambda x: logit(x)
+    def from_minus1_plus1(y):
+        return np.log1p(y) - np.log1p(-y)
+    sex_bias_to_optimizer_function = from_minus1_plus1
+
+    to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
+                                    ParamType.RATE: rate_to_optimizer_function, 
+                                    ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
+    model.fixed_parameter_handler.to_physical_params_functions = to_physical_params_functions
+    model.fixed_parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+
+
+    if type(driver_spec['start_params']) is not dict:
+        raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
     
     max_iter = driver_spec.maximum_iterations
     
     pop_dict = model.population_indices.items()
     
-    print("Model parameters\n",[param_name for param_name in model.free_params.keys()])
+    print("Model parameters :",[param_name for param_name in model.model_base_params.keys()])
+
+    physical_start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
+                                      driver_spec['seed'], model)
     
-    start_params = parse_start_params(driver_spec.start_params, driver_spec.repetitions, 
-                                      driver_spec.seed, model, time_scaling_factor)
+    print ("Physical start params :", physical_start_params[0]) 
+    optimizer_start_params = [model.fixed_parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
     
-    print("First start parameters = ", start_params[0]) 
+
+    assert np.isclose(physical_start_params, model.fixed_parameter_handler.convert_to_physical_params(optimizer_start_params[0])).all()
+    #TODO: the following should be removed or moved to testing
+    #assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
+    #                                       model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
+    
+    print("Initial parameters : ", optimizer_start_params[0]) 
     
     
-    print("Start ancestry_proportions:", model.proportions_from_matrices(func(start_params[0])))
+    
+    try: 
+        print("Initial ancestry proportions :", model.proportions_from_matrices(func(optimizer_start_params[0])))
+    except ValueError:
+        print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
     
     
-    
-    if bound(start_params[0])<0:
+    if bound(optimizer_start_params[0])<0:
         print("Warning, starting parameters are out of bounds.")
     
+
+
+
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
-                                                        start_params,
+                                                        optimizer_start_params,
                                                         population_dict=pop_dict,
+                                                        fixed_parameter_handler=model.fixed_parameter_handler,
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
                                                         ad_model_autosomes = ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
 
     formatted_likelihoods = [float(x) for x in likelihoods]
-    print(f"Likelihoods found: {formatted_likelihoods}")
+    print('---------------------------------------------------------------------')
+    print("Likelihoods found :"+ str(formatted_likelihoods))
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
     optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
 
@@ -287,7 +340,7 @@ def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=
                                   script_dir=script_dir,
                                   absolute_driver_yaml_path=driver_path)
     if model_path is None:
-        raise FileNotFoundError(f'Model yaml file could not be found. {filepath_error_additional_message}')
+        raise FileNotFoundError(f'Model yaml file {driver_spec["model_filename"]} could not be found. {filepath_error_additional_message}')
     if allosome_label:
         model = ParametrizedDemographySexBiased.load_from_YAML(str(model_path.resolve()))
         model.allosome_label=allosome_label
@@ -336,12 +389,12 @@ def parse_individual_filenames(individual_names, filename_string, script_dir: st
 
 def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: ParametrizedDemography = None,
                        time_scaling_factor=1):
-    # num_params = len(model.free_params) - len(model.params_fixed_by_ancestry)
-    num_params = len(model.free_params)
-    rng = numpy.random.default_rng(seed=seed)
+    """outputs a 1D array of starting parameters for optimization. Returns all base_model_parameters in physical units""" 
+    
+    num_params = len(model.model_base_params)
+    rng = np.random.default_rng(seed=seed)
     start_params = rng.random((repetitions, num_params))
-     
-    for param_name, param_info in model.free_params.items():
+    for param_name, param_info in model.model_base_params.items():
         if param_name in model.params_fixed_by_ancestry:
             start_params[:, param_info.index] = 0
             continue
@@ -362,13 +415,9 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
                 start_params[:, param_info.index] += bounds[0]
             except Exception as e:
                 raise ValueError("Initial values must be specified as min:max or a single value.") from e
-        if param_info.type == ParamType.TIME:
-            start_params[:, param_info.index] *= 1 / time_scaling_factor
-    # logger.info(f' Start Params: \n {start_params}')
-    if model.params_fixed_by_ancestry is not None:
-        start_params = numpy.transpose(
-            [start_params[:, param_info.index] for param_name, param_info in model.free_params.items() if
-             param_name not in model.params_fixed_by_ancestry])
+        
+    
+    
     logger.info(f' Start Params: \n {start_params}')
     return start_params
 
@@ -377,27 +426,29 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
     if len(indices_to_scale) != len(arr):
         raise ValueError(
             f'Length of array ({len(arr)}) was not equal to length of indices_to_scale ({len(indices_to_scale)}).')
-    return (numpy.multiply(indices_to_scale, scaling_factor - 1) + 1) * arr
+    return (np.multiply(indices_to_scale, scaling_factor - 1) + 1) * arr
 
 
-def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[numpy.ndarray], dict[str, numpy.ndarray]]:
+def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[np.ndarray], dict[str, np.ndarray]]:
     return lambda params: model.get_migration_matrices(
-        scale_select_indices(params, model.is_time_param(), time_scaling_factor))
+        model.fixed_parameter_handler.convert_to_physical_params(params))
 
 
 def get_time_scaled_model_bounds(model, time_scaling_factor):
-    return lambda params: model.get_violation_score(scale_select_indices(params, model.is_time_param(), time_scaling_factor))
+    return lambda params: model.get_violation_score(model.fixed_parameter_handler.convert_to_physical_params(params))
 
 
 def randomize(arr, a, b):
     # takes an array and multiplies every element by a factor between a and b,
     # uniformly.
-    return ((b - a) * numpy.random.random(arr.shape) + a) * arr
+    return ((b - a) * np.random.random(arr.shape) + a) * arr
 
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[numpy.ndarray], population_dict : dict, max_iter: int=None, exclude_tracts_below_cM: int = 0, 
-                          modelling_method: type = PhTMonoecious, ad_model_autosomes = 'DC', ad_model_allosomes = 'DC', npts: int = 50) -> tuple[list[numpy.ndarray], list[float]]:
+                          start_params_list: list[np.ndarray], population_dict : dict, fixed_parameter_handler = None , 
+                          max_iter: int=None, exclude_tracts_below_cM: int = 0, 
+                          modelling_method: type = PhTMonoecious, ad_model_autosomes = 'DC', 
+                          ad_model_allosomes = 'DC', npts: int = 50) -> tuple[list[np.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -412,7 +463,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    The population object containing individual data.
         population_labels: list[str]
     	    A list of labels corresponding to the populations.	
-        start_params_list: list[numpy.ndarray]
+        start_params_list: list[np.ndarray]
     	    A list of initial parameter arrays to start the optimization.	
         exclude_tracts_below_cM: int, optional
     	    Minimum tract length in centimorgans to exclude from analysis. Default is 0.
@@ -424,7 +475,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     Returns
     ----------
     
-    tuple[list[numpy.ndarray], list[float]]
+    tuple[list[np.ndarray], list[float]]
     	A tuple containing two lists: (i) a list of optimal parameters found for each set of starting parameters and (ii) a list of likelihoods corresponding to the optimal parameters.
     """
     optimal_params = []
@@ -433,6 +484,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
                                                    population_dict,
+                                                   fixed_parameter_handler=fixed_parameter_handler,
                                                    max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                    modelling_method=modelling_method, ad_model_autosomes=ad_model_autosomes,ad_model_allosomes=ad_model_allosomes, npts=npts)
@@ -441,10 +493,10 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     return optimal_params, likelihoods
 
 
-def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0,
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, fixed_parameter_handler=None, max_iter=None, exclude_tracts_below_cM=0,
               modelling_method=PhTMonoecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=0):
     if modelling_method == PhTDioecious:
-        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, max_iter, exclude_tracts_below_cM, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
+        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, fixed_parameter_handler, max_iter, exclude_tracts_below_cM, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
     Ls = population.Ls
     nind = population.nind
     bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
@@ -456,9 +508,19 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, max_iter=None, exclude_tracts_below_cM=0, ad_model_autosomes='DC',ad_model_allosomes='DC',npts=0):
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, fixed_parameter_handler = None, max_iter=None, exclude_tracts_below_cM=0, ad_model_autosomes='DC',ad_model_allosomes='DC',npts=0):
   
-    optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
+    #optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
+    optimal_params, optimal_likelihood = optimize_cob_sex_biased_fixed_values(startparams, population, model_func, 
+                                                                              fixed_parameter_handler= fixed_parameter_handler, 
+                                                                              outofbounds_fun = bound_func, 
+                                                                              p_dict = population_dict, 
+                                                                              exclude_tracts_below_cM=exclude_tracts_below_cM, 
+                                                                              maxiter=max_iter, epsilon=1e-2,verbose=1, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
+    
+    
+    
+    
     return optimal_params, optimal_likelihood
 
 def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
@@ -496,7 +558,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         for popnum in range(len(data)):
             fpred2.write("\t".join(map(
                 str,
-                nind * numpy.array(optimal_model.tract_length_histogram_multi_windowed(popnum, bins, Ls))))
+                nind * np.array(optimal_model.tract_length_histogram_multi_windowed(popnum, bins, Ls))))
                          + "\n")
 
     with open(output_dir + output_filename_format.format(label='optimal_parameters'), 'w') as fpars2:
@@ -513,7 +575,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         axes.bar(
             bins[:-1],
             data[pop],
-            width=numpy.diff(bins),
+            width=np.diff(bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -522,7 +584,7 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
         )
         axes.plot(
             0.5 * (bins[:-1] + bins[1:]),
-            nind * numpy.array(optimal_model.tract_length_histogram_multi_windowed(pop_num, bins, Ls)),
+            nind * np.array(optimal_model.tract_length_histogram_multi_windowed(pop_num, bins, Ls)),
             color='tab:orange',
             lw=2,
             label="Predicted"
@@ -609,21 +671,21 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
             try:
                 fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
             except KeyError:
-                autosome_data[population] = numpy.zeros(len(autosome_bins)).tolist()
+                autosome_data[population] = np.zeros(len(autosome_bins)).tolist()
                 print(f'Population {population} not found in autosome data.')
     with open(output_dir + output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
             try:
                 fdat.write("\t".join(map(str, female_data[population])) + "\n")
             except KeyError:
-                female_data[population] = numpy.zeros(len(allosome_bins)).tolist()
+                female_data[population] = np.zeros(len(allosome_bins)).tolist()
                 print(f'Population {population} not found in female allosome data.')
     with open(output_dir + output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
             try:
                 fdat.write("\t".join(map(str, male_data[population])) + "\n")
             except KeyError:
-                male_data[population] = numpy.zeros(len(allosome_bins)).tolist()
+                male_data[population] = np.zeros(len(allosome_bins)).tolist()
                 print(f'Population {population} not found in male allosome data.')
             
     with open(output_dir + output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
@@ -672,7 +734,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[0].bar(
             autosome_bins[:-1],
             autosome_data[pop],
-            width=numpy.diff(autosome_bins),
+            width=np.diff(autosome_bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -704,7 +766,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[1].bar(
             allosome_bins[:-1],
             male_data[pop],
-            width=numpy.diff(allosome_bins),
+            width=np.diff(allosome_bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -736,7 +798,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         axes[2].bar(
             allosome_bins[:-1],
             female_data[pop],
-            width=numpy.diff(allosome_bins),
+            width=np.diff(allosome_bins),
             align='edge',
             alpha=0.6,
             color='tab:blue',
@@ -799,6 +861,9 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
         plt.close(fig)
+    
+    print('Results saved to : ' + output_dir)
+
     #for pop, pop_num in model.population_indices.items():
     #    
     #print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
