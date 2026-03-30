@@ -44,14 +44,14 @@ def test_ancestry_fixing_single_population():
     }
     
     # Fix the founding rate parameter using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rate is fixed)
     found_time = 10 
@@ -59,10 +59,10 @@ def test_ancestry_fixing_single_population():
     test_params = [0,found_time] #the first parameter should be rewritten
     # Get the migration matrices
 
-    assert (model.fixed_parameter_handler.params_fixed_by_ancestry_indices == [0])
+    assert (model.parameter_handler.params_fixed_by_ancestry_indices == [0])
 
-    test_params = model.fixed_parameter_handler.compute_params_fixed_by_ancestry(test_params)
-    test_params2 = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.compute_params_fixed_by_ancestry(test_params)
+    test_params2 = model.parameter_handler.extend_parameters(test_free_params)
     assert np.isclose(test_params, test_params2).all()
     
     migration_matrices = model.get_migration_matrices(test_params)
@@ -127,7 +127,7 @@ def test_ancestry_fixing_single_population_with_fixed_param():
     # Fix the founding rate parameter using the sample proportions
     
     
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         user_params_to_fix_by_value=fixed_params,
@@ -135,11 +135,11 @@ def test_ancestry_fixing_single_population_with_fixed_param():
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # There are no free parameters !
     test_free_params = []  # Only the founding time
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
     
     
     # Get the migration matrices
@@ -209,18 +209,18 @@ def test_ancestry_fixing_multiple_populations():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding times (since the rates are fixed)
     test_free_params = [10, 15]  # [found_time1, found_time2]
-    test_parameters = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_parameters = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_parameters) == 4
     # Get the migration matrices
@@ -295,18 +295,18 @@ def test_ancestry_fixing_three_founders():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rates are fixed)
     test_free_params = [10]  # Only the founding time
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 3
 
@@ -386,18 +386,18 @@ def test_ancestry_fixing_two_samples_three_founders():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1_pop1", "founder_rate2_pop1", "founder_rate1_pop2", "founder_rate2_pop2"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding times (since the rates are fixed)
     test_free_params = [10, 15]  # [found_time1, found_time2]
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 6
 
@@ -493,18 +493,18 @@ def test_ancestry_fixing_with_pulse_migration():
     }
     
     # Fix the founding rate parameter using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with founding time, pulse time, and pulse rate
     test_free_params = [10, 0.2, 5]  # [found_time, pulse_rate, pulse_time]
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 4
 
@@ -581,20 +581,20 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     }
     
     # Fix the founding rate parameter and pulse rate using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["pulse_rate"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with founding time and pulse time (since the rates are fixed)
     test_free_params = [0.2, 10, 5]  # [found_time, founding_rate, pulse_time]
     
 
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 4
 
@@ -662,18 +662,18 @@ def test_ancestry_fixing_sex_biased():
     }
     
     # Fix the founding rate and sex-bias parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rates are fixed)
     test_free_params = [10]  # Only the founding time
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 3
 
@@ -759,30 +759,30 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     }
     
     # Fix the founding rate and sex-bias parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rates are fixed)
 
     test_free_params = [rate2,bias2,foundt,endt]  
     
-    computed_params = model.fixed_parameter_handler.compute_params_fixed_by_ancestry(params_full)
+    computed_params = model.parameter_handler.compute_params_fixed_by_ancestry(params_full)
     assert np.allclose(computed_params, params_full)
     
-    assert (model.fixed_parameter_handler.free_parameters_indices == [2,3,4,5])
-    assert (model.fixed_parameter_handler.params_fixed_by_value_indices.size == 0)
-    assert (model.fixed_parameter_handler.params_fixed_by_ancestry_indices.tolist() == [0,1])
+    assert (model.parameter_handler.free_parameters_indices == [2,3,4,5])
+    assert (model.parameter_handler.params_fixed_by_value_indices.size == 0)
+    assert (model.parameter_handler.params_fixed_by_ancestry_indices.tolist() == [0,1])
 
     raw_test_params = params_full.copy()
     raw_test_params[0]= 0.0  #messing values to be filled in
     raw_test_params[1]=0.  #messing values to be filled in  
-    test_params = model.fixed_parameter_handler.compute_params_fixed_by_ancestry(raw_test_params)
+    test_params = model.parameter_handler.compute_params_fixed_by_ancestry(raw_test_params)
     
     assert len(test_params) == 6
     assert np.allclose(test_params, params_full)
@@ -863,12 +863,12 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with founding time, founding rate, and pulse time (since the pulse rate is fixed)
     test_free_params = [0.5, 0, 10, 5]  # [founder_rate, founder_rate_sex_bias, found_time, pulse_time]
     
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
     
@@ -945,19 +945,19 @@ def test_parameter_fixing_single_population():
     params_to_fix_by_value = {"found_time":10}
 
     # Fix the founding rate parameter using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1"],
         proportions=sample_proportions, user_params_to_fix_by_value = params_to_fix_by_value
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with the remaining parameters (since there are no free paramaters left)
     test_free_params = []
     
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
 
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
@@ -1025,18 +1025,18 @@ def test_ancestry_fixing_multiple_populations_v2():
     }
     
     # Fix the founding rate parameters using the sample proportions
-    model.fixed_parameter_handler.set_up_fixed_parameters(
+    model.parameter_handler.set_up_fixed_parameters(
         demography=model,
         params_to_fix_by_ancestry=["founder_rate1", "founder_rate2"],
         proportions=sample_proportions
     )
     
     # Verify that the model has been fixed
-    assert model.fixed_parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding times (since the rates are fixed)
     test_free_params = [10, 15]  # [found_time1, found_time2]
-    test_params = model.fixed_parameter_handler.extend_parameters(test_free_params)
+    test_params = model.parameter_handler.extend_parameters(test_free_params)
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
     

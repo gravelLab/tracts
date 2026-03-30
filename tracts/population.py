@@ -382,27 +382,40 @@ class Population:
         return bins, dat
 
  
-    def set_males(self, male_list: list[str], allosome_label: str='X'):
+    def set_males(self, male_list: list[str] | str, allosome_label: str='X'):
         """ Sets the list of males for each individual"""
-    
         num_males_processed = 0;
-        
-        for indiv in self:
-            if indiv.name in self.male_list:
-                indiv.is_male = True
-            else:
-                indiv.is_male = False
+        if male_list is not "auto":
             
-            if indiv.is_male and  len(indiv.allosomes[allosome_label]) == 2:
-                logger.warning(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
-                assert indiv.allosomes[allosome_label][0].is_equal(indiv.allosomes[allosome_label][1]), f"Male Individual {indiv} has two different X chromosomes." 
-                indiv.allosomes[allosome_label] = [indiv.allosomes[allosome_label][0]]
-            indiv.is_male = (len(indiv.allosomes[allosome_label]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
-            num_males_processed += indiv.is_male
+            
+            for indiv in self:
+                if indiv.name in self.male_list:
+                    indiv.is_male = True
+                else:
+                    indiv.is_male = False
+                
+                if indiv.is_male and  len(indiv.allosomes[allosome_label]) == 2:
+                    logger.warning(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
+                    assert indiv.allosomes[allosome_label][0].is_equal(indiv.allosomes[allosome_label][1]), f"Male Individual {indiv} has two different X chromosomes." 
+                    indiv.allosomes[allosome_label] = [indiv.allosomes[allosome_label][0]]
+                indiv.is_male = (len(indiv.allosomes[allosome_label]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
+                num_males_processed += indiv.is_male
+            
+            if len(self.male_list) not in [0, num_males_processed]:
+                raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
+                                    "{num_males_processed} males") 
+        else: 
+            for indiv in self:
+                if len(indiv.allosomes[allosome_label]) == 2:
+                    indiv.is_male = False
+                elif len(indiv.allosomes[allosome_label]) == 1:
+                    indiv.is_male = True
+                
+                else:
+                    raise ValueError("there should be one or two allosome copies")
+                num_males_processed += indiv.is_male
+            print(f"Identified {num_males_processed} males from allosomal data")
         self.males_set = True
-        if len(self.male_list) not in [0, num_males_processed]:
-            raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
-                                 "{num_males_processed} males") 
 
     
     def smooth_unknowns(self, allosome_labels: list[str]='X'):
@@ -432,7 +445,7 @@ class Population:
         else:
             pop = Population(indlist)
             pop.unknown_labels = self.unknown_labels
-        assert(self.males_set, "males should have been set using set_males before calling get_global_allosome_tractlengths")
+        assert(self.males_set), "males should have been set using set_males before calling get_global_allosome_tractlengths"
 
         bypop_male: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
         bypop_female: dict[str, list[tuple[Tract, float]]] = defaultdict(list)

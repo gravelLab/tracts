@@ -209,7 +209,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
         def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameters]))
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
                 # Misc.delayed_flush(delay=flush_delay)
 
@@ -274,7 +274,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
     return outputs, likelihood
 
 
-def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, fixed_parameter_handler, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, parameter_handler, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
                  epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, 
                  ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
     """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
@@ -307,12 +307,12 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         male_data_mapped[dict(p_dict)[k]] = v
     
     
-    free_sex_bias_parameters = {param:0 for param, value in fixed_parameter_handler.demography.model_base_params.items() if 
+    free_sex_bias_parameters = {param:0 for param, value in parameter_handler.demography.model_base_params.items() if 
                                 (value.type == ParamType.SEX_BIAS) and 
-                                (param not in fixed_parameter_handler.user_params_fixed_by_value) and 
-                                (param not in fixed_parameter_handler.params_fixed_by_ancestry)}
+                                (param not in parameter_handler.user_params_fixed_by_value) and 
+                                (param not in parameter_handler.params_fixed_by_ancestry)}
 
-    fixed_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
+    parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
     
 
     def objective_function(model_base_parameters, include_allosomes = True):
@@ -323,7 +323,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
         def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in fixed_parameter_handler.convert_to_physical_params(model_base_parameters)]))
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
                 # TODO: Seems like we should be able to define this outside the objective function?. 
 
@@ -379,17 +379,17 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         
     def reduced_objective_function(free_parameters_opt, include_allosomes = True):
         
-        return objective_function(fixed_parameter_handler.extend_parameters(free_parameters_opt, units="opt"), include_allosomes=include_allosomes) #Full parameters in optimizer space
+        return objective_function(parameter_handler.extend_parameters(free_parameters_opt, units="opt"), include_allosomes=include_allosomes) #Full parameters in optimizer space
   
     def reduced_outofbounds_fun(free_parameters_opt):
 
-        return outofbounds_fun(fixed_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
+        return outofbounds_fun(parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
 
-    reduced_p0 = fixed_parameter_handler.reduce_parameters(p0)
+    reduced_p0 = parameter_handler.reduce_parameters(p0)
 
     print('\n--------------------------------------------------------------------------------------------------')
     print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
-    print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)))
+    print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(parameter_handler.indices_to_labels(parameter_handler.free_parameters_indices)))
     print('--------------------------------------------------------------------------------------------------')    
     print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
 
@@ -398,16 +398,16 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     outputs = scipy.optimize.fmin_cobyla(
         reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
-    optimized_parameters = fixed_parameter_handler.extend_parameters(outputs, units="opt")
+    optimized_parameters = parameter_handler.extend_parameters(outputs, units="opt")
 
-    new_fixed_parameters_names = fixed_parameter_handler.indices_to_labels(fixed_parameter_handler.free_parameters_indices)
-    new_fixed_values = optimized_parameters[fixed_parameter_handler.free_parameters_indices]
+    new_fixed_parameters_names = parameter_handler.indices_to_labels(parameter_handler.free_parameters_indices)
+    new_fixed_values = optimized_parameters[parameter_handler.free_parameters_indices]
     new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
 
-    fixed_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
+    parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
 
-    fixed_parameter_handler.add_fixed_parameters(new_fixed_parameters)
-    reduced_params = fixed_parameter_handler.reduce_parameters(optimized_parameters)
+    parameter_handler.add_fixed_parameters(new_fixed_parameters)
+    reduced_params = parameter_handler.reduce_parameters(optimized_parameters)
 
     print('--------------------------------------------------------------------------------------------------')    
     print('Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
@@ -420,7 +420,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
 
     likelihood = -reduced_objective_function(outputs)
-    return fixed_parameter_handler.extend_parameters(outputs, units = "opt"), likelihood
+    return parameter_handler.extend_parameters(outputs, units = "opt"), likelihood
 
     
 

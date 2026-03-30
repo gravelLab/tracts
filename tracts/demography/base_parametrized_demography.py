@@ -131,7 +131,7 @@ class BaseParametrizedDemography(ABC):
         self.finalized = False
         self.founder_events: dict[str, FounderEvent]={}
         self.events: dict[str: list[BaseMigrationEvent]]={}        
-        self.fixed_parameter_handler = FixedParametersHandler(self.logger)
+        self.parameter_handler = FixedParametersHandler(self.logger)
         self.parametrized_populations= []
         
 
@@ -139,14 +139,14 @@ class BaseParametrizedDemography(ABC):
 
     @property
     def params_fixed_by_ancestry(self):
-        return self.fixed_parameter_handler.params_fixed_by_ancestry
+        return self.parameter_handler.params_fixed_by_ancestry
     
     @property
     def params_fixed_by_value(self):
-        return self.fixed_parameter_handler.user_params_fixed_by_value
+        return self.parameter_handler.user_params_fixed_by_value
     @property
     def has_been_fixed(self):
-        return self.fixed_parameter_handler.has_been_fixed
+        return self.parameter_handler.has_been_fixed
 
     @property
     def parameter_bounds(self):
@@ -218,7 +218,7 @@ class BaseParametrizedDemography(ABC):
         """
         Adds the given population name to the populations of the model.
         """
-        if self.fixed_parameter_handler.has_been_fixed:
+        if self.parameter_handler.has_been_fixed:
             raise ValueError('Cannot add populations to a model after fixing ancestry proportions.')
         self.finalized = False
         if population_name not in self.population_indices:
@@ -237,11 +237,11 @@ class BaseParametrizedDemography(ABC):
         return self.get_param_value(time_param_name, params), self.population_indices[population_name]
 
     def is_time_param(self):
-        #if not self.fixed_parameter_handler.has_been_fixed:
+        #if not self.parameter_handler.has_been_fixed:
         return [param.type == ParamType.TIME for param in self.model_base_params.values()]
         #time_param_list = []
         #for param_name, param in self.model_base_params.items():
-        #   if param_name not in self.fixed_parameter_handler.params_fixed_by_ancestry:
+        #   if param_name not in self.parameter_handler.params_fixed_by_ancestry:
         #        time_param_list.append(param.type == ParamType.TIME)
         #return time_param_list
 
@@ -266,7 +266,7 @@ class BaseParametrizedDemography(ABC):
         """
         Takes in a list of params equal to the length of ``model_base_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
         """
-        if self.fixed_parameter_handler.has_been_fixed:
+        if self.parameter_handler.has_been_fixed:
             if len(params) != len(self.model_base_params):
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
             else:
@@ -274,7 +274,7 @@ class BaseParametrizedDemography(ABC):
             violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
             if violation_score < 0:
                 return violation_score
-            params = self.fixed_parameter_handler.compute_params_fixed_by_ancestry(params)
+            params = self.parameter_handler.compute_params_fixed_by_ancestry(params)
         self.logger.info(f'Running bounds check.')
         violation_score = min(self.check_bounds(params), self.check_constraints(params))
         if violation_score < 0:
@@ -347,7 +347,7 @@ class BaseParametrizedDemography(ABC):
         whereas constraints should be restrictions on parameter values relative to each other.
         """
         violation_score = 0
-        if not self.fixed_parameter_handler.has_been_fixed:
+        if not self.parameter_handler.has_been_fixed:
             for param_name, param_object in self.model_base_params.items():
                 violation = self.get_param_value(param_name, params) - param_object.bounds[0]
                 if violation < violation_score:
@@ -440,7 +440,7 @@ class BaseParametrizedDemography(ABC):
 
     def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list[str], proportions: dict[str: list[float]],
                                           params_to_fix_by_value:dict[str:float]={}):
-        self.fixed_parameter_handler.set_up_fixed_parameters(demography = self, params_to_fix_by_ancestry=params_to_fix_by_ancestry, 
+        self.parameter_handler.set_up_fixed_parameters(demography = self, params_to_fix_by_ancestry=params_to_fix_by_ancestry, 
                                                                        proportions=proportions, user_params_to_fix_by_value=params_to_fix_by_value)
 
                                           

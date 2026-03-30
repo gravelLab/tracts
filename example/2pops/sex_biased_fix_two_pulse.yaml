@@ -18,7 +18,7 @@ start_params:
   t2: 5:6
 repetitions: 1
 seed: 150
-exclude_tracts_below_cM: 2
+exclude_tracts_below_cm: 2
 time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 fix_parameters_from_ancestry_proportions: [R, R_sex_bias]
 output_directory: ./output_fix/

@@ -112,7 +112,7 @@ def run_tracts(driver_filename, script_dir=None):
             "unknown labels: {pop.unknown_labels}")
     
     
-    logger.info(f'Model Parameters: {model.free_params}')
+    
 
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
     print("Computed autosome proportions", ancestry_proportions )
@@ -121,10 +121,13 @@ def run_tracts(driver_filename, script_dir=None):
         allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
         print("Computed allosome proportions", allosome_proportions )
 
+
+
+
     if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
         
         if allosome_label:
-            model.fixed_proportions_handler.set_up_fixed_ancestry_proportions(model,
+            model.parameter_handler.set_up_fixed_parameters(model,
                 driver_spec.fix_parameters_from_ancestry_proportions,
                 {
                     f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
@@ -132,7 +135,7 @@ def run_tracts(driver_filename, script_dir=None):
                 }
             )
         else:
-            model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec['fix_parameters_from_ancestry_proportions'], 
+            model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions, 
                                                                            proportions= {model.parametrized_populations[0]:ancestry_proportions})
     else:
         model.set_up_fixed_parameters([],{})
@@ -166,12 +169,10 @@ def run_tracts(driver_filename, script_dir=None):
     to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
                                     ParamType.RATE: rate_to_optimizer_function, 
                                     ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
-    model.fixed_parameter_handler.to_physical_params_functions = to_physical_params_functions
-    model.fixed_parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+    model.parameter_handler.to_physical_params_functions = to_physical_params_functions
+    model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
 
 
-    if type(driver_spec['start_params']) is not dict:
-        raise KeyError('You must specify initial parameters or parameter ranges under "start_params".')
     
     max_iter = driver_spec.maximum_iterations
     
@@ -179,17 +180,17 @@ def run_tracts(driver_filename, script_dir=None):
     
     print("Model parameters :",[param_name for param_name in model.model_base_params.keys()])
 
-    physical_start_params = parse_start_params(driver_spec['start_params'], driver_spec['repetitions'], 
-                                      driver_spec['seed'], model)
+    physical_start_params = parse_start_params(driver_spec.start_params, driver_spec.repetitions, 
+                                      driver_spec.seed, model)
     
     print ("Physical start params :", physical_start_params[0]) 
-    optimizer_start_params = [model.fixed_parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
+    optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
     
 
-    assert np.isclose(physical_start_params, model.fixed_parameter_handler.convert_to_physical_params(optimizer_start_params[0])).all()
+    assert np.isclose(physical_start_params[0], model.parameter_handler.convert_to_physical_params(optimizer_start_params[0])).all()
     #TODO: the following should be removed or moved to testing
     #assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
-    #                                       model.fixed_parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
+    #                                       model.parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
     
     print("Initial parameters : ", optimizer_start_params[0]) 
     
@@ -210,7 +211,7 @@ def run_tracts(driver_filename, script_dir=None):
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
                                                         optimizer_start_params,
                                                         population_dict=pop_dict,
-                                                        fixed_parameter_handler=model.fixed_parameter_handler,
+                                                        parameter_handler=model.parameter_handler,
                                                         max_iter=max_iter,
                                                         exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                         modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
@@ -220,12 +221,12 @@ def run_tracts(driver_filename, script_dir=None):
     print('---------------------------------------------------------------------')
     print("Likelihoods found :"+ str(formatted_likelihoods))
     optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
-    optimal_params = scale_select_indices(optimal_params, model.is_time_param(), time_scaling_factor)
+    optimal_params = model.parameter_handler.convert_to_physical_params(optimal_params)
 
     print(f"Optimal Parameters:{optimal_params}")
     if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
         print("expanded parameters:\n")
-        print([f"{float(p):.2g}" for p in model.fixed_proportions_handler.compute_dependent_params(model, optimal_params)])
+        print([f"{float(p):.2g}" for p in model.parameter_handler.extend_parameters(optimal_params)])
     if hasattr(driver_spec, "output_filename_format"):
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -245,7 +246,7 @@ class SamplesConfig(BaseModel):
 
     directory: str
     individual_names: List[str]
-    male_names: List[str] = []
+    male_names: List[str] | str = "auto" 
     filename_format: str
     labels: List[str] = Field(default_factory=lambda: ["A", "B"])
     chromosomes: str
@@ -328,7 +329,7 @@ def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=N
     if len(allosome_labels)>=1 and allosome_labels is not None:
         assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome. "
     
-    if len(male_list)>0:
+    if len(allosome_labels) >0:
         pop.set_males(male_list = male_list, allosome_label = allosome_labels[0]) 
     return pop
 
@@ -340,7 +341,7 @@ def load_model_from_driver(driver_spec, script_dir, driver_path, allosome_label=
                                   script_dir=script_dir,
                                   absolute_driver_yaml_path=driver_path)
     if model_path is None:
-        raise FileNotFoundError(f'Model yaml file {driver_spec["model_filename"]} could not be found. {filepath_error_additional_message}')
+        raise FileNotFoundError(f'Model yaml file {driver_spec.model_filename} could not be found. {filepath_error_additional_message}')
     if allosome_label:
         model = ParametrizedDemographySexBiased.load_from_YAML(str(model_path.resolve()))
         model.allosome_label=allosome_label
@@ -431,11 +432,11 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_factor: float) -> Callable[[np.ndarray], dict[str, np.ndarray]]:
     return lambda params: model.get_migration_matrices(
-        model.fixed_parameter_handler.convert_to_physical_params(params))
+        model.parameter_handler.convert_to_physical_params(params))
 
 
 def get_time_scaled_model_bounds(model, time_scaling_factor):
-    return lambda params: model.get_violation_score(model.fixed_parameter_handler.convert_to_physical_params(params))
+    return lambda params: model.get_violation_score(model.parameter_handler.convert_to_physical_params(params))
 
 
 def randomize(arr, a, b):
@@ -445,7 +446,7 @@ def randomize(arr, a, b):
 
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[np.ndarray], population_dict : dict, fixed_parameter_handler = None , 
+                          start_params_list: list[np.ndarray], population_dict : dict, parameter_handler = None , 
                           max_iter: int=None, exclude_tracts_below_cM: int = 0, 
                           modelling_method: type = PhTMonoecious, ad_model_autosomes = 'DC', 
                           ad_model_allosomes = 'DC', npts: int = 50) -> tuple[list[np.ndarray], list[float]]:
@@ -484,7 +485,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
                                                    population_dict,
-                                                   fixed_parameter_handler=fixed_parameter_handler,
+                                                   parameter_handler=parameter_handler,
                                                    max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
                                                    modelling_method=modelling_method, ad_model_autosomes=ad_model_autosomes,ad_model_allosomes=ad_model_allosomes, npts=npts)
@@ -493,10 +494,10 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     return optimal_params, likelihoods
 
 
-def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, fixed_parameter_handler=None, max_iter=None, exclude_tracts_below_cM=0,
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, parameter_handler=None, max_iter=None, exclude_tracts_below_cM=0,
               modelling_method=PhTMonoecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=0):
     if modelling_method == PhTDioecious:
-        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, fixed_parameter_handler, max_iter, exclude_tracts_below_cM, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
+        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, parameter_handler, max_iter, exclude_tracts_below_cM, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
     Ls = population.Ls
     nind = population.nind
     bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
@@ -508,11 +509,11 @@ def run_model(model_func, bound_func, population: Population, population_labels,
     optlik = optmod.loglik(bins, Ls, data, nind)
     return xopt, optlik
 
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, fixed_parameter_handler = None, max_iter=None, exclude_tracts_below_cM=0, ad_model_autosomes='DC',ad_model_allosomes='DC',npts=0):
+def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, parameter_handler = None, max_iter=None, exclude_tracts_below_cM=0, ad_model_autosomes='DC',ad_model_allosomes='DC',npts=0):
   
     #optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
     optimal_params, optimal_likelihood = optimize_cob_sex_biased_fixed_values(startparams, population, model_func, 
-                                                                              fixed_parameter_handler= fixed_parameter_handler, 
+                                                                              parameter_handler= parameter_handler, 
                                                                               outofbounds_fun = bound_func, 
                                                                               p_dict = population_dict, 
                                                                               exclude_tracts_below_cM=exclude_tracts_below_cM, 
