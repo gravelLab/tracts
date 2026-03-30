@@ -254,7 +254,6 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         
         #proportion of ancestry
         
-        
         flush_result(result_autosomes, 'Autosomes')
         flush_result(result_X_females, 'Female allosomes')
         flush_result(result_X_males, 'Male allosomes')
