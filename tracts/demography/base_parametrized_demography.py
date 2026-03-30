@@ -262,9 +262,10 @@ class BaseParametrizedDemography(ABC):
             return self.dependent_params[param_name](self, params) 
         raise KeyError(f'Parameter "{param_name}" could not be found')
 
-    def get_violation_score(self, params: list[float]):
+    def get_violation_score(self, params: list[float], verbose = False):
         """
-        Takes in a list of params equal to the length of ``model_base_params`` and returns a negative violation score if the resulting matrix would be or is invalid.
+        Takes in a list of params equal to the length of ``model_base_params`` and 
+        returns a negative violation score if the resulting matrix would be or is invalid.
         """
         if self.parameter_handler.has_been_fixed:
             if len(params) != len(self.model_base_params):
@@ -276,19 +277,29 @@ class BaseParametrizedDemography(ABC):
                 return violation_score
             params = self.parameter_handler.compute_params_fixed_by_ancestry(params)
         self.logger.info(f'Running bounds check.')
-        violation_score = min(self.check_bounds(params), self.check_constraints(params))
+        bound_score =  self.check_bounds(params)   
+        constraint_score = self.check_constraints(params)
+
+        violation_score = min(bound_score, constraint_score)
         if violation_score < 0:
+            if verbose:
+                print("bound_score, constraint_score", bound_score, constraint_score)
             return violation_score
         
         for migration_matrix in self.get_migration_matrices(params).values():
 
             
             totmig = migration_matrix.sum(1).max()
-            if 1 - totmig < violation_score:
-                violation_score = 1 - totmig
+            sum_over_1_violation = 1-totmig
+            if sum_over_1_violation < violation_score:
+                violation_score = sum_over_1_violation
 
-            if np.min(migration_matrix) < violation_score:
-                violation_score = np.min(migration_matrix)
+            positive_violation = np.min(migration_matrix)
+            if positive_violation < violation_score:
+                violation_score = positive_violation
+            if verbose and violation_score <0:
+                    print("bound_score, constraint_score, matrix, sum_over_1, mig_under_0", bound_score, constraint_score,sum_over_1_violation,positive_violation)
+                    print(migration_matrix)
         return violation_score
 
     def check_constraints(self, params: list[float]):
@@ -592,9 +603,10 @@ class FixedParametersHandler:
     #    return self.free_parameters_indices
     
     def extend_parameters(self, free_parameters, units = "phys"):
-        """takes in the core paramters for the demography and extends them to include the fixed parameters.
-        free_parameters are in optimization space.This happens in physical units "phys" by default, else "opt" for optimizer units
-        TODO: remove the need for this option by always working in physical units here."""
+        """takes in the free parameters (those seen by the optimizer) and extends them to include the 
+        full parameter list by computing the parameters fixed by ancestry after adding parameters fixed by value.
+        """
+
                
                              
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
@@ -701,7 +713,10 @@ class FixedParametersHandler:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
-            print(f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}, solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(params_opt, solved_params))}")
+            print(f"Could not solve for parameters fixed by ancestry proportions."+ 
+            f"Final error: {error},"+ 
+            f"solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(params_opt, solved_params))}"+
+            f"this can happen when no sex bias parameter allows for the observed ancestry proportions.")
             #breakpoint()
         if np.isnan(solved_params).any():
             print ("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")

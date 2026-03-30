@@ -209,16 +209,16 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
 
         def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
+                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
                 # Misc.delayed_flush(delay=flush_delay)
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            ooa = outofbounds_fun(parameters)
-            if ooa < 0:
-                flush_result((ooa - 1) * _out_of_bounds_val)
-                return (ooa - 1) * _out_of_bounds_val
+            oob = outofbounds_fun(parameters)
+            if oob < 0:
+                flush_result((oob - 1) * _out_of_bounds_val)
+                return (oob - 1) * _out_of_bounds_val
         else:
             eprint("No bound function defined")
 
@@ -325,14 +325,14 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
             if (verbose > 0) and (_counter % verbose == 0):
                 param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
-                # TODO: Seems like we should be able to define this outside the objective function?. 
+ 
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            ooa = outofbounds_fun(model_base_parameters)
-            if ooa < 0:
-                flush_result((ooa - 1) * _out_of_bounds_val)
-                return (ooa - 1) * _out_of_bounds_val
+            oob = outofbounds_fun(model_base_parameters)
+            if oob < 0:
+                flush_result((oob - 1) * _out_of_bounds_val)
+                return (oob - 1) * _out_of_bounds_val
         else:
             eprint("No bound function defined")
 
@@ -557,9 +557,9 @@ def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None
 
     if outofbounds_fun is not None:
         # outofbounds can return either True or a negative value to signify out-of-boundedness.
-        ooa = outofbounds_fun(params)
-        if ooa < 0:
-            result = -(ooa - 1) * _out_of_bounds_val
+        oob = outofbounds_fun(params)
+        if oob < 0:
+            result = -(oob - 1) * _out_of_bounds_val
         else:
             mod = modelling_method(model_func(params))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
@@ -569,7 +569,7 @@ def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None
         result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
 
     if True:  # (verbose > 0) and (_counter % verbose == 0):
-        param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in params]))
+        param_str = 'of:array([%s])' % (', '.join(['%- 12g' % v for v in params]))
         eprint('%-8i, %-12g, %s' % (_counter, result, param_str))
         # Misc.delayed_flush(delay=flush_delay)
 

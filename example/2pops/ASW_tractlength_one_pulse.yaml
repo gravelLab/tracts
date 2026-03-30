@@ -18,4 +18,4 @@ output_filename_format: "ASW_pp_output_{label}"
 output_directory: "./output_pp/"
 seed: 100
 exclude_tracts_below_cm: 2
-time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
+

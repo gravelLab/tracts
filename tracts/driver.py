@@ -140,7 +140,7 @@ def run_tracts(driver_filename, script_dir=None):
     else:
         model.set_up_fixed_parameters([],{})
     func = get_time_scaled_model_func(model, time_scaling_factor) # time parameters need to be rescaled for some optimizers
-    
+
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
 
 
@@ -224,9 +224,13 @@ def run_tracts(driver_filename, script_dir=None):
     optimal_params = model.parameter_handler.convert_to_physical_params(optimal_params)
 
     print(f"Optimal Parameters:{optimal_params}")
-    if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
-        print("expanded parameters:\n")
-        print([f"{float(p):.2g}" for p in model.parameter_handler.extend_parameters(optimal_params)])
+
+    bound = model.get_violation_score(optimal_params, verbose = True)
+
+
+    #if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
+    #    print("expanded parameters:\n")
+    #    print([f"{float(p):.2g}" for p in model.parameter_handler.extend_parameters(optimal_params)])
     if hasattr(driver_spec, "output_filename_format"):
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -435,8 +439,8 @@ def get_time_scaled_model_func(model: ParametrizedDemography, time_scaling_facto
         model.parameter_handler.convert_to_physical_params(params))
 
 
-def get_time_scaled_model_bounds(model, time_scaling_factor):
-    return lambda params: model.get_violation_score(model.parameter_handler.convert_to_physical_params(params))
+def get_time_scaled_model_bounds(model, time_scaling_factor, verbose = False):
+    return lambda params: model.get_violation_score(model.parameter_handler.convert_to_physical_params(params), verbose = verbose)
 
 
 def randomize(arr, a, b):
