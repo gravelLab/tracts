@@ -14,7 +14,7 @@ model_filename: pp_px.yaml
 start_params: 
   tx: 8:11
   P:  0.03:0.05
-  P_sex_bias: 0
+  P_sex_bias: .2
   t2: 5:6
 repetitions: 1
 seed: 150
