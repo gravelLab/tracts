@@ -9,7 +9,7 @@ class ParamType(Enum):
     
     TIME=(small,large)
     RATE=(small,1-small)
-    SEX_BIAS=(-1+small,1-small)
+    SEX_BIAS=(-1,1)
     UNTYPED=(-large,large)
 
     def __init__(self, lower_bound, upper_bound):
