@@ -8,6 +8,9 @@ import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 
+small = 10**-12  
+large = 1/small
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,7 +73,7 @@ class FounderEvent(BaseFounderEvent):
                 
                 logger.warning('Founding migration rates add up to more than 1 at params' 
                 +f"{params}, matrix {migration_matrix}")
-                
+
 
             migration_matrix[
                 start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
@@ -664,7 +667,7 @@ class FixedParametersHandler:
                 for ancestor in self.known_ancestry_proportions.keys()]).flatten()
         
         
-        return diff
+        return diff  
 
     
     def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions=None, units = "phys"):
@@ -711,8 +714,13 @@ class FixedParametersHandler:
             except ValueError as e:
                 raise ValueError(f"problem computing migration matrices with opt parameters {params_opt}parameters {params_phys}.") from e
             
+            bound = self.demography.check_bounds(start_params_phys_full) 
             
-            return value
+            if bound < 0: 
+                #breakpoint()
+                return value + (1-bound)*large
+            else:
+                return value
         
         param_name_list = self.demography.params_fixed_by_ancestry
         
@@ -730,7 +738,8 @@ class FixedParametersHandler:
             
             solved_params = scipy.optimize.fsolve(param_objective_func,
                                               start_point_validated)
-            
+
+          
         except ValueError as e:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
         error = np.linalg.norm(param_objective_func(solved_params))

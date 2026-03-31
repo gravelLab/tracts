@@ -201,7 +201,7 @@ def run_tracts(driver_filename, script_dir=None):
     
     if bound(optimizer_start_params[0])<0:
         print("Warning, starting parameters are out of bounds.")
-    
+        breakpoint()
 
 
 
@@ -398,7 +398,8 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
     start_params = rng.random((repetitions, num_params))
     for param_name, param_info in model.model_base_params.items():
         if param_name in model.params_fixed_by_ancestry:
-            start_params[:, param_info.index] = 0
+            start_params[:, param_info.index] = param_info.bounds[0] #this will be replaced, set to arbitrary feasible value
+            
             continue
 
         try: 
@@ -410,7 +411,8 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
             start_params[:, param_info.index] = getattr(start_param_bounds, param_name)
         else:
             try:
-                bounds = [float(bound) for bound in getattr(start_param_bounds, param_name).split(':')] # Intervals are specified as "min:max" to avoid confusion with negative values.
+                bounds = [float(bound) for bound in getattr(start_param_bounds, param_name).split(':')] 
+                # Intervals are specified as "min:max" to avoid confusion with negative values.
 
                 assert len(bounds) == 2
                 start_params[:, param_info.index] *= bounds[1] - bounds[0]

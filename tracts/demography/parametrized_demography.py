@@ -105,8 +105,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
                               for population_of_interest, founder_event in self.founder_events.items()}
 
         self.execute_migration_events(migration_matrices=migration_matrices, params=params)
-        #if min(np.min(migration_matrices['X_male']), np.min(migration_matrices['X_female']))<0 :
-        #    breakpoint()
+
         return migration_matrices
     
     def get_founding_time(self, population):
