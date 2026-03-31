@@ -67,7 +67,10 @@ class FounderEvent(BaseFounderEvent):
                 remaining_rate -= rate
 
             if remaining_rate < 0:
-                logger.warning('Founding migration rates add up to more than 1')
+                
+                logger.warning('Founding migration rates add up to more than 1 at params' 
+                +f"{params}, matrix {migration_matrix}")
+                
 
             migration_matrix[
                 start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
@@ -659,11 +662,13 @@ class FixedParametersHandler:
         found_props = self.demography.proportions_from_matrices(migration_matrices)
         diff = np.array([found_props[ancestor][:-1] - self.known_ancestry_proportions[ancestor] 
                 for ancestor in self.known_ancestry_proportions.keys()]).flatten()
+        
+        
         return diff
 
     
     def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions=None, units = "phys"):
-        """This happens in physical units "phys" by default, else "opt" for optimizer units"""
+        """Input in physical units "phys" by default, else "opt" for optimizer units"""
         if units == "opt":
             params_phys = self.convert_to_physical_params(params)
             params_opt = params.copy()
@@ -699,16 +704,33 @@ class FixedParametersHandler:
              as a function of the params_to_solve. In optimizer units. 
              Uses the physical parameters as a nonlocal varaible"""
             nonlocal params_opt
+            
             params_to_solve[np.isnan(params_to_solve)] = 0
             new_params_phys = self.convert_to_physical_params(self.insert_solved_params(params_opt, params_to_solve)) 
             try: value = self.full_params_objective_func(new_params_phys, units = "phys") 
             except ValueError as e:
                 raise ValueError(f"problem computing migration matrices with opt parameters {params_opt}parameters {params_phys}.") from e
+            
+            
             return value
         
+        param_name_list = self.demography.params_fixed_by_ancestry
+        
+
+        start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1 # An arbitrary start point in physical units
+        
+
+        start_params_phys_full = self.insert_solved_params(params_phys, start_point)
+        assert(self.demography.check_bounds(start_params_phys_full) >=0), "start point for fixed parameter optimisation is not feasible."
+        #TODO: Come up with a way of catching and repairing unfeasible starting points
+        start_point_optimizer_full = self.convert_to_optimizer_params(start_params_phys_full)
+        start_point_validated =  start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
+        
         try: 
-            solved_params = scipy.optimize.fsolve(lambda params_to_solve: param_objective_func(params_to_solve),
-                                              np.ones(len(self.params_fixed_by_ancestry)) * .2)
+            
+            solved_params = scipy.optimize.fsolve(param_objective_func,
+                                              start_point_validated)
+            
         except ValueError as e:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
         error = np.linalg.norm(param_objective_func(solved_params))

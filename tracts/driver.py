@@ -188,10 +188,7 @@ def run_tracts(driver_filename, script_dir=None):
     
 
     assert np.isclose(physical_start_params[0], model.parameter_handler.convert_to_physical_params(optimizer_start_params[0])).all()
-    #TODO: the following should be removed or moved to testing
-    #assert np.isclose(scale_select_indices(start_param_values[0], model.is_time_param(), time_scaling_factor), 
-    #                                       model.parameter_handler.convert_to_physical_params(start_param_values[0])).all(), "Error in parameter scaling functions."
-    
+
     print("Initial parameters : ", optimizer_start_params[0]) 
     
     
