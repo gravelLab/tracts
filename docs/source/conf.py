@@ -23,19 +23,44 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autosummary",
     "sphinx_autodoc_typehints",
+    "nbsphinx",
 ]
+
+extensions += ["sphinx_design"]
+extensions += ["sphinx_gallery.gen_gallery"]
+
+nbsphinx_execute = "never"
+
+examples_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../example/3pops_sexbiased"))
+
+sphinx_gallery_conf = {
+    "examples_dirs": examples_path,      # where your scripts live
+    "gallery_dirs": "auto_examples",     # generated site
+    "filename_pattern": r"\.py",
+}
+
 autosummary_generate = True
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = [
+    "auto_examples/**/*.ipynb",
+    "auto_examples/**/*.py",
+    "auto_examples/**/*.py.md5",
+    "auto_examples/**/*.codeobj.json",
+    "auto_examples/**/*.zip",
+    "api/_api_stubs.rst",
+]
 
 autodoc_default_options = {
-    "members": True,            # include all functions and classes
-    "undoc-members": True,      # include members without docstrings
-    "inherited-members": True,  # include inherited methods
-    "show-inheritance": True,   # show class inheritance
-    "special-members": "__init__",  # include constructor
+    "members": True,
+    "undoc-members": True,
+    "inherited-members": False,
+    "show-inheritance": True,
+    "special-members": "__init__",
 }
+
+autosummary_generate = True
+autosummary_imported_members = False
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
@@ -44,5 +69,28 @@ napoleon_include_init_with_doc = True
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_rtd_theme"
-html_static_path = ['_static']
+#html_theme = "sphinx_rtd_theme"
+#html_static_path = ['_static']
+
+html_theme = "pydata_sphinx_theme"
+
+html_theme_options = {
+    "logo": {
+        "text": "tracts",
+    },
+    "github_url": "https://github.com/gravellab/tracts",
+    "navbar_start": ["navbar-logo"],
+    "navbar_center": ["navbar-nav"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "show_toc_level": 2,
+    "navigation_depth": 2,
+    "collapse_navigation": False,
+}
+
+html_static_path = ["_static"]
+
+html_css_files = [
+    "custom.css",
+]
+
+

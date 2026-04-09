@@ -1,0 +1,17 @@
+sphinx_autodoc_typehints-2.3.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+sphinx_autodoc_typehints-2.3.0.dist-info/METADATA,sha256=3ObzjawVyXDHcUz0t6JMj8vHNUBTFbAfYAfPSja7sJo,7998
+sphinx_autodoc_typehints-2.3.0.dist-info/RECORD,,
+sphinx_autodoc_typehints-2.3.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+sphinx_autodoc_typehints-2.3.0.dist-info/WHEEL,sha256=1yFddiXMmvYK7QYTqtRNtX66WJ0Mz8PYEiEUoOUUxRY,87
+sphinx_autodoc_typehints-2.3.0.dist-info/licenses/LICENSE,sha256=9SWMOSF1ZjUt2gD8XV_LX46MNFfRtR6W-Wz0FVvXw3g,1101
+sphinx_autodoc_typehints/__init__.py,sha256=IRJnut0enjUKo1cSon2LDSQferKb-cPE9oGaKWwRhVw,37605
+sphinx_autodoc_typehints/__pycache__/__init__.cpython-310.pyc,,
+sphinx_autodoc_typehints/__pycache__/attributes_patch.cpython-310.pyc,,
+sphinx_autodoc_typehints/__pycache__/parser.cpython-310.pyc,,
+sphinx_autodoc_typehints/__pycache__/patches.cpython-310.pyc,,
+sphinx_autodoc_typehints/__pycache__/version.cpython-310.pyc,,
+sphinx_autodoc_typehints/attributes_patch.py,sha256=DwEo-Zyx4iO0-3jiix_uqqKhNJks2z92E8BI1tq923w,3554
+sphinx_autodoc_typehints/parser.py,sha256=PDTulND87Z-zdnWCVhBe7cj_f0gPpfxJic3uiSmvcLU,948
+sphinx_autodoc_typehints/patches.py,sha256=LuCMvx8j-krIMyp_CH9EtUAo435Wwwhs8_MrUojOh9s,4540
+sphinx_autodoc_typehints/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+sphinx_autodoc_typehints/version.py,sha256=ChsIHG8bRc-eXUbXOgv4Fm4DstSKLq9FpsTAsaMeR08,411

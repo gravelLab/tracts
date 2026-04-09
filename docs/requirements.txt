@@ -1,0 +1,8 @@
+sphinx
+pydata-sphinx-theme
+sphinx-design
+sphinx-gallery
+nbsphinx
+ipython
+prompt-toolkit>=3.0.30
+sphinx_autodoc_typehints
