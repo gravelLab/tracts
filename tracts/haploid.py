@@ -15,7 +15,7 @@ class Haploid:
     
         Ls: list of float
         	The lengths of the chromosomes.
-        chroms: list of Chrom
+        chroms: list of :class:`tracts.chromosome.Chrom`
         	The chromosome objects.
         labs: list of str
         	Labels identifying the chromosomes.

@@ -3,37 +3,110 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-tracts 2.0 documentation
-========================
+tracts
+======
 
-``tracts`` is a Python library used to model migration histories based on ancestry
-tracts in admixed individuals. Time-dependent gene flow from multiple populations
-can be modeled. In tracts 2.0, sex-biased migration and recombination rates are
-supported, enabling modeling and inference for both autosomes and the X chromosome.
+A Python library for demographic inference from ancestry tracts.
 
-Installing ``tracts``
----------------------
+.. grid:: 1 1 2 3
+   :gutter: 3
 
-To install:
+   .. grid-item::
 
-1. Clone the repository.
-2. Open a terminal inside your local copy.
-3. Run ``pip install .``
+      .. card:: Using tracts
+         :link: user_guide/index
+         :link-type: doc
+         :class-card: sd-h-100
+         		
+         Main guidelines to use ``tracts``.
 
-You can now import ``tracts`` as a Python package.
+   .. grid-item::
 
-``tracts`` is currently not distributed on PyPI or Conda.
+      .. card:: Examples
+         :link: auto_examples/index
+         :link-type: doc
+         :class-card: sd-h-100
+         
+         End-to-end examples with figures and code.
+         
+   .. grid-item::
 
-Using ``tracts``
-----------------
+      .. card:: Phase-type models
+         :link: tutorials/index
+         :link-type: doc
+         :class-card: sd-h-100
+         
+         A tutorial to compute Phase-Type distributions
+         from a migration matrix.
 
-For detailed guidelines on how to use ``tracts`` in practice, see the
-`README file <https://github.com/gravelLab/tracts>`_ in the GitHub repository.
+   .. grid-item::
+
+      .. card:: API documentation
+         :link: api/index
+         :link-type: doc
+         :class-card: sd-h-100
+         
+         Detailed reference for modules, functions, and classes.
+
+
+----
+
+``tracts`` models migration histories in admixed populations using ancestry tracts.
+It supports multiple source populations, time-dependent migration, sex-biased admixture and inference for both autosomes and the X chromosome.
+
+Installation
+------------
+
+.. code-block:: bash
+
+   git clone https://github.com/gravelLab/tracts.git
+   cd tracts
+   pip install .
+
+You can now import tracts as a python package.
+
+.. note::
+
+
+   ``tracts`` is currently not distributed on PyPI or Conda.
+
+----
+
+The papers
+----------
+
+A detailed introduction to the models and methods presented in ``tracts 2.0`` is available in `this paper (in preparation) </path/to/paper>`_. ``tracts 1.0`` is based on `this paper <https://pubmed.ncbi.nlm.nih.gov/22491189/>`_.
+
+----
+
+.. admonition:: Updates in ``tracts 2.0``
+   :class: note
+
+   **Software updates**
+
+   - ``tracts`` is now a Python package rather than a single ``.py`` file.
+   - ``tracts`` no longer requires writing a custom driver script.
+   - Demographic models are now defined via YAML.
+
+   **Methodological updates**
+
+   - Phase-Type theory for tract distributions.
+   - X chromosome support.
+   - Sex-biased migration.
+   - Improved admixture models.
+
+
+Contact
+-------
+For any inquires, please `file an issue <https://github.com/gravelLab/tracts/issues>`_ or `contact us <mailto:javier.gonzalez-delgado@ensai.fr>`_.
 
 
 .. toctree::
-   :maxdepth: 4
-   :caption: Contents:
-   
-   modules
+   :hidden:
+   :maxdepth: 2
 
+   user_guide/index
+   examples/index
+   tutorials/index
+   api/index
+   

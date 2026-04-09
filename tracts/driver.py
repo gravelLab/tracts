@@ -463,7 +463,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    A function that takes parameters and returns migration matrices.
         bound_func: Callable
     	    A function that calculates the violation score for the parameters. 	
-        population: Population
+        population: :class:`tracts.population.Population`
     	    The population object containing individual data.
         population_labels: list[str]
     	    A list of labels corresponding to the populations.	
@@ -565,9 +565,15 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
                 nind * np.array(optimal_model.tract_length_histogram_multi_windowed(popnum, bins, Ls))))
                          + "\n")
 
-    with open(output_dir + output_filename_format.format(label='optimal_parameters'), 'w') as fpars2:
-        fpars2.write("\t".join(map(str, optimal_params)) + "\n")
-        
+    param_names = list(model.model_base_params.keys())
+    params_file_path = output_dir + output_filename_format.format(label="optimal_parameters") + ".txt"
+
+    with open(params_file_path, "w") as f:
+        f.write("parameter\tvalue\n")
+        for name, value in zip(param_names, optimal_params):
+            f.write(f"{name}\t{value}\n")
+            
+
     # Plot results
     
     for pop, pop_num in model.population_indices.items():
@@ -718,9 +724,13 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 [num_males * num_tracts for num_tracts in male_predicted[pop]]))
                          + "\n")
 
-    with open(output_dir + output_filename_format.format(label='optimal_parameters'), 'w') as fpars2:
-        fpars2.write("\t".join(map(str, optimal_params)) + "\n")
-      
+    param_names = list(model.model_base_params.keys())
+    params_file_path = output_dir + output_filename_format.format(label="optimal_parameters") + ".txt"
+
+    with open(params_file_path, "w") as f:
+        f.write("parameter\tvalue\n")
+        for name, value in zip(param_names, optimal_params):
+            f.write(f"{name}\t{value}\n")
     
     # Plot tractlength distributions    
     autosome_predicted_ancestry = {}

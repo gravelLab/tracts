@@ -7,6 +7,7 @@ import numpy as np
 import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
+from typing import Callable
 
 small = 10**-12  
 large = 1/small
@@ -204,7 +205,7 @@ class BaseParametrizedDemography(ABC):
         self.model_base_params[param_name] = Parameter(param_name, param_type, bounds)
 
 
-    def add_dependent_parameter(self, param_name: str, expression: function[["BaseParametrizedDemography",list[float]], float], param_type: ParamType=ParamType.UNTYPED, bounds=None):
+    def add_dependent_parameter(self, param_name: str, expression: Callable[["BaseParametrizedDemography",list[float]], float], param_type: ParamType=ParamType.UNTYPED, bounds=None):
         """Dependent parameters cannot be optimized directly. This is used in sex-biased migration to define a sex-specific migration rate computed from an overall migration
          rate and sex """
         if param_name in self.dependent_params:
