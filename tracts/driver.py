@@ -19,7 +19,32 @@ from tracts.demography.parametrized_demography_sex_biased import ParametrizedDem
 from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.demography.parameter import Parameter ,ParamType
 from tracts.demography import DemographicModel
+
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Formatter
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+# File handler (logs EVERYTHING >= INFO)
+file_handler = logging.FileHandler("tracts.log") #TODO enable file naming
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+
+# Stream handler (logs only WARNING+ to stdout)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.WARNING)
+stream_handler.setFormatter(formatter)
+
+# Add handlers
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
+
 
 filepath_error_additional_message = ('\nPlease ensure that the file path is either absolute,'
                                      ' or relative to the working directory, script directory,'

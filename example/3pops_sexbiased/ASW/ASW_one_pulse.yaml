@@ -22,7 +22,7 @@ start_params:
 
 repetitions: 1
 maximum_iterations: 1000
-seed: 100
+seed: 10
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
 exclude_tracts_below_cm: 2
 npts : 50

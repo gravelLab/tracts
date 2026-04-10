@@ -745,7 +745,7 @@ class FixedParametersHandler:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
-            print(f"Could not solve for parameters fixed by ancestry proportions."+ 
+            self.logger.info(f"Could not solve for parameters fixed by ancestry proportions."+ 
             f"Final error: {error},"+ 
             f"solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(params_opt, solved_params))}"+
             f"this can happen when no sex bias parameter allows for the observed ancestry proportions.")

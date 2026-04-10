@@ -416,9 +416,11 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
     
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = True)
-    outputs = scipy.optimize.fmin_cobyla(
-        reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-
+    if len(reduced_params)>0:
+        outputs = scipy.optimize.fmin_cobyla(
+            reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    else: #no optimization needed
+        outputs = reduced_params
     likelihood = -reduced_objective_function(outputs)
     return parameter_handler.extend_parameters(outputs, units = "opt"), likelihood
 
