@@ -7,6 +7,7 @@ from typing import Callable
 import numpy as np
 import ruamel.yaml
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import warnings
 #warnings.simplefilter('always')
 from scipy.special import logit, expit
@@ -140,11 +141,11 @@ def run_tracts(driver_filename, script_dir=None):
     
 
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
-    print("Computed autosome proportions", ancestry_proportions )
+    print("\nData autosome proportions:", ancestry_proportions )
     
     if len(allosome_labels)>=1:
         allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
-        print("Computed allosome proportions", allosome_proportions )
+        print("Data allosome proportions:", allosome_proportions )
 
 
 
@@ -177,9 +178,6 @@ def run_tracts(driver_filename, script_dir=None):
     
     sex_bias_to_physical_function = to_minus1_plus1
     
-
-
-    
     to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
                                     ParamType.RATE: rate_to_physical_function, 
                                     ParamType.SEX_BIAS: sex_bias_to_physical_function} 
@@ -187,8 +185,14 @@ def run_tracts(driver_filename, script_dir=None):
 
     time_to_optimizer_function = lambda x: np.log(x)
     rate_to_optimizer_function = lambda x: logit(x)
+    
     def from_minus1_plus1(y):
-        return np.log1p(y) - np.log1p(-y)
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            log_result = np.log1p(y) - np.log1p(-y)
+        log_result = np.where(np.isfinite(log_result), log_result, -1e32)
+        return log_result
+
     sex_bias_to_optimizer_function = from_minus1_plus1
 
     to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
@@ -207,29 +211,55 @@ def run_tracts(driver_filename, script_dir=None):
 
     physical_start_params = parse_start_params(driver_spec.start_params, driver_spec.repetitions, 
                                       driver_spec.seed, model)
-    
-    print ("Physical start params :", physical_start_params[0]) 
-    optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
-    
+    optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]   
 
-    assert np.isclose(physical_start_params[0], model.parameter_handler.convert_to_physical_params(optimizer_start_params[0])).all()
+    if len(physical_start_params) > 1:
 
-    print("Initial parameters : ", optimizer_start_params[0]) 
+        print("\nMultiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.")
+
+    else:
+        print("\nA single set of starting parameters was generated. It will be converted to optimizer units and used for optimization.")
+
+    header = f"{'Run':>3} | {'Physical start parameters':<45} | {'Optimizer start parameters'}"
+    print("-" * len(header))
+    print(header)
+    print("-" * len(header))
     
-    
-    
-    try: 
-        print("Initial ancestry proportions :", model.proportions_from_matrices(func(optimizer_start_params[0])))
-    except ValueError:
-        print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
-    
-    
-    if bound(optimizer_start_params[0])<0:
-        print("Warning, starting parameters are out of bounds.")
-        breakpoint()
+    for i, (phys, opt) in enumerate(zip(physical_start_params, optimizer_start_params)):
+        assert np.isclose(phys, model.parameter_handler.convert_to_physical_params(opt)).all()
+        if bound(opt)<0:
+            print("Warning, starting parameters are out of bounds.")
+        phys_str = ", ".join(f"{x:.4g}" for x in phys)
+        opt_str = ", ".join(f"{x:.4g}" for x in opt)
+        print(f"{1+i:>3} | [{phys_str:<43}] | [{opt_str}]")
+    print("-" * len(header))
+
+    # Get keys from first run
+    first_props = model.proportions_from_matrices(func(optimizer_start_params[0]))
+    keys = list(first_props.keys())
+
+    print("\nStarting ancestry proportions for the starting parameters (in physical units)")
+    header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in keys)
+    print("-" * len(header))
+    print(header)
+    print("-" * len(header))
+   
+    for i, opt in enumerate(optimizer_start_params):
+        try: 
+            props = model.proportions_from_matrices(func(opt))
+        except ValueError:
+            print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
 
 
-
+        row_values = []
+        for k in keys:
+            arr = props[k]
+            arr_str = ", ".join(f"{x:.4g}" for x in arr)
+            row_values.append(f"[{arr_str:<33}]")
+    
+        print(f"{1+i:>3} | " + " | ".join(row_values))
+    print("-" * len(header))
+          
     params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
                                                         optimizer_start_params,
                                                         population_dict=pop_dict,
@@ -240,19 +270,35 @@ def run_tracts(driver_filename, script_dir=None):
                                                         ad_model_autosomes = ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
 
     formatted_likelihoods = [float(x) for x in likelihoods]
-    print('---------------------------------------------------------------------')
-    print("Likelihoods found :"+ str(formatted_likelihoods))
-    optimal_params = min(zip(params_found, likelihoods), key=lambda x: x[1])[0]
+    
+    if len(formatted_likelihoods) > 1:
+
+        print("\n---------------------------------------------------------------------------")
+        print("Results from multiple optimization runs with different starting parameters:")
+        header = f"{'Run':>3} | {'LogLik':>12} | Found parameters (in optimizer units)"
+        print("-" * len(header))
+        print(header)
+        print("-" * len(header))
+        for i, (params, ll) in enumerate(zip(params_found, formatted_likelihoods)):
+            params_str = ", ".join(f"{p:.4g}" for p in params)
+            print(f"{1+i:>3} | {float(ll):>12.6g} | [{params_str}]")
+        print("-" * len(header))
+    
+    optimal_params, optimal_likelihood = max(zip(params_found, formatted_likelihoods), key=lambda x: x[1])
     optimal_params = model.parameter_handler.convert_to_physical_params(optimal_params)
 
-    print(f"Optimal Parameters:{optimal_params}")
+    print("\nFinal parameters in physical units and corresponding likelihood:")
+    param_names = list(model.model_base_params.keys())
+    header = f"{'LogLik':>12} | " + " ".join(f"{name:>12}" for name in param_names)
+    print("-" * len(header))
+    print(header)
+    print("-" * len(header))
+    values_str = " ".join(f"{x:>12.4g}" for x in optimal_params)
+    print(f"{float(optimal_likelihood):>12.6g} | {values_str}")
+    print("-" * len(header))
 
     bound = model.get_violation_score(optimal_params, verbose = True)
 
-
-    #if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
-    #    print("expanded parameters:\n")
-    #    print([f"{float(p):.2g}" for p in model.parameter_handler.extend_parameters(optimal_params)])
     if hasattr(driver_spec, "output_filename_format"):
         if allosome_label:
             output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
@@ -510,6 +556,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     optimal_params = []
     likelihoods = []
     for start_params in start_params_list:
+        print('\nOptimization run #', len(optimal_params)+1,"\n--------------------")
         logger.info(f'Start params: {start_params}')
         params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
                                                    population_dict,
@@ -756,155 +803,193 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
             f.write(f"{name}\t{value}\n")
-    
-    # Plot tractlength distributions    
-    autosome_predicted_ancestry = {}
-    allosome_predicted_ancestry   = {}
-    autosome_data_ancestry = {}
-    allosome_data_ancestry  = {}
-  
 
-    for pop, pop_num in model.population_indices.items():
-        
-        fig, axes = plt.subplots(3, 1, figsize=(8, 12), constrained_layout=True)
-        fig.suptitle(f"Ancestor: {pop}", fontsize=16, fontweight="bold")
+    pop_names = list(model.population_indices.keys())
+    n_pops = len(pop_names)
 
-        # --- 1st row: autosome ---
-        axes[0].bar(
-            autosome_bins[:-1],
-            autosome_data[pop],
-            width=np.diff(autosome_bins),
-            align='edge',
-            alpha=0.6,
-            color='tab:blue',
-            edgecolor='white',
-            label="Data"
+    # Colorblind-friendly palette
+    okabe_ito = [
+        "#000000",  # black
+        "#E69F00",  # orange
+        "#56B4E9",  # sky blue
+        "#009E73",  # bluish green
+        "#F0E442",  # yellow
+        "#0072B2",  # blue
+        "#D55E00",  # vermillion
+        "#CC79A7",  # reddish purple
+    ]
+
+    if n_pops <= len(okabe_ito):
+        colors = okabe_ito[:n_pops]
+    else:
+        # fallback if there are more populations than Okabe-Ito colors
+        cmap = plt.get_cmap("tab20")
+        colors = [cmap(i) for i in range(n_pops)]
+
+    pop_colors = {pop: colors[i] for i, pop in enumerate(pop_names)}
+
+
+    def _bin_centers(bins):
+        return 0.5 * (bins[:-1] + bins[1:])
+
+
+    def _plot_panel(
+        xbins,
+        observed_dict,
+        predicted_dict,
+        scale_factor,
+        title,
+        ylabel,
+        output_path,
+        xlabel="Tract Length (M)"):
+
+        fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
+
+        x_centers = _bin_centers(xbins)
+        x_left = xbins[:-1]
+
+        population_handles = []
+
+        for pop in pop_names:
+            color = pop_colors[pop]
+
+            # Observed data as points
+            y_obs = np.asarray(observed_dict[pop], dtype=float)
+            ax.scatter(
+                x_centers,
+                y_obs,
+                s=30,
+                color=color,
+                alpha=0.95,
+                edgecolor="white",
+                linewidth=0.6,
+                zorder=3,
+            )
+
+            # Predicted data as line
+            y_pred = scale_factor * np.asarray(predicted_dict[pop], dtype=float)
+            ax.step(
+                x_left,
+                y_pred,
+                where="post",
+                color=color,
+                lw=2.2,
+                alpha=0.95,
+                zorder=2,
+            )
+
+            # One legend entry per population: line + marker together
+            population_handles.append(
+                Line2D(
+                    [0], [0],
+                    color=color,
+                    lw=2.2,
+                    marker='o',
+                    markersize=6,
+                    markerfacecolor=color,
+                    markeredgecolor="white",
+                    label=pop
+                )
+            )
+
+        # Main styling
+        ax.set_title(title, fontsize=14, fontweight="bold")
+        ax.set_xlabel(xlabel, fontsize=12)
+        ax.set_ylabel(ylabel, fontsize=12)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.grid(alpha=0.25, linewidth=0.8)
+        ax.tick_params(axis="both", labelsize=10)
+
+        # Legend 1: populations by color
+        legend_pop = ax.legend(
+            handles=population_handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.16),
+            frameon=False,
+            fontsize=10,
+            ncol=min(len(pop_names), 4),
+            title="Source population",
+            title_fontsize=10,
         )
-        axes[0].step( # Plot as step to align with histogram bars
-            autosome_bins[:-1],
-            [nind * num_tracts for num_tracts in autosome_predicted[pop]],
-            where="post",
-            color='tab:orange',
-            lw=2,
-            label="Predicted"
-        )
-        #axes[0].plot(
-        #    0.5 * (autosome_bins[:-1] + autosome_bins[1:]),
-        #    [nind * num_tracts for num_tracts in autosome_predicted[pop]],
-        #    color='tab:orange',
-        #    lw=2,
-        #    label="Predicted"
-        #)
-        axes[0].set_title("Autosome", fontsize=12, fontweight="bold")
-        axes[0].set_xlabel("Tract Length (M)")
-        axes[0].set_ylabel("Count")
-        axes[0].legend(frameon=False)
-        axes[0].grid(alpha=0.3)
-        
-        # --- 2nd row: male allosome ---
-        axes[1].bar(
-            allosome_bins[:-1],
-            male_data[pop],
-            width=np.diff(allosome_bins),
-            align='edge',
-            alpha=0.6,
-            color='tab:blue',
-            edgecolor='white',
-            label="Data"
-        )
-        axes[1].step(
-            allosome_bins[:-1],
-            [num_males * num_tracts for num_tracts in male_predicted[pop]],
-            where="post",
-            color='tab:orange',
-            lw=2,
-            label="Predicted"
-        )
-        #axes[1].plot(
-        #    0.5 * (allosome_bins[:-1] + allosome_bins[1:]),
-        #    [num_males * num_tracts for num_tracts in male_predicted[pop]],
-        #    color='tab:orange',
-        #    lw=2,
-        #    label="Predicted"
-        #)
-        axes[1].set_title("Male Allosome", fontsize=12, fontweight="bold")
-        axes[1].set_xlabel("Tract Length (M)")
-        axes[1].set_ylabel("Count")
-        axes[1].legend(frameon=False)
-        axes[1].grid(alpha=0.3)
-        
-        # --- 3rd row: female allosome ---
-        axes[2].bar(
-            allosome_bins[:-1],
-            female_data[pop],
-            width=np.diff(allosome_bins),
-            align='edge',
-            alpha=0.6,
-            color='tab:blue',
-            edgecolor='white',
-            label="Data"
-        )
-        axes[2].step(
-            allosome_bins[:-1],
-            [num_females * num_tracts for num_tracts in female_predicted[pop]],
-            where="post",
-            color='tab:orange',
-            lw=2,
-            label="Predicted"
-        )
-        #axes[2].plot(
-        #    0.5 * (allosome_bins[:-1] + allosome_bins[1:]),
-        #    [num_females * num_tracts for num_tracts in female_predicted[pop]],
-        #    color='tab:orange',
-        #    lw=2,
-        #    label="Predicted"
-        #)
-        axes[2].set_title("Female Allosome", fontsize=12, fontweight="bold")
-        axes[2].set_xlabel("Tract Length (M)")
-        axes[2].set_ylabel("Count")
-        axes[2].legend(frameon=False)
-        axes[2].grid(alpha=0.3)
 
-        # Approximate the sum of tractlengths using the midpoint of the bins for male_predicted and female_predicted
-        #male_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
-        #female_bin_mids = 0.5 * (allosome_bins[:-1] + allosome_bins[1:])
-        
+        # Legend 2: glyph meaning
+        glyph_handles = [
+            Line2D(
+                [0], [0],
+                linestyle="None",
+                marker='o',
+                color='0.35',
+                markerfacecolor='0.35',
+                markeredgecolor="white",
+                markersize=6,
+                label="Observed"
+            ),
+            Line2D(
+                [0], [0],
+                linestyle='-',
+                color='0.35',
+                lw=2.2,
+                label="Predicted"
+            ),
+        ]
 
+        legend_glyph = ax.legend(
+            handles=glyph_handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.29),
+            frameon=False,
+            fontsize=10,
+            ncol=2,
+        )
 
-        #bin_mids = 0.5 * (autosome_bins[:-1] + autosome_bins[1:])
-        
-        
-        ancestry_prop_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys())
-        ancestry_prop_allosomes_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), allosome_label='X')
-        ancestry_pred_data = model.proportions_from_matrices(matrices)
-        #ancestry_prop_cutoff_data = sample_population.calculate_ancestry_proportions(model.population_indices.keys(), cutoff = autosome_bins[0])
-        #ancestry_prop_allosomes_cutoff_data = sample_population.calculate_allosome_proportions(model.population_indices.keys(), 
-        #                                                                                  allosome_label='X', cutoff = allosome_bins[0])
-        #male_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts for num_tracts in male_predicted[pop]]))
-        #female_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts for num_tracts in female_predicted[pop]]))
-        
-        #male_data_sum = sum(mid * count for mid, count in zip(male_bin_mids, [num_tracts/num_males for num_tracts in male_data[pop]]))
-        #female_data_sum = sum(mid * count for mid, count in zip(female_bin_mids, [num_tracts/num_females for num_tracts in female_data[pop]]))
-        
+        ax.add_artist(legend_pop)
 
-        #print(f"Approximate sum of {pop} allosome tractlengths per male predicted: {male_sum}")
-        #print(f"Approximate sum of {pop} allosome tractlengths per female predicted: {female_sum}")
-        #print(f"Approximate sum of {pop} allosome tractlengths per male data: {male_data_sum}")
-        #print(f"Approximate sum of {pop} allosome tractlengths per female data: {female_data_sum}")
-        
-        #allosome_data_ancestry[pop] = male_data_sum + female_data_sum
-        #allosome_predicted_ancestry[pop] = male_sum + female_sum
-        #autosome_predicted_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_predicted[pop]]))
-        #autosome_data_ancestry[pop] = sum(mid * count for mid, count in zip(bin_mids, [num_tracts/(num_males+num_females) for num_tracts in autosome_data[pop]]))
-
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
+        fig.savefig(output_path, dpi=300, bbox_inches="tight")
         plt.close(fig)
-    
+
+
+    # --- Autosomes ---
+    _plot_panel(
+        xbins=autosome_bins,
+        observed_dict=autosome_data,
+        predicted_dict=autosome_predicted,
+        scale_factor=nind,
+        title="Autosomal tract length distributions",
+        ylabel="Count",
+        output_path=os.path.join(
+            output_dir,
+            output_filename_format.format(label="autosomes_all_populations.png")
+        ),
+    )
+
+    # --- Male allosomes ---
+    _plot_panel(
+        xbins=allosome_bins,
+        observed_dict=male_data,
+        predicted_dict=male_predicted,
+        scale_factor=num_males,
+        title="Male X-chromosome tract length distributions",
+        ylabel="Count",
+        output_path=os.path.join(
+            output_dir,
+            output_filename_format.format(label="male_allosomes_all_populations.png")
+        ),
+    )
+
+    # --- Female allosomes ---
+    _plot_panel(
+        xbins=allosome_bins,
+        observed_dict=female_data,
+        predicted_dict=female_predicted,
+        scale_factor=num_females,
+        title="Female X-chromosome tract length distributions",
+        ylabel="Count",
+        output_path=os.path.join(
+            output_dir,
+            output_filename_format.format(label="female_allosomes_all_populations.png")
+        ),
+    )
     print('Results saved to : ' + output_dir)
 
-    #for pop, pop_num in model.population_indices.items():
-    #    
-    #print(f"Predicted fraction of ancestry from {pop}: autosome: {fraction_autosome}, allosome: {fraction_allosome}")
-    #print(f"Data fraction of ancestry from {pop}: autosome: {ancestry_prop_data[pop_num]}, allosome: {ancestry_prop_allosomes_data[pop_num]}")
-
+   

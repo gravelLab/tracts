@@ -364,7 +364,7 @@ class PhaseTypeDistribution(ABC):
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(
             zip(data[pop], predicted_tractlength_histogram),
-            cutoff, len(predicted_tractlength_histogram) - 1)
+            cutoff, len(predicted_tractlength_histogram))
                    )           
         
         return ll

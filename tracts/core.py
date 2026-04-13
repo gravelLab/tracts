@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import scipy.optimize
 from matplotlib import pylab
+import copy
 
 import tracts.hybrid_pedigree as HP
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
@@ -217,7 +218,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
             oob = outofbounds_fun(parameters)
             if oob < 0:
-                flush_result((oob - 1) * _out_of_bounds_val)
+                flush_result((oob - 1) * _out_of_bounds_val, f'OOB (oob={oob})')
                 return (oob - 1) * _out_of_bounds_val
         else:
             eprint("No bound function defined")
@@ -305,17 +306,23 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
     for k, v in male_data.items():
         male_data_mapped[dict(p_dict)[k]] = v
-    
-    
-    free_sex_bias_parameters = {param:0 for param, value in parameter_handler.demography.model_base_params.items() if 
-                                (value.type == ParamType.SEX_BIAS) and 
-                                (param not in parameter_handler.user_params_fixed_by_value) and 
-                                (param not in parameter_handler.params_fixed_by_ancestry)}
 
-    parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
+    local_parameter_handler = copy.deepcopy(parameter_handler)
+
+    free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
+                                (value.type == ParamType.SEX_BIAS) and 
+                                (param not in local_parameter_handler.user_params_fixed_by_value) and 
+                                (param not in local_parameter_handler.params_fixed_by_ancestry)}
+
+    local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
     
+    best_objective = np.inf
+    best_full_params = None
 
     def objective_function(model_base_parameters, include_allosomes = True):
+
+        nonlocal best_objective, best_full_params
+
         """parameters are in optimizer space"""
         _out_of_bounds_val = -1e32
         global _counter
@@ -323,7 +330,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
         def flush_result(result, note = str()):
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
+                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters)]))
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
  
 
@@ -331,7 +338,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
             oob = outofbounds_fun(model_base_parameters)
             if oob < 0:
-                flush_result((oob - 1) * _out_of_bounds_val)
+                flush_result((oob - 1) * _out_of_bounds_val, f'OOB (oob={oob})')
                 return (oob - 1) * _out_of_bounds_val
         else:
             eprint("No bound function defined")
@@ -374,22 +381,26 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         flush_result(result_autosomes, 'Autosomes')
         
         
-        
-        return -result
+        obj = -result
+
+        if include_allosomes and np.isfinite(obj) and obj < best_objective:
+            best_objective = obj
+            best_full_params = model_base_parameters.copy()
+        return obj
         
     def reduced_objective_function(free_parameters_opt, include_allosomes = True):
         
-        return objective_function(parameter_handler.extend_parameters(free_parameters_opt, units="opt"), include_allosomes=include_allosomes) #Full parameters in optimizer space
+        return objective_function(local_parameter_handler.extend_parameters(free_parameters_opt, units="opt"), include_allosomes=include_allosomes) #Full parameters in optimizer space
   
     def reduced_outofbounds_fun(free_parameters_opt):
 
-        return outofbounds_fun(parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
+        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
 
-    reduced_p0 = parameter_handler.reduce_parameters(p0)
+    reduced_p0 = local_parameter_handler.reduce_parameters(p0)
 
     print('\n--------------------------------------------------------------------------------------------------')
     print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
-    print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(parameter_handler.indices_to_labels(parameter_handler.free_parameters_indices)))
+    print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)))
     print('--------------------------------------------------------------------------------------------------')    
     print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
 
@@ -398,16 +409,17 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     outputs = scipy.optimize.fmin_cobyla(
         reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
-    optimized_parameters = parameter_handler.extend_parameters(outputs, units="opt")
+    optimized_parameters = local_parameter_handler.extend_parameters(outputs, units="opt")
+    step1_full_params_opt = optimized_parameters.copy()
 
-    new_fixed_parameters_names = parameter_handler.indices_to_labels(parameter_handler.free_parameters_indices)
-    new_fixed_values = optimized_parameters[parameter_handler.free_parameters_indices]
+    new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
+    new_fixed_values = optimized_parameters[local_parameter_handler.free_parameters_indices]
     new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
 
-    parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
+    local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
 
-    parameter_handler.add_fixed_parameters(new_fixed_parameters)
-    reduced_params = parameter_handler.reduce_parameters(optimized_parameters)
+    local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
+    reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
 
     print('--------------------------------------------------------------------------------------------------')    
     print('Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
@@ -415,16 +427,29 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     print('--------------------------------------------------------------------------------------------------')    
     print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
     
+    best_objective = np.inf
+    best_full_params = None
+
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = True)
     if len(reduced_params)>0:
         outputs = scipy.optimize.fmin_cobyla(
             reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     else: #no optimization needed
         outputs = reduced_params
-    likelihood = -reduced_objective_function(outputs)
-    return parameter_handler.extend_parameters(outputs, units = "opt"), likelihood
 
-    
+    if len(reduced_params) == 0:
+        full_params_opt = optimized_parameters.copy()
+        likelihood = -objective_function(full_params_opt, include_allosomes=True)
+        return full_params_opt, likelihood
+
+    if best_full_params is None:
+        try:
+            fallback_likelihood = -objective_function(step1_full_params_opt, include_allosomes=True)
+            return step1_full_params_opt, fallback_likelihood
+        except Exception:
+            return step1_full_params_opt, -1e32
+
+    return best_full_params, -best_objective      
 
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, bounds=None, verbose=0,
