@@ -20,16 +20,16 @@ samples:
 output_filename_format: "MXL_test_output_{label}"
 model_filename: ../models/ccc.yaml
 start_params: 
-  t1: 13.5
+  t1: 12:14
   REUR: 0.2
   RAFR: 0.02
   RNAT: 0.2
-  t2: 6.8
+  t2: 6:8
   
   REUR_sex_bias: -0.99 # more males
   RNAT_sex_bias: 0.99 # more females
   RAFR_sex_bias: -0.1
-repetitions: 1
+repetitions: 5
 seed: 100
 maximum_iterations: 1000
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  

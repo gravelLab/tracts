@@ -671,7 +671,7 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
     assert "destination_pop_female" in migration_matrices
     
     # Verify matrix dimensions
-    maxgen = np.ceil(found_time) + 1
+    maxgen = int(np.ceil(found_time) + 1)
     assert migration_matrices["destination_pop_male"].shape[0] == maxgen
     assert migration_matrices["destination_pop_male"].shape[1] == 2  # number of populations
     assert migration_matrices["destination_pop_female"].shape[0] == maxgen

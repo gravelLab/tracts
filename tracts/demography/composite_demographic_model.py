@@ -60,7 +60,7 @@ class CompositeDemographicModel:
         s = 0
         for i in range(self.npops):
             expects = self.expectperbin(Ls, i, bins, nsamp_list=nsamp_list)
-            for j in range(cutoff, len(bins) - 1):
+            for j in range(cutoff, len(bins)):
                 dat = data[i][j]
                 s += -expects[j] + dat * np.log(expects[j]) - gammaln(dat + 1.)
 

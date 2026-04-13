@@ -1518,7 +1518,7 @@ class DemographicModel:
 
         for pop in range(self.npops):
             models = self.expectperbin(Ls, pop, bins)
-            for binnum in range(cutoff, len(bins) - 1):
+            for binnum in range(cutoff, len(bins)):
                 dat = data[pop][binnum]
                 # log-likelihood in poisson random field approximation
                 ll += -nsamp * models[binnum] + dat * np.log(nsamp * models[binnum]) - gammaln(dat + 1.)
@@ -1579,7 +1579,7 @@ class DemographicModel:
         ll = 0
         for pop in range(self.npops):
             models = mods[pop]
-            for binnum in range(cutoff, len(bins) - 1):
+            for binnum in range(cutoff, len(bins)):
                 dat = data[pop][binnum]
                 ll += -nsamp * models[binnum] + dat * np.log(nsamp * models[binnum]) - gammaln(dat + 1.)
         return ll
@@ -1651,7 +1651,7 @@ class CompositeDemographicModel:
 
         for i in range(self.npops):
             expects = self.expectperbin(Ls, i, bins, nsamp_list=nsamp_list)
-            for j in range(cutoff, len(bins) - 1):
+            for j in range(cutoff, len(bins)):
                 dat = data[i][j]
                 s += -expects[j] + dat * np.log(expects[j]) - gammaln(dat + 1.)
 

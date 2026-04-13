@@ -18,22 +18,22 @@ samples:
 output_filename_format: "ASW_test_output_{label}"
 model_filename: ../models/ppx_xxp_pxx.yaml
 start_params: 
-  t1: 10
+  t1: 9:12
   REUR: 0.8
   RAFR: 0.9
   REUR2: 0.2
-  t2: 5
-  t3: 3
+  t2: 5:8
+  t3: 1:4
   REUR_sex_bias: 0.1
   REUR2_sex_bias: 0.1
   RAFR_sex_bias: 0.1
-repetitions: 1
+repetitions: 5
 seed: 100
 maximum_iterations: 1000
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
 exclude_tracts_below_cm: 2
 npts : 50
-#fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
-output_directory: ./output_three_pulses/
+fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
+output_directory: ./output_three_pulses_fix/
 ad_model_autosomes: M
 ad_model_allosomes: DC

@@ -475,7 +475,7 @@ def HP_loglik(mig_matrix_f, mig_matrix_m, rr_f, rr_m, TP, Dioecious_model, X_chr
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(
             zip(data[pop], predicted_tractlength_histogram),
-            cutoff, len(predicted_tractlength_histogram) - 1)
+            cutoff, len(predicted_tractlength_histogram))
                    )           
         
         return ll
