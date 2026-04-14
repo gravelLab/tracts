@@ -713,7 +713,8 @@ class FixedParametersHandler:
             new_params_phys = self.convert_to_physical_params(self.insert_solved_params(params_opt, params_to_solve)) 
             try: value = self.full_params_objective_func(new_params_phys, units = "phys") 
             except ValueError as e:
-                raise ValueError(f"problem computing migration matrices with opt parameters {params_opt}parameters {params_phys}.") from e
+                self.logger.warning(f"problem computing migration matrices with opt parameters {params_opt}, physical parameters {params_phys}.")
+                return large
             
             bound = self.demography.check_bounds(start_params_phys_full) 
             
@@ -736,13 +737,11 @@ class FixedParametersHandler:
         start_point_validated =  start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
         
         try: 
-            
-            solved_params = scipy.optimize.fsolve(param_objective_func,
-                                              start_point_validated)
-
-          
-        except ValueError as e:
+            solved_params = scipy.optimize.fsolve(param_objective_func, start_point_validated)
+        except (ValueError, TypeError) as e:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
+
+
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
             self.logger.info(f"Could not solve for parameters fixed by ancestry proportions."+ 
