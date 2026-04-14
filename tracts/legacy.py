@@ -1499,7 +1499,7 @@ class DemographicModel:
         return expect
 
     def loglik(self, bins, Ls, data, nsamp, cutoff=0):
-        """ Calculates the maximum-likelihood in a Poisson Random Field. Last
+        """ Calculates the log-likelihood in a Poisson Random Field. Last
             bin of data is the number of whole-chromosome. """
         self.maxLen = max(Ls)
         # define bins that contain all possible values
@@ -1992,7 +1992,7 @@ def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None
     """calculates the log-likelihood value for tract length data."""
     if func_args is None:
         func_args = []
-    _out_of_bounds_val = -1e32
+
     global _counter
     _counter += 1
 
@@ -2569,7 +2569,7 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbo
     """Defines the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
-    _out_of_bounds_val = -1e32
+
     global _counter
     _counter += 1
 
@@ -2577,7 +2577,9 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbo
         # outofbounds can return either True or a negative valueto signify out-of-boundedness.
         oob = outofbounds_fun(params, fracs=fracs)
         if oob < 0:
-            result = -(oob - 1) * _out_of_bounds_val
+            
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            result = -out
         else:
             mod = DemographicModel(model_func(params, fracs=fracs))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
@@ -2601,7 +2603,7 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func, outofbounds_f
     # this function will be minimized. We first calculate likelihoods (to be
     # maximized), and return minus that.
     eprint("evaluating at params", params)
-    _out_of_bounds_val = -1e32
+
     global _counter
     _counter += 1
 
@@ -2615,7 +2617,8 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func, outofbounds_f
         if oob < 0:
             # we want bad functions to give very low likelihoods, and worse
             # likelihoods when the function is further out of bounds.
-            mresult = - (oob - 1) * _out_of_bounds_val
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            mresult = - out
             # challenge: if outofbounds is very close to 0, this can return a
             # reasonable likelihood. When oob is negative, we take away an
             # extra 1 to make sure this cancellation does not happen.
@@ -2649,7 +2652,7 @@ def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func,
     # this function will be minimized. We first calculate likelihoods (to be
     # maximized), and return minus that.
     eprint("evaluating at params", params)
-    _out_of_bounds_val = -1e32
+
     global _counter
     _counter += 1
 
@@ -2668,7 +2671,9 @@ def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func,
         if oob < 0:
             # we want bad functions to give very low likelihoods, and worse
             # likelihoods when the function is further out of bounds.
-            mresult = -(oob - 1) * _out_of_bounds_val
+           
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            mresult = -out
             # challenge: if outofbounds is very close to 0, this can return a
             # reasonable likelihood. When oob is negative, we take away an
             # extra 1 to make sure this cancellation does not happen.
