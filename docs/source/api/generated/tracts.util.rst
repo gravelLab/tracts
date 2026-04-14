@@ -4,11 +4,6 @@ tracts.util
 .. automodule:: tracts.util
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -16,15 +11,3 @@ tracts.util
       all_same_sign
       eprint
    
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-

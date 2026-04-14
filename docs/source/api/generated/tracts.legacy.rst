@@ -4,11 +4,6 @@ tracts.legacy
 .. automodule:: tracts.legacy
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -26,10 +21,6 @@ tracts.legacy
       plotmig
       test_model_func
    
-   
-
-   
-   
    .. rubric:: Classes
 
    .. autosummary::
@@ -43,11 +34,3 @@ tracts.legacy
       Population
       Tract
    
-   
-
-   
-   
-   
-
-
-

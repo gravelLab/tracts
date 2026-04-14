@@ -4,11 +4,6 @@ tracts.core
 .. automodule:: tracts.core
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -27,15 +22,3 @@ tracts.core
       plotmig
       test_model_func
    
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-

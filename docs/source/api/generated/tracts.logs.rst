@@ -4,11 +4,6 @@ tracts.logs
 .. automodule:: tracts.logs
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -16,15 +11,3 @@ tracts.logs
       get_current_func_info
       show_INFO
    
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-
