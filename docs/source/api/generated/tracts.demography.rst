@@ -4,33 +4,15 @@ tracts.demography
 .. automodule:: tracts.demography
 
    
-   
-   
-
-   
-   
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-
 .. rubric:: Modules
 
 .. autosummary::
    :toctree:
    :recursive:
 
-   tracts.demography.base_parametrized_demography
-   tracts.demography.composite_demographic_model
-   tracts.demography.demographic_model
-   tracts.demography.parameter
-   tracts.demography.parametrized_demography
-   tracts.demography.parametrized_demography_sex_biased
-
+   base_parametrized_demography
+   composite_demographic_model
+   demographic_model
+   parameter
+   parametrized_demography
+   parametrized_demography_sex_biased

@@ -4,15 +4,6 @@ tracts.chromosome
 .. automodule:: tracts.chromosome
 
    
-   
-   
-
-   
-   
-   
-
-   
-   
    .. rubric:: Classes
 
    .. autosummary::
@@ -20,11 +11,3 @@ tracts.chromosome
       Chrom
       Chropair
    
-   
-
-   
-   
-   
-
-
-

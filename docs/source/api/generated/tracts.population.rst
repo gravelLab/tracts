@@ -4,11 +4,6 @@ tracts.population
 .. automodule:: tracts.population
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -16,21 +11,9 @@ tracts.population
       collect_pop
       preprocess_color_dict
    
-   
-
-   
-   
    .. rubric:: Classes
 
    .. autosummary::
    
       Population
    
-   
-
-   
-   
-   
-
-
-

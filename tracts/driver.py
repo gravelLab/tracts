@@ -834,7 +834,6 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     def _bin_centers(bins):
         return 0.5 * (bins[:-1] + bins[1:])
 
-
     def _plot_panel(
         xbins,
         observed_dict,
@@ -849,8 +848,6 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
 
         x_centers = _bin_centers(xbins)
-        x_left = xbins[:-1]
-
         population_handles = []
 
         for pop in pop_names:
@@ -869,11 +866,22 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 zorder=3,
             )
 
-            # Predicted data as line
-            y_pred = scale_factor * np.asarray(predicted_dict[pop], dtype=float)
+            # Predicted mean counts per bin: length K
+            y_pred_bin = scale_factor * np.asarray(predicted_dict[pop], dtype=float)
+
+            # Poisson prediction interval per bin: also length K
+            y_low_bin = np.asarray(poisson.ppf(alpha_ci / 2, y_pred_bin), dtype=float)
+            y_high_bin = np.asarray(poisson.ppf(1 - alpha_ci / 2, y_pred_bin), dtype=float)
+
+            # Extend to length K+1 for step plotting
+            y_pred_step = np.r_[y_pred_bin, y_pred_bin[-1]]
+            y_low_step = np.r_[y_low_bin, y_low_bin[-1]]
+            y_high_step = np.r_[y_high_bin, y_high_bin[-1]]
+
+            # Step line
             ax.step(
-                x_left,
-                y_pred,
+                xbins,
+                y_pred_step,
                 where="post",
                 color=color,
                 lw=2.2,
@@ -881,15 +889,11 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 zorder=2,
             )
 
-            # Exact Poisson prediction interval
-            y_low = np.asarray(poisson.ppf(alpha_ci / 2, y_pred), dtype=float)
-            y_high = np.asarray(poisson.ppf(1 - alpha_ci / 2, y_pred), dtype=float)
-        
             # Shadow for prediction interval
             ax.fill_between(
-                x_left,
-                y_low,
-                y_high,
+                xbins,
+                y_low_step,
+                y_high_step,
                 step="post",
                 color=color,
                 alpha=0.18,
@@ -897,7 +901,6 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 zorder=1,
             )
 
-            # One legend entry per population: line + marker together
             population_handles.append(
                 Line2D(
                     [0], [0],
@@ -911,32 +914,32 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 )
             )
 
-        # Main styling
-        ax.set_title(title, fontsize=14, fontweight="bold")
-        ax.set_xlabel(xlabel, fontsize=12)
-        ax.set_ylabel(ylabel, fontsize=12)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.grid(alpha=0.25, linewidth=0.8)
-        ax.tick_params(axis="both", labelsize=10)
+            # Main styling
+            ax.set_title(title, fontsize=14, fontweight="bold")
+            ax.set_xlabel(xlabel, fontsize=12)
+            ax.set_ylabel(ylabel, fontsize=12)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.grid(alpha=0.25, linewidth=0.8)
+            ax.tick_params(axis="both", labelsize=10)
 
-        # Legend 1: populations by color
-        legend_pop = ax.legend(
-            handles=population_handles,
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.16),
-            frameon=False,
-            fontsize=10,
-            ncol=min(len(pop_names), 4),
-            title="Source population",
-            title_fontsize=10,
-        )
+            # Legend 1: populations by color
+            legend_pop = ax.legend(
+                handles=population_handles,
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.16),
+                frameon=False,
+                fontsize=10,
+                ncol=min(len(pop_names), 4),
+                title="Source population",
+                title_fontsize=10,
+            )
 
-        # Legend 2: glyph meaning
-        glyph_handles = [
-            Line2D(
-                [0], [0],
-                linestyle="None",
+            # Legend 2: glyph meaning
+            glyph_handles = [
+                Line2D(
+                    [0], [0],
+                    linestyle="None",
                 marker='o',
                 color='0.35',
                 markerfacecolor='0.35',
@@ -951,21 +954,21 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 lw=2.2,
                 label="Predicted"
             ),
-        ]
+            ]
 
-        legend_glyph = ax.legend(
-            handles=glyph_handles,
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.29),
-            frameon=False,
-            fontsize=10,
-            ncol=2,
-        )
+            legend_glyph = ax.legend(
+                handles=glyph_handles,
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.29),
+                frameon=False,
+                fontsize=10,
+                ncol=2,
+            )
 
-        ax.add_artist(legend_pop)
+            ax.add_artist(legend_pop)
 
-        fig.savefig(output_path, dpi=300, bbox_inches="tight")
-        plt.close(fig)
+            fig.savefig(output_path, dpi=300, bbox_inches="tight")
+            plt.close(fig)
 
 
     # --- Autosomes ---

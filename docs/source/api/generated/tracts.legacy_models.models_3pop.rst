@@ -4,11 +4,6 @@ tracts.legacy\_models.models\_3pop
 .. automodule:: tracts.legacy_models.models_3pop
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -19,15 +14,3 @@ tracts.legacy\_models.models\_3pop
       ppx_xxp_fix
       propfrommig
    
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-
