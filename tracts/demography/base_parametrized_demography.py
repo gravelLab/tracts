@@ -620,8 +620,11 @@ class FixedParametersHandler:
         full_parameters[self.free_parameters_indices] = free_parameters
         full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
         
-        return self.compute_params_fixed_by_ancestry(full_parameters, units = units) 
-
+        try:
+            return self.compute_params_fixed_by_ancestry(full_parameters, units = units) 
+        except ValueError as e:
+            logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params")
+            return full_parameters
 
     def indices_to_labels(self, indices: list[int]):
         """Takes in a list of indices and returns the corresponding parameter names."""
