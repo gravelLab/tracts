@@ -4,11 +4,6 @@ tracts.legacy\_models.models\_4pop
 .. automodule:: tracts.legacy_models.models_4pop
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -19,15 +14,3 @@ tracts.legacy\_models.models\_4pop
       pppp_pxxx_xpxx_xxpx_fix
       propfrommig
    
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-

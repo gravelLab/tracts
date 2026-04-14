@@ -31,12 +31,13 @@ extensions += ["sphinx_gallery.gen_gallery"]
 
 nbsphinx_execute = "never"
 
-examples_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../example/3pops_sexbiased"))
+examples_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../example/documentation_examples"))
 
 sphinx_gallery_conf = {
     "examples_dirs": examples_path,      # where your scripts live
     "gallery_dirs": "auto_examples",     # generated site
     "filename_pattern": r"\.py",
+    "run_stale_examples": True
 }
 
 autosummary_generate = True

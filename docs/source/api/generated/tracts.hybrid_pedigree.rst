@@ -4,11 +4,6 @@ tracts.hybrid\_pedigree
 .. automodule:: tracts.hybrid_pedigree
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -23,15 +18,3 @@ tracts.hybrid\_pedigree
       prob_of_pop_setting
       tree_to_array
    
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-

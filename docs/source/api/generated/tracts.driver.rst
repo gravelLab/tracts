@@ -4,11 +4,6 @@ tracts.driver
 .. automodule:: tracts.driver
 
    
-   
-   
-
-   
-   
    .. rubric:: Functions
 
    .. autosummary::
@@ -31,10 +26,6 @@ tracts.driver
       run_tracts
       scale_select_indices
    
-   
-
-   
-   
    .. rubric:: Classes
 
    .. autosummary::
@@ -43,11 +34,3 @@ tracts.driver
       SamplesConfig
       StartParamsConfig
    
-   
-
-   
-   
-   
-
-
-

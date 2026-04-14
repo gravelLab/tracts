@@ -1,0 +1,20 @@
+model_name: Two pulses
+description:
+   A population X founded a generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
+time_units: generations
+demes:
+  - name: EUR
+  - name: AFR
+  - name: NAT
+  - name: X
+    ancestors: [EUR, NAT, AFR]
+    proportions: [REUR,RNAT,1-REUR-RNAT]
+    start_time: t1
+
+pulses:
+
+
+  - sources: [EUR]
+    dest: X
+    proportions: [REUR2]
+    time: t2

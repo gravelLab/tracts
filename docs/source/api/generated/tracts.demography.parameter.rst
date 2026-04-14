@@ -4,15 +4,6 @@ tracts.demography.parameter
 .. automodule:: tracts.demography.parameter
 
    
-   
-   
-
-   
-   
-   
-
-   
-   
    .. rubric:: Classes
 
    .. autosummary::
@@ -21,11 +12,3 @@ tracts.demography.parameter
       ParamType
       Parameter
    
-   
-
-   
-   
-   
-
-
-
