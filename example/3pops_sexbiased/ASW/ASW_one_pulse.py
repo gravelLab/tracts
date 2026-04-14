@@ -97,6 +97,6 @@ run_tracts(driver_filename = driver_filename, script_dir = script_path)
 
 
 # Don't run the code below: for documentation purposes only.
-#from tracts.doc_utils import prepare_example_outputs_for_docs
-#prepare_example_outputs_for_docs("output_one_pulse")
+from tracts.doc_utils import prepare_example_outputs_for_docs
+prepare_example_outputs_for_docs("output_one_pulse")
 

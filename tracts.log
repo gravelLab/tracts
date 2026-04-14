@@ -1,0 +1,13 @@
+2026-04-14 15:19:43,056 - tracts.driver - INFO - working directory: driver_test.yaml
+2026-04-14 15:19:43,057 - tracts.driver - INFO - script directory: /home/jgonzale/Documents/PhaseType/tracts/tests/driver_test.yaml
+2026-04-14 15:19:43,058 - tracts.driver - INFO - Found driver_test.yaml using script directory.
+2026-04-14 15:19:43,068 - tracts.driver - INFO - working directory: data/NA19700_A.bed
+2026-04-14 15:19:43,069 - tracts.driver - INFO - script directory: /home/jgonzale/Documents/PhaseType/tracts/tests/data/NA19700_A.bed
+2026-04-14 15:19:43,069 - tracts.driver - INFO - Found ./data/NA19700_A.bed using script directory.
+2026-04-14 15:19:43,070 - tracts.driver - INFO - working directory: data/NA19700_B.bed
+2026-04-14 15:19:43,070 - tracts.driver - INFO - script directory: /home/jgonzale/Documents/PhaseType/tracts/tests/data/NA19700_B.bed
+2026-04-14 15:19:43,070 - tracts.driver - INFO - Found ./data/NA19700_B.bed using script directory.
+2026-04-14 15:19:43,070 - tracts.driver - INFO - Chromosomes: [1]
+2026-04-14 15:19:43,072 - tracts.driver - INFO - working directory: pp.yaml
+2026-04-14 15:19:43,073 - tracts.driver - INFO - script directory: /home/jgonzale/Documents/PhaseType/tracts/tests/pp.yaml
+2026-04-14 15:19:43,073 - tracts.driver - INFO - Found pp.yaml using script directory.

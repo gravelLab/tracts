@@ -423,7 +423,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
     print('--------------------------------------------------------------------------------------------------')    
     print('Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
-    print('Non-sex-bias parameters fixed at values from previous optimization step : ' + str({k: float(v) for k, v in new_fixed_parameters.items()}))
+    print('Non-sex-bias parameters fixed at values from previous optimization step.')
     print('--------------------------------------------------------------------------------------------------')    
     print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
     

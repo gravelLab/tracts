@@ -11,6 +11,7 @@ from matplotlib.lines import Line2D
 import warnings
 #warnings.simplefilter('always')
 from scipy.special import logit, expit
+from scipy.stats import poisson
 from tracts.population import Population
 from tracts.core import optimize_cob, optimize_cob_sex_biased_fixed_values
 import tracts.hybrid_pedigree as HP
@@ -220,7 +221,7 @@ def run_tracts(driver_filename, script_dir=None):
     else:
         print("\nA single set of starting parameters was generated. It will be converted to optimizer units and used for optimization.")
 
-    header = f"{'Run':>3} | {'Physical start parameters':<45} | {'Optimizer start parameters'}"
+    header = f"{'Run':>3} | {'Starting parameters':<45}"
     print("-" * len(header))
     print(header)
     print("-" * len(header))
@@ -230,15 +231,15 @@ def run_tracts(driver_filename, script_dir=None):
         if bound(opt)<0:
             print("Warning, starting parameters are out of bounds.")
         phys_str = ", ".join(f"{x:.4g}" for x in phys)
-        opt_str = ", ".join(f"{x:.4g}" for x in opt)
-        print(f"{1+i:>3} | [{phys_str:<43}] | [{opt_str}]")
+        #opt_str = ", ".join(f"{x:.4g}" for x in opt)
+        print(f"{1+i:>3} | [{phys_str:<43}]")
     print("-" * len(header))
 
     # Get keys from first run
     first_props = model.proportions_from_matrices(func(optimizer_start_params[0]))
     keys = list(first_props.keys())
 
-    print("\nStarting ancestry proportions for the starting parameters (in physical units)")
+    print("\nStarting ancestry proportions for the starting parameters")
     header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in keys)
     print("-" * len(header))
     print(header)
@@ -270,24 +271,25 @@ def run_tracts(driver_filename, script_dir=None):
                                                         ad_model_autosomes = ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
 
     formatted_likelihoods = [float(x) for x in likelihoods]
-    
+    physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param) for f_param in params_found]
+
     if len(formatted_likelihoods) > 1:
 
         print("\n---------------------------------------------------------------------------")
         print("Results from multiple optimization runs with different starting parameters:")
-        header = f"{'Run':>3} | {'LogLik':>12} | Found parameters (in optimizer units)"
+        header = f"{'Run':>3} | {'LogLik':>12} | Found parameters"
         print("-" * len(header))
         print(header)
         print("-" * len(header))
-        for i, (params, ll) in enumerate(zip(params_found, formatted_likelihoods)):
+        for i, (params, ll) in enumerate(zip(physical_found_params, formatted_likelihoods)):
             params_str = ", ".join(f"{p:.4g}" for p in params)
             print(f"{1+i:>3} | {float(ll):>12.6g} | [{params_str}]")
         print("-" * len(header))
     
-    optimal_params, optimal_likelihood = max(zip(params_found, formatted_likelihoods), key=lambda x: x[1])
-    optimal_params = model.parameter_handler.convert_to_physical_params(optimal_params)
+    optimal_params, optimal_likelihood = max(zip(physical_found_params, formatted_likelihoods), key=lambda x: x[1])
+    #optimal_params = model.parameter_handler.convert_to_physical_params(optimal_params)
 
-    print("\nFinal parameters in physical units and corresponding likelihood:")
+    print("\nFinal parameters and corresponding likelihood:")
     param_names = list(model.model_base_params.keys())
     header = f"{'LogLik':>12} | " + " ".join(f"{name:>12}" for name in param_names)
     print("-" * len(header))
@@ -841,7 +843,8 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         title,
         ylabel,
         output_path,
-        xlabel="Tract Length (M)"):
+        xlabel="Tract Length (M)",
+        alpha_ci=0.05):
 
         fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
 
@@ -876,6 +879,22 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 lw=2.2,
                 alpha=0.95,
                 zorder=2,
+            )
+
+            # Exact Poisson prediction interval
+            y_low = np.asarray(poisson.ppf(alpha_ci / 2, y_pred), dtype=float)
+            y_high = np.asarray(poisson.ppf(1 - alpha_ci / 2, y_pred), dtype=float)
+        
+            # Shadow for prediction interval
+            ax.fill_between(
+                x_left,
+                y_low,
+                y_high,
+                step="post",
+                color=color,
+                alpha=0.18,
+                linewidth=0,
+                zorder=1,
             )
 
             # One legend entry per population: line + marker together
