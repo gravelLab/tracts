@@ -16,6 +16,8 @@ from tracts.demography.parameter import ParamType
 
 #: Counts calls to object_func
 _counter = 0
+_out_of_bounds_val = -1e32
+_min_out_of_bounds_val = -1e-10
 
 def plotmig(mig, colordict=None, order=None):
     if colordict is None:
@@ -204,7 +206,7 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         male_data_mapped[dict(p_dict)[k]] = v
     
     def objective_function(parameters):
-        _out_of_bounds_val = -1e32
+
         global _counter
         _counter += 1
 
@@ -218,8 +220,9 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
             oob = outofbounds_fun(parameters)
             if oob < 0:
-                flush_result((oob - 1) * _out_of_bounds_val, f'OOB (oob={oob})')
-                return (oob - 1) * _out_of_bounds_val
+                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+                flush_result(out, f'OOB (oob={oob})')
+                return out
         else:
             eprint("No bound function defined")
 
@@ -324,8 +327,10 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         nonlocal best_objective, best_full_params
 
         """parameters are in optimizer space"""
-        _out_of_bounds_val = -1e32
+
         global _counter
+        global _out_of_bounds_val
+        global _min_out_of_bounds_val
         _counter += 1
 
         def flush_result(result, note = str()):
@@ -338,8 +343,9 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
             oob = outofbounds_fun(model_base_parameters)
             if oob < 0:
-                flush_result((oob - 1) * _out_of_bounds_val, f'OOB (oob={oob})')
-                return (oob - 1) * _out_of_bounds_val
+                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+                flush_result(out, f'OOB (oob={oob})')
+                return out 
         else:
             eprint("No bound function defined")
 
@@ -580,15 +586,18 @@ def _object_func(params, bins, Ls, data, nsamp, model_func, outofbounds_fun=None
     """Calculates the log-likelihood value for tract length data."""
     if func_args is None:
         func_args = []
-    _out_of_bounds_val = -1e32
+
     global _counter
+    global _out_of_bounds_val
+    global _min_out_of_bounds_val
     _counter += 1
 
     if outofbounds_fun is not None:
         # outofbounds can return either True or a negative value to signify out-of-boundedness.
         oob = outofbounds_fun(params)
         if oob < 0:
-            result = -(oob - 1) * _out_of_bounds_val
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            result = -out
         else:
             mod = modelling_method(model_func(params))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
@@ -1064,15 +1073,18 @@ def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbo
     """Define the objective function for when the ancestry porportions are specified."""
     if func_args is None:
         func_args = []
-    _out_of_bounds_val = -1e32
+
     global _counter
+    global _min_out_of_bounds_val
+    global _out_of_bounds_val
     _counter += 1
 
     if outofbounds_fun is not None:
         # outofbounds can return either True or a negative valueto signify out-of-boundedness.
         oob = outofbounds_fun(params, fracs=fracs)
         if oob < 0:
-            result = -(oob - 1) * _out_of_bounds_val
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            result = -out 
         else:
             mod = DemographicModel(model_func(params, fracs=fracs))
             result = mod.loglik(bins, Ls, data, nsamp, cutoff=cutoff)
@@ -1096,10 +1108,11 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func, outofbounds_f
     # this function will be minimized. We first calculate likelihoods (to be
     # maximized), and return minus that.
     eprint("evaluating at params", params)
-    _out_of_bounds_val = -1e32
+
     global _counter
     _counter += 1
-
+    global _out_of_bounds_val
+    global _min_out_of_bounds_val
     # Deal with fixed parameters
     params_up = _project_params_up(params, fixed_params)
 
@@ -1110,7 +1123,8 @@ def _object_func_fracs2(params, bins, Ls, data, nsamp, model_func, outofbounds_f
         if oob < 0:
             # we want bad functions to give very low likelihoods, and worse
             # likelihoods when the function is further out of bounds.
-            mresult = - (oob - 1) * _out_of_bounds_val
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            mresult = - out
             # challenge: if outofbounds is very close to 0, this can return a
             # reasonable likelihood. When oob is negative, we take away an
             # extra 1 to make sure this cancellation does not happen.
@@ -1140,10 +1154,10 @@ def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func,
     # this function will be minimized. We first calculate likelihoods (to be
     # maximized), and return minus that.
     eprint("evaluating at params", params)
-    _out_of_bounds_val = -1e32
     global _counter
     _counter += 1
-
+    global _out_of_bounds_val
+    global _min_out_of_bounds_val
     # Deal with fixed parameters
     params_up = _project_params_up(params, fixed_params)
 
@@ -1159,7 +1173,9 @@ def _object_func_multifracs(params, bins, Ls, data_list, nsamp_list, model_func,
         if oob < 0:
             # we want bad functions to give very low likelihoods, and worse
             # likelihoods when the function is further out of bounds.
-            mresult = -(oob - 1) * _out_of_bounds_val
+            
+            out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+            mresult = -out 
             # challenge: if outofbounds is very close to 0, this can return a
             # reasonable likelihood. When oob is negative, we take away an
             # extra 1 to make sure this cancellation does not happen.
