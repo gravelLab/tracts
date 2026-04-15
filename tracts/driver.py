@@ -23,6 +23,7 @@ from tracts.demography.parameter import Parameter ,ParamType
 from tracts.demography import DemographicModel
 
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -142,6 +143,9 @@ def run_tracts(driver_filename, script_dir=None):
     
 
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
+    
+    print("\nAncestries:", [ancestry for ancestry in ancestor_labels] )
+    
     print("\nData autosome proportions:", ancestry_proportions )
     
     if len(allosome_labels)>=1:
@@ -212,6 +216,7 @@ def run_tracts(driver_filename, script_dir=None):
 
     physical_start_params = parse_start_params(driver_spec.start_params, driver_spec.repetitions, 
                                       driver_spec.seed, model)
+
     optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]   
 
     if len(physical_start_params) > 1:
@@ -237,23 +242,23 @@ def run_tracts(driver_filename, script_dir=None):
 
     # Get keys from first run
     first_props = model.proportions_from_matrices(func(optimizer_start_params[0]))
-    keys = list(first_props.keys())
+    tract_types = list(first_props.keys())
 
     print("\nStarting ancestry proportions for the starting parameters")
-    header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in keys)
+    header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in tract_types)
     print("-" * len(header))
     print(header)
     print("-" * len(header))
-   
     for i, opt in enumerate(optimizer_start_params):
         try: 
             props = model.proportions_from_matrices(func(opt))
+
         except ValueError:
             print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
 
 
         row_values = []
-        for k in keys:
+        for k in tract_types:
             arr = props[k]
             arr_str = ", ".join(f"{x:.4g}" for x in arr)
             row_values.append(f"[{arr_str:<33}]")
@@ -496,6 +501,10 @@ def parse_start_params(start_param_bounds, repetitions=1, seed=None, model: Para
     
     
     logger.info(f' Start Params: \n {start_params}')
+    
+    if len(model.params_fixed_by_ancestry) > 0:
+        start_params = [model.parameter_handler.compute_params_fixed_by_ancestry(start_param_set)
+         for start_param_set in start_params]
     return start_params
 
 
