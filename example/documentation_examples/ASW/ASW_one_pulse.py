@@ -31,13 +31,13 @@ To implement this example, we use the following driver file:
    start_params: 
     t: 5:8
 
-   repetitions: 1
+   repetitions: 3
    maximum_iterations: 1000
    seed: 100
    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
    exclude_tracts_below_cm: 2
    npts : 50
-   fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
+   #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
    output_directory: ./output_one_pulse/
    ad_model_autosomes : M
    ad_model_allosomes: DC

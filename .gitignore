@@ -13,3 +13,4 @@ venv/
 dist/
 .ipynb_checkpoints/
 *.log
+docs/_build/
