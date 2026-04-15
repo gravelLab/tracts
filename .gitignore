@@ -7,3 +7,9 @@ build/
 docs/build
 *.egg-info/
 *.pdf
+docEnv/
+.venv/
+venv/
+dist/
+.ipynb_checkpoints/
+*.log

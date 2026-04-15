@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**104:40.719** total execution time for 1 file **from auto_examples/MXL**:
+**03:09.451** total execution time for 1 file **from auto_examples/MXL**:
 
 .. container::
 
@@ -33,5 +33,5 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_MXL_MXL_3pop_sexbiased_fix.py` (``MXL_3pop_sexbiased_fix.py``)
-     - 104:40.719
+     - 03:09.451
      - 0.0

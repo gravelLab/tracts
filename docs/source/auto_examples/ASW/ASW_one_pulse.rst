@@ -77,24 +77,24 @@ Optimal parameters
 Tract length histograms
 -----------------------
 
-African ancestry
-^^^^^^^^^^^^^^^^
+Autosomal admixture
+^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_one_pulse/ASW_test_output_AFR_tract_histograms.png
+.. image:: output_one_pulse/ASW_test_output_autosomes_all_populations.png
    :width: 700px
    :alt: African ancestry tract histogram
 
-European ancestry
-^^^^^^^^^^^^^^^^^
+X chromosome admixture in females
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_one_pulse/ASW_test_output_EUR_tract_histograms.png
+.. image:: output_one_pulse/ASW_test_output_female_allosomes_all_populations.png
    :width: 700px
    :alt: European ancestry tract histogram
 
-Native American ancestry
-^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture in males
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_one_pulse/ASW_test_output_NAT_tract_histograms.png
+.. image:: output_one_pulse/ASW_test_output_male_allosomes_all_populations.png
    :width: 700px
    :alt: Native American ancestry tract histogram
 
@@ -147,70 +147,114 @@ Native American ancestry
     Parameter "REUR_female" already exists.
     Parameter "RNAT_female" already exists.
     Parameter "t" already exists.
-    Computed autosome proportions [0.19578862 0.03825495 0.76595643]
-    Computed allosome proportions [0.16839124 0.03818939 0.79341937]
+
+    Data autosome proportions: [0.19578862 0.03825495 0.76595643]
+    Data allosome proportions: [0.16839124 0.03818939 0.79341937]
     Model parameters : ['REUR', 'REUR_sex_bias', 'RNAT', 'RNAT_sex_bias', 't']
-    Physical start params : [ 1.00000000e-09 -1.00000000e+00  1.00000000e-09 -1.00000000e+00
-      7.92096319e+00]
-    /home/jgonzale/Documents/PhaseType/tracts/tracts/driver.py:166: RuntimeWarning: divide by zero encountered in log1p
-      return np.log1p(y) - np.log1p(-y)
-    Initial parameters :  [-20.72326584         -inf -20.72326584         -inf   2.06951281]
-    Initial ancestry proportions : {'X_autosomal': array([1.00000000e-09, 1.00000000e-09, 9.99999998e-01]), 'X_X': array([6.66666658e-10, 6.66666658e-10, 9.99999999e-01])}
+
+    Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
+    ---------------------------------------------------
+    Run | Starting parameters                          
+    ---------------------------------------------------
+      1 | [0.8, 0.1, 0.1, 0.1, 6.051                  ]
+      2 | [0.8, 0.1, 0.1, 0.1, 7.828                  ]
+      3 | [0.8, 0.1, 0.1, 0.1, 7.308                  ]
+    ---------------------------------------------------
+
+    Starting ancestry proportions for the starting parameters
+    -------------------------------------------------------------------------------
+    Run | X_autosomal                         | X_X                                
+    -------------------------------------------------------------------------------
+      1 | [0.8, 0.1, 0.1                    ] | [0.8067, 0.1033, 0.09             ]
+      2 | [0.8, 0.1, 0.1                    ] | [0.8067, 0.1033, 0.09             ]
+      3 | [0.8, 0.1, 0.1                    ] | [0.8067, 0.1033, 0.09             ]
+    -------------------------------------------------------------------------------
+
+    Optimization run # 1 
+    --------------------
 
     --------------------------------------------------------------------------------------------------
     Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
     Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['t']
+    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 'RNAT', 't']
     --------------------------------------------------------------------------------------------------
     Iter.    Log-likelihood  Model parameters                Transmission
     ---------------------------------------------------------------------
 
-    1       , -844.044    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.92096    ]), Autosomes
-    2       , -879.595    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  8.00057    ]), Autosomes
-    3       , -811.462    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.84215    ]), Autosomes
-    4       , -781.717    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.76412    ]), Autosomes
-    5       , -754.681    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.68686    ]), Autosomes
-    6       , -730.252    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.61038    ]), Autosomes
-    7       , -708.349    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.53465    ]), Autosomes
-    8       , -688.9      , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.45968    ]), Autosomes
-    9       , -671.847    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.38546    ]), Autosomes
-    10      , -657.136    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.31197    ]), Autosomes
-    11      , -644.722    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.23922    ]), Autosomes
-    12      , -634.565    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.16718    ]), Autosomes
-    13      , -626.629    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.09587    ]), Autosomes
-    14      , -620.881    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  7.02526    ]), Autosomes
-    15      , -614.115    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.95536    ]), Autosomes
-    16      , -608.067    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.88615    ]), Autosomes
-    17      , -604.489    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.81764    ]), Autosomes
-    18      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.7498     ]), Autosomes
-    19      , -604.372    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.68264    ]), Autosomes
-    20      , -603.544    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.71613    ]), Autosomes
-    21      , -603.366    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.7667     ]), Autosomes
-    22      , -603.294    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74137    ]), Autosomes
-    23      , -603.29     , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.75402    ]), Autosomes
-    24      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74769    ]), Autosomes
-    25      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74664    ]), Autosomes
-    26      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74837    ]), Autosomes
-    27      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Autosomes
+    1       , -11510.4    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  6.05122    ]), Autosomes
     --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : []
-    Non-sex-bias parameters fixed at values from previous optimization step : {'t': 1.9094003127398247}
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RNAT_sex_bias']
+    Non-sex-bias parameters fixed at values from previous optimization step.
     --------------------------------------------------------------------------------------------------
     Iter.    Log-likelihood  Model parameters                Transmission
     ---------------------------------------------------------------------
 
-    28      , -214.113    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Female allosomes
-    28      , -93.4927    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Male allosomes
-    28      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Autosomes
-    29      , -214.113    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Female allosomes
-    29      , -93.4927    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Male allosomes
-    29      , -603.282    , array([ 0.195789   , -0.4198     ,  0.0382549  , -0.00514102 ,  6.74904    ]), Autosomes
+    2       , -466.116    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  6.05122    ]), Female allosomes
+    2       , -201.548    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  6.05122    ]), Male allosomes
+    2       , -11510.4    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  6.05122    ]), Autosomes
+
+    Optimization run # 2 
+    --------------------
+
+    --------------------------------------------------------------------------------------------------
+    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+    Optimization is performed in two steps.
+    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 'RNAT', 't']
+    --------------------------------------------------------------------------------------------------
+    Iter.    Log-likelihood  Model parameters                Transmission
     ---------------------------------------------------------------------
-    Likelihoods found :[-910.8876506218531]
-    Optimal Parameters:[ 1.95788623e-01 -4.19800478e-01  3.82549452e-02 -5.14101962e-03
-      6.74904027e+00]
-    /home/jgonzale/Documents/PhaseType/tracts/tracts/driver.py:875: UserWarning: The figure layout has changed to tight
-      plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    1       , -14065      , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.8277     ]), Autosomes
+    --------------------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RNAT_sex_bias']
+    Non-sex-bias parameters fixed at values from previous optimization step.
+    --------------------------------------------------------------------------------------------------
+    Iter.    Log-likelihood  Model parameters                Transmission
+    ---------------------------------------------------------------------
+
+    2       , -471.396    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.8277     ]), Female allosomes
+    2       , -226.274    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.8277     ]), Male allosomes
+    2       , -14065      , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.8277     ]), Autosomes
+
+    Optimization run # 3 
+    --------------------
+
+    --------------------------------------------------------------------------------------------------
+    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+    Optimization is performed in two steps.
+    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 'RNAT', 't']
+    --------------------------------------------------------------------------------------------------
+    Iter.    Log-likelihood  Model parameters                Transmission
+    ---------------------------------------------------------------------
+
+    1       , -13156      , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.30842    ]), Autosomes
+    --------------------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RNAT_sex_bias']
+    Non-sex-bias parameters fixed at values from previous optimization step.
+    --------------------------------------------------------------------------------------------------
+    Iter.    Log-likelihood  Model parameters                Transmission
+    ---------------------------------------------------------------------
+
+    2       , -465.611    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.30842    ]), Female allosomes
+    2       , -217.823    , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.30842    ]), Male allosomes
+    2       , -13156      , array([ 0.8        ,  0          ,  0.1        ,  0          ,  7.30842    ]), Autosomes
+
+    ---------------------------------------------------------------------------
+    Results from multiple optimization runs with different starting parameters:
+    -------------------------------------
+    Run |       LogLik | Found parameters
+    -------------------------------------
+      1 |       -12178 | [0.8, 0, 0.1, 0, 6.051]
+      2 |     -14762.6 | [0.8, 0, 0.1, 0, 7.828]
+      3 |     -13839.4 | [0.8, 0, 0.1, 0, 7.308]
+    -------------------------------------
+
+    Final parameters and corresponding likelihood:
+    ---------------------------------------------------------------------------------
+          LogLik |         REUR REUR_sex_bias         RNAT RNAT_sex_bias            t
+    ---------------------------------------------------------------------------------
+          -12178 |          0.8            0          0.1            0        6.051
+    ---------------------------------------------------------------------------------
     Results saved to : ./output_one_pulse/
 
     {'destination_dir': PosixPath('/home/jgonzale/Documents/PhaseType/tracts/docs/source/auto_examples/ASW/output_one_pulse'), 'table_file': PosixPath('/home/jgonzale/Documents/PhaseType/tracts/docs/source/auto_examples/ASW/output_one_pulse/ASW_test_output_optimal_parameters.txt')}
@@ -247,7 +291,7 @@ Native American ancestry
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 38.526 seconds)
+   **Total running time of the script:** (0 minutes 21.516 seconds)
 
 
 .. _sphx_glr_download_auto_examples_ASW_ASW_one_pulse.py:
