@@ -1,18 +1,21 @@
 from tracts.indiv import Indiv
 from tracts.util import eprint
-from tracts.chromosome import Chrom
-
+from tracts.chromosome import Chropair, Chrom, Tract
+from tracts.demography import SexType
 import numpy as np
 import tkinter as tk
+import logging
 
 from matplotlib import pylab
 from tkinter import filedialog
 import bisect
 from collections import defaultdict
+from tracts.logs import get_current_func_info
 
+logger = logging.getLogger(__name__)
 
 def collect_pop(flatdat):
-    """ Organize a list of tracts into a dictionary keyed on ancestry
+    """ Organizes a list of tracts into a dictionary keyed on ancestry
         labels.
     """
     dic = defaultdict(list)
@@ -53,9 +56,9 @@ def _split_indivs(indivs, count, sort_ancestry=None):
 
 
 class Population:
-    def __init__(self, list_indivs=None, names=None, fname=None,
-                 labs=("_A", "_B"), selectchrom=None, ignore_length_consistency=False, filenames_by_individual=None):
-        """ Construct a population of diploid individuals. A population is
+    def __init__(self, list_indivs: list[Indiv]=None, names=None, fname=None,
+                 labs=("_A", "_B"), selectchrom=None, allosomes=[], ignore_length_consistency=False, filenames_by_individual=None, male_list = None):
+        """ Constructs a population of diploid individuals. A population is
             essentially a simple list of indiv objects.
 
             There are two ways to build populations, either from a dataset
@@ -65,7 +68,7 @@ class Population:
             using indiv.from_file, and to then pass that list to this
             constructor.
 
-        The population can be initialized by providing it with a list of
+            The population can be initialized by providing it with a list of
             "individual" objects, or a file format fname and a list of names.
             If reading from a file, fname should be a tuple with the start
             middle and end of the file names., where an individual file is
@@ -73,30 +76,38 @@ class Population:
             of individuals. Distinguishing labels for maternal and paternal
             chromosomes are given in lab.
         """
+        
         self.currentplot = None
         self.win = None
         self.chro_canvas = None
         self.colordict = None
         self._flats = None
         self.canv = None
+        self.allosome_labels=allosomes
+        self.allosome_lengths: dict[str, float]={}
+        self.indivs: list[Indiv] = []
+        if male_list is None:
+            self.male_list: list[str] = [] # Will be populated by labels of male individuals.
+        else:
+            self.male_list = male_list 
         if list_indivs is not None:
-            self.indivs = list_indivs
+            self.indivs: list[Indiv] = list_indivs
             self.nind = len(list_indivs)
             # should probably check that all individuals have same length!
             self.Ls = self.indivs[0].Ls
             assert all(i.Ls == self.indivs[0].Ls for i in self.indivs), "individuals have genomes of different lengths"
             self.maxLen = max(self.Ls)
         elif filenames_by_individual is not None:
-            self.indivs = []
             for name, files in filenames_by_individual.items():
                 try:
                     self.indivs.append(
                         Indiv.from_files(
                             files,
                             name=name,
-                            selectchrom=selectchrom))
+                            selectchrom=selectchrom,
+                            allosomes=allosomes))
                 except Exception as e:
-                    raise IndexError(f'Files for individiual {name} ({files}) could not be found.') from e
+                    raise IndexError(f'Files for individual {name} ({files}) could not be found.') from e
 
             self.nind = len(self.indivs)
             # Check that all individuals have the same length.
@@ -107,7 +118,6 @@ class Population:
                     'If this is intended, use ignore_length_consistency=True.')
             self.maxLen = max(self.Ls)
         elif fname is not None:
-            self.indivs = []
             for name in names:
                 try:
                     self.indivs.append(
@@ -129,9 +139,55 @@ class Population:
             self.maxLen = max(self.Ls)
         else:
             raise ValueError('Population could not be loaded because individuals were not specified.')
+        
+        self.allosome_lengths=self.calculate_allosome_lengths(self.indivs, self.allosome_labels)
+        if male_list is None:
+            self.num_males, self.num_females = self.calculate_num_sexes(self.indivs, self.allosome_labels)
+        else:
+            self.num_males = len(male_list) 
+            self.num_females = self.nind -  self.num_males
+
+
+
+    @staticmethod
+    def calculate_allosome_lengths(indivs, allosome_labels):
+        allosome_lengths={}
+        for indiv in indivs:
+            for allosome_label in allosome_labels:
+                if allosome_label in indiv.allosomes:
+                    for chrom in indiv.allosomes[allosome_label]:
+                        if allosome_label not in allosome_lengths:
+                            allosome_lengths[allosome_label] = chrom.len
+                            continue
+                        assert (allosome_lengths[allosome_label] == chrom.len), f"Allosome {allosome_label} has inconsistent length across individuals ({indiv.name}.)"
+        return allosome_lengths
+
+
+    @staticmethod
+    def calculate_num_sexes(indivs, allosome_labels):
+        # Currently only works by X chromosome. 
+        file_name, func_name, line_number = get_current_func_info()
+        if 'X' not in allosome_labels:
+            logger.warning(" X is not in the allosomes of this population.\n"
+                           "The number of males and females will be recorded as 0.\n"
+                           "If using different sex chromosomes please change this function:\n"
+                           f"{func_name} in {file_name} at line {line_number}."
+                           )
+            return 0, 0
+        
+        num_males = 0
+        num_females = 0
+        for indiv in indivs:
+            if 'X' in indiv.allosomes:
+                if len(indiv.allosomes['X'])==1:
+                    num_males+=1
+                else:
+                    num_females+=1
+        return num_males, num_females
+
 
     def split_by_props(self, count):
-        """ Split this population into groups according to their ancestry
+        """ Splits this population into groups according to their ancestry
             proportions. The individuals are sorted in ascending order of their
             ancestry named "anc".
         """
@@ -157,13 +213,13 @@ class Population:
         self.indivs[self.currentplot].canvas.postscript(file=file)
 
     def list_chromosome(self, chronum):
-        """ Collect the chromosomes with the given number across the whole
+        """ Collects the chromosomes with the given number across the whole
             population.
         """
         return [curr_indiv.chroms[chronum] for curr_indiv in self.indivs]
 
     def ancestry_at_pos(self, select_chrom=0, pos=0, cutoff=.0):
-        """ Find ancestry proportion at specific position. The cutoff is used
+        """ Finds ancestry proportion at specific position. The cutoff is used
             to look only at tracts that extend beyond a given position. """
         ancestry = {}
         # keep track of ancestry of long segments
@@ -193,7 +249,7 @@ class Population:
 
         return ancestry, totlength
 
-    def ancestry_per_pos(self, select_chrom=0, npts=100, cutoff=.0):
+    def ancestry_per_pos(self, select_chrom=0, npts=50, cutoff=.0):
         """ Prepare the ancestry per position across chromosome. """
         length = self.indivs[0].chroms[Chrom].len  # Get chromosome length
         plotpts = np.arange(0, length, length / float(npts))  # Get number of points at which to
@@ -229,7 +285,7 @@ class Population:
         return self._flats
 
     def iflatten(self, indivs=None):
-        """ Flatten a list of individuals to the tract level. If the list of
+        """ Flattens a list of individuals to the tract level. If the list of
             individuals "indivs" is None, then the complete list of individuals
             contained in this population is flattened.
             The result is a generator.
@@ -247,21 +303,44 @@ class Population:
         f = lambda i: i.merge_ancestries(ancestries, newlabel)
         self.applychrom(f)
 
-    def get_global_tractlengths(self, npts=20, tol=0.01, indlist=None, split_count=1, exclude_tracts_below_cM=0):
-        """ tol is the tolerance for full chromosomes: sometimes there are
-            small issues at the edges of the chromosomes. If a segment is
-            within tol Morgans of the full chromosome, it counts as a full
-            chromosome note that we return an extra bin with the complete
-            chromosome bin, so that we have one more data point than we have
-            bins.
-            indlist is the individuals for which we want the tractlength. To
-            bootstrap over individuals, provide a bootstrapped list of
-            individuals.
+    def get_global_tractlengths(self, npts: int = 50, tol: float = 0.01, indlist: list = None, split_count: int = 1, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        """ 
+            Parameters
+            ----------
+                tol: float, default 0.01
+                    The tolerance for full chromosomes. 
+                npts: int, default 50
+                    The number of bins for the histogram.
+                indlist: list, default None
+                    The individuals for which we want the tractlength. To
+                    bootstrap over individuals, provide a bootstrapped list of
+                    individuals.
+                split_count: int, default 1
+                exclude_tracts_below_cM: float, default 0
+            
+            Returns
+            -------
+                tuple[np.ndarray, dict[str, np.ndarray]]
+                    A tuple with
+                        bins: The bins for the histogram.
+                        dat: A dictionary with ancestry labels as keys and a histogram of tract lengths as values.
+            
+            Notes
+            -----
+                Sometimes there are small issues at the edges of the chromosomes. If a segment is
+                within tol Morgans of the full chromosome, it counts as a full
+                chromosome note that we return an extra bin with the complete
+                chromosome bin, so that we have one more data point than we have
+                bins.
         """
         # Figure out whether we're dealing with the set of individuals
         # represented by this population or the one contained in the indlist
         # parameter.
-        pop = self if indlist is None else Population(indlist)
+        if indlist is None:
+            pop = self  
+        else:
+            pop = Population(indlist)
+            pop.unknown_labels = self.unknown_labels
 
         if split_count > 1:
             # If we're doing a split analysis, then break up the population
@@ -274,32 +353,137 @@ class Population:
             # duplicates.
             return bins_list[0], dats_list
 
-        bins = np.arange(exclude_tracts_below_cM * 0.01, self.maxLen * (1 + .5 / npts), float(self.maxLen) / npts)
-
-        bypop = defaultdict(list)
-
+        bypop: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
         for indiv in pop:
             for chrom in indiv:
                 for copy in chrom:
+                    copy.unknown_labels = pop.unknown_labels if hasattr(pop, 'unknown_labels') else []
                     copy.smooth_unknown()
                     for tract in copy:
-                        bypop[tract.label].append({
-                            'tract': tract,
-                            'chromlen': chrom.len
-                        })
-        dat = {}
-        for label, ts in bypop.items():
-            # extract full length tracts
-            nonfulls = np.array([t['tract'] for t in ts if t['tract'].end - t['tract'].start < t['chromlen'] - tol])
+                        bypop[tract.label].append((
+                            tract,
+                            chrom.len
+                        ))
+        return self.tractlength_histogram(bypop, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM)
 
-            hdat = np.histogram([n.len() for n in nonfulls], bins=bins)
-            dat[label] = list(hdat[0])
-            # append the number of fulls
-            dat[label].append(len(ts) - len(nonfulls))
+    def tractlength_histogram(self, tracts_by_population:dict[str, list[tuple[Tract, float]]], npts: int = 50, tol: float = 0.01, exclude_tracts_below_cM: float = 0, maxLen=None) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+        if maxLen==None:
+            maxLen=self.maxLen
+        #bins = np.arange(exclude_tracts_below_cM * 0.01, maxLen * (1 + .5 / npts), (float(maxLen) - exclude_tracts_below_cM) / npts)
+        bins = np.linspace(exclude_tracts_below_cM * 0.01, maxLen + tol, npts + 1)
+        
+        dat: dict[str, list[np.ndarray]] = {}
+        for label, ts in tracts_by_population.items():
+            
+            corrected_lengths = np.array([tract.len() if tract.len() < chrom_length - tol else chrom_length for tract, chrom_length in ts])
+            hdat = np.histogram(corrected_lengths, bins=bins)
+            dat[label] = hdat[0]
+
         return bins, dat
 
+ 
+    def set_males(self, male_list: list[str] | str, allosome_label: str='X'):
+        """ Sets the list of males for each individual"""
+        num_males_processed = 0;
+        if male_list is not "auto":
+            
+            
+            for indiv in self:
+                if indiv.name in self.male_list:
+                    indiv.is_male = True
+                else:
+                    indiv.is_male = False
+                
+                if indiv.is_male and  len(indiv.allosomes[allosome_label]) == 2:
+                    logger.warning(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
+                    assert indiv.allosomes[allosome_label][0].is_equal(indiv.allosomes[allosome_label][1]), f"Male Individual {indiv} has two different X chromosomes." 
+                    indiv.allosomes[allosome_label] = [indiv.allosomes[allosome_label][0]]
+                indiv.is_male = (len(indiv.allosomes[allosome_label]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
+                num_males_processed += indiv.is_male
+            
+            if len(self.male_list) not in [0, num_males_processed]:
+                raise logger.warning(f"a male list of length {len(self.male_list)} is provided, but we have identified"+ 
+                                    "{num_males_processed} males") 
+        else: 
+            for indiv in self:
+                if len(indiv.allosomes[allosome_label]) == 2:
+                    indiv.is_male = False
+                elif len(indiv.allosomes[allosome_label]) == 1:
+                    indiv.is_male = True
+                
+                else:
+                    raise ValueError("there should be one or two allosome copies")
+                num_males_processed += indiv.is_male
+            print(f"Identified {num_males_processed} males from allosomal data")
+        self.males_set = True
+
+    
+    def smooth_unknowns(self, allosome_labels: list[str]='X'):
+       
+        for indiv in self:
+        
+            for allosome_label in allosome_labels:             
+                if allosome_label not in indiv.allosomes.keys():
+                    raise logger.warning(f"Data for chromosome {allosome_label} does not exist on individual {indiv.name}.")
+                for chrom in indiv.allosomes[allosome_label]:
+                    chrom.unknown_labels= self.unknown_labels if hasattr(self, 'unknown_labels') else []
+                    chrom.smooth_unknown()
+            for chrom in indiv:
+                for copy in chrom:
+                    copy.unknown_labels = self.unknown_labels if hasattr(self, 'unknown_labels') else []
+                    copy.smooth_unknown()
+
+    def get_global_allosome_tractlengths(self, allosome, npts: int = 50, tol: float = 0.01, indlist: list = None, exclude_tracts_below_cM: float = 0) -> tuple[np.ndarray, dict[SexType, dict[str, np.ndarray]]]:
+        """
+        Returns the allosomal tractlength histogram in males and the allosomal tractlength histogram in females.
+        """
+        if allosome not in self.allosome_labels:
+            raise KeyError(f"Data for chromosome {allosome} was never initialized for this population.")
+        
+        if indlist is None:
+            pop = self  
+        else:
+            pop = Population(indlist)
+            pop.unknown_labels = self.unknown_labels
+        assert(self.males_set), "males should have been set using set_males before calling get_global_allosome_tractlengths"
+
+        bypop_male: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
+        bypop_female: dict[str, list[tuple[Tract, float]]] = defaultdict(list)
+        
+        for indiv in pop:
+            tracts_added = False
+            
+            if allosome not in indiv.allosomes:
+                raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+            
+            for chrom in indiv.allosomes[allosome]:
+                chrom.unknown_labels= pop.unknown_labels if hasattr(pop, 'unknown_labels') else []
+                chrom.smooth_unknown()
+                for tract in chrom:
+                    tracts_added = True
+                    if indiv.is_male:
+                        bypop_male[tract.label].append((tract, chrom.len))
+                    else:
+                        bypop_female[tract.label].append((tract, chrom.len))
+            if tracts_added is False:
+                raise logger.warning(f"Data for chromosome {allosome} does not exist on individual {indiv.name}.")
+        
+        if len(bypop_male)==0 and len(bypop_female)==0:
+            raise ValueError(f"Data for chromosome {allosome} does not exist on any individuals of this population.")
+         
+        L=self.allosome_lengths[allosome]
+        bins, male_data = self.tractlength_histogram(bypop_male, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
+        _, female_data = self.tractlength_histogram(bypop_female, npts=npts, tol=tol, exclude_tracts_below_cM=exclude_tracts_below_cM, maxLen=L)
+        return (bins, 
+                {
+                    SexType.MALE: male_data,
+                    SexType.FEMALE: female_data
+                }
+            )
+
+
     def bootinds(self, seed):
-        """ Return a bootstrapped list of individuals in the population. Use
+        """ Returns a bootstrapped list of individuals in the population. Use
             with get_global_tractlength inds=... to get a bootstrapped
             sample.
             """
@@ -329,14 +513,41 @@ class Population:
         return bins, dat
 
     def get_mean_ancestry_proportions(self, ancestries):
-        """ Get the mean ancestry proportion averaged across individuals in
+        """ Gets the mean ancestry proportion averaged across individuals in
             the population.
         """
         # return map(np.mean, zip(*self.get_means(ancestries)))
         return list(map(np.mean, zip(*self.get_means(ancestries))))
 
+    def calculate_ancestry_proportions(self, population_labels, cutoff = 0.0):
+        # Calculate the proportion of ancestry in each individual
+        bypopfrac = [[] for _ in range(len(population_labels))]
+        for ind in self.indivs:
+            for i, population_label in enumerate(population_labels):
+                bypopfrac[i].append(ind.ancestryProps([population_label], cutoff = cutoff))
+        # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
+        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings.
+        return np.mean(bypopfrac, axis=1).flatten()
+
+    def calculate_allosome_proportions(self, population_labels, allosome_label, cutoff = 0.0):
+        # Calculate the proportion of ancestry in each allosome
+        bypopfrac = [[] for _ in range(len(population_labels))]
+        weights = []
+        for ind in self.indivs:
+            for i, population_label in enumerate(population_labels):
+                bypopfrac[i].append(ind.ancestryProps([population_label], allosome_label=allosome_label, cutoff = cutoff))
+            weights.append(1 if ind.is_male else 2)
+        # If you get a warning from the IDE, ignore it. The type hints from numpy are misleading here and confuse the IDE,
+        # but the code works correctly. Nevertheless, it can be refactored in such a way that there are no warnings.
+
+        return np.average(bypopfrac, weights = weights, axis=1).flatten()
+
+
+
+
+
     def get_means(self, ancestries):
-        """ Get the mean ancestry proportion (only among ancestries in
+        """ Gets the mean ancestry proportion (only among ancestries in
             ancestries) for all individuals. """
         return [ind.ancestryProps(ancestries) for ind in self.indivs]
 
@@ -345,7 +556,7 @@ class Population:
         return np.mean(byind, axis=0), np.var(byind, axis=0)
 
     def getMeansByChrom(self, ancestries):
-        """ Get the ancestry proportions in each individual of the population
+        """ Gets the ancestry proportions in each individual of the population
             for each chromosome.
         """
         return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
@@ -375,11 +586,11 @@ class Population:
     def get_variance(self, ancestries):
         """ Ancestries is a set of ancestry labels. Calculates the total variance
             in ancestry proportions, and the genealogy variance, and the
-            assortment variance. (corresponds to the mean uncertainty about the
+            assortment variance (corresponds to the mean uncertainty about the
             proportion of genealogical ancestors, given observed ancestry
             patterns). Note that all ancestries not listed are considered uncalled.
             For example, calling the function with a single ancestry leads to no variance.
-            (and some 0/0 errors)"""
+            (and some 0/0 errors)."""
 
         # the weights, corresponding (approximately) to the inverse variances
         ws = np.array(self.Ls) * 1. / np.sum(self.Ls)
@@ -450,7 +661,7 @@ class Population:
         self.chro_canvas.pack(expand=tk.YES, fill=tk.BOTH)
         tk.mainloop()
 
-    def plot_ancestries(self, chrom=0, npts=100, colordict=None, cutoff=0.0):
+    def plot_ancestries(self, chrom=0, npts=50, colordict=None, cutoff=0.0):
         if colordict is None:
             colordict = {"CEU": 'blue', "YRI": 'red'}
 
@@ -476,7 +687,7 @@ class Population:
             pylab.title("Chromosome %d" % (chrom + 1,))
             pylab.axis((0, dat[0][-1], 0, 150))
 
-    def plot_all_ancestries(self, npts=100, colordict=None, startfig=0, cutoff=0):
+    def plot_all_ancestries(self, npts=50, colordict=None, startfig=0, cutoff=0):
         dat = None
         chrom = None
         pop = None
@@ -506,7 +717,7 @@ class Population:
         pylab.plot(dat[0], [100 * pos[1][pop] for pos in dat[1]], '.', color=color)
         pylab.axis([0, dat[0][-1], 0, 150])
 
-    def plot_global_tractlengths(self, colordict, npts=40, legend=True):
+    def plot_global_tractlengths(self, colordict, npts=50, legend=True):
         flatdat = self.flatpop()
         bypop = collect_pop(flatdat)
         self.maxLen = max(self.Ls)
@@ -522,5 +733,5 @@ class Population:
     def __iter__(self):
         return self.indivs.__iter__()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Indiv:
         return self.indivs[index]

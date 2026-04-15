@@ -1,0 +1,32 @@
+Sample 	Population	Gender	Reason for exclusion
+HG00124	GBR	female	Second Order:HG00119
+HG00501	CHS	female	Sibling:HG00524
+HG00635	CHS	female	Sibling:HG00581
+HG00702	CHS	female	Sibling:HG00658
+HG00733	PUR	female	trio:HG00731,HG00732
+HG01983	PEL	female	Second Order:HG01936
+HG02024	KHV	female	trio:HG02025,HG02026
+HG02046	KHV	female	Sibling:HG02067
+HG02363	CDX	male	Second Order:HG02353
+HG02372	CDX	male	Parent:HG02371
+HG02377	CDX	male	Second Order:HG02250
+HG02381	CDX	male	Sibling:HG02373
+HG02387	CDX	male	Second Order:HG02386
+HG02388	CDX	male	Second Order:HG02375
+HG03715	ITU	male	Parent:HG03713
+HG03948	STU	female	Parent:HG03673
+NA19240	YRI	female	trio:NA19238,NA19239
+NA19311	LWK	male	Second Order:NA19027
+NA19313	LWK	female	Parent:NA19331
+NA19660	MXL	female	Second Order:NA19664
+NA19675	MXL	female	trio:NA19678,NA19679
+NA19685	MXL	male	Parent:NA19661
+NA19985	ASW	female	Sibling:NA19713
+NA20322	ASW	female	Sibling:NA20321
+NA20336	ASW	female	Sibling:NA20334
+NA20341	ASW	female	Sibling:NA20289
+NA20344	ASW	female	Sibling:NA20334
+NA20526	TSI	female	Sibling:NA20792
+NA20871	GIH	male	Parent:NA20868
+NA20893	GIH	female	Second Order:NA20895
+NA20898	GIH	male	Parent:NA20886

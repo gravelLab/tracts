@@ -1,17 +1,14 @@
 import math
-from copy import copy
 
 import numpy
 import scipy
 
 
 def pp(*args):
-    """ A simple model in which populations Eu and AFR arrive discretely at
+    """ A simple model in which populations EUR and AFR arrive discretely at
     first generation. If a time is not integer, the migration is
     divided between neighboring times proportional to the non-integer
-    time fraction.
-
-    args are (init_Eu, tstart)
+    time fraction. `args` are (init_Eu, tstart).
     """
     # the time is scaled by a factor 100 in this model to ease optimization
     # with some routines that expect all parameters to have the same scale
@@ -66,16 +63,16 @@ def outofbounds_pp(params):
     # print some diagnostics (facultative)
     if abs(totmig[-1] - 1) > 1e-8:
         print(mig)
-        print("founding migration should sum up to 1. Now:")
+        print("Founding migration should sum up to 1. Now:")
 
     if totmig[0] > 1e-10:
-        print("migrants at last generation should be removed from sample!")
+        print("Migrants at last generation should be removed from sample!")
 
     if totmig[1] > 1e-10:
-        print("migrants at penultimate generation should be removed from sample!")
+        print("Migrants at penultimate generation should be removed from sample!")
 
     if (totmig > 1).any() or (mig < 0).any():
-        print("migration rates should be between 0 and 1")
+        print(";igration rates should be between 0 and 1.")
 
     return ret
 
@@ -116,7 +113,7 @@ def pp_px(args):
         first generation, and a subsequent migration of EUR occurs at time T2.
         If a time is not integer, the migration is divided between neighboring
         times proportional to the non-integer time fraction.
-        args = (init_Eu, tstart, t2, nuEu_prop)
+        `args = (init_Eu, tstart, t2, nuEu_prop)`.
         """
     (init_Eu, tstart, t2, nuEu_prop) = args
     tstart *= 100
@@ -183,16 +180,16 @@ def outofbounds_pp_px(params):
 
     if abs(totmig[-1] - 1) > 1e-8:
         print(mig)
-        print("founding migration should sum up to 1. Now:")
+        print("Founding migration should sum up to 1. Now:")
 
     if totmig[0] > 1e-10:
-        print("migrants at last generation should be removed from sample!")
+        print("Migrants at last generation should be removed from sample!")
 
     if totmig[1] > 1e-10:
-        print("migrants at penultimate generation should be removed from sample!")
+        print("Migrants at penultimate generation should be removed from sample!")
 
     if (totmig > 1).any() or (mig < 0).any():
-        print("migration rates should be between 0 and 1")
+        print("Migration rates should be between 0 and 1")
 
     return ret
 

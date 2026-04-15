@@ -11,11 +11,13 @@ samples:
   chromosomes: 1-22
 model_filename: pp_px.yaml
 start_params: 
-  R: 0.1-0.2
-  tx: 10-11
-  P:  0.03-0.05
-  t2: 5-6
+  R: 0.1:0.2
+  tx: 10:11
+  P:  0.03:0.05
+  t2: 5:6
 repetitions: 2
+output_filename_format: "ASW_pp_px_output_{label}"
+output_directory: "./output_pp_px/"
 seed: 100
-exclude_tracts_below_cM: 10
-time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
+exclude_tracts_below_cm: 2
+

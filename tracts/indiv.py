@@ -3,37 +3,43 @@ from tracts.chromosome import Chropair, Chrom
 
 import tkinter as tk
 import numpy as np
+import logging
 
-
+logger=logging.getLogger(__name__)
 class Indiv:
-    """ The class of diploid individuals. An individual can hence be though of
+    """ The class of diploid individuals. An individual is thought of
         as a list of pairs of chromosomes. Equivalently, a diploid individual
-        is a pair of haploid individuals.
-
-        Thus, it is possible to construct instances of this class from a pair
+        is a pair of haploid individuals. Thus, it is possible to construct instances of this class from a pair
         of instances of the haploid class, as well as directly from a sequence
         of chropair instances.
 
         The interface for loading individuals from files uses the
         haploid-oriented approach, since individual .bed files describe only
-        one haplotype. The loading process is thus the following:
+        one haplotype. The loading process is the following:
 
-        1. load haploid individuals for each haplotype
-        2. combine the haploid individuals into a diploid individual
+        1. Load haploid individuals for each haplotype,
+        2. Combine the haploid individuals into a diploid individual.
     """
 
     @staticmethod
-    def from_haploids(haps: list[Haploid]):
+    def from_haploids(haps: list[Haploid], name = None, allosome_labels=[]):
+        name=haps[0].name
         if len(haps) != 2:
             raise ValueError('Two haplotypes must given to construct '
                              'a diploid individual')
 
         chroms = [Chropair(t) for t in zip(*[hap.chroms for hap in haps])]
-        return Indiv(chroms=chroms, Ls=haps[0].Ls)
+        allosomes={}
+        for key in allosome_labels:
+            allosomes[key] = [hap.allosomes[key] for hap in haps if key in hap.allosomes]
+            if not allosomes[key]:
+                logger.warning(f"Allosome {key} was not found when reading individual {name} from file.")
+
+        return Indiv(chroms=chroms, Ls=haps[0].Ls, allosomes=allosomes, name=name)
 
     @staticmethod
-    def from_files(paths, selectchrom=None, name=None):
-        """ Construct a diploid individual from two files, which describe the
+    def from_files(paths, selectchrom=None, name=None, allosomes=None):
+        """ Constructs a diploid individual from two files, which describe the
             individuals haplotypes.
         """
         if len(paths) != 2:
@@ -41,81 +47,98 @@ class Indiv:
                              'a diploid individual')
 
         return Indiv.from_haploids(
-            [Haploid.from_file(path, name=name, selectchrom=selectchrom)
-             for path in paths])
+            [Haploid.from_file(path, name=name, selectchrom=selectchrom, allosome_labels=allosomes)
+             for path in paths], name = name, allosome_labels=allosomes)
 
     def __init__(self, Ls=None, label="POP", fname=None, labs=("_A", "_B"),
-                 selectchrom=None, chroms=None, name=None):
-        """ Construct a diploid individual. There are several ways to build
+                 selectchrom=None, chroms: list[Chropair] | None = None, allosomes: dict[str, list[Chrom]]=None, name=None):
+        """ Constructs a diploid individual. There are several ways to build
             individuals, either from files, from existing data, or
-            programmatically.
+            programmatically. The most straightforward way to build an individual is from
+            existing data, by supplying only the ``Ls`` and ``chroms`` arguments.
 
-            The most straightforward way to build an individual is from
-            existing data, by supplying only the "Ls" and "chroms" arguments.
-
-            Ls (default: None, type: list of floats):
+	    Parameters
+            ----------
+    	    migration_matrix : npt.ArrayLike
+    	    
+            Ls: list of floats
+            	Default is ``None``.
                 The lengths of the chromosomes in the order in which they
-                appear in "chroms".
-            chroms (default: None, type: list of chropair objects):
+                appear in ``chroms``.
+                
+            chroms: list of chropair objects
+            	Default is ``None``.
                 The chromosome pairs that make up this individual. See the
-                documentation for "chropair".
-
-            If "Ls" is given, but "chroms" is not, then chromosomes consisting
-            each of a single tract will be created with the label "label" and
-            lengths drawn from "Ls".
-
-            label (default: "POP", type: string):
+                documentation for ``chropair``.
+                
+            label: string
+            	Default is ``POP``.
                 The label to use for building single-tract chromosomes when no
                 other data is given to buid this individual.
 
-            (deprecated) If the "fname" argument is given, the constructor will
-            perform path manipulation involving the components of "fname" and
-            "labs" to generate file names that are commonly used when dealing
-            with .bed files.
-
-            fname (default: None, type: 2-tuple of strings):
+            fname: 2-tuple of str
+            	Default is ``None``.
                 Paths are generated by concatenating the first component of
                 "fname", each label from "labs" in turn, and the second
                 component of "fname".
-                > fname[0] + lab + fname[1] for lab in labs
 
-            labs (default: ("_A", "_B"), type: 2-tuple of strings):
+            labs: 2-tuple of str
+            	Default is ``("_A", "_B")``.
                 The labels used to identify maternal and paternal haplotypes in
                 the paths leading to .bed files.
 
-            selectchrom (default: None, type: list of integers):
+            selectchrom: list of integers
+            	Default is ``None``.
                 This argument is forwarded as-is to haploid.from_file. It acts
                 as a filter on the chromosomes to load. The default value of
                 "None" selects all chromosomes.
 
-            Finally, some arguments are very general and are not involved in
-            the analysis of the tracts.
-
-            name (default: None, type: string):
+            name: string
+            	Default is ``None``.
                 An identifier for this individual.
-
+	    
+	    
+	    Notes
+            ----------
+	    If ``Ls`` is given, but ``chroms`` is not, then chromosomes consisting
+            each of a single tract will be created with the label ``label`` and
+            lengths drawn from ``Ls``.
+            
+            If the "fname" argument is given, the constructor will
+            perform path manipulation involving the components of "fname" and
+            "labs" to generate file names that are commonly used when dealing
+            with .bed files.
+	    	
             The facilities in this constructor for loading individuals from
             files are deprecated. It is recommended to instead use the static
-            methods from_files or from_haploids.
+            methods ``from_files`` or ``from_haploids``.
         """
         if fname is None:
             self.Ls = Ls
+            if name:    
+                self.name = name
+            else:
+                self.name = fname[0].split('/')[-1]  
             if chroms is None:
                 self.chroms = [Chropair(chropair_len=length, label=label) for length in Ls]
             else:
                 self.chroms = chroms
+            self.allosomes=allosomes
         else:
             fnames = [fname[0] + lab + fname[1] for lab in labs]
             i = Indiv.from_files(fnames, selectchrom)
-            self.name = fname[0].split('/')[-1]
+            if name:    
+                self.name = name
+            else:
+                self.name = fname[0].split('/')[-1]  
             self.chroms = i.chroms
             self.Ls = i.Ls
+            self.allosomes=i.allosomes
         self.canvas = None
 
     def plot(self, colordict, win=None):
-        """Plot an individual. colordict is a dictionary mapping population label to
-        a set of colors. E.g.:
-        colordict = {"CEU":'r',"YRI":b}
+        """Plots an individual. colordict is a dictionary mapping population label to
+        a set of colors. E.g.: ``colordict = {"CEU":'r',"YRI":b}``.
         """
         if win is None:
             win = tk.Tk()
@@ -138,7 +161,7 @@ class Indiv:
         return map(lambda c: c.applychrom(func), self.chroms)
 
     def ancestryAmt(self, ancestry):
-        """ Calculate the total length of the genome in segments of the given
+        """ Calculates the total length of the genome in segments of the given
             ancestry.
             """
         return np.sum(
@@ -147,18 +170,17 @@ class Indiv:
             in self.iflatten()
             if t.label == ancestry)
 
-    def ancestryProps(self, ancestries):
-        """ Calculate the proportion of the genome represented by the given
+    def ancestryProps(self, ancestries, allosome_label = False, cutoff = 0.0):
+        """ Calculates the proportion of the genome represented by the given
             ancestries.
             """
-
         # We want to compute the sum of all the tract lengths as well as the
         # sum of the tract lengths that match ancestries given in the list
         # "ancestries", so for each tract, in this individual, we compute its
         # length as well as a tuple that represents which ancestry that tract
         # belongs to.
-        gen = ((t.len(), [t.len() if t.label == a else 0 for a in ancestries])
-               for t in self.iflatten())
+        gen = ((t.len(), [t.len() if (t.label == a  and t.len() > cutoff) else 0 for a in ancestries])
+               for t in self.iflatten(allosome_label = allosome_label))
 
         all_lengths, all_ancestry_lengths = zip(*gen)
         total_length = float(np.sum(all_lengths))
@@ -187,20 +209,25 @@ class Indiv:
                  for i in range(nc)]
                 for ancestry in ancestries]
 
-    def iflatten(self):
+    def iflatten(self, allosome_label = False):
         """ Lazily flatten this individual to the tract level.  """
-        for _chrom in self.chroms:
-            for _copy in _chrom.copies:
-                for _tract in _copy.tracts:
-                    yield _tract
+        if allosome_label:
+            chromosome_considered = [self.allosomes[allosome_label]]
+            for _chrom in chromosome_considered:
+                for _copy in _chrom:
+                    for _tract in _copy:
+                        yield _tract
+        else:
+            chromosome_considered = self.chroms 
+            for _chrom in chromosome_considered:
+                for _copy in _chrom.copies:
+                    for _tract in _copy.tracts:
+                        yield _tract
 
     def flat_imap(self, f):
         """ Lazily map a function over the full underlying structure of this
-            individual.
-            The function must accept 3 parameters:
-                chrom: the chromosome pair containing the tract
-                copy: the chromosome containing the tract
-                tract: the tract itself
+            individual. The function must accept 3 parameters: ``chrom``, the chromosome pair containing the tract,
+            ``copy``, the chromosome containing the tract and ``tract``, the tract itself.
         """
         for _chrom in self.chroms:
             for _copy in _chrom.copies:
