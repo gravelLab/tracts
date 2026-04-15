@@ -23,7 +23,7 @@ A Python library for demographic inference from ancestry tracts.
    .. grid-item::
 
       .. card:: Examples
-         :link: auto_examples/index
+         :link: examples/index
          :link-type: doc
          :class-card: sd-h-100
          
