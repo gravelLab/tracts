@@ -60,24 +60,24 @@ Optimal parameters
 Tract length histograms
 -----------------------
 
-African ancestry
-^^^^^^^^^^^^^^^^
+Autosomal admixture
+^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_two_pulses/ASW_test_output_AFR_tract_histograms.png
+.. image:: output_two_pulses/ASW_test_output_autosomes_all_populations.png
    :width: 700px
    :alt: African ancestry tract histogram
 
-European ancestry
-^^^^^^^^^^^^^^^^^
+X chromosome admixture in females
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_two_pulses/ASW_test_output_EUR_tract_histograms.png
+.. image:: output_two_pulses/ASW_test_output_female_allosomes_all_populations.png
    :width: 700px
    :alt: European ancestry tract histogram
 
-Native American ancestry
-^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture in males
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_two_pulses/ASW_test_output_NAT_tract_histograms.png
+.. image:: output_two_pulses/ASW_test_output_male_allosomes_all_populations.png
    :width: 700px
    :alt: Native American ancestry tract histogram
 

@@ -38,7 +38,7 @@ To implement this example, we use the following driver file:
      REUR_sex_bias: 0.1
      REUR2_sex_bias: 0.1
      RAFR_sex_bias: 0.1
-   repetitions: 1
+   repetitions: 3
    seed: 100
    maximum_iterations: 1000
    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
@@ -64,24 +64,24 @@ Optimal parameters
 Tract length histograms
 -----------------------
 
-African ancestry
-^^^^^^^^^^^^^^^^
+Autosomal admixture
+^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_AFR_tract_histograms.png
+.. image:: output_three_pulses/ASW_test_output_autosomes_all_populations.png
    :width: 700px
    :alt: African ancestry tract histogram
 
-European ancestry
-^^^^^^^^^^^^^^^^^
+X chromosome admixture in females
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_EUR_tract_histograms.png
+.. image:: output_three_pulses/ASW_test_output_female_allosomes_all_populations.png
    :width: 700px
    :alt: European ancestry tract histogram
 
-Native American ancestry
-^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture in males
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_NAT_tract_histograms.png
+.. image:: output_three_pulses/ASW_test_output_male_allosomes_all_populations.png
    :width: 700px
    :alt: Native American ancestry tract histogram
 

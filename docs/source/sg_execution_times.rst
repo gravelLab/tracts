@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**130:42.333** total execution time for 4 files **from all galleries**:
+**07:13.164** total execution time for 4 files **from all galleries**:
 
 .. container::
 
@@ -32,15 +32,15 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_auto_examples_MXL_MXL_3pop_sexbiased_fix.py` (``../../example/3pops_sexbiased/MXL/MXL_3pop_sexbiased_fix.py``)
-     - 104:40.719
+   * - :ref:`sphx_glr_auto_examples_ASW_ASW_two_pulses.py` (``../../example/documentation_examples/ASW/ASW_two_pulses.py``)
+     - 03:12.514
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_ASW_ASW_three_pulses.py` (``../../example/3pops_sexbiased/ASW/ASW_three_pulses.py``)
-     - 24:05.695
+   * - :ref:`sphx_glr_auto_examples_MXL_MXL_3pop_sexbiased_fix.py` (``../../example/documentation_examples/MXL/MXL_3pop_sexbiased_fix.py``)
+     - 03:09.451
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_ASW_ASW_two_pulses.py` (``../../example/3pops_sexbiased/ASW/ASW_two_pulses.py``)
-     - 01:17.392
+   * - :ref:`sphx_glr_auto_examples_ASW_ASW_three_pulses.py` (``../../example/documentation_examples/ASW/ASW_three_pulses.py``)
+     - 00:29.684
      - 0.0
-   * - :ref:`sphx_glr_auto_examples_ASW_ASW_one_pulse.py` (``../../example/3pops_sexbiased/ASW/ASW_one_pulse.py``)
-     - 00:38.526
+   * - :ref:`sphx_glr_auto_examples_ASW_ASW_one_pulse.py` (``../../example/documentation_examples/ASW/ASW_one_pulse.py``)
+     - 00:21.516
      - 0.0
