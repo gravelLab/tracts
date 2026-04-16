@@ -1,5 +1,7 @@
 ## About $\texttt{tracts}$
 
+Warning: The master branch is not thoroughly tested at the moment after a major update.
+
 $\texttt{tracts}$ is a python library used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from
 multiple populations can be modeled. In $\texttt{tracts 2.0}$, sex-biased migration

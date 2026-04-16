@@ -201,7 +201,7 @@ Parameters and optimization
 
 .. important::
 
-   **Using ``fix_parameters_from_ancestry_proportions``**
+   **Using fix_parameters_from_ancestry_proportions**
 
    This option fixes a specified subset of parameters to values computed from the observed ancestry proportions in the sample. These parameters are then excluded from the optimization, reducing the dimension of the parameter space and improving convergence speed. However, it also constrains the optimization problem, which may make it more difficult for the optimizer to reach a good optimum; in practice, this often results in a lower likelihood compared to leaving all parameters free. When using this option, we recommended to set ``repetitions > 1``.  
 
@@ -267,10 +267,5 @@ FAQ
 .. dropdown:: Individuals in my population vary considerably in their ancestry proportion. Is that a problem?
 
    This is not a problem as long as the population is close to random mating. If admixture is recent, random mating is not inconsistent with ancestry variance. If admixture is ancient, however, variation in ancestry proportion may indicate population structure, and the random mating assumption may fail.
-
-.. dropdown:: I ran the optimization steps many times, and found different optimal likelihoods.
-
-   Optimizing functions in many dimensions is hard, and sometimes optimizers get stuck in local maxima. If you haven't tried already, you can attempt to fix the ancestry proportions a priori, using the ``fix_parameters_from_ancestry_proportions`` in the :ref:`driver file<driver-file>`. In most cases, the optimization will converge to the global maximum: running the optimization a few times from random starting positions and comparing the best values may help control for this.
-
 
 
