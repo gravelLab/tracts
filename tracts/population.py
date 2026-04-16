@@ -385,7 +385,7 @@ class Population:
     def set_males(self, male_list: list[str] | str, allosome_label: str='X'):
         """ Sets the list of males for each individual"""
         num_males_processed = 0;
-        if male_list is not "auto":
+        if male_list != "auto":
             
             
             for indiv in self:
