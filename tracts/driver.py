@@ -919,6 +919,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         ax.set_title(title, fontsize=14, fontweight="bold")
         ax.set_xlabel(xlabel, fontsize=12)
         ax.set_ylabel(ylabel, fontsize=12)
+        ax.set_yscale("log") # Log-scale
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.grid(alpha=0.25, linewidth=0.8)
