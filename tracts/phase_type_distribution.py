@@ -939,11 +939,9 @@ class PhTDioecious(PhaseTypeDistribution):
         if np.any(migration_matrix_m) < 0 or np.any(migration_matrix_f) < 0:
             raise Exception('Contributions from source populations must be non-negative.')
 
-        if np.any(np.sum(migration_matrix_m, axis=1)) > 1 or np.any(np.sum(migration_matrix_f, axis=1) > 1):
-            raise Exception(
-                'Migration matrices are not well-specified. '
-                'Contributions must sum up to a value <= 1 at each generation.')
-
+        if any(np.any((s > 1) & ~np.isclose(s, 1, atol = 1e-3)) for s in (np.sum(migration_matrix_m, axis=1), np.sum(migration_matrix_f, axis=1))):
+            raise Exception('Migration matrices are not well-specified. Contributions must sum up to a value <= 1 at each generation.')
+            
         if np.sum(np.abs(migration_matrix_m[0, :])) > 0 or np.sum(np.abs(migration_matrix_f[0, :])) > 0:
             warnings.warn(
                 'Source populations cannot contribute to the admixted population at generation 0. '
