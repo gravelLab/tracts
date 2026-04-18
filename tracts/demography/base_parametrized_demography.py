@@ -195,7 +195,7 @@ class BaseParametrizedDemography(ABC):
         """
         self.finalized = False
         if param_name in self.model_base_params or param_name in self.dependent_params:
-            self.logger.warning(f'Parameter "{param_name}" already exists.')
+            self.logger.info(f'Parameter "{param_name}" already exists.')
             return
         if bounds is None:
             if param_type == ParamType.TIME:
@@ -283,7 +283,7 @@ class BaseParametrizedDemography(ABC):
             if violation_score < 0:
                 return violation_score
             params = self.parameter_handler.compute_params_fixed_by_ancestry(params)
-        self.logger.info(f'Running bounds check.')
+        self.logger.debug(f'Running bounds check.')
         bound_score =  self.check_bounds(params)   
         constraint_score = self.check_constraints(params)
 
@@ -321,7 +321,7 @@ class BaseParametrizedDemography(ABC):
                     [self.get_param_value(param_name, params) for param_name in constraint['param_subset']])
                 if violation < violation_score:
                     violation_score = violation
-                    self.logger.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
+                    self.logger.debug(f'{constraint["message"]} Out of bounds by: {-violation}.')
         else:
             if len(params) != len(self.model_base_params):
                 full_params = self.insert_params(params.copy(), [0 for _ in self.params_fixed_by_ancestry])
@@ -331,7 +331,7 @@ class BaseParametrizedDemography(ABC):
                 violation = constraint['expression'](
                     [self.get_param_value(param_name, full_params) for param_name in constraint['param_subset']])
                 if violation < violation_score:
-                    self.logger.warning(f'{constraint["message"]} Out of bounds by: {-violation}.')
+                    self.logger.debug(f'{constraint["message"]} Out of bounds by: {-violation}.')
                     violation_score = violation
         return violation_score
 
@@ -369,13 +369,13 @@ class BaseParametrizedDemography(ABC):
             for param_name, param_object in self.model_base_params.items():
                 violation = self.get_param_value(param_name, params) - param_object.bounds[0]
                 if violation < violation_score:
-                    self.logger.warning(
+                    self.logger.debug(
                         f'Lower bound for parameter {param_name} is {param_object.bounds[0]}. '
                         f'Out of bounds by: {-violation}.')
                     violation_score = violation
                 violation = param_object.bounds[1] - self.get_param_value(param_name, params)
                 if violation < violation_score:
-                    self.logger.warning(
+                    self.logger.debug(
                         f'Upper bound for parameter {param_name} is {param_object.bounds[1]}. '
                         f'Out of bounds by: {-violation}.')
                     violation_score = violation
@@ -391,13 +391,13 @@ class BaseParametrizedDemography(ABC):
                 #    continue
                 violation = self.get_param_value(param_name, full_params) - param_object.bounds[0]
                 if violation < violation_score:
-                    self.logger.warning(
+                    self.logger.debug(
                         f'Lower bound for parameter {param_name} is {param_object.bounds[0]}. '
                         f'Current value is {self.get_param_value(param_name, full_params)}.')
                     violation_score = violation
                 violation = param_object.bounds[1] - self.get_param_value(param_name, full_params)
                 if violation < violation_score:
-                    self.logger.warning(
+                    self.logger.debug(
                         f'Upper bound for parameter {param_name} is {param_object.bounds[1]}. '
                         f'Current value is {self.get_param_value(param_name, full_params)}.')
                     violation_score = violation
@@ -688,7 +688,7 @@ class FixedParametersHandler:
         if known_ancestry_proportions==None:
             known_ancestry_proportions=self.known_ancestry_proportions
 
-        self.logger.info(f'Params before fixed-ancestry solving: {params_phys}')
+        self.logger.debug(f'Params before fixed-ancestry solving: {params_phys}')
         assert (len(params_phys) == len(self.demography.model_base_params))
         
      
@@ -716,7 +716,7 @@ class FixedParametersHandler:
             new_params_phys = self.convert_to_physical_params(self.insert_solved_params(params_opt, params_to_solve)) 
             try: value = self.full_params_objective_func(new_params_phys, units = "phys") 
             except ValueError as e:
-                self.logger.warning(f"problem computing migration matrices with opt parameters {params_opt}, physical parameters {params_phys}.")
+                self.logger.warning(f"Problem computing migration matrices with opt parameters {params_opt}, physical parameters {params_phys}.")
                 return large
             
             bound = self.demography.check_bounds(start_params_phys_full) 
@@ -747,7 +747,7 @@ class FixedParametersHandler:
 
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
-            self.logger.info(f"Could not solve for parameters fixed by ancestry proportions."+ 
+            self.logger.warning(f"Could not solve for parameters fixed by ancestry proportions."+ 
             f"Final error: {error},"+ 
             f"solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(params_opt, solved_params))}"+
             f"this can happen when no sex bias parameter allows for the observed ancestry proportions.")
@@ -757,7 +757,7 @@ class FixedParametersHandler:
 
         params_phys = self.convert_to_physical_params(self.insert_solved_params(self.convert_to_optimizer_params(params_phys), solved_params))
         
-        self.logger.info(f'Params after solving with ancestry proportions: {params_phys}')
+        self.logger.debug(f'Params after solving with ancestry proportions: {params_phys}')
          
         if units == "opt":
             return self.convert_to_optimizer_params(params_phys)

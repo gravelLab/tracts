@@ -214,9 +214,17 @@ Output files
 
    output_directory: ./output_files/
    output_filename_format: "filename_{label}"
+   log_filename: 'my_example.log'
+   verbose: 1
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
 - ``output_filename_format``: The file name format for the output files.
+- ``log_filename`` : The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
+- ``verbose`` : Controls the level of detail reported during execution.
+
+    - ``0`` — Minimal information is recorded, both on screen and in the log file.
+    - ``1`` — Optimization iterations are recorded in the log file only.
+    - ``2`` — Optimization iterations are recorded in the log file and displayed on screen.
 
 .. _run-tracts:
 
