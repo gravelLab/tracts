@@ -25,6 +25,389 @@ _counter = 0
 _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
 
+def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
+                 maxiter=None, func_args=None, reset_counter=True, modelling_method=PhTMonoecious) -> np.ndarray:
+    """
+    Optimizes model parameters using the COBYLA method. Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
+    
+    Parameters
+    ----------
+
+        p0: 
+            Initial parameters.
+        data:
+            Spectrum with data.
+        model_func:
+            Function to evaluate model spectrum. Should take arguments (params,
+           pts).
+        cutoff: default: 0   
+           The number of bins to drop at the beginning of the array. This could be
+           achieved with masks.
+        verbose: default: 0
+            If greater than zero, print optimization status every ``verbose`` steps.
+        flush_delay: default: 0.5
+            Standard output will be flushed once every ``flush_delay`` minutes. This
+           is useful to avoid overloading I/O on clusters.
+        maxiter: default: None
+            Maximum iterations to run for.
+        func_args: default: None
+            List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
+            first argument is an array of parameters to optimize.
+        reset_counter: default: True
+            Resets the iteration counter to zero. Set to False to
+            continue iteration count (e.g., if optimization continues from previous point).
+    """
+    print(modelling_method)
+    if func_args is None:
+        func_args = []
+    if reset_counter:
+        global _counter
+        _counter = 0
+
+    fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func, outofbounds_fun=outofbounds_fun, cutoff=cutoff,
+                                 verbose=verbose, flush_delay=flush_delay, func_args=func_args,
+                                 modelling_method=modelling_method)
+
+    outputs = scipy.optimize.fmin_cobyla(
+        fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+
+    return outputs
+
+def optimize_cob_sex_biased(p0, population: Population, model_func, parameter_handler, outofbounds_fun=None, verbose=0, p_dict=None, exclude_tracts_below_cM=0, 
+                            maxiter=None, reset_counter=True, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
+    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
+    
+    if reset_counter:
+        global _counter
+        _counter = 0
+    
+    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
+    n_autosome_bins = len(autosome_bins)
+    
+    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
+    for k, v in autosome_data.items():
+        autosome_data_mapped[dict(p_dict)[k]] = v
+    
+    if ad_model_allosomes is not None:
+        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        n_allosome_bins = len(allosome_bins)
+        allosome_length = population.allosome_lengths['X']
+        female_data = allosome_data[SexType.FEMALE]
+        male_data = allosome_data[SexType.MALE]
+        num_males = population.num_males
+        num_females = population.num_females
+
+           
+        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in female_data.items():
+            female_data_mapped[dict(p_dict)[k]] = v
+        
+        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in male_data.items():
+            male_data_mapped[dict(p_dict)[k]] = v
+    
+    def objective_function(parameters):
+
+        global _counter
+        _counter += 1
+
+        def flush_result(result, note = str()):
+            if (verbose > 0) and (_counter % verbose == 0):
+                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(parameters)])) 
+                logger.info(
+                     "iter=%-6d | obj=%-12g | params=%s %s",
+                        _counter,
+                        result,
+                        param_str,
+                        note,
+                    )
+                
+        if outofbounds_fun is not None:
+            # outofbounds can return either True or a negative value to signify out-of-boundedness.
+            oob = outofbounds_fun(parameters)
+            if oob < 0:
+                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+                flush_result(out, f'OOB (oob={oob})')
+                return out
+        else:
+            eprint("No bound function defined")
+
+        matrices = model_func(parameters)
+        matrix_list = [matrix for matrix in matrices.values()]
+        if ad_model_allosomes is not None:
+            [male_matrix, female_matrix] = matrix_list
+        else:
+            male_matrix = matrix_list[0]  # Unbiased migration
+            female_matrix = matrix_list[0] 
+
+        # Model for autosomes
+        if ad_model_autosomes == 'M':
+            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
+            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        elif ad_model_autosomes == 'H-DC':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        elif ad_model_autosomes == 'H-DF':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        else:
+            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        
+        if ad_model_allosomes is not None:
+            # Model for allosomes
+            if ad_model_allosomes == 'H-DC':
+                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+            elif ad_model_allosomes == 'H-DF':
+                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+            else:
+                result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+                result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        else:
+            result_X_females = 0
+            result_X_males = 0
+
+        result = (result_autosomes + result_X_females + result_X_males)
+                
+        flush_result(result_autosomes, 'Autosomes')
+        if ad_model_allosomes:
+            flush_result(result_X_females, 'Female allosomes')
+            flush_result(result_X_males, 'Male allosomes')
+        
+        return -result
+
+    if ad_model_allosomes is not None:
+        title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes and with the {ad_model_allosomes} model for allosomes."
+    else:
+        title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
+    print('\n--------------------------------------------------------------------------------------------------')
+    print(title_message)
+    print('--------------------------------------------------------------------------------------------------')
+    print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
+           
+    outputs = scipy.optimize.fmin_cobyla(
+        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    
+    likelihood = -objective_function(outputs)
+
+    return outputs, likelihood
+
+def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, parameter_handler, outofbounds_fun=None, verbose=0,
+                 p_dict=None, exclude_tracts_below_cM=0, maxiter=None, reset_counter=True, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
+    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
+
+    if reset_counter:
+        global _counter
+        _counter = 0
+    
+    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
+    n_autosome_bins = len(autosome_bins)
+
+    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
+    for k, v in autosome_data.items():
+        autosome_data_mapped[dict(p_dict)[k]] = v
+    
+    if ad_model_allosomes is not None:
+        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        n_allosome_bins = len(allosome_bins)
+        allosome_length = population.allosome_lengths['X']
+        female_data = allosome_data[SexType.FEMALE]
+        male_data = allosome_data[SexType.MALE]
+        num_males = population.num_males
+        num_females = population.num_females  
+        
+        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in female_data.items():
+            female_data_mapped[dict(p_dict)[k]] = v
+        
+        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
+        for k, v in male_data.items():
+            male_data_mapped[dict(p_dict)[k]] = v
+
+    local_parameter_handler = copy.deepcopy(parameter_handler)
+
+    free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
+                                (value.type == ParamType.SEX_BIAS) and 
+                                (param not in local_parameter_handler.user_params_fixed_by_value) and 
+                                (param not in local_parameter_handler.params_fixed_by_ancestry)}
+
+    local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
+    
+    best_objective = np.inf
+    best_full_params = None
+
+    def objective_function(model_base_parameters, include_allosomes = True):
+
+        nonlocal best_objective, best_full_params
+
+        """parameters are in optimizer space"""
+
+        global _counter
+        global _out_of_bounds_val
+        global _min_out_of_bounds_val
+        _counter += 1
+
+        def flush_result(result, note = str()):
+            param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters)]))
+            if (verbose > 0) and (_counter % verbose == 0):
+                logger.info(
+                     "iter=%-6d | obj=%-12g | params=%s %s",
+                        _counter,
+                        result,
+                        param_str,
+                        note,
+                    )
+                #eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))    
+
+        if outofbounds_fun is not None:
+            # outofbounds can return either True or a negative value to signify out-of-boundedness.
+            oob = outofbounds_fun(model_base_parameters)
+            if oob < 0:
+                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
+                flush_result(out, f'OOB (oob={oob})')
+                return out 
+        else:
+            eprint("No bound function defined")
+
+        matrices = model_func(model_base_parameters)
+        matrix_list = [matrix for matrix in matrices.values()]
+        if include_allosomes:
+            [male_matrix, female_matrix] = matrix_list
+        else:
+            male_matrix = matrix_list[0]  # Unbiased migration
+            female_matrix = matrix_list[0]  # Unbiased migration
+
+
+        # Model for autosomes
+        if ad_model_autosomes == 'M':
+            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
+            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        elif ad_model_autosomes == 'H-DC':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        elif ad_model_autosomes == 'H-DF':
+            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+        else:
+            assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
+            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+        
+        if include_allosomes:
+            # Model for allosomes
+            if ad_model_allosomes == 'H-DC':
+                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+            elif ad_model_allosomes == 'H-DF':
+                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+            else:
+                result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
+                result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+        
+            result = (result_autosomes + result_X_females + result_X_males)
+            flush_result(result_X_females, 'Female allosomes')
+            flush_result(result_X_males, 'Male allosomes')
+        else:
+            result = result_autosomes
+        
+        flush_result(result_autosomes, 'Autosomes')
+        
+        obj = -result
+
+        if include_allosomes and np.isfinite(obj) and obj < best_objective:
+            best_objective = obj
+            best_full_params = model_base_parameters.copy()
+        return obj
+        
+    def reduced_objective_function(free_parameters_opt, include_allosomes = True):
+
+        extended_parameters = local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")
+        
+        return objective_function(extended_parameters, include_allosomes=include_allosomes) #Full parameters in optimizer space
+  
+    def reduced_outofbounds_fun(free_parameters_opt):
+
+        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
+
+    reduced_p0 = local_parameter_handler.reduce_parameters(p0)
+
+    if ad_model_allosomes is not None:
+        title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes and with the {ad_model_allosomes} model for allosomes."
+        subtitle_message = f"Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
+    else:
+        title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
+        subtitle_message = f"Optimizing autosomal likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
+    
+    print('\n--------------------------------------------------------------------------------------------------')
+    print(title_message)
+    print(subtitle_message)
+    
+    if verbose>0:
+        logger.info(title_message)
+        logger.info(subtitle_message)
+        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
+
+    reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
+    
+    outputs = scipy.optimize.fmin_cobyla(
+        reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    
+    optimized_parameters = local_parameter_handler.extend_parameters(outputs, units="opt")
+    step1_full_params_opt = optimized_parameters.copy()
+
+    new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
+    new_fixed_values = optimized_parameters[local_parameter_handler.free_parameters_indices]
+    new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
+
+    local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
+
+    local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
+    reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
+
+    if ad_model_allosomes is not None:
+        print('Step 1 completed.')
+        print('--------------------------------------------------------------------------------------------------')
+        step_2_message = f"Step 2 : Optimizing autosomal + allosomal likelihood over parameters : {str(list(free_sex_bias_parameters.keys()))}.\nNon-sex-bias parameters fixed at values from previous optimization step."    
+    else:
+        step_2_message = f"Optimization completed."   
+    print(step_2_message)
+        
+    if verbose>0:
+        logger.info(step_2_message)
+    if verbose>0 and ad_model_allosomes is not None:    
+        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
+   
+    best_objective = np.inf
+    best_full_params = None
+
+    reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = True)
+    if len(reduced_params)>0 and ad_model_allosomes is not None:
+        outputs = scipy.optimize.fmin_cobyla(
+            reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+        print('Step 2 completed.')
+    else: # No optimization needed
+        outputs = reduced_params
+    
+    print('--------------------------------------------------------------------------------------------------')    
+    
+    if len(reduced_params) == 0 and ad_model_allosomes is not None:
+        full_params_opt = optimized_parameters.copy()
+        likelihood = -objective_function(full_params_opt, include_allosomes=True)
+        return full_params_opt, likelihood
+    if ad_model_allosomes is None:
+        full_params_opt = optimized_parameters.copy()
+        likelihood = -objective_function(full_params_opt, include_allosomes=False)
+        return full_params_opt, likelihood
+    
+    if best_full_params is None:
+        try:
+            fallback_likelihood = -objective_function(step1_full_params_opt, include_allosomes=True)
+            return step1_full_params_opt, fallback_likelihood
+        except Exception:
+            return step1_full_params_opt, -1e32
+
+    return best_full_params, -best_objective      
+
+
+# NOTE: All the functions below are not used. Consider removing them or moving them elsewhere.
+
 def plotmig(mig, colordict=None, order=None):
     if colordict is None:
         colordict = {'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange', 'UNKNOWN': 'gray', 'YRI': 'blue'}
@@ -40,7 +423,6 @@ def plotmig(mig, colordict=None, order=None):
             axes.add_patch(c)
     pylab.axis('scaled')
     pylab.ylabel("generations from present")
-
 
 def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
              cutoff=0, verbose=0, flush_delay=0.5, epsilon=1e-3, gtol=1e-5,
@@ -110,387 +492,6 @@ def optimize(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None,
 
 
 optimize_bfgs = optimize
-
-
-def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=DemographicModel) -> np.ndarray:
-    """
-    Optimizes model parameters using the COBYLA method. Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
-    
-    Parameters
-    ----------
-
-        p0: 
-            Initial parameters.
-        data:
-            Spectrum with data.
-        model_function:
-            Function to evaluate model spectrum. Should take arguments (params,
-           pts).
-        out_of_bounds_fun: default: None
-           A funtion evaluating to True if the current parameters are in a
-           forbidden region.
-        cutoff: default: 0   
-           The number of bins to drop at the beginning of the array. This could be
-           achieved with masks.
-        verbose: default: 0
-            If greater than zero, print optimization status every ``verbose`` steps.
-        flush_delay: default: 0.5
-            Standard output will be flushed once every ``flush_delay`` minutes. This
-           is useful to avoid overloading I/O on clusters.
-        epsilon: default: 1e-3
-            Step-size to use for finite-difference derivatives.
-        gtol: default: 1e-5
-            Convergence criterion for optimization. For more info, see
-            ``help(scipy.optimize.fmin_bfgs)``.
-        maxiter: default: None
-            Maximum iterations to run for.
-        full_output: default: True
-          If True, return full outputs as described in ``help(scipy.optimize.fmin_bfgs)``.
-        func_args: default: None
-            List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
-            first argument is an array of parameters to optimize.
-        fixed_params: default: None
-            (Not yet implemented). If not None, should be a list used to fix model parameters at
-            particular values. For example, if the model parameters are
-            ``(nu1,nu2,T,m)``, then ``fixed_params = [0.5,None,None,2]`` will hold ``nu1=0.5``
-            and ``m=2``. The optimizer will only change ``T`` and ``m``. Note that the bounds
-            lists must include all parameters. Optimization will fail if the fixed
-            values lie outside their bounds. A full-length ``p0`` should be passed in;
-            values corresponding to fixed parameters are ignored.
-        ll_scale: default: 1
-            The BFGS algorithm may fail if the initial log-likelihood is too large. Using ``ll_scale > 1`` reduces the log-likelihood magnitude, helping the optimizer reach a reasonable region. Afterward, re-optimize with ``ll_scale=1``.
-        reset_counter: default: True
-            Resets the iteration counter to zero. Set to False to
-            continue iteration count (e.g., if optimization continues from previous point).
-    """
-    print(modelling_method)
-    if func_args is None:
-        func_args = []
-    if reset_counter:
-        global _counter
-        _counter = 0
-
-    fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func, outofbounds_fun=outofbounds_fun, cutoff=cutoff,
-                                 verbose=verbose, flush_delay=flush_delay, func_args=func_args,
-                                 modelling_method=modelling_method)
-
-    outputs = scipy.optimize.fmin_cobyla(
-        fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-
-    return outputs
-
-def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, fixed_params=None,
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
-    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
-    if reset_counter:
-        global _counter
-        _counter = 0
-    
-    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
-    n_autosome_bins = len(autosome_bins)
-    allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-    n_allosome_bins = len(allosome_bins)
-    allosome_length = population.allosome_lengths['X']
-    female_data = allosome_data[SexType.FEMALE]
-    male_data = allosome_data[SexType.MALE]
-    num_males = population.num_males
-    num_females = population.num_females
-
-    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-    for k, v in autosome_data.items():
-        autosome_data_mapped[dict(p_dict)[k]] = v
-        
-    female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-    for k, v in female_data.items():
-        female_data_mapped[dict(p_dict)[k]] = v
-        
-    male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-    for k, v in male_data.items():
-        male_data_mapped[dict(p_dict)[k]] = v
-    
-    def objective_function(parameters):
-
-        global _counter
-        _counter += 1
-
-        def flush_result(result, note = str()):
-            if (verbose > 0) and (verbose <= 1) and (_counter % verbose == 0):
-                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)])) #TODO: add parameter_handler to this function
-                logger.info(
-                     "iter=%-6d | obj=%-12g | params=%s %s",
-                        _counter,
-                        result,
-                        param_str,
-                        note,
-                    )
-                
-
-        if outofbounds_fun is not None:
-            # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            oob = outofbounds_fun(parameters)
-            if oob < 0:
-                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
-                flush_result(out, f'OOB (oob={oob})')
-                return out
-        else:
-            eprint("No bound function defined")
-
-        matrices = model_func(parameters)
-        [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-        
-        #if np.any(female_matrix < 0) or np.any(np.sum(female_matrix, axis=1) > 1) or np.any(male_matrix < 0) or np.any(np.sum(male_matrix, axis=1) > 1):
-        #    breakpoint()
-
-        # Model for autosomes
-        if ad_model_autosomes == 'M':
-            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
-            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
-        elif ad_model_autosomes == 'H-DC':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
-        elif ad_model_autosomes == 'H-DF':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
-        else:
-            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
-        
-        # Model for allosomes
-        if ad_model_allosomes == 'H-DC':
-            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
-        elif ad_model_allosomes == 'H-DF':
-            result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-            result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
-        else:
-            result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
-            result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
-        
-        result = (result_autosomes + result_X_females + result_X_males)
-        
-        #proportion of ancestry
-        
-        flush_result(result_autosomes, 'Autosomes')
-        flush_result(result_X_females, 'Female allosomes')
-        flush_result(result_X_males, 'Male allosomes')
-        
-        
-        return -result
-    
-    print('\n--------------------------------------------------------------------------------------------------')
-    print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
-    print('--------------------------------------------------------------------------------------------------')
-    print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
-           
-    outputs = scipy.optimize.fmin_cobyla(
-        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-    
-    likelihood = -objective_function(outputs)
-
-    return outputs, likelihood
-
-
-def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, parameter_handler, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 epsilon=1e-3, gtol=1e-5, p_dict=None, exclude_tracts_below_cM=0, maxiter=None, full_output=True, func_args=None, 
-                 ll_scale=1, reset_counter=True, modelling_method=PhTDioecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
-    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
-
-    
-    if reset_counter:
-        global _counter
-        _counter = 0
-    
-    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
-    n_autosome_bins = len(autosome_bins)
-    allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-    n_allosome_bins = len(allosome_bins)
-    allosome_length = population.allosome_lengths['X']
-    female_data = allosome_data[SexType.FEMALE]
-    male_data = allosome_data[SexType.MALE]
-    num_males = population.num_males
-    num_females = population.num_females
-
-    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-    for k, v in autosome_data.items():
-        autosome_data_mapped[dict(p_dict)[k]] = v
-        
-    female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-    for k, v in female_data.items():
-        female_data_mapped[dict(p_dict)[k]] = v
-        
-    male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-    for k, v in male_data.items():
-        male_data_mapped[dict(p_dict)[k]] = v
-
-    local_parameter_handler = copy.deepcopy(parameter_handler)
-
-    free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
-                                (value.type == ParamType.SEX_BIAS) and 
-                                (param not in local_parameter_handler.user_params_fixed_by_value) and 
-                                (param not in local_parameter_handler.params_fixed_by_ancestry)}
-
-    local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
-    
-    best_objective = np.inf
-    best_full_params = None
-
-    def objective_function(model_base_parameters, include_allosomes = True):
-
-        nonlocal best_objective, best_full_params
-
-        """parameters are in optimizer space"""
-
-        global _counter
-        global _out_of_bounds_val
-        global _min_out_of_bounds_val
-        _counter += 1
-
-        def flush_result(result, note = str()):
-            param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters)]))
-            if (verbose > 0) and (_counter % verbose == 0):
-                logger.info(
-                     "iter=%-6d | obj=%-12g | params=%s %s",
-                        _counter,
-                        result,
-                        param_str,
-                        note,
-                    )
-            elif verbose >=2:
-                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
-               
- 
-
-        if outofbounds_fun is not None:
-            # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            oob = outofbounds_fun(model_base_parameters)
-            if oob < 0:
-                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
-                flush_result(out, f'OOB (oob={oob})')
-                return out 
-        else:
-            eprint("No bound function defined")
-
-        matrices = model_func(model_base_parameters)
-        [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
-        
-
-        # Model for autosomes
-        if ad_model_autosomes == 'M':
-            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
-            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
-        elif ad_model_autosomes == 'H-DC':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
-        elif ad_model_autosomes == 'H-DF':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
-        else:
-            assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
-            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
-        
-        if include_allosomes:
-            # Model for allosomes
-            if ad_model_allosomes == 'H-DC':
-                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
-            elif ad_model_allosomes == 'H-DF':
-                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
-            else:
-                result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
-                result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
-        
-            result = (result_autosomes + result_X_females + result_X_males)
-            flush_result(result_X_females, 'Female allosomes')
-            flush_result(result_X_males, 'Male allosomes')
-        else:
-            result = result_autosomes
-        
-        
-        flush_result(result_autosomes, 'Autosomes')
-        
-        
-        obj = -result
-
-        if include_allosomes and np.isfinite(obj) and obj < best_objective:
-            best_objective = obj
-            best_full_params = model_base_parameters.copy()
-        return obj
-        
-    def reduced_objective_function(free_parameters_opt, include_allosomes = True):
-
-        extended_parameters = local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")
-        
-        return objective_function(extended_parameters, include_allosomes=include_allosomes) #Full parameters in optimizer space
-  
-    def reduced_outofbounds_fun(free_parameters_opt):
-
-        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
-
-    reduced_p0 = local_parameter_handler.reduce_parameters(p0)
-
-    print('\n--------------------------------------------------------------------------------------------------')
-    print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
-    print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)))
-    
-    if verbose>0:
-        logger.info('Optimizing autosomal likelihood over parameters : ' + str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)))
-        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
-    if verbose >= 2:
-        print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
-
-    reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
-    
-    outputs = scipy.optimize.fmin_cobyla(
-        reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-    
-    optimized_parameters = local_parameter_handler.extend_parameters(outputs, units="opt")
-    step1_full_params_opt = optimized_parameters.copy()
-
-    new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
-    new_fixed_values = optimized_parameters[local_parameter_handler.free_parameters_indices]
-    new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
-
-    local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
-
-    local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
-    reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
-
-    print('Step 1 completed.')
-    print('--------------------------------------------------------------------------------------------------')    
-    print('Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
-    print('Non-sex-bias parameters fixed at values from previous optimization step.')
-    
-    if verbose>0:
-        logger.info('Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
-        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
-    if verbose >= 2:
-        print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
-
-    best_objective = np.inf
-    best_full_params = None
-
-    reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = True)
-    if len(reduced_params)>0:
-        outputs = scipy.optimize.fmin_cobyla(
-            reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-    else: #no optimization needed
-        outputs = reduced_params
-
-    print('Step 2 completed.')
-    print('--------------------------------------------------------------------------------------------------')    
-    
-    if len(reduced_params) == 0:
-        full_params_opt = optimized_parameters.copy()
-        likelihood = -objective_function(full_params_opt, include_allosomes=True)
-        return full_params_opt, likelihood
-
-    if best_full_params is None:
-        try:
-            fallback_likelihood = -objective_function(step1_full_params_opt, include_allosomes=True)
-            return step1_full_params_opt, fallback_likelihood
-        except Exception:
-            return step1_full_params_opt, -1e32
-
-    return best_full_params, -best_objective      
 
 
 def optimize_slsqp(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, bounds=None, verbose=0,
@@ -1008,97 +1009,6 @@ def optimize_brute_multifracs(bins, Ls, data_list, nsamp_list, model_func, fracs
     xopt = _project_params_up(outputs[0], fixed_params)
 
     return xopt, outputs[1:]
-
-
-def test_model_func(model_func, parameters, fracs_list=None, time_params=True, time_scale=100):
-    """Given a demographic model function, run a few debugging tests to ensure
-    that it behaves as expected, namely: (i) that migration matrices sum to less than one (exactly one for the last generation)
-    and (ii) that it behaves continuously relative to time parameters.
-    
-    Parameters
-    ----------
-        model_func: 
-    	    A migration model. It takes in parameters and outputs a migration matrix. 
-        parameters:
-    	    Parameters for which the model will be tested. 
-        fracs_list: default: None
-    	    Parameters required by some demographic models corresponding to the observed proportion of ancestry from each source population.
-        time_params: default: True
-    	    If True, test all parameters for continuity as if they were time parameters. If a list of boolean values of the same length of parameters, only test parameters corresponding to True values.
-        time_scale: default: 100
-    	    The scaling of the time variables: time (in generations) = time_parameter*time_scale. This is used to
-            test continuity around integer values. 
-    
-    Returns
-    ----------
-    Violation score (negative means that a violation has occurred) and the migration matrix value.
-
-    #TODO: I believe that this function is deprecated. Confirm and remove if so.
-    """
-
-    # First test consistency of migration matrix
-    if fracs_list is None:
-        mig = model_func(parameters)
-    else:
-        assert (np.sum(fracs_list) == 1), "fracs_list should sum to 1"
-        mig = model_func(parameters, fracs=fracs_list)
-
-    totmig = mig.sum(axis=1)
-    violation = 1
-
-    if -abs(totmig[-1] - 1) < - 1e-8:
-        violation = min(violation, -abs(totmig[-1] - 1) + 1e-8)  # Check that initial migration sums to 1.
-        print("last row of migration matrix should sum to one.")
-    if totmig[0] > 0 or totmig[1] > 0:
-        print("first two rows of the migration matrix should sum to one")
-        violation = min(violation, -totmig[0], -totmig[1])  # Check that there are no migrations in the last
-        # two generations
-    if max(totmig) > 1 or min(totmig) < 0:
-        print("migration rates should be between zero and one")
-        violation = min(violation, min(1 - totmig), min(totmig))  # Check that total migration rates between 0 and 1
-
-    # Second, test continuity
-    if time_params is True:  # Test continuity on all parameters as time parameters.
-        time_params = [True] * len(parameters)
-
-    assert len(time_params) == len(parameters), "time_params should be a boolean list with length len(parameters)"
-
-    perturbation = 10 ** -15
-    for i in range(len(parameters)):
-        if time_params[i]:
-            focal_parameter = parameters[i]
-            # Round parameter to integer time
-            focal_parameter = round(time_scale * focal_parameter) * 1. / time_scale
-            up_param = focal_parameter + perturbation
-            down_param = focal_parameter - perturbation
-
-            up_params = list(parameters)
-            up_params[i] = up_param
-            down_params = list(parameters)
-            down_params[i] = down_param
-            if fracs_list is None:
-                up_mig = model_func(up_params)
-                down_mig = model_func(down_params)
-            else:
-                up_mig = model_func(up_params, fracs_list)
-                down_mig = model_func(down_params, fracs_list)
-
-            # mig_down should always be smaller or equal in size to mig_up
-            compare_size = down_mig.shape
-            trimmed_up_mig = up_mig[:compare_size[0], :]
-            max_diff = abs(trimmed_up_mig - down_mig).max()
-
-            if max_diff > 10 * time_scale * perturbation:  # This is fairly arbitrary threshold.
-                print("apparent discontinuity in migration matrices in model test at parameters", parameters)
-                # print(up_mig)
-                # print(down_mig)
-                violation = min(violation, 10 * time_scale * perturbation - max_diff)
-
-    return violation, mig
-
-
-#: Counts calls to object_func
-# _counter = 0
 
 
 def _object_func_fracs(params, bins, Ls, data, nsamp, model_func, fracs, outofbounds_fun=None, cutoff=0, verbose=0,

@@ -221,11 +221,7 @@ Output files
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
 - ``output_filename_format``: The file name format for the output files.
 - ``log_filename`` : The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
-- ``verbose`` : Controls the level of detail reported during execution.
-
-    - ``0`` — Minimal information is recorded, both on screen and in the log file.
-    - ``1`` — Optimization iterations are recorded in the log file only.
-    - ``2`` — Optimization iterations are recorded in the log file and displayed on screen.
+- ``verbose`` : Controls the level of detail reported during execution. If greater than zero, prints optimization status every ``verbose`` steps.
 - ``log_scale``: Whether the tract lenght distributions are depicted in log-scaled counts. Default is ``True``.
 
 .. _run-tracts:

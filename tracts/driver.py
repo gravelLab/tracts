@@ -14,7 +14,7 @@ import warnings
 from scipy.special import logit, expit
 from scipy.stats import poisson
 from tracts.population import Population
-from tracts.core import optimize_cob, optimize_cob_sex_biased_fixed_values
+from tracts.core import optimize_cob, optimize_cob_sex_biased, optimize_cob_sex_biased_fixed_values
 import tracts.hybrid_pedigree as HP
 from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
@@ -132,10 +132,23 @@ def run_tracts(driver_filename, script_dir=None):
     print('Reading data, demographic model and driver specifications...\n')
     print('------------------------------------------------------------------------------------------------\n')   
 
+    if not hasattr(driver_spec, "output_filename_format"):
+        raise Exception("Please specify an output filename format in the driver file under 'output_filename_format'.")
+        
     if hasattr(driver_spec, 'verbose') :
         verbose = driver_spec.verbose
     else:
         verbose = 0
+
+    if hasattr(driver_spec, 'two_steps_optimization') :
+        two_steps_optimization = driver_spec.two_steps_optimization
+    else:
+        two_steps_optimization = True
+    
+    if hasattr(driver_spec, 'run_optimize_cob') :
+        run_optimize_cob = driver_spec.run_optimize_cob
+    else:
+        run_optimize_cob = False
 
     # Set autosomal and allosomal models for admixture
     if hasattr(driver_spec, 'ad_model_autosomes') :
@@ -147,23 +160,26 @@ def run_tracts(driver_filename, script_dir=None):
         print('Model for autosomal admixture not specified. Setting DC by default.')
         ad_model_autosomes = 'DC'
     
-    if hasattr(driver_spec, 'ad_model_allosomes'):
+    # Currently assumes allosomes is a single label. May change in the future
+    allosome_labels = driver_spec.samples.allosomes
+    allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None
+
+    if hasattr(driver_spec, 'ad_model_allosomes') and allosome_label is not None:
         ad_model_allosomes = driver_spec.ad_model_allosomes
         if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
             print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
             ad_model_allosomes = 'DC'
-    else:
+    elif allosome_label is not None:
         print('Model for allosomal admixture not specified. Setting DC by default.')
         ad_model_allosomes = 'DC'
+    else:
+        print('No allosomes found in the sample. Modelling only autosomal admixture.')
+        ad_model_allosomes = None
 
     exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
     print(f'excluding_tracts_below set to {exclude_tracts_below_cM} cM.')
     
     npts = driver_spec.npts
-
-    # Currently assumes allosomes is a single label. May change in the future
-    allosome_labels = driver_spec.samples.allosomes
-    allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None
 
     # Load the population
     pop = load_population(driver_path, driver_spec, script_dir, allosome_labels = allosome_labels) 
@@ -185,15 +201,12 @@ def run_tracts(driver_filename, script_dir=None):
         if label not in ancestor_labels and label not in pop.unknown_labels:
             raise ValueError(f"Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
             "unknown labels: {pop.unknown_labels}")
-    
-    
-    
 
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
     
-    print("\nAncestries:", [ancestry for ancestry in ancestor_labels] )
+    print("Ancestries:", [ancestry for ancestry in ancestor_labels] )
     
-    print("\nData autosome proportions:", ancestry_proportions )
+    print("Data autosome proportions:", ancestry_proportions )
     
     if len(allosome_labels)>=1:
         allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
@@ -217,7 +230,6 @@ def run_tracts(driver_filename, script_dir=None):
     func = get_time_scaled_model_func(model, time_scaling_factor) # time parameters need to be rescaled for some optimizers
 
     bound = get_time_scaled_model_bounds(model, time_scaling_factor)
-
 
     #The following should be moved to core.py or base_demography.py (in the FixedParamHandler class)
     time_to_physical_function = lambda x:np.exp(x) # This converts from optimizer units to physical units
@@ -283,7 +295,6 @@ def run_tracts(driver_filename, script_dir=None):
         if bound(opt)<0:
             print("Warning, starting parameters are out of bounds.")
         phys_str = ", ".join(f"{x:.4g}" for x in phys)
-        #opt_str = ", ".join(f"{x:.4g}" for x in opt)
         start_param_message = f"{1+i:>3} | [{phys_str:<43}]"
         print(start_param_message)
         logger.info(start_param_message)
@@ -296,10 +307,10 @@ def run_tracts(driver_filename, script_dir=None):
     start_ancestry_props_message = "Starting ancestry proportions for the starting parameters"
     header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in tract_types)
     line = "-" * len(header)
-    print("\n" + start_ancestry_props_message)
+    #print("\n" + start_ancestry_props_message)
     logger.info(start_ancestry_props_message)
     for l in (line, header, line):
-        print(l)
+        #print(l)
         logger.info(l)
 
     for i, opt in enumerate(optimizer_start_params):
@@ -320,14 +331,21 @@ def run_tracts(driver_filename, script_dir=None):
         logger.info(anc_line)
     print(line)
           
-    params_found, likelihoods = run_model_multi_init(func, bound, pop, ancestor_labels,
-                                                        optimizer_start_params,
-                                                        population_dict=pop_dict,
-                                                        parameter_handler=model.parameter_handler,
-                                                        max_iter=max_iter,
-                                                        exclude_tracts_below_cM=exclude_tracts_below_cM,
-                                                        modelling_method=PhTDioecious if allosome_label else PhTMonoecious,
-                                                        ad_model_autosomes = ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts, verbose=verbose)
+    params_found, likelihoods = run_model_multi_init(model_func=func,
+                                                    bound_func=bound,
+                                                    population=pop, 
+                                                    population_labels=ancestor_labels,
+                                                    start_params_list=optimizer_start_params,
+                                                    population_dict=pop_dict,
+                                                    parameter_handler=model.parameter_handler,
+                                                    max_iter=max_iter,
+                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
+                                                    ad_model_autosomes = ad_model_autosomes, 
+                                                    ad_model_allosomes=ad_model_allosomes,
+                                                    npts=npts, 
+                                                    verbose=verbose, 
+                                                    two_steps_optimization=two_steps_optimization, 
+                                                    run_optimize_cob=run_optimize_cob)
 
     formatted_likelihoods = [float(x) for x in likelihoods]
     physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param) for f_param in params_found]
@@ -369,12 +387,7 @@ def run_tracts(driver_filename, script_dir=None):
 
     bound = model.get_violation_score(optimal_params, verbose = True)
 
-    if hasattr(driver_spec, "output_filename_format"):
-        if allosome_label:
-            output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
-        else:
-            output_simulation_data(pop, optimal_params, model, driver_spec)
-
+    output_simulation_data_sex_biased(pop, optimal_params, model, driver_spec, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes)
 
 import ruamel.yaml as yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -419,9 +432,8 @@ class InferenceConfig(BaseModel):
     ad_model_allosomes: str = "DC"
     verbose: int = 0
     log_scale: bool = True
-    
-
-
+    two_steps_optimization: bool = True
+    run_optimize_cob: bool = False
 
 # ---------- Loader ----------
 
@@ -447,16 +459,6 @@ def load_driver_file(driver_path: str) -> InferenceConfig:
 
     return InferenceConfig.model_validate(driver_spec)
 
-
-
-#def load_driver_file(driver_path):
-#    if driver_path is None:
-#        raise OSError(f'Driver yaml file could not be found. {filepath_error_additional_message}')
-#    with driver_path.open() as file, ruamel.yaml.YAML(typ="safe") as yaml:
-#        driver_spec = yaml.load(file)
-#    if not isinstance(driver_spec, dict):
-#        raise ValueError('Driver yaml file was invalid.')
-#    return driver_spec
 
 def load_population(driver_path, driver_spec, script_dir=None, allosome_labels=None):
     individual_filenames = parse_individual_filenames(driver_spec.samples.individual_names,
@@ -628,9 +630,8 @@ def randomize(arr, a, b):
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
                           start_params_list: list[np.ndarray], population_dict : dict, parameter_handler = None , 
-                          max_iter: int=None, exclude_tracts_below_cM: int = 0, 
-                          modelling_method: type = PhTMonoecious, ad_model_autosomes = 'DC', 
-                          ad_model_allosomes = 'DC', npts: int = 50, verbose: int = 0) -> tuple[list[np.ndarray], list[float]]:
+                          max_iter: int=None, exclude_tracts_below_cM: int = 0, ad_model_autosomes = 'DC', 
+                          ad_model_allosomes = 'DC', npts: int = 50, verbose: int = 0, two_steps_optimization: bool = True, run_optimize_cob: bool = False) -> tuple[list[np.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -649,8 +650,6 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    A list of initial parameter arrays to start the optimization.	
         exclude_tracts_below_cM: int, optional
     	    Minimum tract length in centimorgans to exclude from analysis. Default is 0.
-        modelling_method: type, optional
-    	    The method used for modeling. Default is PhTMonoecious.
         npts: int, optional
             Number of bins for the tract length histogram. Default is 50.
 
@@ -663,130 +662,93 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     optimal_params = []
     likelihoods = []
     for start_params in start_params_list:
-        print('\nOptimization run #', len(optimal_params)+1,"\n--------------------")
+        opt_run_message = f"\nOptimization run #{len(optimal_params)+1}\n--------------------"
+        print(opt_run_message)
+        logger.info(opt_run_message)
         logger.debug(f'Starting parameters in optimizer units: {start_params}')
-        params_found, likelihood_found = run_model(model_func, bound_func, population, population_labels, start_params,
-                                                   population_dict,
+        params_found, likelihood_found = run_model(model_func=model_func,
+                                                   bound_func=bound_func, 
+                                                   population=population, 
+                                                   population_labels=population_labels, 
+                                                   startparams=start_params,
+                                                   population_dict=population_dict,
                                                    parameter_handler=parameter_handler,
                                                    max_iter=max_iter,
                                                    exclude_tracts_below_cM=exclude_tracts_below_cM,
-                                                   modelling_method=modelling_method, ad_model_autosomes=ad_model_autosomes,ad_model_allosomes=ad_model_allosomes, npts=npts, verbose=verbose)
+                                                   ad_model_autosomes=ad_model_autosomes,
+                                                   ad_model_allosomes=ad_model_allosomes,
+                                                   npts=npts,
+                                                   verbose=verbose,
+                                                   two_steps_optimization=two_steps_optimization, 
+                                                   run_optimize_cob=run_optimize_cob)
         optimal_params.append(params_found)
         likelihoods.append(likelihood_found)
     return optimal_params, likelihoods
 
+def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, parameter_handler=None, 
+              max_iter=None, exclude_tracts_below_cM=0, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=0, verbose=0, two_steps_optimization = True, run_optimize_cob = False):
+    
+    if not run_optimize_cob:
+        return run_model_sex_biased(
+            model_func=model_func,
+            bound_func=bound_func,
+            population=population,
+            startparams=startparams,
+            population_dict=population_dict,
+            parameter_handler=parameter_handler,
+            max_iter=max_iter,
+            exclude_tracts_below_cM=exclude_tracts_below_cM,
+            ad_model_autosomes=ad_model_autosomes,
+            ad_model_allosomes=ad_model_allosomes,
+            npts=npts,
+            verbose=verbose,
+            two_steps_optimization=two_steps_optimization,
+        )
+    elif ad_model_allosomes is None:
+        Ls = population.Ls
+        nind = population.nind
+        bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        data = [data[poplab] for poplab in population_labels]
+        model_func_sample_pop = lambda params:list(model_func(params).values())[0]
+        xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func_sample_pop, outofbounds_fun=bound_func, epsilon=1e-2)
+        optmod = PhTMonoecious(model_func_sample_pop(xopt))
+        optlik = optmod.loglik(bins, Ls, data, nind)
+        return xopt, optlik
+    else:
+        raise Exception("The optimize_cob method does not accept allosomal admixture.")
 
-def run_model(model_func, bound_func, population: Population, population_labels, startparams, population_dict, parameter_handler=None, max_iter=None, exclude_tracts_below_cM=0,
-              modelling_method=PhTMonoecious, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=0, verbose=0):
-    if modelling_method == PhTDioecious:
-        return run_model_sex_biased(model_func,bound_func, population, population_labels, startparams, population_dict, parameter_handler, max_iter, exclude_tracts_below_cM, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts, verbose=verbose)
-    Ls = population.Ls
-    nind = population.nind
-    bins, data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-    data = [data[poplab] for poplab in population_labels]
-    model_func_sample_pop = lambda params:list(model_func(params).values())[0]
-    xopt = optimize_cob(startparams, bins, Ls, data, nind, model_func_sample_pop, outofbounds_fun=bound_func, epsilon=1e-2,
-                        modelling_method=modelling_method)
-    optmod = modelling_method(model_func_sample_pop(xopt))
-    optlik = optmod.loglik(bins, Ls, data, nind)
-    return xopt, optlik
-
-def run_model_sex_biased(model_func, bound_func, population: Population, population_labels, startparams, population_dict, parameter_handler = None, max_iter=None, exclude_tracts_below_cM=0, ad_model_autosomes='DC',ad_model_allosomes='DC',npts=0, verbose=0):
+def run_model_sex_biased(model_func, bound_func, population: Population, startparams, population_dict, parameter_handler = None, max_iter=None, 
+                         exclude_tracts_below_cM=0, ad_model_autosomes='DC',ad_model_allosomes='DC',npts=0, verbose=0, two_steps_optimization = True):
   
-    #optimal_params, optimal_likelihood = optimize_cob_sex_biased(startparams, population, model_func, bound_func, p_dict = population_dict, exclude_tracts_below_cM=exclude_tracts_below_cM, maxiter=max_iter, epsilon=1e-2,verbose=1, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
-    optimal_params, optimal_likelihood = optimize_cob_sex_biased_fixed_values(startparams, population, model_func, 
-                                                                              parameter_handler= parameter_handler, 
-                                                                              outofbounds_fun = bound_func, 
-                                                                              p_dict = population_dict, 
-                                                                              exclude_tracts_below_cM=exclude_tracts_below_cM, 
-                                                                              maxiter=max_iter, epsilon=1e-2,verbose=verbose, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes=ad_model_allosomes, npts=npts)
-    
-    
-    
+    if not two_steps_optimization:
+        optimal_params, optimal_likelihood = optimize_cob_sex_biased(p0=startparams, 
+                                                                    population=population,
+                                                                    model_func=model_func, 
+                                                                    parameter_handler=parameter_handler,
+                                                                    outofbounds_fun=bound_func,
+                                                                    p_dict = population_dict,
+                                                                    exclude_tracts_below_cM=exclude_tracts_below_cM, 
+                                                                    maxiter=max_iter,
+                                                                    verbose=verbose,
+                                                                    ad_model_autosomes=ad_model_autosomes, 
+                                                                    ad_model_allosomes=ad_model_allosomes,
+                                                                    npts=npts)
+    else:
+        optimal_params, optimal_likelihood = optimize_cob_sex_biased_fixed_values(p0=startparams, 
+                                                                                population=population, 
+                                                                                model_func=model_func, 
+                                                                                parameter_handler= parameter_handler, 
+                                                                                outofbounds_fun = bound_func, 
+                                                                                p_dict = population_dict, 
+                                                                                exclude_tracts_below_cM=exclude_tracts_below_cM, 
+                                                                                maxiter=max_iter,
+                                                                                verbose=verbose,
+                                                                                ad_model_autosomes=ad_model_autosomes, 
+                                                                                ad_model_allosomes=ad_model_allosomes,
+                                                                                npts=npts)    
     
     return optimal_params, optimal_likelihood
-
-def output_simulation_data(sample_population, optimal_params, model: ParametrizedDemography, driver_spec):
-
-
-    output_dir = driver_spec.output_directory
-    if not os.path.exists(output_dir) and len(output_dir)>0:
-        os.mkdir(output_dir)
-
-
-    output_filename_format = driver_spec.output_filename_format
-    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
-    npts = driver_spec.npts
-    (bins, data) = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-
-
-    Ls = sample_population.Ls
-    nind = sample_population.nind
-
-    with open(output_dir + output_filename_format.format(label='tract_length_bins'), 'w') as fbins:
-        fbins.write("\t".join(map(str, bins)))
-
-    with open(output_dir + output_filename_format.format(label='sample_tract_distribution'), 'w') as fdat:
-        for population in model.population_indices.keys():
-            fdat.write("\t".join(map(str, data[population])) + "\n")
-
-    optimal_model = PhTMonoecious(list(model.get_migration_matrices(optimal_params).values())[0])
-
-    with open(output_dir + output_filename_format.format(label='migration_matrix'), 'w') as fmig2:
-        for line in optimal_model.migration_matrix:
-            fmig2.write("\t".join(map(str, line)) + "\n")
-
-    with open(output_dir + output_filename_format.format(label='predicted_tract_distribution'), 'w') as fpred2:
-        for popnum in range(len(data)):
-            fpred2.write("\t".join(map(
-                str,
-                nind * np.array(optimal_model.tract_length_histogram_multi_windowed(popnum, bins, Ls))))
-                         + "\n")
-
-    param_names = list(model.model_base_params.keys())
-    params_file_path = output_dir + output_filename_format.format(label="optimal_parameters") + ".txt"
-
-    with open(params_file_path, "w") as f:
-        f.write("parameter\tvalue\n")
-        for name, value in zip(param_names, optimal_params):
-            f.write(f"{name}\t{value}\n")
-            
-
-    # Plot results
-    
-    for pop, pop_num in model.population_indices.items():
-        
-        fig, axes = plt.subplots(1, 1, figsize=(8, 8), constrained_layout=True)
-        fig.suptitle(f"Ancestor: {pop}", fontsize=16, fontweight="bold")
-
-        # --- 1st row: autosome ---
-        axes.bar(
-            bins[:-1],
-            data[pop],
-            width=np.diff(bins),
-            align='edge',
-            alpha=0.6,
-            color='tab:blue',
-            edgecolor='white',
-            label="Data"
-        )
-        axes.plot(
-            0.5 * (bins[:-1] + bins[1:]),
-            nind * np.array(optimal_model.tract_length_histogram_multi_windowed(pop_num, bins, Ls)),
-            color='tab:orange',
-            lw=2,
-            label="Predicted"
-        )
-        axes.set_title("Autosome", fontsize=12, fontweight="bold")
-        axes.set_xlabel("Tract Length (M)")
-        axes.set_ylabel("Count")
-        axes.legend(frameon=False)
-        axes.grid(alpha=0.3)
-        
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig(output_dir + output_filename_format.format(label=f"{pop}_tract_histograms.png"))
-        plt.close(fig)
-        
+       
 
 def output_simulation_data_sex_biased(sample_population: Population, optimal_params, 
                                       model: ParametrizedDemographySexBiased, driver_spec, ad_model_autosomes='DC', ad_model_allosomes='DC'):
@@ -807,20 +769,18 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     log_scale = driver_spec.log_scale
 
     matrices = model.get_migration_matrices(optimal_params)
-    
-    [male_matrix, female_matrix] = [matrix for matrix in matrices.values()]
+    matrix_list = [matrix for matrix in matrices.values()]
+
+    if ad_model_allosomes is not None:
+        [male_matrix, female_matrix] = matrix_list
+    else:
+        male_matrix = matrix_list[0]
+        female_matrix = matrix_list[0]
+
     output_filename_format = driver_spec.output_filename_format
     autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
     Ls = sample_population.Ls
     nind = sample_population.nind
-
-    allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-    allosome_length = sample_population.allosome_lengths['X']
-    female_data = allosome_data[SexType.FEMALE]
-    male_data = allosome_data[SexType.MALE]
-    
-    num_males = sample_population.num_males
-    num_females = sample_population.num_females
 
     if ad_model_autosomes in ['DC','DF']:
         autosome_predicted={pop:PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
@@ -831,23 +791,11 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
     else:
         autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=False, X_chr_male=False, N_cores=5, population_number= pop_num, bins=autosome_bins, chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     
-    if ad_model_allosomes in ['DC','DF']:
-        female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
-        male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
-    elif ad_model_allosomes == 'H-DC':
-        female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-        male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-    else:
-        female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-        male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-    
-    # Save results
+    # Save autosome results
     
     with open(output_dir + output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
         fbins.write("\t".join(map(str, autosome_bins)))
-    with open(output_dir + output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
-        fbins.write("\t".join(map(str, allosome_bins)))
-
+    
     with open(output_dir + output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
             try:
@@ -855,21 +803,7 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
             except KeyError:
                 autosome_data[population] = np.zeros(len(autosome_bins)).tolist()
                 print(f'Population {population} not found in autosome data.')
-    with open(output_dir + output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
-        for population in model.population_indices.keys():
-            try:
-                fdat.write("\t".join(map(str, female_data[population])) + "\n")
-            except KeyError:
-                female_data[population] = np.zeros(len(allosome_bins)).tolist()
-                print(f'Population {population} not found in female allosome data.')
-    with open(output_dir + output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
-        for population in model.population_indices.keys():
-            try:
-                fdat.write("\t".join(map(str, male_data[population])) + "\n")
-            except KeyError:
-                male_data[population] = np.zeros(len(allosome_bins)).tolist()
-                print(f'Population {population} not found in male allosome data.')
-            
+
     with open(output_dir + output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
         for line in female_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
@@ -883,18 +817,60 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
                 str,
                 [nind * num_tracts for num_tracts in autosome_predicted[pop]]))
                          + "\n")
-    with open(output_dir + output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
-        for pop, pop_num in model.population_indices.items():
-            fpred2.write("\t".join(map(
-                str,
-                [num_females * num_tracts for num_tracts in female_predicted[pop]]))
-                         + "\n")
-    with open(output_dir + output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
-        for pop, pop_num in model.population_indices.items():
-            fpred2.write("\t".join(map(
-                str,
-                [num_males * num_tracts for num_tracts in male_predicted[pop]]))
-                         + "\n")
+
+    if ad_model_allosomes is not None:
+        allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        allosome_length = sample_population.allosome_lengths['X']
+        female_data = allosome_data[SexType.FEMALE]
+        male_data = allosome_data[SexType.MALE]
+    
+        num_males = sample_population.num_males
+        num_females = sample_population.num_females
+ 
+        if ad_model_allosomes in ['DC','DF']:
+            female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+        elif ad_model_allosomes == 'H-DC':
+            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+        else:
+            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+    
+        # Save allosome results
+
+        with open(output_dir + output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
+            fbins.write("\t".join(map(str, allosome_bins)))
+
+        with open(output_dir + output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
+            for population in model.population_indices.keys():
+                try:
+                    fdat.write("\t".join(map(str, female_data[population])) + "\n")
+                except KeyError:
+                    female_data[population] = np.zeros(len(allosome_bins)).tolist()
+                    print(f'Population {population} not found in female allosome data.')
+        with open(output_dir + output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
+            for population in model.population_indices.keys():
+                try:
+                    fdat.write("\t".join(map(str, male_data[population])) + "\n")
+                except KeyError:
+                    male_data[population] = np.zeros(len(allosome_bins)).tolist()
+                    print(f'Population {population} not found in male allosome data.')
+            
+        with open(output_dir + output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
+            for pop, pop_num in model.population_indices.items():
+                fpred2.write("\t".join(map(
+                    str,
+                    [num_females * num_tracts for num_tracts in female_predicted[pop]]))
+                            + "\n")
+        with open(output_dir + output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
+            for pop, pop_num in model.population_indices.items():
+                fpred2.write("\t".join(map(
+                    str,
+                    [num_males * num_tracts for num_tracts in male_predicted[pop]]))
+                            + "\n")
+
+    # Save optimal parameters
 
     param_names = list(model.model_base_params.keys())
     params_file_path = output_dir + output_filename_format.format(label="optimal_parameters") + ".txt"
@@ -903,6 +879,8 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
             f.write(f"{name}\t{value}\n")
+
+    # Produce and display plots 
 
     pop_names = list(model.population_indices.keys())
     n_pops = len(pop_names)
@@ -927,7 +905,6 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         colors = [cmap(i) for i in range(n_pops)]
 
     pop_colors = {pop: colors[i] for i, pop in enumerate(pop_names)}
-
 
     def _bin_centers(bins):
         return 0.5 * (bins[:-1] + bins[1:])
@@ -1087,33 +1064,36 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         ),
     )
 
-    # --- Male allosomes ---
-    _plot_panel(
-        xbins=allosome_bins,
-        observed_dict=male_data,
-        predicted_dict=male_predicted,
-        scale_factor=num_males,
-        title="Male X-chromosome tract length distributions",
-        ylabel="Count",
-        output_path=os.path.join(
-            output_dir,
-            output_filename_format.format(label="male_allosomes_all_populations.png")
-        ),
-    )
+    if ad_model_allosomes is not None:
+    
+        # --- Male allosomes ---
+        _plot_panel(
+            xbins=allosome_bins,
+            observed_dict=male_data,
+            predicted_dict=male_predicted,
+            scale_factor=num_males,
+            title="Male X-chromosome tract length distributions",
+            ylabel="Count",
+            output_path=os.path.join(
+                output_dir,
+                output_filename_format.format(label="male_allosomes_all_populations.png")
+            ),
+        )
 
-    # --- Female allosomes ---
-    _plot_panel(
-        xbins=allosome_bins,
-        observed_dict=female_data,
-        predicted_dict=female_predicted,
-        scale_factor=num_females,
-        title="Female X-chromosome tract length distributions",
-        ylabel="Count",
-        output_path=os.path.join(
-            output_dir,
+        # --- Female allosomes ---
+        _plot_panel(
+            xbins=allosome_bins,
+            observed_dict=female_data,
+            predicted_dict=female_predicted,
+            scale_factor=num_females,
+            title="Female X-chromosome tract length distributions",
+            ylabel="Count",
+            output_path=os.path.join(
+                output_dir,
             output_filename_format.format(label="female_allosomes_all_populations.png")
-        ),
-    )
+            ),
+        )
+    
     print('Results saved to : ' + output_dir)
     logger.info('Results saved to : ' + output_dir)
 
