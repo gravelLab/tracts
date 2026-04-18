@@ -26,8 +26,11 @@ To implement this example, we use the following driver file:
     labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
     chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
    allosomes: [X]
+   
    output_filename_format: "ASW_test_output_{label}"
    model_filename: ../models/ppp.yaml
+   log_scale : True
+   
    start_params: 
     t: 5:8
 

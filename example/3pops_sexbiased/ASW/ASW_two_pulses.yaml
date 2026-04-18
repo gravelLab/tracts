@@ -20,6 +20,7 @@ output_filename_format: "ASW_test_output_{label}"
 output_directory: ./output_two_pulses/
 log_filename: 'ASW_two_pulses.log'
 verbose: 1
+log_scale : True
 
 model_filename: ../models/ppp_pxx.yaml
 start_params: 

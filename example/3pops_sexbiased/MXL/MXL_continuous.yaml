@@ -22,6 +22,7 @@ output_filename_format: "MXL_test_output_{label}"
 output_directory: ./output_continuous_pulse/
 log_filename: 'ASW_continuous_pulse.log'
 verbose : 1
+log_scale : True
 
 model_filename: ../models/ccc.yaml
 start_params: 
