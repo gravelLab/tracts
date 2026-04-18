@@ -199,9 +199,6 @@ def run_tracts(driver_filename, script_dir=None):
         allosome_proportions = pop.calculate_allosome_proportions(ancestor_labels, allosome_label)
         print("Data allosome proportions:", allosome_proportions )
 
-
-
-
     if len(driver_spec.fix_parameters_from_ancestry_proportions)>0:
         
         if allosome_label:
@@ -253,8 +250,6 @@ def run_tracts(driver_filename, script_dir=None):
     model.parameter_handler.to_physical_params_functions = to_physical_params_functions
     model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
 
-
-    
     max_iter = driver_spec.maximum_iterations
     
     pop_dict = model.population_indices.items()
@@ -423,6 +418,7 @@ class InferenceConfig(BaseModel):
     ad_model_autosomes: str = "M"
     ad_model_allosomes: str = "DC"
     verbose: int = 0
+    log_scale: bool = True
     
 
 
@@ -720,7 +716,6 @@ def output_simulation_data(sample_population, optimal_params, model: Parametrize
 
     output_filename_format = driver_spec.output_filename_format
     exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
-
     npts = driver_spec.npts
     (bins, data) = sample_population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
 
@@ -807,15 +802,9 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         output_dir = ''
 
     output_filename_format = driver_spec.output_filename_format
-    if hasattr(driver_spec, 'exclude_tracts_below_cM'):
-        exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cM
-    else:
-        exclude_tracts_below_cM = 10
-
-    if hasattr(driver_spec, 'npts'):
-        npts = driver_spec.npts
-    else:
-        npts = 50
+    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
+    npts = driver_spec.npts
+    log_scale = driver_spec.log_scale
 
     matrices = model.get_migration_matrices(optimal_params)
     
@@ -1028,7 +1017,9 @@ def output_simulation_data_sex_biased(sample_population: Population, optimal_par
         ax.set_title(title, fontsize=14, fontweight="bold")
         ax.set_xlabel(xlabel, fontsize=12)
         ax.set_ylabel(ylabel, fontsize=12)
-        ax.set_yscale("log") # Log-scale
+        if log_scale:
+            ax.set_yscale("log") # Log-scale
+            ax.set_ylim(bottom=0.5)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.grid(alpha=0.25, linewidth=0.8)
