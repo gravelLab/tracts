@@ -1,5 +1,6 @@
 import sys
 
+import logging
 import numpy as np
 import scipy.optimize
 from matplotlib import pylab
@@ -13,6 +14,11 @@ from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.population import Population
 from tracts.util import eprint
 from tracts.demography.parameter import ParamType
+
+# Get logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 #: Counts calls to object_func
 _counter = 0
@@ -211,10 +217,16 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, outofbounds_
         _counter += 1
 
         def flush_result(result, note = str()):
-            if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)]))
-                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
-                # Misc.delayed_flush(delay=flush_delay)
+            if (verbose > 0) and (verbose <= 1) and (_counter % verbose == 0):
+                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(model_base_parameters)])) #TODO: add parameter_handler to this function
+                logger.info(
+                     "iter=%-6d | obj=%-12g | params=%s %s",
+                        _counter,
+                        result,
+                        param_str,
+                        note,
+                    )
+                
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
@@ -334,9 +346,18 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         _counter += 1
 
         def flush_result(result, note = str()):
+            param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters)]))
             if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters)]))
+                logger.info(
+                     "iter=%-6d | obj=%-12g | params=%s %s",
+                        _counter,
+                        result,
+                        param_str,
+                        note,
+                    )
+            elif verbose >=2:
                 eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
+               
  
 
         if outofbounds_fun is not None:
@@ -409,8 +430,12 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     print('\n--------------------------------------------------------------------------------------------------')
     print('Admixture is modelled with the',ad_model_autosomes,'model for autosomes and with the', ad_model_allosomes,'model for allosomes.')
     print('Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters ' + str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)))
-    print('--------------------------------------------------------------------------------------------------')    
-    print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
+    
+    if verbose>0:
+        logger.info('Optimizing autosomal likelihood over parameters : ' + str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)))
+        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
+    if verbose >= 2:
+        print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
 
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
     
@@ -429,12 +454,17 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
     reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
 
+    print('Step 1 completed.')
     print('--------------------------------------------------------------------------------------------------')    
     print('Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
     print('Non-sex-bias parameters fixed at values from previous optimization step.')
-    print('--------------------------------------------------------------------------------------------------')    
-    print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
     
+    if verbose>0:
+        logger.info('Optimizing autosomal + allosomal likelihood over parameters : ' + str(list(free_sex_bias_parameters.keys())))
+        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
+    if verbose >= 2:
+        print('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
+
     best_objective = np.inf
     best_full_params = None
 
@@ -445,6 +475,9 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
     else: #no optimization needed
         outputs = reduced_params
 
+    print('Step 2 completed.')
+    print('--------------------------------------------------------------------------------------------------')    
+    
     if len(reduced_params) == 0:
         full_params_opt = optimized_parameters.copy()
         likelihood = -objective_function(full_params_opt, include_allosomes=True)

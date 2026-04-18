@@ -395,7 +395,7 @@ class Population:
                     indiv.is_male = False
                 
                 if indiv.is_male and  len(indiv.allosomes[allosome_label]) == 2:
-                    logger.warning(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
+                    logger.info(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
                     assert indiv.allosomes[allosome_label][0].is_equal(indiv.allosomes[allosome_label][1]), f"Male Individual {indiv} has two different X chromosomes." 
                     indiv.allosomes[allosome_label] = [indiv.allosomes[allosome_label][0]]
                 indiv.is_male = (len(indiv.allosomes[allosome_label]) == 1) ## Males are now either individuals labeled as males, or individuals who have a single X chromsome in data file. 
@@ -412,7 +412,7 @@ class Population:
                     indiv.is_male = True
                 
                 else:
-                    raise ValueError("there should be one or two allosome copies")
+                    raise ValueError("There should be one or two allosome copies")
                 num_males_processed += indiv.is_male
             print(f"Identified {num_males_processed} males from allosomal data")
         self.males_set = True
