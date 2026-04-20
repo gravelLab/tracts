@@ -17,9 +17,13 @@ samples:
   allosomes: [X]
   
 output_filename_format: "ASW_test_output_{label}"
+log_filename: 'ASW_three_pulses.log'
+output_directory: ./output_three_pulses/
+verbose_log: 1
+verbose_screen: 30
+log_scale : True    
+  
 model_filename: ../models/ppx_xxp_pxx.yaml
-log_scale : True
-
 start_params: 
   t1: 9:12
   REUR: 0.8
@@ -37,6 +41,6 @@ unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with th
 exclude_tracts_below_cm: 2
 npts : 50
 #fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
-output_directory: ./output_three_pulses/
+
 ad_model_autosomes: M
 ad_model_allosomes: DC

@@ -2,7 +2,9 @@ import sys
 
 import logging
 import numpy as np
+import numpy.typing as npt
 import scipy.optimize
+from scipy.special import logit, expit
 from matplotlib import pylab
 import copy
 
@@ -14,50 +16,71 @@ from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.population import Population
 from tracts.util import eprint
 from tracts.demography.parameter import ParamType
-
-# Get logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.setLevel(logging.DEBUG)
 
-#: Counts calls to object_func
+# ----- Counts calls to object_func -----
 _counter = 0
 _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
 
-def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cutoff=0, verbose=0, flush_delay=1,
-                 maxiter=None, func_args=None, reset_counter=True, modelling_method=PhTMonoecious) -> np.ndarray:
+# ----- Helper functions to convert between optimizer space and physical space -----
+time_to_physical_function = lambda x:np.exp(x) # Converts time from optimizer units to physical units.
+rate_to_physical_function = lambda x: expit(x) # Converts rates from optimizer units to physical units.
+sex_bias_to_physical_function = lambda x: 2 * expit(x) - 1 # Converts sex-bias parameters from optimizer units to physical units.
+time_to_optimizer_function = lambda x: np.log(x) # Converts time from physical units to optimizer units.
+rate_to_optimizer_function = lambda x: logit(x) # Converts rates from physical units to optimizer units.
+def sex_bias_to_optimizer_function(y): # Converts sex-bias parameters from physical units to optimizer units.
+    with np.errstate(divide='ignore', invalid='ignore'):
+        log_result = np.log1p(y) - np.log1p(-y)
+        log_result = np.where(np.isfinite(log_result), log_result, -1e32)
+        return log_result
+
+# ------ Optimizers ------
+
+def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.ndarray], nsamp:int, 
+                 model_func:callable, outofbounds_fun:callable=None, cutoff:int=0, verbose_screen:int=0, 
+                 flush_delay:float=1, maxiter:int=None, func_args:list=None, reset_counter:bool=True) -> np.ndarray:
     """
-    Optimizes model parameters using the COBYLA method. Best suited for cases where initial values are close to the optimum, converging to a single minimum, and for parameters spanning different scales.
-    
+    Optimizes model parameters using the COBYLA method. Valid only for autosomal data. Admixture is modelled with 
+    the Monoecious model.
+
     Parameters
     ----------
 
-        p0: 
-            Initial parameters.
-        data:
+        p0: list
+            An array of initial parameters to start the optimization.
+        bins:npt.ArrayLike
+            A point grid on where the tract length distribution has to be evaluated.  
+        Ls: npt.ArrayLike
+            The lengths of the chromosomes present in data.
+        data:list[np.ndarray]
             Spectrum with data.
-        model_func:
-            Function to evaluate model spectrum. Should take arguments (params,
-           pts).
-        cutoff: default: 0   
-           The number of bins to drop at the beginning of the array. This could be
-           achieved with masks.
-        verbose: default: 0
-            If greater than zero, print optimization status every ``verbose`` steps.
-        flush_delay: default: 0.5
+        model_func:callable
+            A function that takes a parameter array and returns a dictionary of migration matrices for each population.
+        outofbounds_fun: callable, Optional
+            A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
+        cutoff: int, default:0 
+           The number of bins to drop at the beginning of the array. This could be achieved with masks.
+        verbose_screen: int, default: 0
+            If greater than zero, prints optimization status every ``verbose`` iterations.
+        flush_delay: float, default: 0.5
             Standard output will be flushed once every ``flush_delay`` minutes. This
            is useful to avoid overloading I/O on clusters.
-        maxiter: default: None
+        maxiter: int, default: None
             Maximum iterations to run for.
-        func_args: default: None
+        func_args: list, default: None
             List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
             first argument is an array of parameters to optimize.
-        reset_counter: default: True
+        reset_counter: bool, default: True
             Resets the iteration counter to zero. Set to False to
             continue iteration count (e.g., if optimization continues from previous point).
+
+    Returns
+    -------
+    
+
     """
-    print(modelling_method)
+    print(PhTMonoecious)
     if func_args is None:
         func_args = []
     if reset_counter:
@@ -65,43 +88,59 @@ def optimize_cob(p0, bins, Ls, data, nsamp, model_func, outofbounds_fun=None, cu
         _counter = 0
 
     fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func, outofbounds_fun=outofbounds_fun, cutoff=cutoff,
-                                 verbose=verbose, flush_delay=flush_delay, func_args=func_args,
-                                 modelling_method=modelling_method)
+                                 verbose=verbose_screen, flush_delay=flush_delay, func_args=func_args,
+                                 modelling_method=PhTMonoecious)
 
     outputs = scipy.optimize.fmin_cobyla(
         fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
 
     return outputs
 
-def optimize_cob_sex_biased(p0, population: Population, model_func, parameter_handler, outofbounds_fun=None, verbose=0, p_dict=None, exclude_tracts_below_cM=0, 
-                            maxiter=None, reset_counter=True, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
-    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
+def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler, outofbounds_fun:callable=None, 
+                            verbose_log:int=0, verbose_screen:int=10,p_dict:dict=None, exclude_tracts_below_cM:float=0, 
+                            maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
+                            ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
+    """
+    Optimizes log-likelihood over the set of parameters specified in the demographic model, for a given admixture model for autosomes and allosomes.
+    Optimization is performed in a single step, optimizing over all parameters simultaneously using autosomal and allosomal data. 
+
+    Arguments
+    ---------
+         
+
+    """
     
     if reset_counter:
         global _counter
         _counter = 0
     
-    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
+    # Load and process autosome data
+    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts,
+                                                                    exclude_tracts_below_cM=exclude_tracts_below_cM) 
     n_autosome_bins = len(autosome_bins)
-    
     autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
     for k, v in autosome_data.items():
         autosome_data_mapped[dict(p_dict)[k]] = v
     
-    if ad_model_allosomes is not None:
-        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+    if ad_model_allosomes is not None: # Include allosome data for inference
+        
+        # Load and process allosome data
+        allosome_bins, allosome_data = population.get_global_allosome_tractlengths(allosome='X',
+                                                                                npts=npts,
+                                                                                exclude_tracts_below_cM=exclude_tracts_below_cM)
         n_allosome_bins = len(allosome_bins)
         allosome_length = population.allosome_lengths['X']
         female_data = allosome_data[SexType.FEMALE]
         male_data = allosome_data[SexType.MALE]
         num_males = population.num_males
         num_females = population.num_females
-
-           
+        
+        # Allosome female data
         female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
         for k, v in female_data.items():
             female_data_mapped[dict(p_dict)[k]] = v
         
+        # Allosome male data
         male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
         for k, v in male_data.items():
             male_data_mapped[dict(p_dict)[k]] = v
@@ -111,9 +150,9 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, parameter_ha
         global _counter
         _counter += 1
 
-        def flush_result(result, note = str()):
-            if (verbose > 0) and (_counter % verbose == 0):
-                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(parameters)])) 
+        def flush_result(result, note = str()): 
+            param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(parameters)]))
+            if (verbose_log > 0) and (_counter % verbose_log == 0): # Adds iterations to log file
                 logger.info(
                      "iter=%-6d | obj=%-12g | params=%s %s",
                         _counter,
@@ -121,9 +160,10 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, parameter_ha
                         param_str,
                         note,
                     )
+            if (verbose_screen > 0) and (_counter % verbose_screen == 0): # Prints iterations on screen
+                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
                 
-        if outofbounds_fun is not None:
-            # outofbounds can return either True or a negative value to signify out-of-boundedness.
+        if outofbounds_fun is not None: # outofbounds can return either True or a negative value to signify out-of-boundedness.
             oob = outofbounds_fun(parameters)
             if oob < 0:
                 out = oob * _out_of_bounds_val-_min_out_of_bounds_val
@@ -179,11 +219,18 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, parameter_ha
         title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes and with the {ad_model_allosomes} model for allosomes."
     else:
         title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
-    print('\n--------------------------------------------------------------------------------------------------')
+    subtitle_message = "Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters\t Transmission\n---------------------------------------------------------------------\n"
+    
+    line = "-" * len(title_message)
+    print('\n' + line)
     print(title_message)
-    print('--------------------------------------------------------------------------------------------------')
-    print('Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters \t\t Transmission\n---------------------------------------------------------------------\n')
-           
+    print(line)
+
+    if (verbose_log > 0) and (_counter % verbose_log == 0):
+        logger.info(subtitle_message)
+    if (verbose_screen > 0) and (_counter % verbose_screen == 0):
+        print(subtitle_message)
+    
     outputs = scipy.optimize.fmin_cobyla(
         objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
@@ -191,9 +238,15 @@ def optimize_cob_sex_biased(p0, population: Population, model_func, parameter_ha
 
     return outputs, likelihood
 
-def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func, parameter_handler, outofbounds_fun=None, verbose=0,
-                 p_dict=None, exclude_tracts_below_cM=0, maxiter=None, reset_counter=True, ad_model_autosomes='DC', ad_model_allosomes='DC', npts=50) -> tuple[np.ndarray, float]:
-    """times in parameters here should be in scaled units (i.e., times are divided by scale), and model_func should take care of rescaling. """
+
+def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_func:callable, parameter_handler,
+                                    outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
+                                    p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
+                                    ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
+    """
+    Optimizes log-likelihood over the set of parameters specified in the demographic model, for a given admixture model for autosomes and allosomes. 
+    This function performs optimization in two steps.
+    """
 
     if reset_counter:
         global _counter
@@ -248,7 +301,7 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
         def flush_result(result, note = str()):
             param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters)]))
-            if (verbose > 0) and (_counter % verbose == 0):
+            if (verbose_log > 0) and (_counter % verbose_log == 0): # Add iteration to log file
                 logger.info(
                      "iter=%-6d | obj=%-12g | params=%s %s",
                         _counter,
@@ -256,7 +309,8 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
                         param_str,
                         note,
                     )
-                #eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))    
+            if (verbose_screen > 0) and (_counter % verbose_screen == 0): # Print iteration on screen
+                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))    
 
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
@@ -335,14 +389,19 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
         title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
         subtitle_message = f"Optimizing autosomal likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
     
-    print('\n--------------------------------------------------------------------------------------------------')
-    print(title_message)
-    print(subtitle_message)
+    line = "-" * len(title_message)
     
-    if verbose>0:
-        logger.info(title_message)
-        logger.info(subtitle_message)
-        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
+    for l in [line, title_message, subtitle_message]:
+        logger.info(l)
+        print(l)
+    
+    table_header = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
+    for l in [table_header, line]:
+        if verbose_log>0:
+            logger.info(l)
+        if verbose_screen>0:
+            print(l)
+            
 
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
     
@@ -363,17 +422,26 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
     if ad_model_allosomes is not None:
         print('Step 1 completed.')
-        print('--------------------------------------------------------------------------------------------------')
-        step_2_message = f"Step 2 : Optimizing autosomal + allosomal likelihood over parameters : {str(list(free_sex_bias_parameters.keys()))}.\nNon-sex-bias parameters fixed at values from previous optimization step."    
+        step_2_message_1 = f"Step 2 : Optimizing autosomal + allosomal likelihood over parameters : {str(list(free_sex_bias_parameters.keys()))}."
+        step_2_message = f"{step_2_message_1}\nNon-sex-bias parameters fixed at values from previous optimization step."    
+        line = "-" * len(step_2_message_1)
     else:
         step_2_message = f"Optimization completed."   
-    print(step_2_message)
-        
-    if verbose>0:
+        line = "-" * len(step_2_message)
+    
+    if verbose_log>0:
+        logger.info(line)
         logger.info(step_2_message)
-    if verbose>0 and ad_model_allosomes is not None:    
-        logger.info('Iter.\t Log-likelihood\t Model parameters \t\t Transmission')
-   
+        if ad_model_allosomes is not None:    
+            logger.info('Iter.\t Log-likelihood\t Model parameters\t Transmission')
+            logger.info(line)
+    if verbose_screen>0:
+        print(line)
+        print(step_2_message)
+        if ad_model_allosomes is not None:
+            print('Iter.\t Log-likelihood\t Model parameters\t Transmission')
+            print(line)
+
     best_objective = np.inf
     best_full_params = None
 
@@ -405,8 +473,9 @@ def optimize_cob_sex_biased_fixed_values(p0, population: Population, model_func,
 
     return best_full_params, -best_objective      
 
+# ------------------- Unused functions -------------------
 
-# NOTE: All the functions below are not used. Consider removing them or moving them elsewhere.
+# NOTE: All the functions below are not used or maintained. Consider removing them or moving them elsewhere.
 
 def plotmig(mig, colordict=None, order=None):
     if colordict is None:

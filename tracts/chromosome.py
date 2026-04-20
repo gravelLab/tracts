@@ -2,7 +2,6 @@ from tracts.tract import Tract
 from tracts.util import eprint
 import numpy as np
 
-
 class Chrom:
     """ A chromosome wraps a list of tracts, which form a partition on it. The
         chromosome has a finite, immutable length.
@@ -152,10 +151,6 @@ class Chrom:
                 newlabel: string    
                     The identifier for the new ancestry to assign to the
                     matching tracts.
-
-            Returns
-            -------
-                Nothing.
             """
         for _tract in self.tracts:
             if _tract.label in ancestries:

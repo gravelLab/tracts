@@ -1,6 +1,7 @@
 import itertools
 import warnings
 from abc import ABC, abstractmethod
+import logging 
 
 import numpy as np
 import numpy.typing as npt
@@ -10,8 +11,9 @@ from scipy.special import gammaln
 from sklearn.preprocessing import normalize
 
 from tracts.util import all_same_sign
+logger = logging.getLogger(__name__)
 
-#warnings.filterwarnings("ignore")
+# -------- Helper function --------
 
 def get_survival_factors(migration_matrix):
     """
@@ -25,7 +27,7 @@ def get_survival_factors(migration_matrix):
                 1 - sum(migration_matrix[generation_number - 1]))
     return survival_factors
 
-
+# -------- Phase-Type class --------
 class PhaseTypeDistribution(ABC):
     """
     A class representing the phase-type distribution of tract lengths
@@ -168,7 +170,9 @@ class PhaseTypeDistribution(ABC):
             else:
                 exp_Sx = exp_Sx_per_bin[bin_number]
             if bin_val < L:
-                CDF_values[bin_number] = prop_connected * ((self.inner_CDF(bin_val, L, S, exp_Sx, alpha, S0_inv) +
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", np.ComplexWarning)
+                    CDF_values[bin_number] = prop_connected * np.real((self.inner_CDF(bin_val, L, S, exp_Sx, alpha, S0_inv) +
                                                             self.outer_CDF(bin_val, L, S, exp_Sx, alpha, S0_inv))) / Z
             else:
                 #CDF_values[bin_number:] = prop_connected * (
@@ -179,7 +183,7 @@ class PhaseTypeDistribution(ABC):
         ETL = prop_connected * ETL + prop_isolated * L
         return CDF_values, ET, Z, ETL
 
-    def tractlength_histogram(self, population_number: int, bins: npt.ArrayLike, density=False) -> npt.ArrayLike:
+    def tractlength_histogram(self, population_number: int, bins: npt.ArrayLike, density:bool=False) -> npt.ArrayLike:
         """
         Gets the tractlength histogram or density on evaluated on a point grid
         using a PhT object. This function considers an infinite chromosome.

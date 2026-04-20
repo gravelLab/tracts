@@ -10,8 +10,6 @@ from tracts.demography import ParametrizedDemography, ParametrizedDemographySexB
 from tracts import legacy_models
 from tracts import logs
 from tracts import legacy
-from tracts import driver
+from tracts import driver, driver_utils
 from tracts import hybrid_pedigree
-
-from tracts.logs import show_INFO
 from tracts.driver import run_tracts
