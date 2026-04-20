@@ -2,11 +2,19 @@ tracts.doc\_utils
 =================
 
 .. automodule:: tracts.doc_utils
+   :no-members:
 
-   
-   .. rubric:: Functions
 
-   .. autosummary::
-   
-      prepare_example_outputs_for_docs
-   
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   prepare_example_outputs_for_docs
+
+
+
+

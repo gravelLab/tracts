@@ -28,8 +28,11 @@ To implement this example, we use the following driver file:
      allosomes: [X]
      
    output_filename_format: "ASW_test_output_{label}"
-   model_filename: ../models/ppx_xxp_pxx.yaml
-   log_scale : True
+   log_filename: 'ASW_three_pulses.log'
+   output_directory: ./output_three_pulses/
+   verbose_log: 1
+   verbose_screen: 30
+   log_scale : True 
    
    start_params: 
      t1: 10

@@ -2,12 +2,20 @@ tracts.chromosome
 =================
 
 .. automodule:: tracts.chromosome
+   :no-members:
 
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-   
-      Chrom
-      Chropair
-   
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   Chrom
+   Chropair
+
+

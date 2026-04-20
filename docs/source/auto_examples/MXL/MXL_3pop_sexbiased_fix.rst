@@ -47,7 +47,14 @@ To implement this example, we use the following driver file:
      labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
      chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
      allosomes: [X]
+     
    output_filename_format: "MXL_test_output_{label}"
+   log_filename: 'ASW_continuous_pulse.log'
+   output_directory: ./output_continuous_pulse/
+   verbose_log: 1
+   verbose_screen: 30
+   log_scale : True
+     
    model_filename: ../models/ccc.yaml
    start_params: 
      t1: 13.5
@@ -59,14 +66,14 @@ To implement this example, we use the following driver file:
      REUR_sex_bias: -0.99 # more males
      RNAT_sex_bias: 0.99 # more females
      RAFR_sex_bias: -0.1
-   repetitions: 1
+   repetitions: 3
    seed: 100
    maximum_iterations: 1000
    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
    exclude_tracts_below_cm: 2
    npts : 50
-   #fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
-   output_directory: ./output_continuous_pulse/
+   fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
+
    ad_model_autosomes : M
    ad_model_allosomes : DC
 
@@ -106,7 +113,7 @@ X chromosome admixture in males
    :width: 700px
    :alt: Native American ancestry tract histogram
 
-.. GENERATED FROM PYTHON SOURCE LINES 91-109
+.. GENERATED FROM PYTHON SOURCE LINES 98-116
 
 
 
@@ -123,156 +130,50 @@ X chromosome admixture in males
 
     ------------------------------------------------------------------------------------------------
 
-    excluding_tracts_below Defaulting to 2.0 cM.
-    Individual NA19649 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19652 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19655 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19658 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19661 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19664 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19670 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19676 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19679 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19682 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19717 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19720 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19723 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19726 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19729 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19732 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19735 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19741 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19747 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19750 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19756 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19759 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19762 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19771 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19774 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19777 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19780 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19783 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19786 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19789 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19792 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19795 is listed as male but has two X chromosomes. Selecting first of the two.
-    Parameter "REUR_male" already exists.
-    Parameter "RNAT_male" already exists.
-    Parameter "RAFR_male" already exists.
-    Parameter "REUR_female" already exists.
-    Parameter "RNAT_female" already exists.
-    Parameter "RAFR_female" already exists.
-    Parameter "t1" already exists.
-    Parameter "t2" already exists.
-
+    excluding_tracts_below set to 2.0 cM.
+    Ancestries: ['EUR', 'NAT', 'AFR']
     Data autosome proportions: [0.468066   0.49277278 0.03920868]
     Data allosome proportions: [0.33731709 0.62309703 0.03958588]
     Model parameters : ['REUR', 'REUR_sex_bias', 'RNAT', 'RNAT_sex_bias', 'RAFR', 'RAFR_sex_bias', 't1', 't2']
 
-    Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
-    ---------------------------------------------------
+    A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization.
+
     Run | Starting parameters                          
     ---------------------------------------------------
-      1 | [1e-09, -1, 0.2, 0.99, 1e-09, -1, 13.58, 7.821]
-      2 | [1e-09, -1, 0.2, 0.99, 1e-09, -1, 13.2, 7.07]
-      3 | [1e-09, -1, 0.2, 0.99, 1e-09, -1, 12.79, 6.644]
+      1 | [0.1899, -0.8308, 0.2, 0.8, 0.01589, 0.03968, 13.58, 7.821]
     ---------------------------------------------------
 
-    Starting ancestry proportions for the starting parameters
-    -------------------------------------------------------------------------------
-    Run | X_autosomal                         | X_X                                
-    -------------------------------------------------------------------------------
-      1 | [1.432e-07, 1, 1.432e-07          ] | [5.598e-08, 1, 5.598e-08          ]
-      2 | [1.318e-07, 1, 1.318e-07          ] | [4.442e-08, 1, 4.442e-08          ]
-      3 | [1.319e-07, 1, 1.319e-07          ] | [5.326e-08, 1, 5.326e-08          ]
-    -------------------------------------------------------------------------------
+    Optimization run #1
 
-    Optimization run # 1 
-    --------------------
-
-    --------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------
     Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
     Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['RNAT', 't1', 't2']
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
+    Step 1 : Optimizing autosomal likelihood over parameters ['RNAT', 't1', 't2'].
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
     /home/jgonzale/Documents/PhaseType/tracts/tracts/demography/base_parametrized_demography.py:743: RuntimeWarning: The iteration is not making good progress, as measured by the 
       improvement from the last ten iterations.
       solved_params = scipy.optimize.fsolve(param_objective_func, start_point_validated)
-    1       , -1183.63    , array([ 0.178479   , -1          ,  0.2        ,  0          ,  0.0145663  , -0.999118   ,  13.5805    ,  7.82068    ]), Autosomes
-    --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['RNAT_sex_bias']
+    /home/jgonzale/Documents/PhaseType/tracts/tracts/demography/base_parametrized_demography.py:743: RuntimeWarning: The iteration is not making good progress, as measured by the 
+      improvement from the last ten iterations.
+      solved_params = scipy.optimize.fsolve(param_objective_func, start_point_validated)
+    Step 1 completed.
+    -----------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['RNAT_sex_bias'].
     Non-sex-bias parameters fixed at values from previous optimization step.
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    2       , -180.666    , array([ 0.178479   , -1          ,  0.2        ,  0          ,  0.0145663  , -0.999118   ,  13.5805    ,  7.82068    ]), Female allosomes
-    2       , -133.06     , array([ 0.178479   , -1          ,  0.2        ,  0          ,  0.0145663  , -0.999118   ,  13.5805    ,  7.82068    ]), Male allosomes
-    2       , -1183.63    , array([ 0.178479   , -1          ,  0.2        ,  0          ,  0.0145663  , -0.999118   ,  13.5805    ,  7.82068    ]), Autosomes
-
-    Optimization run # 2 
-    --------------------
-
-    --------------------------------------------------------------------------------------------------
-    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
-    Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['RNAT', 't1', 't2']
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    1       , -1032.01    , array([ 0.176057   , -1          ,  0.2        ,  0          ,  0.0143354  , -0.999293   ,  13.1998    ,  7.0705     ]), Autosomes
-    --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['RNAT_sex_bias']
-    Non-sex-bias parameters fixed at values from previous optimization step.
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    2       , -186.482    , array([ 0.176057   , -1          ,  0.2        ,  0          ,  0.0143354  , -0.999293   ,  13.1998    ,  7.0705     ]), Female allosomes
-    2       , -131.432    , array([ 0.176057   , -1          ,  0.2        ,  0          ,  0.0143354  , -0.999293   ,  13.1998    ,  7.0705     ]), Male allosomes
-    2       , -1032.01    , array([ 0.176057   , -1          ,  0.2        ,  0          ,  0.0143354  , -0.999293   ,  13.1998    ,  7.0705     ]), Autosomes
-
-    Optimization run # 3 
-    --------------------
-
-    --------------------------------------------------------------------------------------------------
-    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
-    Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['RNAT', 't1', 't2']
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    1       , 1.38742e+16 , array([ 0.177507   , -1          ,  0.2        ,  0          ,  0.0144051  , -0.996442   ,  12.7871    ,  6.64385    ]), OOB (oob=-1.3874232232356553e-16)
-    --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['RNAT_sex_bias']
-    Non-sex-bias parameters fixed at values from previous optimization step.
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    2       , 1.38742e+16 , array([ 0.177507   , -1          ,  0.2        ,  0          ,  0.0144051  , -0.996442   ,  12.7871    ,  6.64385    ]), OOB (oob=-1.3874232232356553e-16)
-    3       , 1.38742e+16 , array([ 0.177507   , -1          ,  0.2        ,  0          ,  0.0144051  , -0.996442   ,  12.7871    ,  6.64385    ]), OOB (oob=-1.3874232232356553e-16)
-
-    ---------------------------------------------------------------------------
-    Results from multiple optimization runs with different starting parameters:
-    -------------------------------------
-    Run |       LogLik | Found parameters
-    -------------------------------------
-      1 |     -1497.36 | [0.1785, -1, 0.2, 0, 0.01457, -0.9991, 13.58, 7.821]
-      2 |     -1349.92 | [0.1761, -1, 0.2, 0, 0.01434, -0.9993, 13.2, 7.07]
-      3 | -1.38742e+16 | [0.1775, -1, 0.2, 0, 0.01441, -0.9964, 12.79, 6.644]
-    -------------------------------------
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    /home/jgonzale/Documents/PhaseType/tracts/tracts/demography/base_parametrized_demography.py:743: RuntimeWarning: The iteration is not making good progress, as measured by the 
+      improvement from the last ten iterations.
+      solved_params = scipy.optimize.fsolve(param_objective_func, start_point_validated)
+    Step 2 completed.
+    -----------------------------------------------------------------------------------------
 
     Final parameters and corresponding likelihood:
     -------------------------------------------------------------------------------------------------------------------------
           LogLik |         REUR REUR_sex_bias         RNAT RNAT_sex_bias         RAFR RAFR_sex_bias           t1           t2
     -------------------------------------------------------------------------------------------------------------------------
-        -1349.92 |       0.1761           -1          0.2            0      0.01434      -0.9993         13.2         7.07
+        -1497.36 |       0.1785           -1          0.2            0      0.01457      -0.9991        13.58        7.821
     -------------------------------------------------------------------------------------------------------------------------
     Results saved to : ./output_continuous_pulse/
 
@@ -308,7 +209,7 @@ X chromosome admixture in males
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (3 minutes 9.451 seconds)
+   **Total running time of the script:** (2 minutes 40.155 seconds)
 
 
 .. _sphx_glr_download_auto_examples_MXL_MXL_3pop_sexbiased_fix.py:

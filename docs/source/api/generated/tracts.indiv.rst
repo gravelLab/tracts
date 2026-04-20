@@ -2,11 +2,19 @@ tracts.indiv
 ============
 
 .. automodule:: tracts.indiv
+   :no-members:
 
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-   
-      Indiv
-   
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   Indiv
+
+

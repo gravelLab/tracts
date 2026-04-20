@@ -6,6 +6,7 @@
    tracts.chromosome
    tracts.core
    tracts.driver
+   tracts.driver_utils
    tracts.population
    tracts.tract
    tracts.util

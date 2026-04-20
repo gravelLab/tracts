@@ -45,8 +45,14 @@ To implement this example, we use the following driver file:
      labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
      chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
      allosomes: [X]
+     
    output_filename_format: "ASW_test_output_{label}"
-   model_filename: ../models/ppx_xxp_pxx.yaml
+   log_filename: 'ASW_three_pulses.log'
+   output_directory: ./output_three_pulses/
+   verbose_log: 1
+   verbose_screen: 30
+   log_scale : True 
+   
    start_params: 
      t1: 10
      REUR: 0.8
@@ -57,7 +63,7 @@ To implement this example, we use the following driver file:
      REUR_sex_bias: 0.1
      REUR2_sex_bias: 0.1
      RAFR_sex_bias: 0.1
-   repetitions: 1
+   repetitions: 3
    seed: 100
    maximum_iterations: 1000
    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
@@ -104,7 +110,7 @@ X chromosome admixture in males
    :width: 700px
    :alt: Native American ancestry tract histogram
 
-.. GENERATED FROM PYTHON SOURCE LINES 90-108
+.. GENERATED FROM PYTHON SOURCE LINES 96-114
 
 
 
@@ -121,143 +127,35 @@ X chromosome admixture in males
 
     ------------------------------------------------------------------------------------------------
 
-    excluding_tracts_below Defaulting to 2.0 cM.
-    Individual NA19700 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19703 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19711 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19818 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19834 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19900 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19904 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19908 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19916 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19920 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19922 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19982 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA19984 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20126 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20278 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20281 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20291 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20298 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20318 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20340 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20342 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20346 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20348 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20351 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20356 is listed as male but has two X chromosomes. Selecting first of the two.
-    Individual NA20362 is listed as male but has two X chromosomes. Selecting first of the two.
-    Parameter "REUR_male" already exists.
-    Parameter "REUR_female" already exists.
-    Parameter "t1" already exists.
-    Parameter "RAFR_male" already exists.
-    Parameter "RAFR_female" already exists.
-    Parameter "t2" already exists.
-    Parameter "REUR2_male" already exists.
-    Parameter "REUR2_female" already exists.
-    Parameter "t3" already exists.
-
+    excluding_tracts_below set to 2.0 cM.
+    Ancestries: ['EUR', 'NAT', 'AFR']
     Data autosome proportions: [0.19578862 0.03825495 0.76595643]
     Data allosome proportions: [0.16839124 0.03818939 0.79341937]
     Model parameters : ['REUR', 'REUR_sex_bias', 't1', 'RAFR', 'RAFR_sex_bias', 't2', 'REUR2', 'REUR2_sex_bias', 't3']
 
-    Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
-    ---------------------------------------------------
+    A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization.
+
     Run | Starting parameters                          
     ---------------------------------------------------
       1 | [0.8, 0.1, 9.867, 0.9, 0.1, 6.789, 0.2, 0.1, 3.064]
-      2 | [0.8, 0.1, 9.854, 0.9, 0.1, 6.8, 0.2, 0.1, 2.506]
-      3 | [0.8, 0.1, 11.99, 0.9, 0.1, 5.966, 0.2, 0.1, 3.074]
     ---------------------------------------------------
 
-    Starting ancestry proportions for the starting parameters
-    -------------------------------------------------------------------------------
-    Run | X_autosomal                         | X_X                                
-    -------------------------------------------------------------------------------
-      1 | [0.264, 0.016, 0.72               ] | [0.2685, 0.01486, 0.7166          ]
-      2 | [0.2641, 0.01599, 0.7199          ] | [0.2686, 0.01485, 0.7165          ]
-      3 | [0.264, 0.016, 0.72               ] | [0.2686, 0.01482, 0.7166          ]
-    -------------------------------------------------------------------------------
+    Optimization run #1
 
-    Optimization run # 1 
-    --------------------
-
-    --------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------
     Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
     Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 't1', 'RAFR', 't2', 'REUR2', 't3']
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    1       , -1685.99    , array([ 0.8        ,  0          ,  9.86659    ,  0.9        ,  0          ,  6.78942    ,  0.2        ,  0          ,  3.06446    ]), Autosomes
-    --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RAFR_sex_bias', 'REUR2_sex_bias']
+    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 't1', 'RAFR', 't2', 'REUR2', 't3'].
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    Step 1 completed.
+    ----------------------------------------------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RAFR_sex_bias', 'REUR2_sex_bias'].
     Non-sex-bias parameters fixed at values from previous optimization step.
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    2       , -280.706    , array([ 0.8        ,  0          ,  9.86659    ,  0.9        ,  0          ,  6.78942    ,  0.2        ,  0          ,  3.06446    ]), Female allosomes
-    2       , -99.7598    , array([ 0.8        ,  0          ,  9.86659    ,  0.9        ,  0          ,  6.78942    ,  0.2        ,  0          ,  3.06446    ]), Male allosomes
-    2       , -1685.99    , array([ 0.8        ,  0          ,  9.86659    ,  0.9        ,  0          ,  6.78942    ,  0.2        ,  0          ,  3.06446    ]), Autosomes
-
-    Optimization run # 2 
-    --------------------
-
-    --------------------------------------------------------------------------------------------------
-    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
-    Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 't1', 'RAFR', 't2', 'REUR2', 't3']
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    1       , -2059.43    , array([ 0.8        ,  0          ,  9.85422    ,  0.9        ,  0          ,  6.79974    ,  0.2        ,  0          ,  2.50584    ]), Autosomes
-    --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RAFR_sex_bias', 'REUR2_sex_bias']
-    Non-sex-bias parameters fixed at values from previous optimization step.
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    2       , -296.701    , array([ 0.8        ,  0          ,  9.85422    ,  0.9        ,  0          ,  6.79974    ,  0.2        ,  0          ,  2.50584    ]), Female allosomes
-    2       , -101.388    , array([ 0.8        ,  0          ,  9.85422    ,  0.9        ,  0          ,  6.79974    ,  0.2        ,  0          ,  2.50584    ]), Male allosomes
-    2       , -2059.43    , array([ 0.8        ,  0          ,  9.85422    ,  0.9        ,  0          ,  6.79974    ,  0.2        ,  0          ,  2.50584    ]), Autosomes
-
-    Optimization run # 3 
-    --------------------
-
-    --------------------------------------------------------------------------------------------------
-    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
-    Optimization is performed in two steps.
-    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 't1', 'RAFR', 't2', 'REUR2', 't3']
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    1       , -2032.15    , array([ 0.8        ,  0          ,  11.993     ,  0.9        ,  0          ,  5.96578    ,  0.2        ,  0          ,  3.07429    ]), Autosomes
-    --------------------------------------------------------------------------------------------------
-    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RAFR_sex_bias', 'REUR2_sex_bias']
-    Non-sex-bias parameters fixed at values from previous optimization step.
-    --------------------------------------------------------------------------------------------------
-    Iter.    Log-likelihood  Model parameters                Transmission
-    ---------------------------------------------------------------------
-
-    2       , -292.249    , array([ 0.8        ,  0          ,  11.993     ,  0.9        ,  0          ,  5.96578    ,  0.2        ,  0          ,  3.07429    ]), Female allosomes
-    2       , -100.626    , array([ 0.8        ,  0          ,  11.993     ,  0.9        ,  0          ,  5.96578    ,  0.2        ,  0          ,  3.07429    ]), Male allosomes
-    2       , -2032.15    , array([ 0.8        ,  0          ,  11.993     ,  0.9        ,  0          ,  5.96578    ,  0.2        ,  0          ,  3.07429    ]), Autosomes
-
-    ---------------------------------------------------------------------------
-    Results from multiple optimization runs with different starting parameters:
-    -------------------------------------
-    Run |       LogLik | Found parameters
-    -------------------------------------
-      1 |     -2066.45 | [0.8, 0, 9.867, 0.9, 0, 6.789, 0.2, 0, 3.064]
-      2 |     -2457.52 | [0.8, 0, 9.854, 0.9, 0, 6.8, 0.2, 0, 2.506]
-      3 |     -2425.03 | [0.8, 0, 11.99, 0.9, 0, 5.966, 0.2, 0, 3.074]
-    -------------------------------------
+    Iter.    Log-likelihood  Model parameters        Transmission
+    ----------------------------------------------------------------------------------------------------------------------------
+    Step 2 completed.
+    ----------------------------------------------------------------------------------------------------------------------------
 
     Final parameters and corresponding likelihood:
     ---------------------------------------------------------------------------------------------------------------------------------------
@@ -299,7 +197,7 @@ X chromosome admixture in males
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 29.684 seconds)
+   **Total running time of the script:** (0 minutes 25.916 seconds)
 
 
 .. _sphx_glr_download_auto_examples_ASW_ASW_three_pulses.py:

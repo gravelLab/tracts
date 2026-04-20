@@ -40,8 +40,6 @@ sphinx_gallery_conf = {
     "run_stale_examples": True
 }
 
-autosummary_generate = True
-
 templates_path = ['_templates']
 exclude_patterns = [
     "auto_examples/**/*.ipynb",
@@ -54,14 +52,16 @@ exclude_patterns = [
 
 autodoc_default_options = {
     "members": True,
-    "undoc-members": True,
+    "undoc-members": False,
     "inherited-members": False,
+    "imported-members": False,
     "show-inheritance": True,
-    "special-members": "__init__",
+    "exclude-members": "__dict__,__weakref__,__module__,__pydantic_core_schema__,__pydantic_validator__,__pydantic_serializer__",
 }
 
 autosummary_generate = True
 autosummary_imported_members = False
+add_module_names = False
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
