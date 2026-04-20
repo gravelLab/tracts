@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import logging 
 
 import numpy as np
+from numpy.exceptions import ComplexWarning
 import numpy.typing as npt
 import scipy
 from scipy import sparse, integrate
@@ -171,7 +172,7 @@ class PhaseTypeDistribution(ABC):
                 exp_Sx = exp_Sx_per_bin[bin_number]
             if bin_val < L:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", np.ComplexWarning)
+                    warnings.filterwarnings("ignore", category=ComplexWarning)
                     CDF_values[bin_number] = prop_connected * np.real((self.inner_CDF(bin_val, L, S, exp_Sx, alpha, S0_inv) +
                                                             self.outer_CDF(bin_val, L, S, exp_Sx, alpha, S0_inv))) / Z
             else:
