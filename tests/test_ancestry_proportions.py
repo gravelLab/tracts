@@ -1,5 +1,5 @@
-from tracts.driver import locate_file_path, load_driver_file
-from tracts.driver import load_population, load_model_from_driver
+from tracts.driver_utils import locate_file_path, load_driver_file
+from tracts.driver_utils import load_population, load_model_from_driver
 import numpy as np
 from pathlib import Path
 
