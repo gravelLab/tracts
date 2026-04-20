@@ -561,28 +561,6 @@ class Population:
         """
         return [ind.ancestryPropsByChrom(ancestries) for ind in self.indivs]
 
-    # def get_assortment_variance(self,ancestries):
-    #     """ancestries is a set of ancestry label. Calculates the assortment variance in
-    # ancestry proportions (corresponds to the mean uncertainty about the proportion of
-    # genealogical ancestors, given observed ancestry patterns)"""
-
-    # ws=np.array(self.Ls)/np.sum(self.Ls) #the weights, corresponding (approximately) to the inverse variances
-    #     arr=np.array(self.getMeansByChrom(ancestries))
-    # weighted mean by individual
-    # departure from the mean
-    #     nchr=arr.shape[2]
-    #     vars=[]
-    #     for i in range(len(ancestries)):
-    #         pl=np.dot(arr[:,i,:], ws )
-
-    #         aroundmean=arr[:,i,:]-np.dot(pl.reshape(self.nind,1),np.ones((1,nchr)))
-    #         vars.append((np.mean(aroundmean**2/(1./ws-1),axis=1)).mean())
-    # the unbiased estimator for the case where the variance is
-    # inversely proportional to the weight. First calculate by
-    # individual, then the mean over all individuals.
-
-    #     return vars
-
     def get_variance(self, ancestries):
         """ Ancestries is a set of ancestry labels. Calculates the total variance
             in ancestry proportions, and the genealogy variance, and the

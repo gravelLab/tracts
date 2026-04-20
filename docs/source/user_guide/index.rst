@@ -98,9 +98,8 @@ A continuous migration
 
 Continuous migration between generations ``t1`` and ``t2`` can be specified as below.
 
-.. important::
-
-   **Sex-bias specification**
+.. admonition:: Sex-bias specification
+   :class: tip
 
    Each migration proportion will be automatically associated with a corresponding sex-bias parameter, which specifies the proportion of female migrants. For a given migration rate ``R``, this parameter is defined as ``R_sex_bias = 2 * (F_R - 1/2)``, where ``F_R ∈ (0,1)`` denotes the proportion of female migrants in the pulse. Consequently, ``R_sex_bias = 1`` corresponds to exclusively female migration, ``R_sex_bias = -1`` to exclusively male migration, and ``R_sex_bias = 0`` to unbiased migration.
 
@@ -199,16 +198,14 @@ Parameters and optimization
 - ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 - ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 
-.. important::
-
-   **Using fix_parameters_from_ancestry_proportions**
+.. admonition:: Using ``fix_parameters_from_ancestry_proportions``
+   :class: tip
 
    This option fixes a specified subset of parameters to values computed from the observed ancestry proportions in the sample. These parameters are then excluded from the optimization, reducing the dimension of the parameter space and improving convergence speed. However, it also constrains the optimization problem, which may make it more difficult for the optimizer to reach a good optimum; in practice, this often results in a lower likelihood compared to leaving all parameters free. When using this option, we recommended to set ``repetitions > 1``.  
 
 		
-
-Output files
-^^^^^^^^^^^^
+Output
+^^^^^^
 
 .. code-block:: yaml
 
@@ -220,9 +217,10 @@ Output files
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
 - ``output_filename_format``: The file name format for the output files.
-- ``log_filename`` : The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
-- ``verbose`` : Controls the level of detail reported during execution. If greater than zero, prints optimization status every ``verbose`` steps.
 - ``log_scale``: Whether the tract lenght distributions are depicted in log-scaled counts. Default is ``True``.
+- ``log_filename`` : The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
+- ``verbose_log`` : Controls the level of detail reported in the log file during execution. If greater than zero, logs optimization status every ``verbose`` steps.
+- ``verbose_screen`` : Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every ``verbose`` steps.
 
 .. _run-tracts:
 

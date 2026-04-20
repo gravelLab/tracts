@@ -19,7 +19,8 @@ samples:
 output_filename_format: "ASW_test_output_{label}"
 output_directory: ./output_three_pulses/
 log_filename: 'ASW_three_pulses.log'
-verbose: 1
+verbose_log: 1
+verbose_screen: 30
 log_scale : True
 
 model_filename: ../models/ppx_xxp_pxx.yaml

@@ -8,12 +8,13 @@ samples:
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-1
   allosomes: [X]
+  
 model_filename: pp.yaml
 start_params: 
   tx: 6:8
   R: 0
+  
 repetitions: 2
 seed: 100
 exclude_tracts_below_cm: 0
-time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 output_filename_format: "driver_test_{label}"
