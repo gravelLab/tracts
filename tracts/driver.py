@@ -4,7 +4,7 @@ from typing import Callable
 import numpy as np
 from tracts.population import Population
 from tracts.core import optimize_cob, optimize_cob_sex_biased, optimize_cob_sex_biased_fixed_values
-from tracts.core import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
+from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
 from tracts.phase_type_distribution import PhTMonoecious
 from tracts.demography.parameter import ParamType
 from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, output_simulation_data_sex_biased

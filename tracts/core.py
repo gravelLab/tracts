@@ -4,7 +4,6 @@ import logging
 import numpy as np
 import numpy.typing as npt
 import scipy.optimize
-from scipy.special import logit, expit
 from matplotlib import pylab
 import copy
 
@@ -22,18 +21,6 @@ logger = logging.getLogger(__name__)
 _counter = 0
 _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
-
-# ----- Helper functions to convert between optimizer space and physical space -----
-time_to_physical_function = lambda x:np.exp(x) # Converts time from optimizer units to physical units.
-rate_to_physical_function = lambda x: expit(x) # Converts rates from optimizer units to physical units.
-sex_bias_to_physical_function = lambda x: 2 * expit(x) - 1 # Converts sex-bias parameters from optimizer units to physical units.
-time_to_optimizer_function = lambda x: np.log(x) # Converts time from physical units to optimizer units.
-rate_to_optimizer_function = lambda x: logit(x) # Converts rates from physical units to optimizer units.
-def sex_bias_to_optimizer_function(y): # Converts sex-bias parameters from physical units to optimizer units.
-    with np.errstate(divide='ignore', invalid='ignore'):
-        log_result = np.log1p(y) - np.log1p(-y)
-        log_result = np.where(np.isfinite(log_result), log_result, -1e32)
-        return log_result
 
 # ------ Optimizers ------
 

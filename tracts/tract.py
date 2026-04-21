@@ -1,29 +1,53 @@
 class Tract:
-    """ A tract is the lower-level object of interest. All the remaining
-        structure is built on top of lists of tracts. In essence, a tract is
-        simply a labelled interval.
+    """
+    Represent a labeled genomic interval.
+
+    A tract is the basic object manipulated by Tracts. Higher-level
+    structures are built from collections of tracts. Each tract is
+    defined by an interval and an associated label, typically
+    corresponding to an ancestry.
+
+    Parameters
+    ----------
+    start : float
+        Starting position of the tract, in Morgans.
+    end : float
+        Ending position of the tract, in Morgans.
+    label : str
+        Identifier associated with the tract. In most applications,
+        this corresponds to the ancestry carried by the tract.
+    bpstart : int, optional
+        Starting position of the tract, in base pairs. This attribute
+        is optional, since Tracts primarily uses Morgans internally.
+        Default is ``None``.
+    bpend : int, optional
+        Ending position of the tract, in base pairs. This attribute
+        is optional, since Tracts primarily uses Morgans internally.
+        Default is ``None``.
     """
 
     def __init__(self, start, end, label, bpstart=None, bpend=None):
-        """ Constructor.
+        """
+        Initialize a :class:`Tract` instance.
 
-            Parameters
-            ----------
-                start: float
-                    The starting point of this tract, in Morgans.
-                end: float)
-                    The ending point of this tract, in Morgans.
-                label: string
-                    A meaningful identifier for this tract. Generally this
-                    marks the ancestry associated with this tract.
-                bpstart: int, default: None
-                    The starting point of this tract, in basepairs.
-                    Since the rest of Tracts uses Morgans throughout,
-                    specifying this parameter is not necessary for Tracts to
-                    function correctly.
-                bpend: int, default: None
-                    The ending point of this tract, in basepairs.
-            """
+        Parameters
+        ----------
+        start : float
+            Starting position of the tract, in Morgans.
+        end : float
+            Ending position of the tract, in Morgans.
+        label : str
+            Identifier associated with the tract. In most applications,
+            this corresponds to the ancestry carried by the tract.
+        bpstart : int, optional
+            Starting position of the tract, in base pairs. This attribute
+            is optional, since Tracts primarily uses Morgans internally.
+            Default is ``None``.
+        bpend : int, optional
+            Ending position of the tract, in base pairs. This attribute
+            is optional, since Tracts primarily uses Morgans internally.
+            Default is ``None``.
+        """
         self.start = start
         self.end = end
         self.label = label
@@ -31,22 +55,63 @@ class Tract:
         self.bpend = bpend
 
     def len(self):
-        """ Gets the length of the tract (in Morgans) """
+        """
+        Return the length of the tract in Morgans.
+
+        Returns
+        -------
+        float
+            Length of the tract, computed as ``end - start``.
+        """
         return self.end - self.start
 
     def get_label(self):
-        """ Gets the label of the tract. """
+        """
+        Return the label of the tract.
+
+        Returns
+        -------
+        str
+            Label associated with the tract.
+        """
         return self.label
 
     def copy(self):
-        """ Constructs a new tract whose properties are the same as this one.
-            """
+        """
+        Return a copy of the tract.
+
+        Returns
+        -------
+        Tract
+            New :class:`Tract` instance with the same attributes as the
+            current tract.
+        """
         return Tract(
-            self.start, self.end, self.label, self.bpstart, self.bpend)
+            self.start, self.end, self.label, self.bpstart, self.bpend
+        )
 
     def __repr__(self):
         return "tract(%s, %s, %s)" % tuple(
-            map(repr, [self.start, self.end, self.label]))
+            map(repr, [self.start, self.end, self.label])
+        )
+
     def is_equal(self, other):
-        """ Check if two tracts are equal, in terms of their start, end, and label. """
-        return self.start == other.start and self.end == other.end and self.label == other.label
+        """
+        Check whether two tracts have the same start, end, and label.
+
+        Parameters
+        ----------
+        other : Tract
+            Tract to compare with the current instance.
+
+        Returns
+        -------
+        bool
+            ``True`` if both tracts have identical ``start``, ``end``,
+            and ``label`` attributes, and ``False`` otherwise.
+        """
+        return (
+            self.start == other.start
+            and self.end == other.end
+            and self.label == other.label
+        )
