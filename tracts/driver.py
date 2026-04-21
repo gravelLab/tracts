@@ -111,7 +111,8 @@ def run_tracts(driver_filename: str, script_dir: str):
     if len(driver_spec.fix_parameters_from_ancestry_proportions) > 0: # Set up fixed parameters if specified in the driver
         
         if allosome_label:
-            model.parameter_handler.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
+            model.parameter_handler.set_up_fixed_parameters(demography=model,
+                                                            params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
                                                             proportions={
                                                             f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
                                                             f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
@@ -204,7 +205,6 @@ def run_tracts(driver_filename: str, script_dir: str):
             row_values.append(f"[{arr_str:<33}]")
 
         anc_line = f"{1+i:>3} | " + " | ".join(row_values)
-        #print(anc_line)
         logger.info(anc_line)
     
 

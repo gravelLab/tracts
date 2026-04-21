@@ -28,8 +28,11 @@ To implement this example, we use the following driver file:
    allosomes: [X]
    
    output_filename_format: "ASW_test_output_{label}"
-   model_filename: ../models/ppp.yaml
-   log_scale : True
+   log_filename: 'ASW_one_pulse.log'
+   output_directory: ./output_one_pulse/
+   verbose_log: 1
+   verbose_screen: 30
+   log_scale : True  
    
    start_params: 
     t: 5:8

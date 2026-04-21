@@ -2,19 +2,21 @@
 ======
 
 .. automodule:: tracts
+   :no-members:
 
-   
+
 .. rubric:: Modules
 
 .. autosummary::
-   :toctree:
-   :recursive:
+   :toctree: .
+
 
    chromosome
    core
    demography
    doc_utils
    driver
+   driver_utils
    haploid
    hybrid_pedigree
    indiv
@@ -25,3 +27,9 @@
    population
    tract
    util
+
+
+
+
+
+

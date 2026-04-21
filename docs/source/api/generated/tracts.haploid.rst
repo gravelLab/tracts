@@ -2,11 +2,19 @@ tracts.haploid
 ==============
 
 .. automodule:: tracts.haploid
+   :no-members:
 
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-   
-      Haploid
-   
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   Haploid
+
+

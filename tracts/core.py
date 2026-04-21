@@ -429,13 +429,13 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         step_2_message = f"Optimization completed."   
         line = "-" * len(step_2_message)
     
-    if verbose_log>0:
+    if len(reduced_params)>0 and verbose_log>0:
         logger.info(line)
         logger.info(step_2_message)
         if ad_model_allosomes is not None:    
             logger.info('Iter.\t Log-likelihood\t Model parameters\t Transmission')
             logger.info(line)
-    if verbose_screen>0:
+    if len(reduced_params)>0 and verbose_screen>0:
         print(line)
         print(step_2_message)
         if ad_model_allosomes is not None:
@@ -450,10 +450,14 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         outputs = scipy.optimize.fmin_cobyla(
             reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
         print('Step 2 completed.')
+        print(line)
+
     else: # No optimization needed
+        end_message = f"No parameters to optimize in step 2. Optimization completed."
+        for l in [end_message, "-" * len(end_message)]:
+            print(l)
+            logger.info(l)
         outputs = reduced_params
-    
-    print('--------------------------------------------------------------------------------------------------')    
     
     if len(reduced_params) == 0 and ad_model_allosomes is not None:
         full_params_opt = optimized_parameters.copy()

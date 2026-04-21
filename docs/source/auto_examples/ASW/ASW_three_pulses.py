@@ -26,8 +26,14 @@ To implement this example, we use the following driver file:
      labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
      chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
      allosomes: [X]
+     
    output_filename_format: "ASW_test_output_{label}"
-   model_filename: ../models/ppx_xxp_pxx.yaml
+   log_filename: 'ASW_three_pulses.log'
+   output_directory: ./output_three_pulses/
+   verbose_log: 1
+   verbose_screen: 30
+   log_scale : True 
+   
    start_params: 
      t1: 10
      REUR: 0.8
@@ -38,7 +44,7 @@ To implement this example, we use the following driver file:
      REUR_sex_bias: 0.1
      REUR2_sex_bias: 0.1
      RAFR_sex_bias: 0.1
-   repetitions: 1
+   repetitions: 3
    seed: 100
    maximum_iterations: 1000
    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  

@@ -2,11 +2,19 @@ tracts.tract
 ============
 
 .. automodule:: tracts.tract
+   :no-members:
 
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-   
-      Tract
-   
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   Tract
+
+

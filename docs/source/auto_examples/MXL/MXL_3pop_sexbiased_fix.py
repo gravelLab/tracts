@@ -28,7 +28,14 @@ To implement this example, we use the following driver file:
      labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
      chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
      allosomes: [X]
+     
    output_filename_format: "MXL_test_output_{label}"
+   log_filename: 'ASW_continuous_pulse.log'
+   output_directory: ./output_continuous_pulse/
+   verbose_log: 1
+   verbose_screen: 30
+   log_scale : True
+     
    model_filename: ../models/ccc.yaml
    start_params: 
      t1: 13.5
@@ -40,14 +47,14 @@ To implement this example, we use the following driver file:
      REUR_sex_bias: -0.99 # more males
      RNAT_sex_bias: 0.99 # more females
      RAFR_sex_bias: -0.1
-   repetitions: 1
+   repetitions: 3
    seed: 100
    maximum_iterations: 1000
    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
    exclude_tracts_below_cm: 2
    npts : 50
-   #fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
-   output_directory: ./output_continuous_pulse/
+   fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
+
    ad_model_autosomes : M
    ad_model_allosomes : DC
 
