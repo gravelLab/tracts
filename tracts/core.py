@@ -46,38 +46,38 @@ def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.nda
 
     Parameters
     ----------
-
-        p0: list
-            An array of initial parameters to start the optimization.
-        bins:npt.ArrayLike
-            A point grid on where the tract length distribution has to be evaluated.  
-        Ls: npt.ArrayLike
-            The lengths of the chromosomes present in data.
-        data:list[np.ndarray]
-            Spectrum with data.
-        model_func:callable
-            A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-        outofbounds_fun: callable, Optional
-            A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-        cutoff: int, default:0 
-           The number of bins to drop at the beginning of the array. This could be achieved with masks.
-        verbose_screen: int, default: 0
-            If greater than zero, prints optimization status every ``verbose`` iterations.
-        flush_delay: float, default: 0.5
-            Standard output will be flushed once every ``flush_delay`` minutes. This
-           is useful to avoid overloading I/O on clusters.
-        maxiter: int, default: None
-            Maximum iterations to run for.
-        func_args: list, default: None
-            List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
-            first argument is an array of parameters to optimize.
-        reset_counter: bool, default: True
-            Resets the iteration counter to zero. Set to False to
-            continue iteration count (e.g., if optimization continues from previous point).
+    p0: list
+        An array of initial parameters to start the optimization.
+    bins:npt.ArrayLike
+        A point grid on where the tract length distribution has to be evaluated.  
+    Ls: npt.ArrayLike
+        The lengths of the chromosomes present in data.
+    data:list[np.ndarray]
+        Spectrum with data.
+    model_func:callable
+        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
+    outofbounds_fun: callable, Optional
+        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
+    cutoff: int, default:0 
+        The number of bins to drop at the beginning of the array. This could be achieved with masks.
+    verbose_screen: int, default: 0
+        If greater than zero, prints optimization status every ``verbose`` iterations.
+    flush_delay: float, default: 0.5
+        Standard output will be flushed once every ``flush_delay`` minutes. This
+        is useful to avoid overloading I/O on clusters.
+    maxiter: int, default: None
+        Maximum iterations to run for.
+    func_args: list, default: None
+        List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
+        first argument is an array of parameters to optimize.
+    reset_counter: bool, default: True
+        Resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point).
 
     Returns
     -------
-    
+    np.ndarray
+        An array containing the optimal parameters found by the optimizer.
 
     """
     print(PhTMonoecious)
@@ -96,18 +96,52 @@ def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.nda
 
     return outputs
 
-def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler, outofbounds_fun:callable=None, 
-                            verbose_log:int=0, verbose_screen:int=10,p_dict:dict=None, exclude_tracts_below_cM:float=0, 
+def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler=None, outofbounds_fun:callable=None, 
+                            verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
                             maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
                             ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
     """
-    Optimizes log-likelihood over the set of parameters specified in the demographic model, for a given admixture model for autosomes and allosomes.
-    Optimization is performed in a single step, optimizing over all parameters simultaneously using autosomal and allosomal data. 
+    Optimizes the log-likelihood over all parameters defined by the demographic model, given a specified pair of admixture models for autosomes and allosomes.
+    The optimization is carried out jointly in a single step, estimating all parameters simultaneously using both autosomal and allosomal data.
 
-    Arguments
-    ---------
-         
+    Parameters
+    ----------    
+    p0: list
+            An array of initial parameters to start the optimization.
+    population: :class:`tracts.population.Population`
+        A Population object containing the data to fit.
+    model_func: callable
+        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
+    parameter_handler: ParameterHandler, optional
+        An object that handles parameter transformations and fixed parameters. Default is None.
+    outofbounds_fun: callable, Optional
+        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
+    cutoff: int, default:0 
+        The number of bins to drop at the beginning of the array. This could be achieved with masks.
+    verbose_log: int, default: 0
+        If greater than zero, logs optimization status every ``verbose`` iterations.
+    verbose_screen: int, default: 0
+        If greater than zero, prints optimization status every ``verbose`` iterations.
+    p_dict: dict
+        A dictionary mapping population labels to their corresponding indices in the model.
+    exclude_tracts_below_cM: float, optional
+        Minimum tract length in centimorgans to exclude from analysis. Default is 0.
+    maxiter: int, default: None
+        Maximum iterations to run for.
+    reset_counter: bool, default: True
+        Resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point).
+    ad_model_autosomes: str, optional
+        The model to use for autosomal admixture. Must be one of 'DC', 'DF', 'M', 'H-DC' or 'H-DF'. Default is 'DC'.
+    ad_model_allosomes: str, optional
+        The model to use for allosomal admixture. Must be one of 'DC', 'DF', 'H-DC' or 'H-DF'. Default is 'DC'. If None, allosomal admixture will not be modeled.
+    npts: int, optional
+        Number of bins for the tract length histogram. Default is 50.
 
+    Returns
+    -------
+    tuple [np.ndarray, float]
+        A tuple containing the optimal parameters found and the corresponding likelihood.
     """
     
     if reset_counter:
@@ -244,8 +278,48 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
                                     ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
     """
-    Optimizes log-likelihood over the set of parameters specified in the demographic model, for a given admixture model for autosomes and allosomes. 
-    This function performs optimization in two steps.
+    Optimizes the log-likelihood over all parameters defined by the demographic model, for a specified admixture model applied to both autosomes and allosomes.
+    The procedure is carried out in two steps: first, the non–sex-bias parameters are estimated by maximizing the log-likelihood using autosomal data only.
+    Second, the sex-bias parameters are estimated using both autosomal and allosomal data.
+
+    Parameters
+    ----------    
+    p0: list
+            An array of initial parameters to start the optimization.
+    population: :class:`tracts.population.Population`
+        A Population object containing the data to fit.
+    model_func: callable
+        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
+    parameter_handler: ParameterHandler, optional
+        An object that handles parameter transformations and fixed parameters. Default is None.
+    outofbounds_fun: callable, Optional
+        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
+    cutoff: int, default:0 
+        The number of bins to drop at the beginning of the array. This could be achieved with masks.
+    verbose_log: int, default: 0
+        If greater than zero, logs optimization status every ``verbose`` iterations.
+    verbose_screen: int, default: 0
+        If greater than zero, prints optimization status every ``verbose`` iterations.
+    p_dict: dict
+        A dictionary mapping population labels to their corresponding indices in the model.
+    exclude_tracts_below_cM: float, optional
+        Minimum tract length in centimorgans to exclude from analysis. Default is 0.
+    maxiter: int, default: None
+        Maximum iterations to run for.
+    reset_counter: bool, default: True
+        Resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point).
+    ad_model_autosomes: str, optional
+        The model to use for autosomal admixture. Must be one of 'DC', 'DF', 'M', 'H-DC' or 'H-DF'. Default is 'DC'.
+    ad_model_allosomes: str, optional
+        The model to use for allosomal admixture. Must be one of 'DC', 'DF', 'H-DC' or 'H-DF'. Default is 'DC'. If None, allosomal admixture will not be modeled.
+    npts: int, optional
+        Number of bins for the tract length histogram. Default is 50.
+
+    Returns
+    -------
+    tuple [np.ndarray, float]
+        A tuple containing the optimal parameters found and the corresponding likelihood.
     """
 
     if reset_counter:

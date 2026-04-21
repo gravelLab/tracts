@@ -16,7 +16,7 @@ def run_tracts(driver_filename: str, script_dir: str):
     Main function to run tracts with a specified driver file. This function runs the inference pipeline based on the information provided in the driver file, and produces output files with the results.
     For details on how to specify the driver file, see the online documentation and user guide.
 
-    Arguments
+    Parameters
     ----------
     driver_filename: str
         The name of the driver file to use.
@@ -322,7 +322,6 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
 
     Returns
     ----------
-    
     tuple[list[np.ndarray], list[float]]
     	A tuple containing two lists: (i) a list of optimal parameters found for each set of starting parameters and (ii) a list of likelihoods corresponding to the optimal parameters.
     """
@@ -362,13 +361,13 @@ def run_model(model_func: callable, bound_func: callable, population: Population
     """
     Runs the optimization for any demographic model, including sex-biased models. This function allows to run the old optimization function optimize_cob.
 
-    Arguments
+    Parameters
     ----------
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
     bound_func: callable
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    population: Population
+    population: :class:`tracts.population.Population`
         A Population object containing the data to fit.
     population_labels: list[str]
     	A list of labels corresponding to the populations.	
@@ -398,12 +397,12 @@ def run_model(model_func: callable, bound_func: callable, population: Population
         Whether to run the optimize_cob function. Default is False.
         
     Returns
-    ----------
+    -------
     tuple [np.ndarray, float]
         A tuple containing the optimal parameters found and the corresponding likelihood.
 
-    Details
-    -------
+    Notes
+    -----
     The optimize_cob function implements the PhTMonoecious model on autosomal data. Corresponds to the previous version of tracts. 
 
     """
@@ -459,13 +458,13 @@ def run_model_sex_biased(model_func: callable, bound_func: callable, population:
     """
     Runs the optimization for any demographic model, including sex-biased models. Works with only autosomal admixture or with both autosomal and allosomal admixture.
     
-    Arguments
+    Parameters
     ----------
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
     bound_func: callable
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    population: Population
+    population: :class:`tracts.population.Population`
         A Population object containing the data to fit.
     startparams: list
         An array of initial parameters to start the optimization.
@@ -494,7 +493,6 @@ def run_model_sex_biased(model_func: callable, bound_func: callable, population:
     ----------
     tuple [np.ndarray, float]
         A tuple containing the optimal parameters found and the corresponding likelihood.
-    
     """
     if not two_steps_optimization:
         optimal_params, optimal_likelihood = optimize_cob_sex_biased(p0=startparams, 
