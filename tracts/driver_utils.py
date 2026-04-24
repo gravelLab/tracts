@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.stats import poisson
 from tracts.population import Population
-import tracts.hybrid_pedigree as HP
-from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
+from tracts.phase_type import hybrid_pedigree as HP
+from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parametrized_demography_sex_biased import SexType
@@ -588,13 +588,44 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     # Autosomal admixture model predictions
     if ad_model_autosomes in ['DC','DF']:
-        autosome_predicted={pop:PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_autosomes).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                                                bins=autosome_bins,
+                                                                                                                chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     elif ad_model_autosomes == 'M':
-        autosome_predicted={pop:PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
+                                            rho=1).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                        bins=autosome_bins,
+                                                                                        chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     elif ad_model_autosomes == 'H-DC':
-        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=False, X_chr_male=False, N_cores=5, population_number= pop_num, bins=autosome_bins, chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DC',
+                                                                            rho_f=1,
+                                                                            rho_m=1,
+                                                                            X_chr=False,
+                                                                            X_chr_male=False,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=autosome_bins,
+                                                                            chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     else:
-        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=False, X_chr_male=False, N_cores=5, population_number= pop_num, bins=autosome_bins, chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DF',
+                                                                            rho_f=1,
+                                                                            rho_m=1,
+                                                                            X_chr=False,
+                                                                            X_chr_male=False,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=autosome_bins,
+                                                                            chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     
     # Save autosome results
     with open(output_dir + output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
@@ -622,7 +653,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # Allosomal data and predictions (if applicable)
     if ad_model_allosomes is not None:
         # Allosomal data
-        allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths(allosome='X',
+                                                                                        npts=npts,
+                                                                                        exclude_tracts_below_cM=exclude_tracts_below_cM)
         allosome_length = sample_population.allosome_lengths['X']
         female_data = allosome_data[SexType.FEMALE]
         male_data = allosome_data[SexType.MALE]
@@ -631,14 +664,72 @@ def output_simulation_data_sex_biased(sample_population: Population,
  
         # Allosomal admixture model predictions
         if ad_model_allosomes in ['DC','DF']:
-            female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
-            male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+            female_predicted = {pop: PhTDioecious(migration_matrix_f=female_matrix,
+                                                migration_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                sex_model=ad_model_allosomes,
+                                                X_chromosome=True).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                                        bins=allosome_bins,
+                                                                                                        chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop: PhTDioecious(migration_matrix_f=female_matrix,
+                                                migration_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                sex_model=ad_model_allosomes,
+                                                X_chromosome=True,
+                                                X_chromosome_male=True).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                                            bins=allosome_bins,
+                                                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
         elif ad_model_allosomes == 'H-DC':
-            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                                mig_matrix_m=male_matrix,
+                                                                                TP=2,
+                                                                                D_model='DC',
+                                                                                rho_f=1,
+                                                                                rho_m=1,
+                                                                                X_chr=True,
+                                                                                X_chr_male=False,
+                                                                                N_cores=5,
+                                                                                population_number=pop_num,
+                                                                                bins=allosome_bins,
+                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DC',
+                                                                            rho_f=1,
+                                                                            rho_m=1,
+                                                                            X_chr=True,
+                                                                            X_chr_male=True,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=allosome_bins,
+                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
         else:
-            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                                mig_matrix_m=male_matrix,
+                                                                                TP=2,
+                                                                                D_model='DF',
+                                                                                rho_f=1,
+                                                                                rho_m=1,
+                                                                                X_chr=True,
+                                                                                X_chr_male=False,
+                                                                                N_cores=5,
+                                                                                population_number=pop_num,
+                                                                                bins=allosome_bins,
+                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DF',
+                                                                            rho_f=1, rho_m=1,
+                                                                            X_chr=True,
+                                                                            X_chr_male=True,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=allosome_bins,
+                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
     
         # Save allosome results
         with open(output_dir + output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:

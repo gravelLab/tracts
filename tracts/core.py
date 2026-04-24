@@ -7,8 +7,8 @@ import scipy.optimize
 from matplotlib import pylab
 import copy
 
-import tracts.hybrid_pedigree as HP
-from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
+from tracts.phase_type import hybrid_pedigree as HP
+from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.demographic_model import DemographicModel
 from tracts.demography.composite_demographic_model import CompositeDemographicModel
 from tracts.demography.parametrized_demography_sex_biased import SexType
@@ -203,26 +203,130 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
 
         # Model for autosomes
         if ad_model_autosomes == 'M':
-            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
-            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+            model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
+                                rho=1)
+            result_autosomes = model.loglik(bins=autosome_bins,
+                                        Ls=population.Ls,
+                                        data=[mat for mat in autosome_data_mapped],
+                                        num_samples=len(population.indivs),
+                                        cutoff=0)
         elif ad_model_autosomes == 'H-DC':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+            result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
+                                        mig_matrix_m=male_matrix,
+                                        rho_f=1,
+                                        rho_m=1,
+                                        TP = 2,
+                                        Dioecious_model = 'DC',
+                                        X_chr = False,
+                                        X_chr_male = False,
+                                        N_cores = 5,
+                                        bins=autosome_bins,
+                                        Ls=population.Ls,
+                                        data=[mat for mat in autosome_data_mapped],
+                                        num_samples=len(population.indivs),
+                                        cutoff=0)
         elif ad_model_autosomes == 'H-DF':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+            result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
+                                        mig_matrix_m=male_matrix,
+                                        rho_f=1,
+                                        rho_m=1,
+                                        TP = 2,
+                                        Dioecious_model = 'DF',
+                                        X_chr = False,
+                                        X_chr_male = False,
+                                        N_cores = 5,
+                                        bins=autosome_bins,
+                                        Ls=population.Ls,
+                                        data=[mat for mat in autosome_data_mapped],
+                                        num_samples=len(population.indivs),
+                                        cutoff=0)
         else:
-            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+            result_autosomes = PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_autosomes).loglik(bins=autosome_bins,
+                                                                                Ls=population.Ls,
+                                                                                data=[mat for mat in autosome_data_mapped],
+                                                                                num_samples=len(population.indivs))
         
-        if ad_model_allosomes is not None:
-            # Model for allosomes
+        if ad_model_allosomes is not None: # Model for allosomes
+            
             if ad_model_allosomes == 'H-DC':
-                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                                mig_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                TP = 2,
+                                                Dioecious_model = 'DC',
+                                                X_chr = True,
+                                                X_chr_male = False,
+                                                N_cores = 5,
+                                                bins=allosome_bins,
+                                                Ls=[allosome_length],
+                                                data=[mat for mat in female_data_mapped],
+                                                num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                            mig_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            TP = 2,
+                                            Dioecious_model = 'DC',
+                                            X_chr = True,
+                                            X_chr_male = True,
+                                            N_cores = 5,
+                                            bins=allosome_bins,
+                                            Ls=[allosome_length],
+                                            data=[mat for mat in male_data_mapped],
+                                            num_samples=num_males, cutoff=0)
+                
             elif ad_model_allosomes == 'H-DF':
-                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                                mig_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                TP = 2,
+                                                Dioecious_model = 'DF',
+                                                X_chr = True,
+                                                X_chr_male = False,
+                                                N_cores = 5,
+                                                bins=allosome_bins,
+                                                Ls=[allosome_length],
+                                                data=[mat for mat in female_data_mapped],
+                                                num_samples=num_females, cutoff=0)
+                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                            mig_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            TP = 2,
+                                            Dioecious_model = 'DF',
+                                            X_chr = True,
+                                            X_chr_male = True,
+                                            N_cores = 5,
+                                            bins=allosome_bins,
+                                            Ls=[allosome_length],
+                                            data=[mat for mat in male_data_mapped],
+                                            num_samples=num_males, cutoff=0)   
             else:
-                result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
-                result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
+                result_X_females = PhTDioecious(migration_matrix_f=female_matrix,
+                                                migration_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                sex_model=ad_model_allosomes,
+                                                X_chromosome=True).loglik(bins=allosome_bins,
+                                                                        Ls=[allosome_length],
+                                                                        data=[mat for mat in female_data_mapped],
+                                                                        num_samples=num_females)
+                result_X_males = PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_allosomes,
+                                            X_chromosome=True,
+                                            X_chromosome_male=True).loglik(bins=allosome_bins,
+                                                                        Ls=[allosome_length],
+                                                                        data=[mat for mat in male_data_mapped],
+                                                                        num_samples=num_males)
         else:
             result_X_females = 0
             result_X_males = 0
@@ -394,28 +498,132 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
 
         # Model for autosomes
         if ad_model_autosomes == 'M':
-            model = PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1)
-            result_autosomes = model.loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+            model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
+                                rho=1)
+            result_autosomes = model.loglik(bins=autosome_bins,
+                                            Ls=population.Ls,
+                                            data=[mat for mat in autosome_data_mapped],
+                                            num_samples=len(population.indivs))
         elif ad_model_autosomes == 'H-DC':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+            result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
+                                        mig_matrix_m=male_matrix,
+                                        rho_f=1,
+                                        rho_m=1,
+                                        TP = 2,
+                                        Dioecious_model = 'DC',
+                                        X_chr = False,
+                                        X_chr_male = False,
+                                        N_cores = 5,
+                                        bins=autosome_bins,
+                                        Ls=population.Ls,
+                                        data=[mat for mat in autosome_data_mapped],
+                                        num_samples=len(population.indivs), cutoff=0)
         elif ad_model_autosomes == 'H-DF':
-            result_autosomes=HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = False, X_chr_male = False, N_cores = 5, bins=autosome_bins, Ls=population.Ls, data=[mat for mat in autosome_data_mapped], num_samples=len(population.indivs), cutoff=0)
+            result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
+                                        mig_matrix_m=male_matrix,
+                                        rho_f=1,
+                                        rho_m=1,
+                                        TP = 2,
+                                        Dioecious_model = 'DF',
+                                        X_chr = False,
+                                        X_chr_male = False,
+                                        N_cores = 5,
+                                        bins=autosome_bins,
+                                        Ls=population.Ls,
+                                        data=[mat for mat in autosome_data_mapped],
+                                        num_samples=len(population.indivs), cutoff=0)
         else:
             assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
-            result_autosomes = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).loglik(autosome_bins, population.Ls, [mat for mat in autosome_data_mapped], len(population.indivs))
+            result_autosomes = PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_autosomes).loglik(bins=autosome_bins,
+                                                                                Ls=population.Ls,
+                                                                                data=[mat for mat in autosome_data_mapped],
+                                                                                num_samples=len(population.indivs))
         
-        if include_allosomes:
-            # Model for allosomes
+        if include_allosomes: # Model for allosomes
+            
             if ad_model_allosomes == 'H-DC':
-                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DC', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)
+                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                                mig_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                TP = 2,
+                                                Dioecious_model = 'DC',
+                                                X_chr = True,
+                                                X_chr_male = False,
+                                                N_cores = 5,
+                                                bins=allosome_bins,
+                                                Ls=[allosome_length],
+                                                data=[mat for mat in female_data_mapped],
+                                                num_samples=num_females, cutoff=0)
+                
+                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                              mig_matrix_m=male_matrix,
+                                              rho_f=1,
+                                              rho_m=1,
+                                              TP = 2,
+                                              Dioecious_model = 'DC',
+                                              X_chr = True,
+                                              X_chr_male = True,
+                                              N_cores = 5,
+                                              bins=allosome_bins,
+                                              Ls=[allosome_length],
+                                              data=[mat for mat in male_data_mapped],
+                                              num_samples=num_males, cutoff=0)
+                
             elif ad_model_allosomes == 'H-DF':
-                result_X_females = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = False, N_cores = 5, bins=allosome_bins, Ls=[allosome_length], data=[mat for mat in female_data_mapped], num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(female_matrix, male_matrix, rr_f=1, rr_m=1, TP = 2, Dioecious_model = 'DF', X_chr = True, X_chr_male = True, N_cores = 5, bins=allosome_bins, Ls=[allosome_length],data=[mat for mat in male_data_mapped], num_samples=num_males, cutoff=0)   
+                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                                mig_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                TP = 2,
+                                                Dioecious_model = 'DF',
+                                                X_chr = True,
+                                                X_chr_male = False,
+                                                N_cores = 5,
+                                                bins=allosome_bins,
+                                                Ls=[allosome_length],
+                                                data=[mat for mat in female_data_mapped],
+                                                num_samples=num_females,
+                                                cutoff=0)
+                
+                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                            mig_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            TP = 2,
+                                            Dioecious_model = 'DF',
+                                            X_chr = True,
+                                            X_chr_male = True,
+                                            N_cores = 5,
+                                            bins=allosome_bins,
+                                            Ls=[allosome_length],
+                                            data=[mat for mat in male_data_mapped],
+                                            num_samples=num_males, cutoff=0)   
             else:
-                result_X_females = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).loglik(allosome_bins, [allosome_length], [mat for mat in female_data_mapped], num_females)
-                result_X_males = PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).loglik(allosome_bins, [allosome_length], [mat for mat in male_data_mapped], num_males)
-        
+                result_X_females = PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_allosomes,
+                                            X_chromosome=True).loglik(bins=allosome_bins,
+                                                                    Ls=[allosome_length],
+                                                                    data=[mat for mat in female_data_mapped],
+                                                                    num_samples=num_females)
+                result_X_males = PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_allosomes,
+                                            X_chromosome=True,
+                                            X_chromosome_male=True).loglik(bins=allosome_bins,
+                                                                        Ls=[allosome_length],
+                                                                        data=[mat for mat in male_data_mapped],
+                                                                        num_samples=num_males)
+
             result = (result_autosomes + result_X_females + result_X_males)
             flush_result(result_X_females, 'Female allosomes')
             flush_result(result_X_males, 'Male allosomes')

@@ -212,7 +212,8 @@ Output
    output_directory: ./output_files/
    output_filename_format: "filename_{label}"
    log_filename: 'my_example.log'
-   verbose: 1
+   verbose_log: 1
+   verbose_screen: 1
    log_scale: True
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.

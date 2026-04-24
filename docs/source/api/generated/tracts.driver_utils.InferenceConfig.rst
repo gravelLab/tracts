@@ -4,5 +4,6 @@ tracts.driver\_utils.InferenceConfig
 .. currentmodule:: tracts.driver_utils
 
 .. autoclass:: InferenceConfig
+   :members:
    :show-inheritance:
-   :no-members:
+   :exclude-members: ad_model_allosomes, ad_model_autosomes, exclude_tracts_below_cm, fix_parameters_from_ancestry_proportions, log_filename, log_scale, maximum_iterations, model_filename, npts, output_directory, output_filename_format, repetitions, samples, seed, start_params, two_steps_optimization, unknown_labels_for_smoothing, verbose_log, verbose_screen, allosomes, chromosomes, directory, filename_format, individual_names, labels, male_names

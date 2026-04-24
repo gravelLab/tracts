@@ -1,4 +1,4 @@
-tracts.population
+﻿tracts.population
 =================
 
 .. automodule:: tracts.population
@@ -13,6 +13,7 @@ tracts.population
    :toctree: .
 
 
+   _split_indivs
    collect_pop
    preprocess_color_dict
 

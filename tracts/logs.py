@@ -50,9 +50,9 @@ def set_log_file(log_filename: str | Path, memory_handler):
     it will buffer log records in memory until the file handler is added, 
     at which point it will flush the buffered records to the file.
     
-    Arguments
-    ---------
-        log_filename (str | Path): The name of the log file to write to.   
+    Parameters
+    ----------
+        log_filename (str | Path): The name of the log file to write to.      
     """
 
     logger = logging.getLogger(LOGGER_NAME)

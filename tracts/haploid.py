@@ -23,7 +23,6 @@ class Haploid:
         	An optional name for the haploid.
     """
 
-
     @staticmethod
     def from_file(path, name=None, selectchrom=None, allosome_labels=set()):
         # TODO move the loading logic from the constructor to this static
