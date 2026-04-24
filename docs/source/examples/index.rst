@@ -146,6 +146,8 @@ The following model is written in the file ``ccc.yaml``.
 
    data_description
    data_processing
+   ../auto_examples/ASW/index
+   ../auto_examples/MXL/index
    
 
 

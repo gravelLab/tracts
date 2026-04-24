@@ -445,14 +445,6 @@ def test_ancestry_fixing_two_samples_three_founders():
     assert np.isclose(final_proportions1.sum(), 1.0)
     assert np.isclose(final_proportions2.sum(), 1.0)
 
-
-
-
-
-
-
-
-
 def test_ancestry_fixing_with_pulse_migration():
     """
     Test the ancestry fixing functionality for a model with two founders and one pulse migration.
@@ -507,9 +499,6 @@ def test_ancestry_fixing_with_pulse_migration():
     test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 4
-
-
-
 
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)

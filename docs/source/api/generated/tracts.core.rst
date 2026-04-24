@@ -1,4 +1,4 @@
-tracts.core
+﻿tracts.core
 ===========
 
 .. automodule:: tracts.core
@@ -13,6 +13,12 @@ tracts.core
    :toctree: .
 
 
+   _object_func
+   _object_func_fracs
+   _object_func_fracs2
+   _object_func_multifracs
+   _project_params_down
+   _project_params_up
    optimize
    optimize_bfgs
    optimize_brute_fracs2
@@ -25,12 +31,6 @@ tracts.core
    optimize_cob_sex_biased_fixed_values
    optimize_slsqp
    plotmig
-   rate_to_optimizer_function
-   rate_to_physical_function
-   sex_bias_to_optimizer_function
-   sex_bias_to_physical_function
-   time_to_optimizer_function
-   time_to_physical_function
 
 
 

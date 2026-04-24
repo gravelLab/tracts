@@ -2,16 +2,17 @@ import matplotlib.pyplot as plt
 import numpy
 import pytest
 import scipy
-from tracts.hybrid_pedigree import hybrid_pedigree_distribution
+from tracts.phase_type.hybrid_pedigree import hybrid_pedigree_distribution
 
 from test_data import bins, Ls
 from tracts import DemographicModel
-from tracts.phase_type_distribution import PhTDioecious, PhTMonoecious, PhaseTypeDistribution
+from tracts.phase_type.base_phase_type import PhaseTypeDistribution
+from tracts.phase_type.monoecious import PhTMonoecious
+from tracts.phase_type.dioecious import PhTDioecious
 
 """
 Tests for component methods of tracts core
 """
-
 
 @pytest.fixture
 def migration_matrix_A():
@@ -51,21 +52,35 @@ def test_PDT_Monoecious(data, request):
     assert numpy.isclose(numpy.linalg.det(PTD.full_transition_matrix), 0)
     assert numpy.allclose(numpy.dot(PTD.equilibrium_distribution, PTD.full_transition_matrix), 0)
 
-
 def verify_similar_ptd_models(ptd_first: PhaseTypeDistribution, ptd_second: PhaseTypeDistribution,
                               atol: float = 0.02):
-    newbins, counts_first, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                        density=True, freq=False)
-    newbins, counts_second, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                          density=True, freq=False)
-    newbins, counts_first_freq, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                             density=True, freq=True)
-    newbins, counts_second_freq, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                               density=True, freq=True)
-    outbins, counts_first_hist, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                    density=False)
-    outbins, counts_second_hist, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                      density=False)
+    newbins, counts_first, E = ptd_first.tractlength_histogram_windowed(population_number=0,
+                                                                        bins=bins, L=Ls[1],
+                                                                        density=True,
+                                                                        freq=False)
+    newbins, counts_second, E = ptd_second.tractlength_histogram_windowed(population_number=0,
+                                                                        bins=bins,
+                                                                        L=Ls[1],
+                                                                        density=True,
+                                                                        freq=False)
+    newbins, counts_first_freq, E = ptd_first.tractlength_histogram_windowed(population_number=0,
+                                                                            bins=bins,
+                                                                            L=Ls[1],
+                                                                            density=True,
+                                                                            freq=True)
+    newbins, counts_second_freq, E = ptd_second.tractlength_histogram_windowed(population_number=0,
+                                                                            bins=bins,
+                                                                            L=Ls[1],
+                                                                            density=True,
+                                                                            freq=True)
+    outbins, counts_first_hist, E = ptd_first.tractlength_histogram_windowed(population_number=0,
+                                                                            bins=bins,
+                                                                            L=Ls[1],
+                                                                            density=False)
+    outbins, counts_second_hist, E = ptd_second.tractlength_histogram_windowed(population_number=0,
+                                                                            bins=bins,
+                                                                            L=Ls[1],
+                                                                            density=False)
 
     # Densities must be close
     assert numpy.all(numpy.isclose(counts_first, counts_second, atol=atol))
@@ -77,8 +92,7 @@ def verify_similar_ptd_models(ptd_first: PhaseTypeDistribution, ptd_second: Phas
 # Test t0_proportions computation
 
 def verify_same_t0_proportions_unbiased(ptd_autosome: PhaseTypeDistribution,
-                              ptd_X: PhaseTypeDistribution,
-                              atol: float = 0.02):
+                              ptd_X: PhaseTypeDistribution, atol: float = 0.02):
     
     if ptd_autosome.X_chr or not ptd_X.X_chr:
         raise Exception("The first and second models need to be autosomal and allosomal, respectively.")
@@ -195,19 +209,19 @@ def test_pedigree(data, request):
     migration_matrix = request.getfixturevalue(data)
     # Densities
     result_bins, counts_HP_aut = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                              bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                              X_chr=False, X_chr_male=False, N_cores=5,
-                                                              density=True, freq=False)
+                                                            mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
+                                                            bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
+                                                            X_chr=False, X_chr_male=False, N_cores=5,
+                                                            density=True, freq=False)
     result_bins, counts_HP_X = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                             mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                            bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                            bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                             X_chr=True,
                                                             X_chr_male=False, N_cores=5, density=True,
                                                             freq=False)
     result_bins, counts_HP_Xm = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                             bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                             bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                              X_chr=True,
                                                              X_chr_male=True, N_cores=5, density=True,
                                                              freq=False)
@@ -219,18 +233,18 @@ def test_pedigree(data, request):
     # Frequencies
     result_bins, counts_HP_aut = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                               mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                              bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                              bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                               X_chr=False, X_chr_male=False, N_cores=5,
                                                               density=True, freq=True)
     result_bins, counts_HP_X = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                             mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                            bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                            bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                             X_chr=True,
                                                             X_chr_male=False, N_cores=5, density=True,
                                                             freq=True)
     result_bins, counts_HP_Xm = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                             bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                             bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                              X_chr=True,
                                                              X_chr_male=True, N_cores=5, density=True,
                                                              freq=True)
@@ -242,18 +256,18 @@ def test_pedigree(data, request):
     # Histograms
     result_bins, counts_HP_aut = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                               mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                              bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                              bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                               X_chr=False, X_chr_male=False, N_cores=5,
                                                               density=False, freq=False)
     result_bins, counts_HP_X = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                             mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                            bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                            bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                             X_chr=True,
                                                             X_chr_male=False, N_cores=5, density=False,
                                                             freq=False)
     result_bins, counts_HP_Xm = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                             bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
+                                                             bingrid=bins, whichpop=0, rho_f=1, rho_m=1,
                                                              X_chr=True,
                                                              X_chr_male=True, N_cores=5, density=False,
                                                              freq=False)
@@ -325,7 +339,7 @@ class ModelComparison:
 
     def compare_TpopTau(self):
         for tpopTau, result in self.demo.dicTpopTau.items():
-            assert self.PTD.get_TpopTau(tpopTau[0], tpopTau[1], tpopTau[2]) == result
+            assert self.PTD._get_TpopTau(tpopTau[0], tpopTau[1], tpopTau[2]) == result
         print('TpopTau is equal for PTD and demographic_model. All assertions passed.')
 
     def compare_models(self, bins, L, population_number):

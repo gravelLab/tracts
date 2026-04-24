@@ -209,7 +209,7 @@ X chromosome admixture in males
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (2 minutes 40.155 seconds)
+   **Total running time of the script:** (2 minutes 50.841 seconds)
 
 
 .. _sphx_glr_download_auto_examples_MXL_MXL_3pop_sexbiased_fix.py:

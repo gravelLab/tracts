@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.stats import poisson
 from tracts.population import Population
-import tracts.hybrid_pedigree as HP
-from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
+from tracts.phase_type import hybrid_pedigree as HP
+from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parametrized_demography_sex_biased import SexType
@@ -37,15 +37,21 @@ def locate_file_path(filename: str,
     3. Directory of the driver yaml file (if provided)
     4. Directories in sys.path
 
-    Arguments
-    ---------
-        filename (str): The name of the file to locate.
-        script_dir (str | Path | None): The directory of the script, if provided.
-        absolute_driver_yaml_path (str | Path | None): The absolute path to the driver yaml file, if provided.
-        verbose (bool): If True, logs the search process.
+    Parameters
+    ----------
+    filename: str
+        The name of the file to locate.
+    script_dir: str | Path | None
+        The directory of the script, if provided.
+    absolute_driver_yaml_path: str | Path | None
+        The absolute path to the driver yaml file, if provided.
+    verbose: bool
+        If True, logs the search process.
+    
     Returns
     -------
-        Optional[Path]: The path to the located file, or None if the file is not found.
+    Optional[Path]
+        The path to the located file, or None if the file is not found.
     """
                  
     search_methods = [
@@ -87,14 +93,21 @@ class SamplesConfig(BaseModel):
     The configuration also specifies which chromosomes to include in the analysis and any allosomes to consider.
 
     Attributes
-    -----------  
-        directory (str): The directory where the sample files are located.
-        individual_names (List[str]): A list of individual names corresponding to the sample files. 
-        male_names (List[str] | str): A list of individual names corresponding to male individuals, or "auto" to automatically determine based on the presence of allosomes.
-        filename_format (str): The format of the sample filenames, which should include placeholders for the individual name and chromosome (e.g. "{individual}_{chromosome}.txt").
-        labels (List[str]): A list of population labels corresponding to the sample files. Defaults to ["A", "B"].
-        chromosomes (str): A string specifying which chromosomes to include in the analysis. 
-        allosomes (List[str]): A list of allosome chromosome names. Currenly only supporting "X".
+    ----------  
+    directory: str
+        The directory where the sample files are located.
+    individual_names: List[str]
+        A list of individual names corresponding to the sample files. 
+    male_names: List[str] | str
+        A list of individual names corresponding to male individuals, or "auto" to automatically determine based on the presence of allosomes.
+    filename_format: str
+        The format of the sample filenames, which should include placeholders for the individual name and chromosome (e.g. "{individual}_{chromosome}.txt").
+    labels: List[str]
+        A list of population labels corresponding to the sample files. Defaults to ["A", "B"].
+    chromosomes: str
+        A string specifying which chromosomes to include in the analysis. 
+    allosomes: List[str]
+        A list of allosome chromosome names. Currenly only supporting "X".
 
     """
     model_config = ConfigDict(extra="forbid")
@@ -123,26 +136,45 @@ class InferenceConfig(BaseModel):
     and to provide clear error messages for missing or misspelled parameters. See online documentation for details on how to specify parameters in the driver file.
 
     Attributes
-    -----------
-    unknown_labels_for_smoothing (List[str]): A list of population labels for which to apply smoothing to the tract length distribution. Defaults to an empty list.
-    samples (SamplesConfig): The configuration for the samples used in the inference.
-    model_filename (str): The filename of the demographic model to use for the inference. 
-    start_params (StartParamsConfig): The configuration for the starting parameters used in the optimization.
-    repetitions (int): The number of repetitions to perform for the optimization. Defaults to 1.
-    seed (int): The random seed to use for the optimization.
-    maximum_iterations (int | None): The maximum number of iterations to perform for the optimization. Defaults to None, which means no limit on the number of iterations.
-    npts (int): The number of grid points to use to define the tract length histogram. Defaults to 50.
-    exclude_tracts_below_cm (float): The minimum tract length in centiMorgans to include in the analysis. Tracts shorter than this length will be excluded. Defaults to 1 cM.
-    fix_parameters_from_ancestry_proportions (List[str]): A list of parameter names to fix based on the ancestry proportions. See online documentation for details.
-    output_directory (str): The directory where the output files will be saved. 
-    output_filename_format (str): The format of the output filenames.
-    log_filename (Optional[str]): The filename of the log file to write to. If None, no log file will be created. Defaults to "tracts.log".
-    ad_model_autosomes (str): The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "M".
-    ad_model_allosomes (str): The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
-    verbose_log (int): The verbosity level for logging. Defaults to 20.
-    verbose_screen (int): The verbosity level for screen prints. Defaults to 20.
-    log_scale (bool): Whether to use log scale to plot the tract length distribution. Defaults to True.
-    two_steps_optimization (bool): Whether to perform a two-step optimization process, where the first step optimizes only the non-sex-bias parameters on autosomal data and the second step optimizes sex-bias parameters using both autosomal and allosomal data. Defaults to True.
+    ----------
+    unknown_labels_for_smoothing: List[str]
+        A list of population labels for which to apply smoothing to the tract length distribution. Defaults to an empty list.
+    samples: SamplesConfig
+        The configuration for the samples used in the inference.
+    model_filename: str
+        The filename of the demographic model to use for the inference. 
+    start_params: StartParamsConfig
+        The configuration for the starting parameters used in the optimization.
+    repetitions: int
+        The number of repetitions to perform for the optimization. Defaults to 1.
+    seed: int
+        The random seed to use for the optimization.
+    maximum_iterations: int | None
+        The maximum number of iterations to perform for the optimization. Defaults to None, which means no limit on the number of iterations.
+    npts: int
+        The number of grid points to use to define the tract length histogram. Defaults to 50.
+    exclude_tracts_below_cm: float
+        The minimum tract length in centiMorgans to include in the analysis. Tracts shorter than this length will be excluded. Defaults to 1 cM.
+    fix_parameters_from_ancestry_proportions: List[str]
+        A list of parameter names to fix based on the ancestry proportions. See online documentation for details.
+    output_directory: str
+        The directory where the output files will be saved. 
+    output_filename_format: str
+        The format of the output filenames.
+    log_filename : str, Optional
+        The filename of the log file to write to. If None, no log file will be created. Defaults to "tracts.log".
+    ad_model_autosomes: str
+        The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "M".
+    ad_model_allosomes: str
+        The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
+    verbose_log: int
+        The verbosity level for logging. Defaults to 1.
+    verbose_screen: int
+        The verbosity level for screen prints. Defaults to 30.
+    log_scale: bool
+        Whether to use log scale to plot the tract length distribution. Defaults to True.
+    two_steps_optimization: bool
+        Whether to perform a two-step optimization process, where the first step optimizes only the non-sex-bias parameters on autosomal data and the second step optimizes sex-bias parameters using both autosomal and allosomal data. Defaults to True.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -161,8 +193,8 @@ class InferenceConfig(BaseModel):
     log_filename: Optional[str] = "tracts.log"
     ad_model_autosomes: str = "DC"
     ad_model_allosomes: str = "DC"
-    verbose_log: int = 20
-    verbose_screen: int = 20
+    verbose_log: int = 1
+    verbose_screen: int = 30
     log_scale: bool = True
     two_steps_optimization: bool = True
     run_optimize_cob: bool = False
@@ -181,12 +213,14 @@ def load_driver_file(driver_path: str) -> InferenceConfig:
     Loads the driver file and validates that it contains all required parameters for the inference. 
     See online documentation for details on how to specify parameters in the driver file.
 
-    Arguments
-    ---------
-        driver_path (str): The path to the driver yaml file.
+    Parameters
+    ----------
+        driver_path: str
+            The path to the driver yaml file.
     Returns
     -------
-        InferenceConfig: The configuration for the inference process, as specified in the driver file.
+        InferenceConfig
+            The configuration for the inference process, as specified in the driver file.
 
     """
     if driver_path is None:
@@ -223,18 +257,25 @@ def parse_individual_filenames(
     """
     Parses the individual filenames based on the provided format and locates their paths. 
 
-    Arguments
-    ---------
-    individual_names (List[str]): A list of individual names corresponding to the sample files.
-    filename_string (str): The format of the sample filenames. This should include placeholders for the individual name and haploid copy (e.g. "{name}_{label}.txt").
-    script_dir (str | Path | None): The directory containing the script.
-    labels (List[str]): A list of labels for the haploid copies.
-    directory (str): The directory containing the sample files.
-    absolute_driver_yaml_path (str | None): The absolute path to the driver yaml file
+    Parameters
+    ----------
+    individual_names: List[str]
+        A list of individual names corresponding to the sample files.
+    filename_string: str
+        The format of the sample filenames. This should include placeholders for the individual name and haploid copy (e.g. "{name}_{label}.txt").
+    script_dir: str | Path | None
+        The directory containing the script.
+    labels: List[str]
+        A list of labels for the haploid copies.
+    directory: str
+        The directory containing the sample files.
+    absolute_driver_yaml_path: str | None
+        The absolute path to the driver yaml file
 
     Returns
     -------
-    dict[str, list[str]]: A dictionary mapping individual names to a list of file paths.
+    dict[str, list[str]]
+        A dictionary mapping individual names to a list of file paths.
 
     """
     resolved_files = []
@@ -281,14 +322,17 @@ def parse_chromosomes(chromosome_spec: list | str | int, chromosomes: None | lis
     """
     Parses a chromosome specification and returns a list of chromosome numbers.
 
-    Arguments
-    ---------
-    chromosome_spec (list | str | int): The chromosome specification, which can be an integer, a string representing a range, or a list of specifications.
-    chromosomes (None | list): A list to which the parsed chromosome numbers will be appended.
+    Parameters
+    ----------
+    chromosome_spec: list | str | int
+        The chromosome specification, which can be an integer, a string representing a range, or a list of specifications.
+    chromosomes: None | list
+        A list to which the parsed chromosome numbers will be appended.
 
     Returns
     -------
-    list: A list of chromosome numbers.
+    list
+        A list of chromosome numbers.
     """
 
     if chromosomes is None:
@@ -311,12 +355,16 @@ def load_population(driver_path: str, driver_spec: InferenceConfig, script_dir: 
     """
     Loads the population data based on the specifications in the driver file. 
 
-    Arguments   
-    ---------
-    driver_path (str): The path to the driver yaml file.
-    driver_spec (InferenceConfig): The configuration for the inference process, as specified in the driver file.
-    script_dir (str | Path | None): The directory containing the script.
-    allosome_labels (List[str] | None): A list of allosome chromosome names.
+    Parameters   
+    ----------
+    driver_path: str
+        The path to the driver yaml file.
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file.
+    script_dir: str | Path | None
+        The directory containing the script.
+    allosome_labels: List[str] | None
+        A list of allosome chromosome names.
 
     """
 
@@ -347,16 +395,21 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
     Loads the demographic model based on the specifications in the driver file. The model is expected to be defined in a separate yaml file, 
     whose path is specified in the driver file under "model_filename". See online documentation for details on how to specify the model yaml file and its contents.
 
-    Arguments
-    ---------
-    driver_spec (InferenceConfig): The configuration for the inference process, as specified in the driver file.
-    script_dir (str | Path | None): The directory containing the script.
-    driver_path (str): The path to the driver yaml file.
-    allosome_label (str | None): The label of the allosome chromosome, if any. This is used to determine whether allosomal admixture is modelled.
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file.
+    script_dir: str | Path | None
+        The directory containing the script.
+    driver_path :str
+        The path to the driver yaml file.
+    allosome_label: str | None
+        The label of the allosome chromosome, if any. This is used to determine whether allosomal admixture is modelled.
 
     Returns
     -------
-    ParametrizedDemography or ParametrizedDemographySexBiased: The loaded demographic model, which can be either a ParametrizedDemography or a ParametrizedDemographySexBiased depending on whether allosomal admixture is modelled.
+    ParametrizedDemography | ParametrizedDemographySexBiased
+        The loaded demographic model, which can be either a ParametrizedDemography or a ParametrizedDemographySexBiased depending on whether allosomal admixture is modelled.
     """ 
 
     if not hasattr( driver_spec, 'model_filename') :
@@ -380,12 +433,16 @@ def parse_start_params(start_param_bounds,
     """
     Produces a 1-dimensional array of starting parameters for optimization in physical units, for every parameter in base_model_parameters.
     
-    Arguments
-    ---------
-    start_param_bounds: An object containing attributes corresponding to each parameter in model.model_base_parameters, where the value of each attribute is either a single number (if the starting value for that parameter should be fixed) or a string of the form "min:max" specifying the range from which to sample starting values for that parameter. The parameters specified in start_param_bounds must match those in model.model_base_parameters, and an error will be raised if any parameters are missing or if any extra parameters are included.
-    repetitions: The number of sets of starting parameters to produce. Defaults to 1.
-    seed: The random seed to use for sampling starting parameters. Defaults to None.
-    model: The demographic model for which to produce starting parameters. 
+    Parameters
+    ----------
+    start_param_bounds
+        An object containing attributes corresponding to each parameter in model.model_base_parameters, where the value of each attribute is either a single number (if the starting value for that parameter should be fixed) or a string of the form "min:max" specifying the range from which to sample starting values for that parameter. The parameters specified in start_param_bounds must match those in model.model_base_parameters, and an error will be raised if any parameters are missing or if any extra parameters are included.
+    repetitions: int
+        The number of sets of starting parameters to produce. Defaults to 1.
+    seed: float
+        The random seed to use for sampling starting parameters. Defaults to None.
+    model: ParametrizedDemography
+        The demographic model for which to produce starting parameters. 
 
     Returns
     -------
@@ -430,13 +487,15 @@ def get_time_scaled_model_func(model: ParametrizedDemography) -> Callable[[np.nd
     Computes a function that takes in optimizer parameters, converts them to physical parameters using the model's parameter handler, and returns the migration matrices for those parameters.
     This is necessary because some optimizers may require parameters to be on a different scale (e.g. log scale) than the physical parameters used in the model, so this function serves as a wrapper to apply the necessary transformations before passing parameters to the model.
     
-    Arguments
-    ---------
-    model (ParametrizedDemography): The demographic model for which to compute the migration matrices.
+    Parameters
+    ----------
+    model: ParametrizedDemography
+        The demographic model for which to compute the migration matrices.
 
     Returns
     -------
-    Callable[[np.ndarray], dict[str, np.ndarray]]: A function that takes in optimizer parameters, converts them to physical parameters, and returns the migration matrices for those parameters.
+    Callable[[np.ndarray], dict[str, np.ndarray]]
+        A function that takes in optimizer parameters, converts them to physical parameters, and returns the migration matrices for those parameters.
     """
     return lambda params: model.get_migration_matrices(model.parameter_handler.convert_to_physical_params(params))
 
@@ -446,19 +505,19 @@ def get_time_scaled_model_bounds(model: ParametrizedDemography, verbose = False)
     Computes a function that takes in optimizer parameters, converts them to physical parameters using the model's parameter handler, and returns the violation score for those parameters.
     This is necessary because some optimizers may require parameters to be on a different scale (e.g. log scale) than the physical parameters used in the model, so this function serves as a wrapper to apply the necessary transformations before passing parameters to the model.
     
-    Arguments
-    ---------
-    model (ParametrizedDemography): The demographic model for which to compute the violation score.
-    verbose (bool): Whether to print detailed information about the violation score. Defaults to False.
+    Parameters
+    ----------
+    model: ParametrizedDemography
+        The demographic model for which to compute the violation score.
+    verbose: bool
+        Whether to print detailed information about the violation score. Defaults to False.
 
     Returns
     -------
-    Callable[[np.ndarray], float]: A function that takes in optimizer parameters, converts them to physical parameters, and returns the violation score for those parameters.
+    Callable[[np.ndarray], float]
+        A function that takes in optimizer parameters, converts them to physical parameters, and returns the violation score for those parameters.
     """
     return lambda params: model.get_violation_score(model.parameter_handler.convert_to_physical_params(params), verbose = verbose)
-
-
-
 
 
 def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
@@ -483,14 +542,20 @@ def output_simulation_data_sex_biased(sample_population: Population,
     migration matrices, tract length distributions, and optimal parameters to output files.
     For details on the output files and graphs produced, see online documentation.
 
-    Arguments
-    ---------
-    sample_population (Population): The population for which to output simulation data.
-    optimal_params (np.ndarray): The optimal parameters for the model.
-    model (ParametrizedDemographySexBiased): The demographic model for which to output simulation data.
-    driver_spec (InferenceConfig): The driver specification containing output configuration.
-    ad_model_autosomes (str): The model for autosomal admixture. Defaults to 'DC'.
-    ad_model_allosomes (str): The model for allosomal admixture. Defaults to 'DC'.
+    Parameters
+    ----------
+    sample_population: :class:`tracts.population.Population`
+        The population for which to output simulation data.
+    optimal_params: np.ndarray
+        The optimal parameters for the model.
+    model: ParametrizedDemographySexBiased
+        The demographic model for which to output simulation data.
+    driver_spec: InferenceConfig
+        The driver specification containing output configuration.
+    ad_model_autosomes: str
+        The model for autosomal admixture. Defaults to 'DC'.
+    ad_model_allosomes: str
+        The model for allosomal admixture. Defaults to 'DC'.
 
     """
     
@@ -523,13 +588,44 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     # Autosomal admixture model predictions
     if ad_model_autosomes in ['DC','DF']:
-        autosome_predicted={pop:PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_autosomes).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=1,
+                                            rho_m=1,
+                                            sex_model=ad_model_autosomes).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                                                bins=autosome_bins,
+                                                                                                                chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     elif ad_model_autosomes == 'M':
-        autosome_predicted={pop:PhTMonoecious(0.5*(female_matrix+male_matrix), rho=1).tract_length_histogram_multi_windowed(pop_num, autosome_bins, Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
+                                            rho=1).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                        bins=autosome_bins,
+                                                                                        chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     elif ad_model_autosomes == 'H-DC':
-        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=False, X_chr_male=False, N_cores=5, population_number= pop_num, bins=autosome_bins, chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DC',
+                                                                            rho_f=1,
+                                                                            rho_m=1,
+                                                                            X_chr=False,
+                                                                            X_chr_male=False,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=autosome_bins,
+                                                                            chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     else:
-        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=False, X_chr_male=False, N_cores=5, population_number= pop_num, bins=autosome_bins, chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+        autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DF',
+                                                                            rho_f=1,
+                                                                            rho_m=1,
+                                                                            X_chr=False,
+                                                                            X_chr_male=False,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=autosome_bins,
+                                                                            chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     
     # Save autosome results
     with open(output_dir + output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
@@ -557,7 +653,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # Allosomal data and predictions (if applicable)
     if ad_model_allosomes is not None:
         # Allosomal data
-        allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths('X',npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
+        allosome_bins, allosome_data = sample_population.get_global_allosome_tractlengths(allosome='X',
+                                                                                        npts=npts,
+                                                                                        exclude_tracts_below_cM=exclude_tracts_below_cM)
         allosome_length = sample_population.allosome_lengths['X']
         female_data = allosome_data[SexType.FEMALE]
         male_data = allosome_data[SexType.MALE]
@@ -566,14 +664,72 @@ def output_simulation_data_sex_biased(sample_population: Population,
  
         # Allosomal admixture model predictions
         if ad_model_allosomes in ['DC','DF']:
-            female_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
-            male_predicted = {pop: PhTDioecious(female_matrix, male_matrix, rho_f=1, rho_m=1, sex_model=ad_model_allosomes, X_chromosome=True, X_chromosome_male=True).tract_length_histogram_multi_windowed(pop_num, allosome_bins, [allosome_length]) for pop, pop_num in model.population_indices.items()}
+            female_predicted = {pop: PhTDioecious(migration_matrix_f=female_matrix,
+                                                migration_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                sex_model=ad_model_allosomes,
+                                                X_chromosome=True).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                                        bins=allosome_bins,
+                                                                                                        chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop: PhTDioecious(migration_matrix_f=female_matrix,
+                                                migration_matrix_m=male_matrix,
+                                                rho_f=1,
+                                                rho_m=1,
+                                                sex_model=ad_model_allosomes,
+                                                X_chromosome=True,
+                                                X_chromosome_male=True).tract_length_histogram_multi_windowed(population_number=pop_num,
+                                                                                                            bins=allosome_bins,
+                                                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
         elif ad_model_allosomes == 'H-DC':
-            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DC', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                                mig_matrix_m=male_matrix,
+                                                                                TP=2,
+                                                                                D_model='DC',
+                                                                                rho_f=1,
+                                                                                rho_m=1,
+                                                                                X_chr=True,
+                                                                                X_chr_male=False,
+                                                                                N_cores=5,
+                                                                                population_number=pop_num,
+                                                                                bins=allosome_bins,
+                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DC',
+                                                                            rho_f=1,
+                                                                            rho_m=1,
+                                                                            X_chr=True,
+                                                                            X_chr_male=True,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=allosome_bins,
+                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
         else:
-            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=False, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
-            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(female_matrix, male_matrix, TP=2, D_model='DF', rr_f=1, rr_m=1, X_chr=True, X_chr_male=True, N_cores=5, population_number= pop_num, bins=allosome_bins, chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                                mig_matrix_m=male_matrix,
+                                                                                TP=2,
+                                                                                D_model='DF',
+                                                                                rho_f=1,
+                                                                                rho_m=1,
+                                                                                X_chr=True,
+                                                                                X_chr_male=False,
+                                                                                N_cores=5,
+                                                                                population_number=pop_num,
+                                                                                bins=allosome_bins,
+                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+            male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
+                                                                            mig_matrix_m=male_matrix,
+                                                                            TP=2,
+                                                                            D_model='DF',
+                                                                            rho_f=1, rho_m=1,
+                                                                            X_chr=True,
+                                                                            X_chr_male=True,
+                                                                            N_cores=5,
+                                                                            population_number=pop_num,
+                                                                            bins=allosome_bins,
+                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
     
         # Save allosome results
         with open(output_dir + output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:

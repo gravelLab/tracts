@@ -94,4 +94,13 @@ html_css_files = [
     "custom.css",
 ]
 
+def skip_abstract_methods(app, what, name, obj, skip, options):
+    import inspect
+    if inspect.isfunction(obj) and getattr(obj, "__isabstractmethod__", False):
+        return True
+    return skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_abstract_methods)
+
 
