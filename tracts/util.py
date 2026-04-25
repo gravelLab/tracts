@@ -138,11 +138,11 @@ def sex_bias_to_optimizer_function(y):
 
        \\log(1 + y) - \\log(1 - y).
 
-    Non-finite values (e.g., at the boundaries ``y = ±1``) are replaced by ``-1e32``.
+    Non-finite values (e.g., at the boundaries ``y = ±1``) are replaced by ``±1e32``.
 
     Parameters
     ----------
-    x: float | numpy.ndarray
+    y: float | numpy.ndarray
         Sex-bias parameter in physical space.
     
     Returns
@@ -152,5 +152,8 @@ def sex_bias_to_optimizer_function(y):
     """
     with np.errstate(divide='ignore', invalid='ignore'):
         log_result = np.log1p(y) - np.log1p(-y)
-        log_result = np.where(np.isfinite(log_result), log_result, -1e32)
+        log_result = np.where(
+            np.isposinf(log_result), 1e32,
+            np.where(np.isneginf(log_result), -1e32, log_result)
+            )
         return log_result

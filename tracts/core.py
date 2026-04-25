@@ -49,7 +49,7 @@ def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.nda
         The number of bins to drop at the beginning of the array. This could be achieved with masks.
     verbose_screen: int, default: 0
         If greater than zero, prints optimization status every ``verbose`` iterations.
-    flush_delay: float, default: 0.5
+    flush_delay: float, default: 1
         Standard output will be flushed once every ``flush_delay`` minutes. This
         is useful to avoid overloading I/O on clusters.
     maxiter: int, default: None
@@ -103,8 +103,6 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
         An object that handles parameter transformations and fixed parameters. Default is None.
     outofbounds_fun: callable, Optional
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    cutoff: int, default:0 
-        The number of bins to drop at the beginning of the array. This could be achieved with masks.
     verbose_log: int, default: 0
         If greater than zero, logs optimization status every ``verbose`` iterations.
     verbose_screen: int, default: 0

@@ -61,7 +61,7 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         # ------ Initial checks ------
         
-        self.migration_matrix = migration_matrix.copy()
+        self.migration_matrix = np.array(migration_matrix, copy = True)
         self.migration_matrix[self.migration_matrix < 1e-3] = 0 # Zap negligible contributions for numerical stability.
         
         # Check that contributions at the last generation in the past sum up to 1, as they correspond to the founding generation.
@@ -114,7 +114,7 @@ class PhTMonoecious(PhaseTypeDistribution):
             print(self.full_transition_matrix)
             raise Exception('State space is not connected.')
 
-        self.full_transition_matrix -= np.diag(self.full_transition_matrix.sum(axis=1)) # In a continuous-time markov chain, diagonal entries are normalized to be equal to 1.
+        self.full_transition_matrix -= np.diag(self.full_transition_matrix.sum(axis=1)) # In a continuous-time markov chain, diagonal entries are normalized to be equal to 0.
         self.maxLen = None
         self.equilibrium_distribution = self.get_equilibrium_distribution()
         
