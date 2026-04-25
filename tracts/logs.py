@@ -52,7 +52,8 @@ def set_log_file(log_filename: str | Path, memory_handler):
     
     Parameters
     ----------
-        log_filename (str | Path): The name of the log file to write to.      
+    log_filename: str | Path
+        The name of the log file to write to.      
     """
 
     logger = logging.getLogger(LOGGER_NAME)
