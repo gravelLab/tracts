@@ -61,7 +61,8 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         # ------ Initial checks ------
         
-        self.migration_matrix = np.array(migration_matrix, copy = True)
+        migration_matrix = np.asarray(migration_matrix)
+        self.migration_matrix = migration_matrix.copy()
         self.migration_matrix[self.migration_matrix < 1e-3] = 0 # Zap negligible contributions for numerical stability.
         
         # Check that contributions at the last generation in the past sum up to 1, as they correspond to the founding generation.
