@@ -59,17 +59,6 @@ class Chrom:
             # consider the length after stripping the UNKNOWN end tracts
             self.len = self.end - self.start
 
-    def len(self) -> int:
-        """ 
-        Gets the length of this chromosome, in Morgans. 
-        
-        Returns
-        -------
-        int
-            The length of this chromosome, in Morgans.
-        """
-        return self.len
-
     def goto(self, pos: int) -> int:
         """ 
         Finds the first tract containing a given position, in Morgans, and
@@ -314,10 +303,10 @@ class Chropair:
         The length of this chromosome pair, in Morgans. This is set to the length of the first chromosome copy, and the second copy is checked to have the same length.    
     """
 
-    def __init__(self, chroms: list[Chrom] | tuple[Chrom] = None, chropair_len: int = 1, auto: bool = True, label: str = "POP"):
+    def __init__(self, chroms: list[Chrom] | tuple[Chrom] = None, chropair_len: int = 1, label: str = "POP"):
         """
         Can be instantiated either by explicitly providing two chromosomes as a tuple, or
-        by specifying an ancestry label, length, and autosome status.
+        by specifying an ancestry label and length.
         
         Parameters
         ----------
@@ -325,14 +314,12 @@ class Chropair:
             The two chromosomes to form this chromosome pair. If None is given, then two identical chromosomes are created according to the other parameters.
         chropair_len: int, default: 1
             The length of this chromosome pair, in Morgans. This is used if `chroms` is None to create two identical chromosomes of the specified length.
-        auto: bool, default: True
-            Whether this chromosome pair is an autosome. This is used if `chroms` is None to create two identical chromosomes with the specified autosome status.
         label: str, default: "POP"
             An identifier categorizing this chromosome pair. This is used if `chroms` is None to create two identical chromosomes with the specified label.        
         """
 
         if chroms is None:
-            self.copies = [Chrom(chropair_len, auto, label), Chrom(chropair_len, auto, label)]
+            self.copies = [Chrom(ls=chropair_len, label=label), Chrom(ls=chropair_len, label=label)]
             self.len = chropair_len
         else:
             if chroms[0].len != chroms[1].len:
@@ -368,8 +355,9 @@ class Chropair:
                 self.copies[(startchrom + startpos) % 2]
                 .extract(unif[startpos],
                          unif[startpos + 1]))
-        newchrom = Chrom(self.copies[0].len, self.copies[0].auto)
-        newchrom.init_list_tracts(tractlist)
+        newchrom = Chrom(ls=self.copies[0].len,
+                        label=self.copies[0].tracts[0].label,
+                        tracts=tractlist)
         return newchrom
 
     def applychrom(self, func: callable):

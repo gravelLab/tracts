@@ -1,5 +1,3 @@
-import logging
-from logging.handlers import MemoryHandler
 import numbers
 import os
 import sys
@@ -15,12 +13,12 @@ from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parametrized_demography_sex_biased import SexType
-
 import ruamel.yaml as yaml
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List
 from pydantic_core import PydanticUndefined
-
+import logging
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 # ---------- Driver file setup ----------

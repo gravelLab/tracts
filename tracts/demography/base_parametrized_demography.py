@@ -1,5 +1,4 @@
 from __future__ import annotations
-import logging
 import math
 import numbers
 from abc import ABC, abstractmethod
@@ -8,12 +7,8 @@ import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 from typing import Callable
-
-small = 10**-12  
-large = 1/small
-
+import logging
 logger = logging.getLogger(__name__)
-
 
 class BaseFounderEvent(ABC):
 
@@ -706,7 +701,7 @@ class FixedParametersHandler:
 
 
 
-        def param_objective_func(params_to_solve): ##In optimizer units to avoid unphysical values 
+        def param_objective_func(params_to_solve, large:float=1e12): ##In optimizer units to avoid unphysical values 
             """Computes the difference between observed and computed ancestry proportions
              as a function of the params_to_solve. In optimizer units. 
              Uses the physical parameters as a nonlocal varaible"""

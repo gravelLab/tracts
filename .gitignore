@@ -14,3 +14,7 @@ dist/
 .ipynb_checkpoints/
 *.log
 docs/_build/
+docs/source/api/generated
+docs/source/auto_examples/*
+!docs/source/auto_examples
+!docs/source/auto_examples/index.rst

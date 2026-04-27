@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**03:29.578** total execution time for 3 files **from auto_examples/ASW**:
+**04:00.450** total execution time for 3 files **from auto_examples/ASW**:
 
 .. container::
 
@@ -33,11 +33,11 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_ASW_ASW_two_pulses.py` (``ASW_two_pulses.py``)
-     - 02:37.894
+     - 03:22.619
      - 0.0
    * - :ref:`sphx_glr_auto_examples_ASW_ASW_three_pulses.py` (``ASW_three_pulses.py``)
-     - 00:33.522
+     - 00:25.866
      - 0.0
    * - :ref:`sphx_glr_auto_examples_ASW_ASW_one_pulse.py` (``ASW_one_pulse.py``)
-     - 00:18.162
+     - 00:11.964
      - 0.0

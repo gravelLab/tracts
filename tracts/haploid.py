@@ -23,7 +23,7 @@ class Haploid:
     """
 
     @staticmethod
-    def from_file(path: str, name: str = None, selectchrom: str = None, allosome_labels: set = set()):
+    def from_file(path: str, name: str = None, selectchrom: list[int] | None = None, allosome_labels: set | None = None):
         """
         Load a haploid genome from a file.
 
@@ -33,8 +33,8 @@ class Haploid:
             The path to the file containing the haploid genome data. The file should be a tab-delimited text file with columns: chrom, start, end, label, and optionally others. The first line may be a header, which will be automatically skipped if it contains the expected column names.
         name: str, optional
             An optional name for the haploid genome. If not provided, the name will be set to None.
-        selectchrom: str, optional
-            An optional string specifying which chromosomes to select from the file. If not provided, all chromosomes will be selected. The string should contain chromosome identifiers separated by commas (e.g., "1,2,3"). Chromosome identifiers should be integers corresponding to the chromosome numbers in the file (e.g., "1" for chromosome 1). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
+        selectchrom: list[int], optional
+            An optional list of chromosome numbers to select from the file. If not provided, all chromosomes will be selected. Chromosome numbers should be integers corresponding to the chromosome numbers in the file (e.g., 1 for chromosome 1). Chromosome numbers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
         allosome_labels: set, optional
             An optional set of chromosome labels that should be treated as allosomes. If not provided, no chromosomes will be treated as allosomes. Chromosome labels should be strings corresponding to the chromosome identifiers in the file (e.g., "X" for the X chromosome). Chromosome labels that are not present in the file will be ignored, and no chromosomes will be treated as allosomes.
         
@@ -44,12 +44,15 @@ class Haploid:
             A Haploid object representing the loaded haploid genome.        
         """
 
+        if allosome_labels is None:
+            allosome_labels = set()
+
         # TODO move the loading logic from the constructor to this static method. This will facilitate loading logic for future driver scripts.
         chromd = defaultdict(list)
 
         with open(path, 'r') as f: # Parse the indicated file into a dictionary associating chromosome identifiers (strings) with lists of tract objects.
+            header_mode = True
             for line in f:
-                header_mode = True
                 fields = line.split()
                 if len(fields) == 0:
                     continue

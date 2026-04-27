@@ -5,7 +5,7 @@ import scipy
 from tracts.phase_type.hybrid_pedigree import hybrid_pedigree_distribution
 
 from test_data import bins, Ls
-from tracts import DemographicModel
+from tracts.legacy.demographic_model import DemographicModel
 from tracts.phase_type.base_phase_type import PhaseTypeDistribution
 from tracts.phase_type.monoecious import PhTMonoecious
 from tracts.phase_type.dioecious import PhTDioecious
