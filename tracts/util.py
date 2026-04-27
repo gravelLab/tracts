@@ -152,9 +152,12 @@ def sex_bias_to_optimizer_function(y):
     """
     with np.errstate(divide='ignore', invalid='ignore'):
         log_result = np.log1p(y) - np.log1p(-y)
-        if np.isnan(log_result):
-            log_result = np.nan # Handle NaN values
-        else:
-            log_result = np.where(np.isfinite(log_result), log_result, # y >= 1 replaced by 1e32, y <= -1 replaced by -1e32
-                      np.where(np.asarray(y) >= 0, 1e32, -1e32))
+        log_result = np.where(
+            np.isfinite(log_result),
+            log_result,
+            np.where(
+            np.isnan(y), np.nan,
+            np.where(y >= 0, 1e32, -1e32)
+                )
+            )
         return log_result
