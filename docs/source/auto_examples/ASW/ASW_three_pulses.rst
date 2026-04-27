@@ -133,11 +133,13 @@ X chromosome admixture in males
     Data allosome proportions: [0.16839124 0.03818939 0.79341937]
     Model parameters : ['REUR', 'REUR_sex_bias', 't1', 'RAFR', 'RAFR_sex_bias', 't2', 'REUR2', 'REUR2_sex_bias', 't3']
 
-    A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization.
+    Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
 
     Run | Starting parameters                          
     ---------------------------------------------------
       1 | [0.8, 0.1, 9.867, 0.9, 0.1, 6.789, 0.2, 0.1, 3.064]
+      2 | [0.8, 0.1, 9.854, 0.9, 0.1, 6.8, 0.2, 0.1, 2.506]
+      3 | [0.8, 0.1, 11.99, 0.9, 0.1, 5.966, 0.2, 0.1, 3.074]
     ---------------------------------------------------
 
     Optimization run #1
@@ -156,6 +158,50 @@ X chromosome admixture in males
     ----------------------------------------------------------------------------------------------------------------------------
     Step 2 completed.
     ----------------------------------------------------------------------------------------------------------------------------
+
+    Optimization run #2
+
+    -----------------------------------------------------------------------------------------
+    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+    Optimization is performed in two steps.
+    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 't1', 'RAFR', 't2', 'REUR2', 't3'].
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    Step 1 completed.
+    ----------------------------------------------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RAFR_sex_bias', 'REUR2_sex_bias'].
+    Non-sex-bias parameters fixed at values from previous optimization step.
+    Iter.    Log-likelihood  Model parameters        Transmission
+    ----------------------------------------------------------------------------------------------------------------------------
+    Step 2 completed.
+    ----------------------------------------------------------------------------------------------------------------------------
+
+    Optimization run #3
+
+    -----------------------------------------------------------------------------------------
+    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+    Optimization is performed in two steps.
+    Step 1 : Optimizing autosomal likelihood over parameters ['REUR', 't1', 'RAFR', 't2', 'REUR2', 't3'].
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    Step 1 completed.
+    ----------------------------------------------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['REUR_sex_bias', 'RAFR_sex_bias', 'REUR2_sex_bias'].
+    Non-sex-bias parameters fixed at values from previous optimization step.
+    Iter.    Log-likelihood  Model parameters        Transmission
+    ----------------------------------------------------------------------------------------------------------------------------
+    Step 2 completed.
+    ----------------------------------------------------------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    Results from multiple optimization runs with different starting parameters:
+    -------------------------------------
+    Run |       LogLik | Found parameters
+    -------------------------------------
+      1 |     -2066.45 | [0.8, 0, 9.867, 0.9, 0, 6.789, 0.2, 0, 3.064]
+      2 |     -2457.52 | [0.8, 0, 9.854, 0.9, 0, 6.8, 0.2, 0, 2.506]
+      3 |     -2425.03 | [0.8, 0, 11.99, 0.9, 0, 5.966, 0.2, 0, 3.074]
+    -------------------------------------
 
     Final parameters and corresponding likelihood:
     ---------------------------------------------------------------------------------------------------------------------------------------
@@ -197,7 +243,7 @@ X chromosome admixture in males
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 21.578 seconds)
+   **Total running time of the script:** (0 minutes 33.522 seconds)
 
 
 .. _sphx_glr_download_auto_examples_ASW_ASW_three_pulses.py:

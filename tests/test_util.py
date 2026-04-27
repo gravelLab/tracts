@@ -140,6 +140,7 @@ def test_sex_bias_to_optimizer_boundaries():
     """
     assert sex_bias_to_optimizer_function(1.0) == pytest.approx(1e32)
     assert sex_bias_to_optimizer_function(-1.0) == pytest.approx(-1e32)
+    assert np.isnan(sex_bias_to_optimizer_function(np.nan))
 
 
 def test_sex_bias_to_optimizer_near_boundaries_is_finite():

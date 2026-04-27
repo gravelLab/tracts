@@ -129,99 +129,6 @@ def rate_to_optimizer_function(x):
     return logit(x)
 
 
-
-# ----- Helper functions to convert between optimizer space and physical space -----
-
-
-def time_to_physical_function(x):
-    """
-    Convert a time parameter from optimizer space to physical space. This transformation maps unconstrained real values to strictly positive values
-    using the exponential function.
-
-    Parameters
-    ----------
-    x: float | numpy.ndarray
-        Time parameter in optimizer space.
-    
-    Returns
-    -------
-    float | numpy.ndarray
-        Time parameter in physical space.
-    """
-    return np.exp(x)
-
-
-def rate_to_physical_function(x):
-    """
-    Convert a rate parameter from optimizer space to physical space. This transformation maps unconstrained real values to the interval ``(0, 1)``
-    using the logistic sigmoid function.
-
-    Parameters
-    ----------
-    x: float | numpy.ndarray
-        Rate parameter in optimizer space.
-    
-    Returns
-    -------
-    float | numpy.ndarray
-        Rate parameter in physical space.
-    """
-    return expit(x)
-
-
-def sex_bias_to_physical_function(x):
-    """
-    Convert a sex-bias parameter from optimizer space to physical space. This transformation maps unconstrained real values to the interval ``(-1, 1)``.
-
-    Parameters
-    ----------
-    x: float | numpy.ndarray
-        Sex-bias parameter in optimizer space.
-    
-    Returns
-    -------
-    float | numpy.ndarray
-        Sex-bias parameter in physical space.
-    """
-    return 2 * expit(x) - 1
-
-
-def time_to_optimizer_function(x):
-    """
-    Convert a time parameter from physical space to optimizer space. This transformation maps strictly positive values to the real line
-    using the natural logarithm.
-
-    Parameters
-    ----------
-    x: float | numpy.ndarray
-        Time parameter in physical space.
-    
-    Returns
-    -------
-    float | numpy.ndarray
-        Time parameter in optimizer space.
-    """
-    return np.log(x)
-
-
-def rate_to_optimizer_function(x):
-    """
-    Convert a rate parameter from physical space to optimizer space. This transformation maps values in the interval ``(0, 1)`` to the real line
-    using the logit function.
-
-    Parameters
-    ----------
-    x: float | numpy.ndarray
-        Rate parameter in physical space.
-    
-    Returns
-    -------
-    float | numpy.ndarray
-        Rate parameter in optimizer space.
-    """
-    return logit(x)
-
-
 def sex_bias_to_optimizer_function(y):
     """
     Convert a sex-bias parameter from physical space to optimizer space. This transformation maps values in the interval ``[-1, 1]`` to the real line
@@ -245,6 +152,9 @@ def sex_bias_to_optimizer_function(y):
     """
     with np.errstate(divide='ignore', invalid='ignore'):
         log_result = np.log1p(y) - np.log1p(-y)
-        log_result = np.where(np.isfinite(log_result), log_result, # y >= 1 replaced by 1e32, y <= -1 replaced by -1e32
+        if np.isnan(log_result):
+            log_result = np.nan # Handle NaN values
+        else:
+            log_result = np.where(np.isfinite(log_result), log_result, # y >= 1 replaced by 1e32, y <= -1 replaced by -1e32
                       np.where(np.asarray(y) >= 0, 1e32, -1e32))
         return log_result

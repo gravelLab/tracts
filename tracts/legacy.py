@@ -1,31 +1,23 @@
 from __future__ import print_function  # for python 2 compatibility
-
 import numpy as np
 from matplotlib import pylab
-
 from collections import defaultdict
-
-# try:
-#     from scipy.misc.common import factorial
-# except ImportError:
-#     try:
-#         from scipy.misc import factorial
-#     except ImportError:
-#         from scipy.special import factorial
-
+import warnings
 from scipy.special import gammainc, gammaln, factorial
 import scipy.optimize
 import sys
 import bisect
-
 import tkinter as Tk
 from tkinter import filedialog
 
+warnings.warn(
+    "tracts.legacy is deprecated and will be removed in a future version.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
-
-
 class Tract:
     """ A tract is the lower-level object of interest. All the remaining
         structure is built on top of lists of tracts. Essentially, a tract is
