@@ -136,11 +136,13 @@ X chromosome admixture in males
     Data allosome proportions: [0.33731709 0.62309703 0.03958588]
     Model parameters : ['REUR', 'REUR_sex_bias', 'RNAT', 'RNAT_sex_bias', 'RAFR', 'RAFR_sex_bias', 't1', 't2']
 
-    A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization.
+    Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
 
     Run | Starting parameters                          
     ---------------------------------------------------
       1 | [0.1899, -0.8308, 0.2, 0.8, 0.01589, 0.03968, 13.58, 7.821]
+      2 | [0.1899, -0.8304, 0.2, 0.8, 0.01589, 0.0398, 13.2, 7.07]
+      3 | [0.1899, -0.8309, 0.2, 0.8, 0.01589, 0.03955, 12.79, 6.644]
     ---------------------------------------------------
 
     Optimization run #1
@@ -169,11 +171,61 @@ X chromosome admixture in males
     Step 2 completed.
     -----------------------------------------------------------------------------------------
 
+    Optimization run #2
+
+    -----------------------------------------------------------------------------------------
+    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+    Optimization is performed in two steps.
+    Step 1 : Optimizing autosomal likelihood over parameters ['RNAT', 't1', 't2'].
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    /home/jgonzale/Documents/PhaseType/tracts/tracts/demography/base_parametrized_demography.py:743: RuntimeWarning: The iteration is not making good progress, as measured by the 
+      improvement from the last ten iterations.
+      solved_params = scipy.optimize.fsolve(param_objective_func, start_point_validated)
+    Step 1 completed.
+    -----------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['RNAT_sex_bias'].
+    Non-sex-bias parameters fixed at values from previous optimization step.
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    /home/jgonzale/Documents/PhaseType/tracts/tracts/demography/base_parametrized_demography.py:743: RuntimeWarning: The iteration is not making good progress, as measured by the 
+      improvement from the last ten iterations.
+      solved_params = scipy.optimize.fsolve(param_objective_func, start_point_validated)
+    Step 2 completed.
+    -----------------------------------------------------------------------------------------
+
+    Optimization run #3
+
+    -----------------------------------------------------------------------------------------
+    Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+    Optimization is performed in two steps.
+    Step 1 : Optimizing autosomal likelihood over parameters ['RNAT', 't1', 't2'].
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    Step 1 completed.
+    -----------------------------------------------------------------------------------------
+    Step 2 : Optimizing autosomal + allosomal likelihood over parameters : ['RNAT_sex_bias'].
+    Non-sex-bias parameters fixed at values from previous optimization step.
+    Iter.    Log-likelihood  Model parameters        Transmission
+    -----------------------------------------------------------------------------------------
+    Step 2 completed.
+    -----------------------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    Results from multiple optimization runs with different starting parameters:
+    -------------------------------------
+    Run |       LogLik | Found parameters
+    -------------------------------------
+      1 |     -1497.36 | [0.1785, -1, 0.2, 0, 0.01457, -0.9991, 13.58, 7.821]
+      2 |     -1349.92 | [0.1761, -1, 0.2, 0, 0.01434, -0.9993, 13.2, 7.07]
+      3 | -1.38742e+16 | [0.1775, -1, 0.2, 0, 0.01441, -0.9964, 12.79, 6.644]
+    -------------------------------------
+
     Final parameters and corresponding likelihood:
     -------------------------------------------------------------------------------------------------------------------------
           LogLik |         REUR REUR_sex_bias         RNAT RNAT_sex_bias         RAFR RAFR_sex_bias           t1           t2
     -------------------------------------------------------------------------------------------------------------------------
-        -1497.36 |       0.1785           -1          0.2            0      0.01457      -0.9991        13.58        7.821
+        -1349.92 |       0.1761           -1          0.2            0      0.01434      -0.9993         13.2         7.07
     -------------------------------------------------------------------------------------------------------------------------
     Results saved to : ./output_continuous_pulse/
 
@@ -209,7 +261,7 @@ X chromosome admixture in males
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (2 minutes 50.841 seconds)
+   **Total running time of the script:** (3 minutes 6.614 seconds)
 
 
 .. _sphx_glr_download_auto_examples_MXL_MXL_3pop_sexbiased_fix.py:

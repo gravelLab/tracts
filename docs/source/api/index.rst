@@ -9,5 +9,4 @@ This section documents the core components of ``tracts``, including its modules,
    core_modules
    phase_type
    demography
-   legacy_models
    
