@@ -120,9 +120,9 @@ class Population:
         The number of female individuals in the population.
     """
 
-    def __init__(self, list_indivs: list[Indiv]=None, names:list[str]=None, fname:str=None,
-                labs:list[str]=("_A", "_B"), selectchrom:list[str]=None, allosomes:list[str]=[], 
-                ignore_length_consistency:bool=False, filenames_by_individual:list[str]=None, male_list: list[str] | str = None):
+    def __init__(self, list_indivs: list[Indiv] | None = None, names: list[str] | None = None, fname: str | None = None,
+                labs: list[str] | None = None, selectchrom: list[str] | None = None, allosomes:list[str] | None = None, 
+                ignore_length_consistency: bool = False, filenames_by_individual: list[str] | None = None, male_list: list[str] | str = None):
         """
         Initializes the :class:`~tracts.population.Population` class.
 
@@ -157,7 +157,12 @@ class Population:
         or a file format `fname` and a list `names` of names. If reading from a file, `fname` should be a tuple with the start,
         middle and end of the filenames, where an individual file is specified by `start--Indiv--Middle--_A--End`. Otherwise, provide list of individuals.
         """
-        
+
+        if labs is None:
+            labs = ["_A", "_B"]
+        if allosomes is None:
+            allosomes = []
+
         self.currentplot = None
         self.win = None
         self.chro_canvas = None
@@ -426,7 +431,7 @@ class Population:
         list[tuple[dict[str, int], dict[str, float]]]
             A list of tuples, where each tuple corresponds to a position along the chromosome and contains two dictionaries. The first dictionary maps ancestry labels to the count of tracts of that ancestry that extend beyond the corresponding position by at least `cutoff`. The second dictionary maps ancestry labels to the average length of tracts of that ancestry that extend beyond the corresponding position by at least `cutoff`.
         """
-        length = self.indivs[0].chroms[Chrom].len  # Get chromosome length
+        length = self.indivs[0].chroms[select_chrom].len  # Get chromosome length
         plotpts = np.arange(0, length, length / float(npts))  # Get number of points at which to plot ancestry
         return plotpts, [self.ancestry_at_pos(select_chrom=select_chrom, pos=pt, cutoff=cutoff) for pt in plotpts]
 
@@ -619,13 +624,11 @@ class Population:
         """
         num_males_processed = 0;
         if male_list != "auto":
-            
+            self.male_list = list(male_list)
+            male_set = set(self.male_list)
+
             for indiv in self:
-                if indiv.name in self.male_list:
-                    indiv.is_male = True
-                else:
-                    indiv.is_male = False
-                
+                indiv.is_male = indiv.name in male_set # Fast membership check using set.
                 if indiv.is_male and  len(indiv.allosomes[allosome_label]) == 2:
                     logger.info(f"Individual {indiv.name} is listed as male but has two X chromosomes. Selecting first of the two.")
                     assert indiv.allosomes[allosome_label][0].is_equal(indiv.allosomes[allosome_label][1]), f"Male individual {indiv} has two different X chromosomes." 
@@ -634,8 +637,8 @@ class Population:
                 num_males_processed += indiv.is_male
             
             if len(self.male_list) not in [0, num_males_processed]:
-                raise logger.warning(f"A male list of length {len(self.male_list)} is provided, but we have identified"+ 
-                                    "{num_males_processed} males") 
+                msg = (f"A male list of length {len(self.male_list)} is provided, but we have identified {num_males_processed} males.")
+                raise ValueError(msg)
         else: 
             for indiv in self:
                 if len(indiv.allosomes[allosome_label]) == 2:
@@ -649,7 +652,7 @@ class Population:
             print(f"Identified {num_males_processed} males from allosomal data")
         self.males_set = True
 
-    def smooth_unknowns(self, allosome_labels: list[str]='X'):
+    def smooth_unknowns(self, allosome_labels: list[str]=['X']):
         """
         Smooths the unknown labels for each individual in the population.
 
@@ -661,8 +664,9 @@ class Population:
        
         for indiv in self:
             for allosome_label in allosome_labels:             
-                if allosome_label not in indiv.allosomes.keys():
-                    raise logger.warning(f"Data for chromosome {allosome_label} does not exist on individual {indiv.name}.")
+                if allosome_label not in indiv.allosomes:
+                    logger.warning(f"Data for chromosome {allosome_label} does not exist on individual {indiv.name}. Skipping.")
+                    continue
                 for chrom in indiv.allosomes[allosome_label]:
                     chrom.unknown_labels= self.unknown_labels if hasattr(self, 'unknown_labels') else []
                     chrom.smooth_unknown()

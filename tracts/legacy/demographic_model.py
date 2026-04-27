@@ -1,4 +1,5 @@
 import sys
+
 from tracts.util import eprint
 import numpy as np
 from scipy.special import gammaln, factorial, gammainc

@@ -1,9 +1,8 @@
 from timeit import default_timer as time
-
 import numpy
-
 import tracts
 from tests.test_data import bins, Ls
+from tracts.legacy.demographic_model import DemographicModel
 
 """
 Tests for component methods of tracts core
@@ -31,7 +30,7 @@ def benchmark_demography(migration_matrix, bins, Ls, runs):
     time_total = 0
     for run in range(runs):
         start = time()
-        demo = tracts.DemographicModel(migration_matrix)
+        demo = DemographicModel(migration_matrix)
         PTD_hists = [numpy.array(demo.expectperbin(Ls, population_number, bins)) for population_number in
                      range(len(migration_matrix[0]))]
         if run == 0:
