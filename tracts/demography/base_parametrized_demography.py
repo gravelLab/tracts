@@ -1295,7 +1295,7 @@ class FixedParametersHandler:
         result = scipy.optimize.minimize(objective_func, 
                                         x0=demography.get_random_parameters(),
                                         bounds=demography.parameter_bounds,
-                                        constraints= {'ineq', demography.check_constraints})
+                                        constraints={'type': 'ineq', 'fun': demography.check_constraints})
         if not np.isclose(result.fun,0):
             raise ValueError(
                 'The ancestry proportions in the sample are not achievable with the provided demographic model.')
