@@ -1,0 +1,944 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "2ad3fb18",
+   "metadata": {
+    "tags": [
+     "remove-input",
+     "hide-input",
+     "hide-cell"
+    ]
+   },
+   "source": [
+    "\n",
+    "<style>\n",
+    "/* --- Notebook-wide typography and spacing --- */\n",
+    ".jp-RenderedHTMLCommon, .rendered_html, .bd-article, .nbinput, .nboutput {\n",
+    "  --toy-max-width: 980px;\n",
+    "}\n",
+    "\n",
+    ".jp-RenderedHTMLCommon p, .rendered_html p, .bd-article p {\n",
+    "  line-height: 1.65;\n",
+    "  font-size: 1.02rem;\n",
+    "  margin-top: 0.35rem;\n",
+    "  margin-bottom: 0.9rem;\n",
+    "}\n",
+    "\n",
+    ".jp-RenderedHTMLCommon h2, .rendered_html h2, .bd-article h2 {\n",
+    "  font-size: 2.05rem;\n",
+    "  line-height: 1.2;\n",
+    "  margin-top: 0.2rem;\n",
+    "  margin-bottom: 0.35rem;\n",
+    "  padding-bottom: 0.2rem;\n",
+    "  border-bottom: 1px solid rgba(128,128,128,0.18);\n",
+    "}\n",
+    "\n",
+    ".jp-RenderedHTMLCommon h3, .rendered_html h3, .bd-article h3 {\n",
+    "  font-size: 1.45rem;\n",
+    "  line-height: 1.3;\n",
+    "  margin-top: 1.9rem;\n",
+    "  margin-bottom: 0.55rem;\n",
+    "}\n",
+    "\n",
+    ".jp-RenderedHTMLCommon h4, .rendered_html h4, .bd-article h4 {\n",
+    "  font-size: 1.15rem;\n",
+    "  line-height: 1.35;\n",
+    "  margin-top: 1.35rem;\n",
+    "  margin-bottom: 0.45rem;\n",
+    "}\n",
+    "\n",
+    ".jp-RenderedHTMLCommon ul, .rendered_html ul, .bd-article ul {\n",
+    "  margin-top: 0.35rem;\n",
+    "  margin-bottom: 0.95rem;\n",
+    "  padding-left: 1.4rem;\n",
+    "}\n",
+    "\n",
+    ".jp-RenderedHTMLCommon li, .rendered_html li, .bd-article li {\n",
+    "  margin-bottom: 0.3rem;\n",
+    "  line-height: 1.6;\n",
+    "}\n",
+    "\n",
+    "/* --- Code cells and outputs --- */\n",
+    "div.input_area, .jp-Cell-inputWrapper, .highlight, pre {\n",
+    "  border-radius: 12px;\n",
+    "}\n",
+    "\n",
+    ".jp-CodeCell .jp-InputArea-editor, .input_area, div.highlight {\n",
+    "  font-size: 0.96rem;\n",
+    "}\n",
+    "\n",
+    ".output_subarea, .jp-OutputArea-output {\n",
+    "  max-width: 100%;\n",
+    "}\n",
+    "\n",
+    ".jp-OutputArea-output img, .output_subarea img {\n",
+    "  display: block;\n",
+    "  margin-left: auto;\n",
+    "  margin-right: auto;\n",
+    "  border-radius: 10px;\n",
+    "}\n",
+    "\n",
+    "/* --- Visual polish --- */\n",
+    "hr {\n",
+    "  margin-top: 1.5rem !important;\n",
+    "  margin-bottom: 1.5rem !important;\n",
+    "}\n",
+    "\n",
+    "blockquote {\n",
+    "  border-left: 4px solid rgba(59,130,246,0.55);\n",
+    "  margin: 1rem 0;\n",
+    "  padding: 0.25rem 0 0.25rem 1rem;\n",
+    "  background: rgba(59,130,246,0.06);\n",
+    "  border-radius: 0 10px 10px 0;\n",
+    "}\n",
+    "\n",
+    "/* --- Keep content comfortably narrow in rendered contexts --- */\n",
+    ".jp-Notebook .jp-Cell, .notebook_app .cell, .bd-article {\n",
+    "  max-width: 980px;\n",
+    "}\n",
+    "\n",
+    "/* --- Slightly more breathing room between cells --- */\n",
+    ".jp-Cell, .cell {\n",
+    "  margin-top: 0.45rem;\n",
+    "  margin-bottom: 0.45rem;\n",
+    "}\n",
+    "</style>\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4f74b633",
+   "metadata": {},
+   "source": [
+    "# Phase-type models for tract length distributions\n",
+    "\n",
+    "In this tutorial, we illustrate how to use the functions in ``tracts`` to compute and depict tract length distributions under the different models of admixture introduced in the paper. These are, in increasing order of complexity:\n",
+    "\n",
+    "* The Monoecious (M) model (only defined for autosomal admixture),\n",
+    "* The Dioecious-Coarse (DC) model,\n",
+    "* The Dioecious-Fine (DF) model,\n",
+    "* The hybrid-pedidree refinements of the DC (H-DC) and the DF (H-DF) models.\n",
+    "\n",
+    "We start by importing the required python libraries:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c33f835d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from tracts.phase_type import PhTMonoecious, PhTDioecious\n",
+    "from tracts.phase_type import hybrid_pedigree as HP\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "from matplotlib.ticker import FormatStrFormatter\n",
+    "import matplotlib as mpl\n",
+    "mpl.rcParams.update(mpl.rcParamsDefault)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0c64d13e",
+   "metadata": {},
+   "source": [
+    "Throughout this notebook, we consider two source populations and a **continuous pulse** from the first to the second. This can be represented with the following migration matrix. The `whichpop` parameter sets the population of interest (0 or 1)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "cb8b3bca",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "whichpop = 1\n",
+    "mig_matrix = np.array([[0, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0, 1]])"
+   ]
+  },
+  {
+   "cell_type": "raw",
+   "id": "b1e04b1d",
+   "metadata": {
+    "raw_mimetype": "text/restructuredtext"
+   },
+   "source": [
+    "In what follows, we compute Phase-Type densities and histograms under autosomal and X chromosome admixture, using all the models presented in ``tracts``. We consider different levels of sex-bias, in both migration and recombination rates.\n",
+    "\n",
+    ".. note::\n",
+    "    The previous migration matrix represents a demographic model of 6 generations. This is a toy framework where all the presented models are computationally efficient and can be quickly computed and compared. \n",
+    "\n",
+    ".. important::\n",
+    "\n",
+    "   For more realistic demographic models going up to 15–18 generations, the following models should be used depending on the context:\n",
+    "\n",
+    "   - For autosomal admixture: Dioecious-Coarse (DC) or Monoecious (M) model.\n",
+    "   - For X chromosome admixture: Dioecious-Coarse (DC) model or its Hybrid-Pedigree refinement (H-DC). Typically, the number of pedigree generations should be set to ``TP=2``.\n",
+    "\n",
+    "   An example under both settings is presented at the end of the notebook."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "47919257",
+   "metadata": {},
+   "source": [
+    "## 1. Choose autosomal or X chromosome admixture"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7cdca656",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_chr = False # Set to True for admixture on the X chromosome\n",
+    "X_chr_male = False # Set to True if admixture is considered on the X chromosome of a male individual (only maternally inherited alleles)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a88d4d00",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "which_L = 1.7928357829 # Second chromosome\n",
+    "#which_L = 1.96 # For the X chromosome\n",
+    "# Set a point grid on the finite chromosome\n",
+    "bins = np.linspace(0, which_L+0.1, num = 50)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c2d1c82b",
+   "metadata": {},
+   "source": [
+    "## 2. Set sex-bias\n",
+    "The following parameters set the sex-bias for migration and recombination rates. The user can modify these parameters to observe how differences appear between all the considered models."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "af95faed",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "prop_of_female_migration = 0.5 # Set 0.5 for unbiased migration, 1 for only female migrants, 0 for only male migrants.\n",
+    "mig_m = 2*mig_matrix*(1-prop_of_female_migration)\n",
+    "mig_f = 2*mig_matrix*prop_of_female_migration\n",
+    "mig_m[-1,:] = mig_matrix[-1,:]\n",
+    "mig_f[-1,:] = mig_matrix[-1,:]\n",
+    "\n",
+    "rec_f = 1 # Female-specific recombination rate\n",
+    "rec_m = 1 # Male-specific recombination rate"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a16638fa",
+   "metadata": {
+    "raw_mimetype": "text/restructuredtext"
+   },
+   "source": [
+    "## 3. Compute model parameters and distributions\n",
+    "\n",
+    "For the Monoecious (M), Dioecious Fine (DF), and Dioecious Coarse (DC) models, we first compute a `PhTMonoecious` or a `PhTDioecious` object, and then compute the corresponding phase-type density or histogram using the `tractlength_histogram_windowed` method. For the Pedigree-Dioecious models, densities and histograms are computed directly from the model parameters using the `hybrid_pedigree_distribution` function.\n",
+    "\n",
+    "For comparison with the other settings, the Monoecious model is always computed using the mean migration matrix and the mean recombination rate."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8799a86c",
+   "metadata": {},
+   "source": [
+    "### 3.1 Monoecious model (don't run for X chromosome)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "82b132b7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "PTmodel_mono = PhTMonoecious(mig_matrix, rho = 0.5*(rec_f+rec_m)) # M object\n",
+    "# Density (set freq = True for frequency scale)\n",
+    "newbins, density_m, E = PTmodel_mono.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = True, freq = True)\n",
+    "# Histogram\n",
+    "bins, hist_m, E = PTmodel_mono.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = False, freq = False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f366998e",
+   "metadata": {},
+   "source": [
+    "### 3.2 Dioecious Fine and Coarse models"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fa5812c0",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# DF and DC objects\n",
+    "PTmodel_DF = PhTDioecious(mig_f, mig_m, rho_f = rec_f, rho_m = rec_m, sex_model = 'DF', X_chromosome = X_chr, X_chromosome_male = X_chr_male)\n",
+    "PTmodel_DC = PhTDioecious(mig_f , mig_m, rho_f = rec_f, rho_m = rec_m, sex_model = 'DC', X_chromosome = X_chr, X_chromosome_male = X_chr_male)\n",
+    "# Densities (set freq = True for frequency scale)\n",
+    "newbins, density_df, E = PTmodel_DF.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = True, freq = True)\n",
+    "newbins, density_dc, E = PTmodel_DC.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = True, freq = True)\n",
+    "# Histograms\n",
+    "bins, hist_df, E = PTmodel_DF.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = False, freq = False)\n",
+    "bins, hist_dc, E = PTmodel_DC.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = False, freq = False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e692c16a",
+   "metadata": {},
+   "source": [
+    "### 3.3 Hybrid-pedigree refinements"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d0b28cbf",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Phase-Type density for the Pedigree-DF model (set freq = True for frequency scale)\n",
+    "newbins, density_hp_df = HP.hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m, TP = 2, Dioecious_model = 'DF', L = which_L, bingrid = bins, whichpop = whichpop, rho_f = rec_f, rho_m = rec_m, X_chr = X_chr, X_chr_male = X_chr_male, N_cores = 5, density = True, freq = True)\n",
+    "# Phase-Type density for the Pedigree-DC model (set freq = True for frequency scale)\n",
+    "newbins, density_hp_dc = HP.hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m, TP = 2, Dioecious_model = 'DC', L = which_L, bingrid = bins, whichpop = whichpop, rho_f = rec_f, rho_m = rec_m, X_chr = X_chr, X_chr_male = X_chr_male, N_cores = 5, density = True, freq = True)\n",
+    "# Phase-Type histogram for the Pedigree-DF model\n",
+    "bins, hist_hp_df = HP.hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m, TP = 2, Dioecious_model = 'DF', L = which_L, bingrid = bins, whichpop = whichpop, rho_f = rec_f, rho_m = rec_m, X_chr = X_chr, X_chr_male = X_chr_male, N_cores = 5, density = False, freq = False)\n",
+    "# Phase-Type histogram for the Pedigree-DC model\n",
+    "bins, hist_hp_dc = HP.hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m, TP = 2, Dioecious_model = 'DC', L = which_L, bingrid = bins, whichpop = whichpop, rho_f = rec_f, rho_m = rec_m, X_chr = X_chr, X_chr_male = X_chr_male, N_cores = 5, density = False, freq = False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "272badd3",
+   "metadata": {},
+   "source": [
+    "## 4. Plot tract length distributions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3b527680",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Color palette and line styles\n",
+    "colors = {\n",
+    "    'M' : 'gray',\n",
+    "    'DC': 'green',\n",
+    "    'DF': 'blue',\n",
+    "    'P': 'orange',\n",
+    "    'HP' : 'orange',\n",
+    "    'HP_DC': 'orange',\n",
+    "}\n",
+    "line_styles = {\n",
+    "    'M' : '-',\n",
+    "    'DF': '-',\n",
+    "    'DC': '-',\n",
+    "    'P': '-',\n",
+    "    'HP':'-',\n",
+    "    'HP_DC':'-'\n",
+    "}\n",
+    "\n",
+    "line_widths = {\n",
+    "    'M' : 2,\n",
+    "    'DF': 2,\n",
+    "    'DC': 2,\n",
+    "    'P': 2,\n",
+    "    'HP':2,\n",
+    "    'HP_DC':2\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6317c4ba",
+   "metadata": {},
+   "source": [
+    "### 4.1 Plot densities"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1a165d7a",
+   "metadata": {},
+   "source": [
+    "#### 4.1.1 Plot for autosomal admixture\n",
+    "The following code produces a figure depicting all the computed Phase-Type densities for autosomal admixture. Run if ``X_chr = False``."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6622fbb7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, axes = plt.subplots(1, 1, figsize=(5,4))  \n",
+    "ax = axes  \n",
+    "# Plot lines with improved color and line style\n",
+    "line1, = ax.plot(np.delete(newbins, whichbin), (density_df[~(np.asarray(newbins) == outbin)]), color=colors['DF'], linestyle=line_styles['DF'], linewidth = line_widths['DF'],  label='Dioecious Fine (DF)', zorder = 1)\n",
+    "line2, = ax.plot(np.delete(newbins, whichbin), (density_dc[~(np.asarray(newbins) == outbin)]), color=colors['DC'], linestyle=line_styles['DC'], linewidth = line_widths['DC'], label='Dioecious Coarse (DC)', zorder = 1)\n",
+    "line3, = ax.plot(np.delete(newbins, whichbin), (density_m[~(np.asarray(newbins) == outbin)]), color=colors['M'], linestyle=line_styles['M'], linewidth = line_widths['M'], label='Monoecious (M)', zorder = 1)\n",
+    "line4, = ax.plot(np.delete(newbins, whichbin), density_hp_df[~(np.asarray(newbins) == outbin)], color=colors['HP'], linestyle=line_styles['HP'], linewidth = line_widths['HP'], label='Ped-DF (TP = 2)', zorder = 1)\n",
+    "line5, = ax.plot(np.delete(newbins, whichbin), density_hp_df[~(np.asarray(newbins) == outbin)], color=colors['DF'], linestyle=(2, (2, 2)), linewidth = line_widths['HP'], label='Ped-DF (TP = 2)', zorder = 1)\n",
+    "line6, = ax.plot(np.delete(newbins, whichbin), density_hp_dc[~(np.asarray(newbins) == outbin)], color=colors['HP_DC'], linestyle=line_styles['HP_DC'], linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)', zorder = 1)\n",
+    "line7, = ax.plot(np.delete(newbins, whichbin), density_hp_dc[~(np.asarray(newbins) == outbin)], color=colors['DC'], linestyle=(2, (2, 2)), linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)', zorder = 1)\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the second chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Density', fontsize=10)\n",
+    "        \n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, (density_df[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['DF'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_dc[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['DC'], s=30, label='Outlier',marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_m[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['M'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_hp_df[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['HP'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_hp_dc[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['HP_DC'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "\n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, density_df[np.where(newbins == outbin)], edgecolor=colors['DF'], s=30, label='Outlier', marker='o', facecolor=colors['DF'], zorder = 4)\n",
+    "ax.scatter(outbin, density_dc[np.where(newbins == outbin)], edgecolor=colors['DC'], s=30, label='Outlier',marker='o', facecolor=colors['DC'], zorder = 4)\n",
+    "ax.scatter(outbin, density_m[np.where(newbins == outbin)], edgecolor=colors['M'], s=30, label='Outlier', marker='o', facecolor=colors['M'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_df[np.where(newbins == outbin)], edgecolor=colors['HP'], s=30, label='Outlier', marker='o', facecolor=colors['HP'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_df[np.where(newbins == outbin)], edgecolor=colors['HP'], s=15, label='Outlier', marker='o', facecolor=colors['DF'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_dc[np.where(newbins == outbin)], edgecolor=colors['HP_DC'], s=30, label='Outlier', marker='o', facecolor=colors['HP_DC'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_dc[np.where(newbins == outbin)], edgecolor=colors['HP_DC'], s=15, label='Outlier', marker='o', facecolor=colors['DC'], zorder = 4)\n",
+    "\n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([line1, line2, line3, (line4, line5), (line6, line7)])\n",
+    "labels.extend([line1.get_label(), line2.get_label(), line3.get_label(), line4.get_label(), line6.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ba7cde6f",
+   "metadata": {},
+   "source": [
+    "#### 4.1.2 Plot for X chromosome admixture\n",
+    "The following code produces a figure depicting all the computed Phase-Type densities for admixture on the X chromosome. Run if `X_chr = True`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "35660016",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, axes = plt.subplots(1, 1, figsize=(5,4))  # 3x3 grid of subplots\n",
+    "ax = axes  \n",
+    "# Plot lines with improved color and line style\n",
+    "line1, = ax.plot(np.delete(newbins, whichbin), (density_df[~(np.asarray(newbins) == outbin)]), color=colors['DF'], linestyle=line_styles['DF'], linewidth = line_widths['DF'],  label='Dioecious Fine (DF)', zorder = 1)\n",
+    "line2, = ax.plot(np.delete(newbins, whichbin), (density_dc[~(np.asarray(newbins) == outbin)]), color=colors['DC'], linestyle=line_styles['DC'], linewidth = line_widths['DC'], label='Dioecious Coarse (DC)', zorder = 1)\n",
+    "line4, = ax.plot(np.delete(newbins, whichbin), density_hp_df[~(np.asarray(newbins) == outbin)], color=colors['HP'], linestyle=line_styles['HP'], linewidth = line_widths['HP'], label='Ped-DF (TP = 2)', zorder = 1)\n",
+    "line5, = ax.plot(np.delete(newbins, whichbin), density_hp_df[~(np.asarray(newbins) == outbin)], color=colors['DF'], linestyle=(2, (2, 2)), linewidth = line_widths['HP'], label='Ped-DF (TP = 2)', zorder = 1)\n",
+    "line6, = ax.plot(np.delete(newbins, whichbin), density_hp_dc[~(np.asarray(newbins) == outbin)], color=colors['HP_DC'], linestyle=line_styles['HP_DC'], linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)', zorder = 1)\n",
+    "line7, = ax.plot(np.delete(newbins, whichbin), density_hp_dc[~(np.asarray(newbins) == outbin)], color=colors['DC'], linestyle=(2, (2, 2)), linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)', zorder = 1)\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the X chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Density', fontsize=10)\n",
+    "        \n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, (density_df[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['DF'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_dc[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['DC'], s=30, label='Outlier',marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_hp_df[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['HP'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "ax.scatter(outbin, (density_hp_dc[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['HP_DC'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "\n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, density_df[np.where(newbins == outbin)], edgecolor=colors['DF'], s=30, label='Outlier', marker='o', facecolor=colors['DF'], zorder = 4)\n",
+    "ax.scatter(outbin, density_dc[np.where(newbins == outbin)], edgecolor=colors['DC'], s=30, label='Outlier',marker='o', facecolor=colors['DC'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_df[np.where(newbins == outbin)], edgecolor=colors['HP'], s=30, label='Outlier', marker='o', facecolor=colors['HP'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_df[np.where(newbins == outbin)], edgecolor=colors['HP'], s=15, label='Outlier', marker='o', facecolor=colors['DF'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_dc[np.where(newbins == outbin)], edgecolor=colors['HP_DC'], s=30, label='Outlier', marker='o', facecolor=colors['HP_DC'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_dc[np.where(newbins == outbin)], edgecolor=colors['HP_DC'], s=15, label='Outlier', marker='o', facecolor=colors['DC'], zorder = 4)\n",
+    "\n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([line1, line2, (line4, line5), (line6, line7)])\n",
+    "labels.extend([line1.get_label(), line2.get_label(), line4.get_label(), line6.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4b429c31",
+   "metadata": {},
+   "source": [
+    "### 4.2 Plot histograms\n",
+    "#### 4.2.1 Plot for autosomal admixture\n",
+    "The following code produces a figure depicting all the computed Phase-Type histograms for autosomal admixture. Run if ``X_chr = False``."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f6289e9b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(5,4)) \n",
+    "\n",
+    "# Plot lines with improved color and line style\n",
+    "line1, = ax.step(bins[:-1], hist_df, color=colors['DF'], linestyle=line_styles['DF'], linewidth = line_widths['DF'],  label='Dioecious Fine (DF)')\n",
+    "line2, = ax.step(bins[:-1], hist_dc, color=colors['DC'], linestyle=line_styles['DC'], linewidth = line_widths['DC'], label='Dioecious Coarse (DC)')\n",
+    "line3, = ax.step(bins[:-1], hist_m, color=colors['M'], linestyle=line_styles['M'], linewidth = line_widths['M'], label='Monoecious (M)')\n",
+    "line4, = ax.step(bins[:-1], hist_hp_df, color=colors['HP'], linestyle=line_styles['HP'], linewidth = line_widths['HP'], label='Ped-DF (TP = 2)')\n",
+    "line5, = ax.step(bins[:-1], hist_hp_df, color=colors['DF'], linestyle=(2, (2, 2)), linewidth = line_widths['HP'], label='Ped-DF (TP = 2)')\n",
+    "line6, = ax.step(bins[:-1], hist_hp_dc, color=colors['HP_DC'], linestyle=line_styles['HP_DC'], linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)')\n",
+    "line7, = ax.step(bins[:-1], hist_hp_dc, color=colors['DC'], linestyle=(2, (2, 2)), linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)')\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the second chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Expected number of tracts per interval', fontsize=10)\n",
+    "        \n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([line1, line2, line3, (line4, line5), (line6, line7)])\n",
+    "labels.extend([line1.get_label(), line2.get_label(), line3.get_label(), line4.get_label(), line6.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "53c27763",
+   "metadata": {},
+   "source": [
+    "#### 4.2.2 Plot for X chromosome admixture\n",
+    "The following code produces a figure depicting all the computed Phase-Type histograms for admixture on the X chromosome. Run if ``X_chr = True``."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "55af0c51",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(5,4)) \n",
+    "\n",
+    "# Plot lines with improved color and line style\n",
+    "line1, = ax.step(bins[:-1], hist_df, color=colors['DF'], linestyle=line_styles['DF'], linewidth = line_widths['DF'],  label='Dioecious Fine (DF)')\n",
+    "line2, = ax.step(bins[:-1], hist_dc, color=colors['DC'], linestyle=line_styles['DC'], linewidth = line_widths['DC'], label='Dioecious Coarse (DC)')\n",
+    "line4, = ax.step(bins[:-1], hist_hp_df, color=colors['HP'], linestyle=line_styles['HP'], linewidth = line_widths['HP'], label='Ped-DF (TP = 2)')\n",
+    "line5, = ax.step(bins[:-1], hist_hp_df, color=colors['DF'], linestyle=(2, (2, 2)), linewidth = line_widths['HP'], label='Ped-DF (TP = 2)')\n",
+    "line6, = ax.step(bins[:-1], hist_hp_dc, color=colors['HP_DC'], linestyle=line_styles['HP_DC'], linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)')\n",
+    "line7, = ax.step(bins[:-1], hist_hp_dc, color=colors['DC'], linestyle=(2, (2, 2)), linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)')\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the X chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Expected number of tracts per interval', fontsize=10)\n",
+    "        \n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([line1, line2, (line4, line5), (line6, line7)])\n",
+    "labels.extend([line1.get_label(), line2.get_label(), line4.get_label(), line6.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1e1bc374",
+   "metadata": {},
+   "source": [
+    "## 5. Tract length distribution for a continuous pulse during 15 generations\n",
+    "We consider the following migration matrix, and let the user specify the sex-bias parameters as in the previous example. Once again, ``whichpop`` sets the population of interest (0 or 1)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "27b9ea46",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "whichpop = 1\n",
+    "mig_matrix = np.array([[0, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0.2, 0],[0, 1]])\n",
+    "print(np.shape(mig_matrix)[0]-1) # Number of generations"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0ad3818e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "prop_of_female_migration = 0.5 # 0.5 for unbiased migration, 1 for only female migrants, 0 for only male migrants.\n",
+    "mig_m = 2*mig_matrix*(1-prop_of_female_migration)\n",
+    "mig_f = 2*mig_matrix*prop_of_female_migration\n",
+    "mig_m[-1,:] = mig_matrix[-1,:]\n",
+    "mig_f[-1,:] = mig_matrix[-1,:]\n",
+    "\n",
+    "rec_f = 1 # Female-specific recombination rate\n",
+    "rec_m = 1 # Male-specific recombination rate"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b2af565c",
+   "metadata": {},
+   "source": [
+    "### 5.1 Monoecious model for autosomal admixture"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "ae3b297b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "PTmodel_mono = PhTMonoecious(mig_matrix, rho = 0.5*(rec_f+rec_m)) # M object\n",
+    "# Density (set freq = True for frequency scale)\n",
+    "newbins, density_m, E = PTmodel_mono.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = True, freq = True)\n",
+    "# Histogram\n",
+    "bins, hist_m, E = PTmodel_mono.tractlength_histogram_windowed(whichpop, bins, L = which_L, density = False, freq = False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b44b701d",
+   "metadata": {},
+   "source": [
+    "#### 5.1.1 Plot density"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8a3b8803",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, axes = plt.subplots(1, 1, figsize=(5,4))  \n",
+    "ax = axes  \n",
+    "# Plot lines with improved color and line style\n",
+    "line3, = ax.plot(np.delete(newbins, whichbin), (density_m[~(np.asarray(newbins) == outbin)]), color=colors['M'], linestyle=line_styles['M'], linewidth = line_widths['M'], label='Monoecious (M)', zorder = 1)\n",
+    "       \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the second chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Density', fontsize=10)\n",
+    "        \n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, (density_m[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['M'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "\n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, density_m[np.where(newbins == outbin)], edgecolor=colors['M'], s=30, label='Outlier', marker='o', facecolor=colors['M'], zorder = 4)\n",
+    "\n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([line3])\n",
+    "labels.extend([line3.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "91f704e3",
+   "metadata": {},
+   "source": [
+    "#### 5.1.2 Plot histogram"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2ff050fb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(5,4)) \n",
+    "\n",
+    "# Plot lines with improved color and line style\n",
+    "line3, = ax.step(bins[:-1], hist_m, color=colors['M'], linestyle=line_styles['M'], linewidth = line_widths['M'], label='Monoecious (M)')\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the second chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Expected number of tracts per interval', fontsize=10)\n",
+    "        \n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([line3])\n",
+    "labels.extend([line3.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "132f93ec",
+   "metadata": {},
+   "source": [
+    "### 5.2 Pedigree-DC model for X chromosome admixture"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4deb033a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Uncomment the following lines to run the hybrid pedigree distribution for the DF and DC models. Note that these can take a while to run, especially for the DC model, depending on the number of cores used and the size of the grid.\n",
+    "\n",
+    "# Phase-Type density for the Pedigree-DC model (set freq = True for frequency scale)\n",
+    "#newbins, density_hp_dc = HP.hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m, TP = 2, Dioecious_model = 'DC', L = which_L, bingrid = bins, whichpop = whichpop, rho_f = rec_f, rho_m = rec_m, X_chr = True, X_chr_male = False, N_cores = 5, density = True, freq = True)\n",
+    "# Phase-Type histogram for the Pedigree-DC model\n",
+    "#bins, hist_hp_dc = HP.hybrid_pedigree_distribution(mig_matrix_f = mig_f, mig_matrix_m = mig_m, TP = 2, Dioecious_model = 'DC', L = which_L, bingrid = bins, whichpop = whichpop, rho_f = rec_f, rho_m = rec_m, X_chr = True, X_chr_male = False, N_cores = 5, density = False, freq = False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a2cc6c08",
+   "metadata": {},
+   "source": [
+    "#### 5.2.1 Plot density"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "32c72c1a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, axes = plt.subplots(1, 1, figsize=(5,4))  # 3x3 grid of subplots\n",
+    "ax = axes  \n",
+    "# Plot lines with improved color and line style\n",
+    "line6, = ax.plot(np.delete(newbins, whichbin), density_hp_dc[~(np.asarray(newbins) == outbin)], color=colors['HP_DC'], linestyle=line_styles['HP_DC'], linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)', zorder = 1)\n",
+    "line7, = ax.plot(np.delete(newbins, whichbin), density_hp_dc[~(np.asarray(newbins) == outbin)], color=colors['DC'], linestyle=(2, (2, 2)), linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)', zorder = 1)\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the X chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Density', fontsize=10)\n",
+    "        \n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, (density_hp_dc[np.where(newbins == outbin)[0] - 1]), edgecolor=colors['HP_DC'], s=30, label='Outlier', marker='o', facecolor='white', alpha = 1, zorder = 3)\n",
+    "\n",
+    "# Add outlier point to the plot\n",
+    "ax.scatter(outbin, density_hp_dc[np.where(newbins == outbin)], edgecolor=colors['HP_DC'], s=30, label='Outlier', marker='o', facecolor=colors['HP_DC'], zorder = 4)\n",
+    "ax.scatter(outbin, density_hp_dc[np.where(newbins == outbin)], edgecolor=colors['HP_DC'], s=15, label='Outlier', marker='o', facecolor=colors['DC'], zorder = 4)\n",
+    "\n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([(line6, line7)])\n",
+    "labels.extend([line6.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d987b152",
+   "metadata": {},
+   "source": [
+    "#### 5.2.2 Plot histogram"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "594d3132",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outbin = np.max(np.asarray(newbins)[np.asarray(newbins) == which_L])\n",
+    "whichbin = int(np.where(np.asarray(newbins) == outbin)[0][0])\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(5,4)) \n",
+    "\n",
+    "# Plot lines with improved color and line style\n",
+    "line6, = ax.step(bins[:-1], hist_hp_dc, color=colors['HP_DC'], linestyle=line_styles['HP_DC'], linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)')\n",
+    "line7, = ax.step(bins[:-1], hist_hp_dc, color=colors['DC'], linestyle=(2, (2, 2)), linewidth = line_widths['HP_DC'], label='Ped-DC (TP = 2)')\n",
+    "        \n",
+    "# Customize x and y labels\n",
+    "ax.set_xlabel('Tract length on the X chromosome', fontsize=10)\n",
+    "ax.set_ylabel('Expected number of tracts per interval', fontsize=10)\n",
+    "        \n",
+    "# Add gridlines\n",
+    "ax.grid(True, linestyle='--', alpha=0.6)\n",
+    "\n",
+    "# Set limits for x-axis and y-axis if necessary\n",
+    "ax.set_xlim(0, which_L+0.1)\n",
+    "\n",
+    "# Customize the ticks\n",
+    "ax.tick_params(axis='both', which='major', labelsize=10)\n",
+    "\n",
+    "handles = []\n",
+    "labels = []\n",
+    "handles.extend([(line6, line7)])\n",
+    "labels.extend([line6.get_label()])\n",
+    "\n",
+    "fig.legend(handles=handles, labels=labels, loc='lower center', bbox_to_anchor=(0.55, -0.2), ncol=2, fontsize=10)\n",
+    "\n",
+    "# Adjust spacing between subplots for better layout\n",
+    "plt.tight_layout(rect=[0, 0, 1, 0.95])\n",
+    "plt.show()"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "base",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.14"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

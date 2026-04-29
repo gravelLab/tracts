@@ -1,0 +1,968 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ASW inference - Two pulses model &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/ASW/ASW_two_pulses';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ASW inference - Three pulses model" href="ASW_three_pulses.html" />
+    <link rel="prev" title="ASW inference - One pulse model" href="ASW_one_pulse.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../examples/data_description.html">Data description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/data_processing.html">Data Processing</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">ASW population</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ASW_one_pulse.html">ASW inference - One pulse model</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">ASW inference - Two pulses model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ASW_three_pulses.html">ASW inference - Three pulses model</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../MXL/index.html">MXL population</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../MXL/MXL_3pop_sexbiased_fix.html">MXL inference - continuous pulse model</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../examples/index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">ASW population</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">ASW inference - Two pulses model</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-asw-asw-two-pulses-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="asw-inference-two-pulses-model">
+<span id="sphx-glr-auto-examples-asw-asw-two-pulses-py"></span><h1>ASW inference - Two pulses model<a class="headerlink" href="#asw-inference-two-pulses-model" title="Link to this heading">#</a></h1>
+<p>This example implements inference for the ASW population under a two pulses model of admixture, using the tracts package.
+Inference is performed using autosomal and X chromosome data, allowing for the specification of sex-biased admixture.</p>
+<p>To implement this example, we use the following driver file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">samples</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./TrioPhased/</span>
+<span class="w">  </span><span class="nt">individual_names</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="s">&quot;NA19625&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19700&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19701&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19703&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19704&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19707&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19711&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19712&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19713&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19818&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19819&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19834&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19835&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19900&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19901&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19904&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19908&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19909&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19913&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19914&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19916&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19917&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19920&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19921&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19922&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19923&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19982&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19984&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20126&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20127&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20274&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20276&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20278&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA20281&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20282&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20287&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20289&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20291&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20294&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20296&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20298&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20299&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20314&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20317&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA20318&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20320&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20321&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20332&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20334&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20339&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20340&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20342&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20346&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20348&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20351&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA20355&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20356&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20357&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20359&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20362&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20412&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">male_names </span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="s">&quot;NA19700&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19703&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19711&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19818&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19834&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19900&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19904&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19908&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19916&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19920&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19922&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19982&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19984&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20126&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20278&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20281&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20291&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20298&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20318&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20340&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA20342&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20346&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20348&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20351&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20356&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA20362&quot;</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1">#see Readme_dataprocessing.md for how this was generated</span>
+<span class="w">  </span><span class="nt">filename_format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{name}_{label}_final.bed&quot;</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">B</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1">#If this field is omitted, &#39;A&#39; and &#39;B&#39; will be used by default</span>
+<span class="w">  </span><span class="nt">chromosomes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1-22</span><span class="w"> </span><span class="c1">#The chromosomes to use for analysis. Can be specified as a list or a range</span>
+<span class="w">  </span><span class="nt">allosomes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">X</span><span class="p p-Indicator">]</span>
+
+<span class="nt">output_filename_format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ASW_test_output_{label}&quot;</span>
+<span class="nt">log_filename</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;ASW_two_pulses.log&#39;</span>
+<span class="nt">output_directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./output_two_pulses/</span>
+<span class="nt">verbose_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">verbose_screen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+<span class="nt">log_scale </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+
+<span class="nt">start_params</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">t1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">  </span><span class="nt">REUR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">t2</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">REUR_sex_bias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.01</span>
+
+<span class="nt">repetitions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="nt">maximum_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="nt">unknown_labels_for_smoothing</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;UNK&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;centromere&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;miscall&quot;</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1"># segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.</span>
+<span class="nt">exclude_tracts_below_cm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">npts </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="c1">#fix_parameters_from_ancestry_proportions: [&#39;REUR2&#39;, &#39;RNAT&#39;, &#39;REUR2_sex_bias&#39;, &#39;RNAT_sex_bias&#39;]</span>
+<span class="nt">output_directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./output_two_pulses/</span>
+<span class="nt">ad_model_autosomes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">M</span>
+<span class="nt">ad_model_allosomes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DC</span>
+</pre></div>
+</div>
+<p>Complete results from this analysis are saved in the output directory specified in the driver file. Below, we display the optimal parameters estimated from this analysis,
+as well as the plots illustrating the inferred tract length distributions, compared to the observed histograms, for every source population and chromosome type (autosomes and X chromosome).</p>
+<section id="optimal-parameters">
+<h2>Optimal parameters<a class="headerlink" href="#optimal-parameters" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table" id="id1">
+<caption><span class="caption-text">Estimated optimal parameters</span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>parameter</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>REUR</p></td>
+<td><p>0.08468951976755128</p></td>
+</tr>
+<tr class="row-odd"><td><p>REUR_sex_bias</p></td>
+<td><p>0.9881914911542435</p></td>
+</tr>
+<tr class="row-even"><td><p>RNAT</p></td>
+<td><p>0.05704572251686853</p></td>
+</tr>
+<tr class="row-odd"><td><p>RNAT_sex_bias</p></td>
+<td><p>0.9182265252081161</p></td>
+</tr>
+<tr class="row-even"><td><p>t1</p></td>
+<td><p>6.576570450032844</p></td>
+</tr>
+<tr class="row-odd"><td><p>REUR2</p></td>
+<td><p>0.1639374874350898</p></td>
+</tr>
+<tr class="row-even"><td><p>REUR2_sex_bias</p></td>
+<td><p>-0.20240987983661396</p></td>
+</tr>
+<tr class="row-odd"><td><p>t2</p></td>
+<td><p>5.575936959004301</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="tract-length-histograms">
+<h2>Tract length histograms<a class="headerlink" href="#tract-length-histograms" title="Link to this heading">#</a></h2>
+<section id="autosomal-admixture">
+<h3>Autosomal admixture<a class="headerlink" href="#autosomal-admixture" title="Link to this heading">#</a></h3>
+<a class="reference internal image-reference" href="../../_images/ASW_test_output_autosomes_all_populations2.png"><img alt="African ancestry tract histogram" src="../../_images/ASW_test_output_autosomes_all_populations2.png" style="width: 700px;" />
+</a>
+</section>
+<section id="x-chromosome-admixture-in-females">
+<h3>X chromosome admixture in females<a class="headerlink" href="#x-chromosome-admixture-in-females" title="Link to this heading">#</a></h3>
+<a class="reference internal image-reference" href="../../_images/ASW_test_output_female_allosomes_all_populations2.png"><img alt="European ancestry tract histogram" src="../../_images/ASW_test_output_female_allosomes_all_populations2.png" style="width: 700px;" />
+</a>
+</section>
+<section id="x-chromosome-admixture-in-males">
+<h3>X chromosome admixture in males<a class="headerlink" href="#x-chromosome-admixture-in-males" title="Link to this heading">#</a></h3>
+<a class="reference internal image-reference" href="../../_images/ASW_test_output_male_allosomes_all_populations2.png"><img alt="Native American ancestry tract histogram" src="../../_images/ASW_test_output_male_allosomes_all_populations2.png" style="width: 700px;" />
+</a>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>------------------------------------------------------------------------------------------------
+
+Running tracts 2.0 with driver file: ASW_two_pulses.yaml
+
+Reading data, demographic model and driver specifications...
+
+------------------------------------------------------------------------------------------------
+
+excluding_tracts_below set to 2.0 cM.
+Ancestries: [&#39;EUR&#39;, &#39;NAT&#39;, &#39;AFR&#39;]
+Data autosome proportions: [0.19578862 0.03825495 0.76595643]
+Data allosome proportions: [0.16839124 0.03818939 0.79341937]
+Model parameters : [&#39;REUR&#39;, &#39;REUR_sex_bias&#39;, &#39;RNAT&#39;, &#39;RNAT_sex_bias&#39;, &#39;t1&#39;, &#39;REUR2&#39;, &#39;REUR2_sex_bias&#39;, &#39;t2&#39;]
+
+Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
+
+Run | Starting parameters
+---------------------------------------------------
+  1 | [0.1, 0.01, 0.1, 0.1, 13.89, 0.2, 0.1, 7.641]
+  2 | [0.1, 0.01, 0.1, 0.1, 12.52, 0.2, 0.1, 6.141]
+  3 | [0.1, 0.01, 0.1, 0.1, 13.99, 0.2, 0.1, 5.288]
+---------------------------------------------------
+
+Optimization run #1
+
+-----------------------------------------------------------------------------------------
+Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+Optimization is performed in two steps.
+Step 1 : Optimizing autosomal likelihood over parameters [&#39;REUR&#39;, &#39;RNAT&#39;, &#39;t1&#39;, &#39;REUR2&#39;, &#39;t2&#39;].
+Iter.    Log-likelihood  Model parameters        Transmission
+-----------------------------------------------------------------------------------------
+30      , -4538.44    , array([ 0.0953582  ,  0          ,  0.0944209  ,  0          ,  11.4738    ,  0.196736   ,  0          ,  7.00516    ]), Autosomes
+60      , -2341.91    , array([ 0.0904571  ,  0          ,  0.0871004  ,  0          ,  9.23133    ,  0.188989   ,  0          ,  6.24366    ]), Autosomes
+90      , -1227.09    , array([ 0.0878228  ,  0          ,  0.0793795  ,  0          ,  7.36465    ,  0.182499   ,  0          ,  5.68516    ]), Autosomes
+120     , -949.427    , array([ 0.0834851  ,  0          ,  0.0735855  ,  0          ,  6.61625    ,  0.175779   ,  0          ,  5.61372    ]), Autosomes
+Step 1 completed.
+----------------------------------------------------------------------------------------------------------------------------
+Step 2 : Optimizing autosomal + allosomal likelihood over parameters : [&#39;REUR_sex_bias&#39;, &#39;RNAT_sex_bias&#39;, &#39;REUR2_sex_bias&#39;].
+Non-sex-bias parameters fixed at values from previous optimization step.
+Iter.    Log-likelihood  Model parameters        Transmission
+----------------------------------------------------------------------------------------------------------------------------
+150     , -209.172    , array([ 0.0836293  ,  0.00889216 ,  0.0735906  ,  0.00502924 ,  6.60329    ,  0.175745   , -0.00921037 ,  5.60263    ]), Female allosomes
+150     , -101.918    , array([ 0.0836293  ,  0.00889216 ,  0.0735906  ,  0.00502924 ,  6.60329    ,  0.175745   , -0.00921037 ,  5.60263    ]), Male allosomes
+150     , -948.464    , array([ 0.0836293  ,  0.00889216 ,  0.0735906  ,  0.00502924 ,  6.60329    ,  0.175745   , -0.00921037 ,  5.60263    ]), Autosomes
+180     , -208.801    , array([ 0.0836293  ,  0.122409   ,  0.0735906  , -0.00045254 ,  6.60329    ,  0.175745   , -0.0819624  ,  5.60263    ]), Female allosomes
+180     , -101.896    , array([ 0.0836293  ,  0.122409   ,  0.0735906  , -0.00045254 ,  6.60329    ,  0.175745   , -0.0819624  ,  5.60263    ]), Male allosomes
+180     , -948.597    , array([ 0.0836293  ,  0.122409   ,  0.0735906  , -0.00045254 ,  6.60329    ,  0.175745   , -0.0819624  ,  5.60263    ]), Autosomes
+210     , -208.398    , array([ 0.0836293  ,  0.264264   ,  0.0735906  , -0.00947602 ,  6.60329    ,  0.175745   , -0.0879983  ,  5.60263    ]), Female allosomes
+210     , -102.085    , array([ 0.0836293  ,  0.264264   ,  0.0735906  , -0.00947602 ,  6.60329    ,  0.175745   , -0.0879983  ,  5.60263    ]), Male allosomes
+210     , -948.618    , array([ 0.0836293  ,  0.264264   ,  0.0735906  , -0.00947602 ,  6.60329    ,  0.175745   , -0.0879983  ,  5.60263    ]), Autosomes
+240     , -208.056    , array([ 0.0836293  ,  0.393081   ,  0.0735906  , -0.0242356  ,  6.60329    ,  0.175745   , -0.0965688  ,  5.60263    ]), Female allosomes
+240     , -102.233    , array([ 0.0836293  ,  0.393081   ,  0.0735906  , -0.0242356  ,  6.60329    ,  0.175745   , -0.0965688  ,  5.60263    ]), Male allosomes
+240     , -948.649    , array([ 0.0836293  ,  0.393081   ,  0.0735906  , -0.0242356  ,  6.60329    ,  0.175745   , -0.0965688  ,  5.60263    ]), Autosomes
+270     , -207.785    , array([ 0.0836293  ,  0.508019   ,  0.0735906  , -0.0461426  ,  6.60329    ,  0.175745   , -0.103234   ,  5.60263    ]), Female allosomes
+270     , -102.343    , array([ 0.0836293  ,  0.508019   ,  0.0735906  , -0.0461426  ,  6.60329    ,  0.175745   , -0.103234   ,  5.60263    ]), Male allosomes
+270     , -948.676    , array([ 0.0836293  ,  0.508019   ,  0.0735906  , -0.0461426  ,  6.60329    ,  0.175745   , -0.103234   ,  5.60263    ]), Autosomes
+300     , -207.572    , array([ 0.0836293  ,  0.606187   ,  0.0735906  , -0.0710081  ,  6.60329    ,  0.175745   , -0.111039   ,  5.60263    ]), Female allosomes
+300     , -102.415    , array([ 0.0836293  ,  0.606187   ,  0.0735906  , -0.0710081  ,  6.60329    ,  0.175745   , -0.111039   ,  5.60263    ]), Male allosomes
+300     , -948.709    , array([ 0.0836293  ,  0.606187   ,  0.0735906  , -0.0710081  ,  6.60329    ,  0.175745   , -0.111039   ,  5.60263    ]), Autosomes
+330     , -207.415    , array([ 0.0836293  ,  0.68866    ,  0.0735906  , -0.0971588  ,  6.60329    ,  0.175745   , -0.115879   ,  5.60263    ]), Female allosomes
+330     , -102.465    , array([ 0.0836293  ,  0.68866    ,  0.0735906  , -0.0971588  ,  6.60329    ,  0.175745   , -0.115879   ,  5.60263    ]), Male allosomes
+330     , -948.731    , array([ 0.0836293  ,  0.68866    ,  0.0735906  , -0.0971588  ,  6.60329    ,  0.175745   , -0.115879   ,  5.60263    ]), Autosomes
+360     , -207.286    , array([ 0.0836293  ,  0.757871   ,  0.0735906  , -0.119428   ,  6.60329    ,  0.175745   , -0.120097   ,  5.60263    ]), Female allosomes
+360     , -102.507    , array([ 0.0836293  ,  0.757871   ,  0.0735906  , -0.119428   ,  6.60329    ,  0.175745   , -0.120097   ,  5.60263    ]), Male allosomes
+360     , -948.751    , array([ 0.0836293  ,  0.757871   ,  0.0735906  , -0.119428   ,  6.60329    ,  0.175745   , -0.120097   ,  5.60263    ]), Autosomes
+390     , -207.192    , array([ 0.0836293  ,  0.812752   ,  0.0735906  , -0.137767   ,  6.60329    ,  0.175745   , -0.121712   ,  5.60263    ]), Female allosomes
+390     , -102.543    , array([ 0.0836293  ,  0.812752   ,  0.0735906  , -0.137767   ,  6.60329    ,  0.175745   , -0.121712   ,  5.60263    ]), Male allosomes
+390     , -948.759    , array([ 0.0836293  ,  0.812752   ,  0.0735906  , -0.137767   ,  6.60329    ,  0.175745   , -0.121712   ,  5.60263    ]), Autosomes
+420     , -207.103    , array([ 0.0836293  ,  0.852845   ,  0.0735906  , -0.146142   ,  6.60329    ,  0.175745   , -0.12523    ,  5.60263    ]), Female allosomes
+420     , -102.58     , array([ 0.0836293  ,  0.852845   ,  0.0735906  , -0.146142   ,  6.60329    ,  0.175745   , -0.12523    ,  5.60263    ]), Male allosomes
+420     , -948.777    , array([ 0.0836293  ,  0.852845   ,  0.0735906  , -0.146142   ,  6.60329    ,  0.175745   , -0.12523    ,  5.60263    ]), Autosomes
+450     , -207.062    , array([ 0.0836293  ,  0.887528   ,  0.0735906  , -0.164385   ,  6.60329    ,  0.175745   , -0.128078   ,  5.60263    ]), Female allosomes
+450     , -102.577    , array([ 0.0836293  ,  0.887528   ,  0.0735906  , -0.164385   ,  6.60329    ,  0.175745   , -0.128078   ,  5.60263    ]), Male allosomes
+450     , -948.791    , array([ 0.0836293  ,  0.887528   ,  0.0735906  , -0.164385   ,  6.60329    ,  0.175745   , -0.128078   ,  5.60263    ]), Autosomes
+480     , -207.013    , array([ 0.0836293  ,  0.91252    ,  0.0735906  , -0.168757   ,  6.60329    ,  0.175745   , -0.126095   ,  5.60263    ]), Female allosomes
+480     , -102.615    , array([ 0.0836293  ,  0.91252    ,  0.0735906  , -0.168757   ,  6.60329    ,  0.175745   , -0.126095   ,  5.60263    ]), Male allosomes
+480     , -948.781    , array([ 0.0836293  ,  0.91252    ,  0.0735906  , -0.168757   ,  6.60329    ,  0.175745   , -0.126095   ,  5.60263    ]), Autosomes
+510     , -206.977    , array([ 0.0836293  ,  0.922216   ,  0.0735906  , -0.166789   ,  6.60329    ,  0.175745   , -0.127968   ,  5.60263    ]), Female allosomes
+510     , -102.634    , array([ 0.0836293  ,  0.922216   ,  0.0735906  , -0.166789   ,  6.60329    ,  0.175745   , -0.127968   ,  5.60263    ]), Male allosomes
+510     , -948.791    , array([ 0.0836293  ,  0.922216   ,  0.0735906  , -0.166789   ,  6.60329    ,  0.175745   , -0.127968   ,  5.60263    ]), Autosomes
+540     , -206.969    , array([ 0.0836293  ,  0.930955   ,  0.0735906  , -0.172651   ,  6.60329    ,  0.175745   , -0.129474   ,  5.60263    ]), Female allosomes
+540     , -102.627    , array([ 0.0836293  ,  0.930955   ,  0.0735906  , -0.172651   ,  6.60329    ,  0.175745   , -0.129474   ,  5.60263    ]), Male allosomes
+540     , -948.798    , array([ 0.0836293  ,  0.930955   ,  0.0735906  , -0.172651   ,  6.60329    ,  0.175745   , -0.129474   ,  5.60263    ]), Autosomes
+570     , -206.951    , array([ 0.0836293  ,  0.939968   ,  0.0735906  , -0.174364   ,  6.60329    ,  0.175745   , -0.129472   ,  5.60263    ]), Female allosomes
+570     , -102.638    , array([ 0.0836293  ,  0.939968   ,  0.0735906  , -0.174364   ,  6.60329    ,  0.175745   , -0.129472   ,  5.60263    ]), Male allosomes
+570     , -948.798    , array([ 0.0836293  ,  0.939968   ,  0.0735906  , -0.174364   ,  6.60329    ,  0.175745   , -0.129472   ,  5.60263    ]), Autosomes
+600     , -206.932    , array([ 0.0836293  ,  0.947698   ,  0.0735906  , -0.175616   ,  6.60329    ,  0.175745   , -0.13033    ,  5.60263    ]), Female allosomes
+600     , -102.646    , array([ 0.0836293  ,  0.947698   ,  0.0735906  , -0.175616   ,  6.60329    ,  0.175745   , -0.13033    ,  5.60263    ]), Male allosomes
+600     , -948.803    , array([ 0.0836293  ,  0.947698   ,  0.0735906  , -0.175616   ,  6.60329    ,  0.175745   , -0.13033    ,  5.60263    ]), Autosomes
+630     , -206.92     , array([ 0.0836293  ,  0.953898   ,  0.0735906  , -0.175276   ,  6.60329    ,  0.175745   , -0.128182   ,  5.60263    ]), Female allosomes
+630     , -102.665    , array([ 0.0836293  ,  0.953898   ,  0.0735906  , -0.175276   ,  6.60329    ,  0.175745   , -0.128182   ,  5.60263    ]), Male allosomes
+630     , -948.792    , array([ 0.0836293  ,  0.953898   ,  0.0735906  , -0.175276   ,  6.60329    ,  0.175745   , -0.128182   ,  5.60263    ]), Autosomes
+660     , -206.915    , array([ 0.0836293  ,  0.956591   ,  0.0735906  , -0.177643   ,  6.60329    ,  0.175745   , -0.130624   ,  5.60263    ]), Female allosomes
+660     , -102.655    , array([ 0.0836293  ,  0.956591   ,  0.0735906  , -0.177643   ,  6.60329    ,  0.175745   , -0.130624   ,  5.60263    ]), Male allosomes
+660     , -948.804    , array([ 0.0836293  ,  0.956591   ,  0.0735906  , -0.177643   ,  6.60329    ,  0.175745   , -0.130624   ,  5.60263    ]), Autosomes
+690     , -206.908    , array([ 0.0836293  ,  0.959566   ,  0.0735906  , -0.178605   ,  6.60329    ,  0.175745   , -0.131397   ,  5.60263    ]), Female allosomes
+690     , -102.655    , array([ 0.0836293  ,  0.959566   ,  0.0735906  , -0.178605   ,  6.60329    ,  0.175745   , -0.131397   ,  5.60263    ]), Male allosomes
+690     , -948.808    , array([ 0.0836293  ,  0.959566   ,  0.0735906  , -0.178605   ,  6.60329    ,  0.175745   , -0.131397   ,  5.60263    ]), Autosomes
+720     , -206.907    , array([ 0.0836293  ,  0.962371   ,  0.0735906  , -0.18018    ,  6.60329    ,  0.175745   , -0.130752   ,  5.60263    ]), Female allosomes
+720     , -102.658    , array([ 0.0836293  ,  0.962371   ,  0.0735906  , -0.18018    ,  6.60329    ,  0.175745   , -0.130752   ,  5.60263    ]), Male allosomes
+720     , -948.805    , array([ 0.0836293  ,  0.962371   ,  0.0735906  , -0.18018    ,  6.60329    ,  0.175745   , -0.130752   ,  5.60263    ]), Autosomes
+750     , -206.9      , array([ 0.0836293  ,  0.964736   ,  0.0735906  , -0.180218   ,  6.60329    ,  0.175745   , -0.131491   ,  5.60263    ]), Female allosomes
+750     , -102.66     , array([ 0.0836293  ,  0.964736   ,  0.0735906  , -0.180218   ,  6.60329    ,  0.175745   , -0.131491   ,  5.60263    ]), Male allosomes
+750     , -948.809    , array([ 0.0836293  ,  0.964736   ,  0.0735906  , -0.180218   ,  6.60329    ,  0.175745   , -0.131491   ,  5.60263    ]), Autosomes
+780     , -206.893    , array([ 0.0836293  ,  0.967162   ,  0.0735906  , -0.180606   ,  6.60329    ,  0.175745   , -0.132309   ,  5.60263    ]), Female allosomes
+780     , -102.661    , array([ 0.0836293  ,  0.967162   ,  0.0735906  , -0.180606   ,  6.60329    ,  0.175745   , -0.132309   ,  5.60263    ]), Male allosomes
+780     , -948.813    , array([ 0.0836293  ,  0.967162   ,  0.0735906  , -0.180606   ,  6.60329    ,  0.175745   , -0.132309   ,  5.60263    ]), Autosomes
+810     , -206.886    , array([ 0.0836293  ,  0.969232   ,  0.0735906  , -0.179942   ,  6.60329    ,  0.175745   , -0.132065   ,  5.60263    ]), Female allosomes
+810     , -102.667    , array([ 0.0836293  ,  0.969232   ,  0.0735906  , -0.179942   ,  6.60329    ,  0.175745   , -0.132065   ,  5.60263    ]), Male allosomes
+810     , -948.812    , array([ 0.0836293  ,  0.969232   ,  0.0735906  , -0.179942   ,  6.60329    ,  0.175745   , -0.132065   ,  5.60263    ]), Autosomes
+840     , -206.886    , array([ 0.0836293  ,  0.971135   ,  0.0735906  , -0.181802   ,  6.60329    ,  0.175745   , -0.132432   ,  5.60263    ]), Female allosomes
+840     , -102.664    , array([ 0.0836293  ,  0.971135   ,  0.0735906  , -0.181802   ,  6.60329    ,  0.175745   , -0.132432   ,  5.60263    ]), Male allosomes
+840     , -948.814    , array([ 0.0836293  ,  0.971135   ,  0.0735906  , -0.181802   ,  6.60329    ,  0.175745   , -0.132432   ,  5.60263    ]), Autosomes
+870     , -206.877    , array([ 0.0836293  ,  0.973018   ,  0.0735906  , -0.180914   ,  6.60329    ,  0.175745   , -0.132599   ,  5.60263    ]), Female allosomes
+870     , -102.67     , array([ 0.0836293  ,  0.973018   ,  0.0735906  , -0.180914   ,  6.60329    ,  0.175745   , -0.132599   ,  5.60263    ]), Male allosomes
+870     , -948.815    , array([ 0.0836293  ,  0.973018   ,  0.0735906  , -0.180914   ,  6.60329    ,  0.175745   , -0.132599   ,  5.60263    ]), Autosomes
+900     , -206.886    , array([ 0.0836293  ,  0.974598   ,  0.0735906  , -0.183984   ,  6.60329    ,  0.175745   , -0.13134    ,  5.60263    ]), Female allosomes
+900     , -102.667    , array([ 0.0836293  ,  0.974598   ,  0.0735906  , -0.183984   ,  6.60329    ,  0.175745   , -0.13134    ,  5.60263    ]), Male allosomes
+900     , -948.808    , array([ 0.0836293  ,  0.974598   ,  0.0735906  , -0.183984   ,  6.60329    ,  0.175745   , -0.13134    ,  5.60263    ]), Autosomes
+930     , -206.877    , array([ 0.0836293  ,  0.976011   ,  0.0735906  , -0.182376   ,  6.60329    ,  0.175745   , -0.131481   ,  5.60263    ]), Female allosomes
+930     , -102.674    , array([ 0.0836293  ,  0.976011   ,  0.0735906  , -0.182376   ,  6.60329    ,  0.175745   , -0.131481   ,  5.60263    ]), Male allosomes
+930     , -948.809    , array([ 0.0836293  ,  0.976011   ,  0.0735906  , -0.182376   ,  6.60329    ,  0.175745   , -0.131481   ,  5.60263    ]), Autosomes
+960     , -206.878    , array([ 0.0836293  ,  0.976948   ,  0.0735906  , -0.184157   ,  6.60329    ,  0.175745   , -0.132346   ,  5.60263    ]), Female allosomes
+960     , -102.667    , array([ 0.0836293  ,  0.976948   ,  0.0735906  , -0.184157   ,  6.60329    ,  0.175745   , -0.132346   ,  5.60263    ]), Male allosomes
+960     , -948.813    , array([ 0.0836293  ,  0.976948   ,  0.0735906  , -0.184157   ,  6.60329    ,  0.175745   , -0.132346   ,  5.60263    ]), Autosomes
+990     , -206.873    , array([ 0.0836293  ,  0.977772   ,  0.0735906  , -0.183305   ,  6.60329    ,  0.175745   , -0.132297   ,  5.60263    ]), Female allosomes
+990     , -102.672    , array([ 0.0836293  ,  0.977772   ,  0.0735906  , -0.183305   ,  6.60329    ,  0.175745   , -0.132297   ,  5.60263    ]), Male allosomes
+990     , -948.813    , array([ 0.0836293  ,  0.977772   ,  0.0735906  , -0.183305   ,  6.60329    ,  0.175745   , -0.132297   ,  5.60263    ]), Autosomes
+1020    , -206.873    , array([ 0.0836293  ,  0.978575   ,  0.0735906  , -0.18389    ,  6.60329    ,  0.175745   , -0.132344   ,  5.60263    ]), Female allosomes
+1020    , -102.671    , array([ 0.0836293  ,  0.978575   ,  0.0735906  , -0.18389    ,  6.60329    ,  0.175745   , -0.132344   ,  5.60263    ]), Male allosomes
+1020    , -948.813    , array([ 0.0836293  ,  0.978575   ,  0.0735906  , -0.18389    ,  6.60329    ,  0.175745   , -0.132344   ,  5.60263    ]), Autosomes
+1050    , -206.871    , array([ 0.0836293  ,  0.97925    ,  0.0735906  , -0.183976   ,  6.60329    ,  0.175745   , -0.132513   ,  5.60263    ]), Female allosomes
+1050    , -102.672    , array([ 0.0836293  ,  0.97925    ,  0.0735906  , -0.183976   ,  6.60329    ,  0.175745   , -0.132513   ,  5.60263    ]), Male allosomes
+1050    , -948.814    , array([ 0.0836293  ,  0.97925    ,  0.0735906  , -0.183976   ,  6.60329    ,  0.175745   , -0.132513   ,  5.60263    ]), Autosomes
+1080    , -206.869    , array([ 0.0836293  ,  0.979892   ,  0.0735906  , -0.18401    ,  6.60329    ,  0.175745   , -0.132866   ,  5.60263    ]), Female allosomes
+1080    , -102.672    , array([ 0.0836293  ,  0.979892   ,  0.0735906  , -0.18401    ,  6.60329    ,  0.175745   , -0.132866   ,  5.60263    ]), Male allosomes
+1080    , -948.816    , array([ 0.0836293  ,  0.979892   ,  0.0735906  , -0.18401    ,  6.60329    ,  0.175745   , -0.132866   ,  5.60263    ]), Autosomes
+1110    , -206.865    , array([ 0.0836293  ,  0.980437   ,  0.0735906  , -0.183067   ,  6.60329    ,  0.175745   , -0.132607   ,  5.60263    ]), Female allosomes
+1110    , -102.677    , array([ 0.0836293  ,  0.980437   ,  0.0735906  , -0.183067   ,  6.60329    ,  0.175745   , -0.132607   ,  5.60263    ]), Male allosomes
+1110    , -948.815    , array([ 0.0836293  ,  0.980437   ,  0.0735906  , -0.183067   ,  6.60329    ,  0.175745   , -0.132607   ,  5.60263    ]), Autosomes
+1140    , -206.865    , array([ 0.0836293  ,  0.980947   ,  0.0735906  , -0.183683   ,  6.60329    ,  0.175745   , -0.132873   ,  5.60263    ]), Female allosomes
+1140    , -102.675    , array([ 0.0836293  ,  0.980947   ,  0.0735906  , -0.183683   ,  6.60329    ,  0.175745   , -0.132873   ,  5.60263    ]), Male allosomes
+1140    , -948.816    , array([ 0.0836293  ,  0.980947   ,  0.0735906  , -0.183683   ,  6.60329    ,  0.175745   , -0.132873   ,  5.60263    ]), Autosomes
+Step 2 completed.
+----------------------------------------------------------------------------------------------------------------------------
+
+Optimization run #2
+
+-----------------------------------------------------------------------------------------
+Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+Optimization is performed in two steps.
+Step 1 : Optimizing autosomal likelihood over parameters [&#39;REUR&#39;, &#39;RNAT&#39;, &#39;t1&#39;, &#39;REUR2&#39;, &#39;t2&#39;].
+Iter.    Log-likelihood  Model parameters        Transmission
+-----------------------------------------------------------------------------------------
+30      , -3076.31    , array([ 0.0948264  ,  0          ,  0.0930836  ,  0          ,  10.392     ,  0.19423    ,  0          ,  5.70553    ]), Autosomes
+60      , -1587.74    , array([ 0.089653   ,  0          ,  0.0855664  ,  0          ,  8.26067    ,  0.188404   ,  0          ,  5.20647    ]), Autosomes
+90      , -1024.42    , array([ 0.0857413  ,  0          ,  0.0741787  ,  0          ,  6.78731    ,  0.17934    ,  0          ,  5.12973    ]), Autosomes
+120     , -919.197    , array([ 0.0848331  ,  0          ,  0.0702176  ,  0          ,  6.36681    ,  0.176561   ,  0          ,  5.36338    ]), Autosomes
+150     , 4.15817e+27 , array([ 0.084797   ,  0          ,  0.0701599  ,  0          ,  6.36627    ,  0.176477   ,  0          ,  5.36631    ]), OOB (oob=-4.1581650789268565e-05)
+Step 1 completed.
+----------------------------------------------------------------------------------------------------------------------------
+Step 2 : Optimizing autosomal + allosomal likelihood over parameters : [&#39;REUR_sex_bias&#39;, &#39;RNAT_sex_bias&#39;, &#39;REUR2_sex_bias&#39;].
+Non-sex-bias parameters fixed at values from previous optimization step.
+Iter.    Log-likelihood  Model parameters        Transmission
+----------------------------------------------------------------------------------------------------------------------------
+Step 2 completed.
+----------------------------------------------------------------------------------------------------------------------------
+
+Optimization run #3
+
+-----------------------------------------------------------------------------------------
+Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+Optimization is performed in two steps.
+Step 1 : Optimizing autosomal likelihood over parameters [&#39;REUR&#39;, &#39;RNAT&#39;, &#39;t1&#39;, &#39;REUR2&#39;, &#39;t2&#39;].
+Iter.    Log-likelihood  Model parameters        Transmission
+-----------------------------------------------------------------------------------------
+30      , -3694.51    , array([ 0.0943971  ,  0          ,  0.0919076  ,  0          ,  11.9332    ,  0.197646   ,  0          ,  4.97037    ]), Autosomes
+60      , -1895       , array([ 0.0898342  ,  0          ,  0.0830427  ,  0          ,  9.41982    ,  0.193181   ,  0          ,  4.7267     ]), Autosomes
+90      , -1207.18    , array([ 0.08665    ,  0          ,  0.0747253  ,  0          ,  7.80178    ,  0.18735    ,  0          ,  4.51408    ]), Autosomes
+120     , -973.891    , array([ 0.0856579  ,  0          ,  0.0655613  ,  0          ,  6.99577    ,  0.176278   ,  0          ,  4.78787    ]), Autosomes
+150     , -882.714    , array([ 0.0853844  ,  0          ,  0.0617342  ,  0          ,  6.79096    ,  0.169927   ,  0          ,  5.13186    ]), Autosomes
+180     , -783.752    , array([ 0.0849452  ,  0          ,  0.0573191  ,  0          ,  6.55847    ,  0.164013   ,  0          ,  5.55773    ]), Autosomes
+210     , -780.22     , array([ 0.0846849  ,  0          ,  0.0570419  ,  0          ,  6.57659    ,  0.163945   ,  0          ,  5.57606    ]), Autosomes
+Step 1 completed.
+----------------------------------------------------------------------------------------------------------------------------
+Step 2 : Optimizing autosomal + allosomal likelihood over parameters : [&#39;REUR_sex_bias&#39;, &#39;RNAT_sex_bias&#39;, &#39;REUR2_sex_bias&#39;].
+Non-sex-bias parameters fixed at values from previous optimization step.
+Iter.    Log-likelihood  Model parameters        Transmission
+----------------------------------------------------------------------------------------------------------------------------
+240     , -214.303    , array([ 0.0846895  ,  0.0707172  ,  0.0570457  ,  0.0705609  ,  6.57657    ,  0.163937   , -0.032293   ,  5.57594    ]), Female allosomes
+240     , -99.3913    , array([ 0.0846895  ,  0.0707172  ,  0.0570457  ,  0.0705609  ,  6.57657    ,  0.163937   , -0.032293   ,  5.57594    ]), Male allosomes
+240     , -780.261    , array([ 0.0846895  ,  0.0707172  ,  0.0570457  ,  0.0705609  ,  6.57657    ,  0.163937   , -0.032293   ,  5.57594    ]), Autosomes
+270     , -213.412    , array([ 0.0846895  ,  0.175729   ,  0.0570457  ,  0.167023   ,  6.57657    ,  0.163937   , -0.0601379  ,  5.57594    ]), Female allosomes
+270     , -99.6837    , array([ 0.0846895  ,  0.175729   ,  0.0570457  ,  0.167023   ,  6.57657    ,  0.163937   , -0.0601379  ,  5.57594    ]), Male allosomes
+270     , -780.285    , array([ 0.0846895  ,  0.175729   ,  0.0570457  ,  0.167023   ,  6.57657    ,  0.163937   , -0.0601379  ,  5.57594    ]), Autosomes
+300     , -212.563    , array([ 0.0846895  ,  0.28478    ,  0.0570457  ,  0.255654   ,  6.57657    ,  0.163937   , -0.0766907  ,  5.57594    ]), Female allosomes
+300     , -99.9996    , array([ 0.0846895  ,  0.28478    ,  0.0570457  ,  0.255654   ,  6.57657    ,  0.163937   , -0.0766907  ,  5.57594    ]), Male allosomes
+300     , -780.307    , array([ 0.0846895  ,  0.28478    ,  0.0570457  ,  0.255654   ,  6.57657    ,  0.163937   , -0.0766907  ,  5.57594    ]), Autosomes
+330     , -211.792    , array([ 0.0846895  ,  0.386504   ,  0.0570457  ,  0.340195   ,  6.57657    ,  0.163937   , -0.0940155  ,  5.57594    ]), Female allosomes
+330     , -100.301    , array([ 0.0846895  ,  0.386504   ,  0.0570457  ,  0.340195   ,  6.57657    ,  0.163937   , -0.0940155  ,  5.57594    ]), Male allosomes
+330     , -780.335    , array([ 0.0846895  ,  0.386504   ,  0.0570457  ,  0.340195   ,  6.57657    ,  0.163937   , -0.0940155  ,  5.57594    ]), Autosomes
+360     , -211.112    , array([ 0.0846895  ,  0.483655   ,  0.0570457  ,  0.412521   ,  6.57657    ,  0.163937   , -0.107498   ,  5.57594    ]), Female allosomes
+360     , -100.585    , array([ 0.0846895  ,  0.483655   ,  0.0570457  ,  0.412521   ,  6.57657    ,  0.163937   , -0.107498   ,  5.57594    ]), Male allosomes
+360     , -780.36     , array([ 0.0846895  ,  0.483655   ,  0.0570457  ,  0.412521   ,  6.57657    ,  0.163937   , -0.107498   ,  5.57594    ]), Autosomes
+390     , -210.528    , array([ 0.0846895  ,  0.572495   ,  0.0570457  ,  0.473771   ,  6.57657    ,  0.163937   , -0.125475   ,  5.57594    ]), Female allosomes
+390     , -100.823    , array([ 0.0846895  ,  0.572495   ,  0.0570457  ,  0.473771   ,  6.57657    ,  0.163937   , -0.125475   ,  5.57594    ]), Male allosomes
+390     , -780.4      , array([ 0.0846895  ,  0.572495   ,  0.0570457  ,  0.473771   ,  6.57657    ,  0.163937   , -0.125475   ,  5.57594    ]), Autosomes
+420     , -210.006    , array([ 0.0846895  ,  0.648387   ,  0.0570457  ,  0.535519   ,  6.57657    ,  0.163937   , -0.139369   ,  5.57594    ]), Female allosomes
+420     , -101.056    , array([ 0.0846895  ,  0.648387   ,  0.0570457  ,  0.535519   ,  6.57657    ,  0.163937   , -0.139369   ,  5.57594    ]), Male allosomes
+420     , -780.435    , array([ 0.0846895  ,  0.648387   ,  0.0570457  ,  0.535519   ,  6.57657    ,  0.163937   , -0.139369   ,  5.57594    ]), Autosomes
+450     , -209.573    , array([ 0.0846895  ,  0.715157   ,  0.0570457  ,  0.585008   ,  6.57657    ,  0.163937   , -0.157388   ,  5.57594    ]), Female allosomes
+450     , -101.236    , array([ 0.0846895  ,  0.715157   ,  0.0570457  ,  0.585008   ,  6.57657    ,  0.163937   , -0.157388   ,  5.57594    ]), Male allosomes
+450     , -780.486    , array([ 0.0846895  ,  0.715157   ,  0.0570457  ,  0.585008   ,  6.57657    ,  0.163937   , -0.157388   ,  5.57594    ]), Autosomes
+480     , -209.205    , array([ 0.0846895  ,  0.769041   ,  0.0570457  ,  0.633083   ,  6.57657    ,  0.163937   , -0.160142   ,  5.57594    ]), Female allosomes
+480     , -101.437    , array([ 0.0846895  ,  0.769041   ,  0.0570457  ,  0.633083   ,  6.57657    ,  0.163937   , -0.160142   ,  5.57594    ]), Male allosomes
+480     , -780.494    , array([ 0.0846895  ,  0.769041   ,  0.0570457  ,  0.633083   ,  6.57657    ,  0.163937   , -0.160142   ,  5.57594    ]), Autosomes
+510     , -208.889    , array([ 0.0846895  ,  0.814919   ,  0.0570457  ,  0.676882   ,  6.57657    ,  0.163937   , -0.164882   ,  5.57594    ]), Female allosomes
+510     , -101.61     , array([ 0.0846895  ,  0.814919   ,  0.0570457  ,  0.676882   ,  6.57657    ,  0.163937   , -0.164882   ,  5.57594    ]), Male allosomes
+510     , -780.509    , array([ 0.0846895  ,  0.814919   ,  0.0570457  ,  0.676882   ,  6.57657    ,  0.163937   , -0.164882   ,  5.57594    ]), Autosomes
+540     , -208.623    , array([ 0.0846895  ,  0.852881   ,  0.0570457  ,  0.714605   ,  6.57657    ,  0.163937   , -0.177911   ,  5.57594    ]), Female allosomes
+540     , -101.731    , array([ 0.0846895  ,  0.852881   ,  0.0570457  ,  0.714605   ,  6.57657    ,  0.163937   , -0.177911   ,  5.57594    ]), Male allosomes
+540     , -780.552    , array([ 0.0846895  ,  0.852881   ,  0.0570457  ,  0.714605   ,  6.57657    ,  0.163937   , -0.177911   ,  5.57594    ]), Autosomes
+570     , -208.405    , array([ 0.0846895  ,  0.884278   ,  0.0570457  ,  0.747366   ,  6.57657    ,  0.163937   , -0.181784   ,  5.57594    ]), Female allosomes
+570     , -101.856    , array([ 0.0846895  ,  0.884278   ,  0.0570457  ,  0.747366   ,  6.57657    ,  0.163937   , -0.181784   ,  5.57594    ]), Male allosomes
+570     , -780.565    , array([ 0.0846895  ,  0.884278   ,  0.0570457  ,  0.747366   ,  6.57657    ,  0.163937   , -0.181784   ,  5.57594    ]), Autosomes
+600     , -208.216    , array([ 0.0846895  ,  0.909245   ,  0.0570457  ,  0.778928   ,  6.57657    ,  0.163937   , -0.187074   ,  5.57594    ]), Female allosomes
+600     , -101.964    , array([ 0.0846895  ,  0.909245   ,  0.0570457  ,  0.778928   ,  6.57657    ,  0.163937   , -0.187074   ,  5.57594    ]), Male allosomes
+600     , -780.584    , array([ 0.0846895  ,  0.909245   ,  0.0570457  ,  0.778928   ,  6.57657    ,  0.163937   , -0.187074   ,  5.57594    ]), Autosomes
+630     , -208.067    , array([ 0.0846895  ,  0.929162   ,  0.0570457  ,  0.804401   ,  6.57657    ,  0.163937   , -0.190229   ,  5.57594    ]), Female allosomes
+630     , -102.054    , array([ 0.0846895  ,  0.929162   ,  0.0570457  ,  0.804401   ,  6.57657    ,  0.163937   , -0.190229   ,  5.57594    ]), Male allosomes
+630     , -780.595    , array([ 0.0846895  ,  0.929162   ,  0.0570457  ,  0.804401   ,  6.57657    ,  0.163937   , -0.190229   ,  5.57594    ]), Autosomes
+660     , -207.939    , array([ 0.0846895  ,  0.944604   ,  0.0570457  ,  0.829119   ,  6.57657    ,  0.163937   , -0.191877   ,  5.57594    ]), Female allosomes
+660     , -102.139    , array([ 0.0846895  ,  0.944604   ,  0.0570457  ,  0.829119   ,  6.57657    ,  0.163937   , -0.191877   ,  5.57594    ]), Male allosomes
+660     , -780.601    , array([ 0.0846895  ,  0.944604   ,  0.0570457  ,  0.829119   ,  6.57657    ,  0.163937   , -0.191877   ,  5.57594    ]), Autosomes
+690     , -207.837    , array([ 0.0846895  ,  0.956634   ,  0.0570457  ,  0.849882   ,  6.57657    ,  0.163937   , -0.191326   ,  5.57594    ]), Female allosomes
+690     , -102.215    , array([ 0.0846895  ,  0.956634   ,  0.0570457  ,  0.849882   ,  6.57657    ,  0.163937   , -0.191326   ,  5.57594    ]), Male allosomes
+690     , -780.599    , array([ 0.0846895  ,  0.956634   ,  0.0570457  ,  0.849882   ,  6.57657    ,  0.163937   , -0.191326   ,  5.57594    ]), Autosomes
+720     , -207.765    , array([ 0.0846895  ,  0.964487   ,  0.0570457  ,  0.863896   ,  6.57657    ,  0.163937   , -0.197405   ,  5.57594    ]), Female allosomes
+720     , -102.246    , array([ 0.0846895  ,  0.964487   ,  0.0570457  ,  0.863896   ,  6.57657    ,  0.163937   , -0.197405   ,  5.57594    ]), Male allosomes
+720     , -780.622    , array([ 0.0846895  ,  0.964487   ,  0.0570457  ,  0.863896   ,  6.57657    ,  0.163937   , -0.197405   ,  5.57594    ]), Autosomes
+750     , -207.692    , array([ 0.0846895  ,  0.972429   ,  0.0570457  ,  0.879454   ,  6.57657    ,  0.163937   , -0.200294   ,  5.57594    ]), Female allosomes
+750     , -102.292    , array([ 0.0846895  ,  0.972429   ,  0.0570457  ,  0.879454   ,  6.57657    ,  0.163937   , -0.200294   ,  5.57594    ]), Male allosomes
+750     , -780.633    , array([ 0.0846895  ,  0.972429   ,  0.0570457  ,  0.879454   ,  6.57657    ,  0.163937   , -0.200294   ,  5.57594    ]), Autosomes
+780     , -207.636    , array([ 0.0846895  ,  0.978218   ,  0.0570457  ,  0.89222    ,  6.57657    ,  0.163937   , -0.199919   ,  5.57594    ]), Female allosomes
+780     , -102.336    , array([ 0.0846895  ,  0.978218   ,  0.0570457  ,  0.89222    ,  6.57657    ,  0.163937   , -0.199919   ,  5.57594    ]), Male allosomes
+780     , -780.632    , array([ 0.0846895  ,  0.978218   ,  0.0570457  ,  0.89222    ,  6.57657    ,  0.163937   , -0.199919   ,  5.57594    ]), Autosomes
+810     , -207.59     , array([ 0.0846895  ,  0.982325   ,  0.0570457  ,  0.90386    ,  6.57657    ,  0.163937   , -0.200642   ,  5.57594    ]), Female allosomes
+810     , -102.371    , array([ 0.0846895  ,  0.982325   ,  0.0570457  ,  0.90386    ,  6.57657    ,  0.163937   , -0.200642   ,  5.57594    ]), Male allosomes
+810     , -780.634    , array([ 0.0846895  ,  0.982325   ,  0.0570457  ,  0.90386    ,  6.57657    ,  0.163937   , -0.200642   ,  5.57594    ]), Autosomes
+840     , -207.572    , array([ 0.0846895  ,  0.984269   ,  0.0570457  ,  0.908225   ,  6.57657    ,  0.163937   , -0.19995    ,  5.57594    ]), Female allosomes
+840     , -102.387    , array([ 0.0846895  ,  0.984269   ,  0.0570457  ,  0.908225   ,  6.57657    ,  0.163937   , -0.19995    ,  5.57594    ]), Male allosomes
+840     , -780.632    , array([ 0.0846895  ,  0.984269   ,  0.0570457  ,  0.908225   ,  6.57657    ,  0.163937   , -0.19995    ,  5.57594    ]), Autosomes
+870     , -207.553    , array([ 0.0846895  ,  0.986088   ,  0.0570457  ,  0.911986   ,  6.57657    ,  0.163937   , -0.202329   ,  5.57594    ]), Female allosomes
+870     , -102.393    , array([ 0.0846895  ,  0.986088   ,  0.0570457  ,  0.911986   ,  6.57657    ,  0.163937   , -0.202329   ,  5.57594    ]), Male allosomes
+870     , -780.641    , array([ 0.0846895  ,  0.986088   ,  0.0570457  ,  0.911986   ,  6.57657    ,  0.163937   , -0.202329   ,  5.57594    ]), Autosomes
+900     , -207.536    , array([ 0.0846895  ,  0.98758    ,  0.0570457  ,  0.916188   ,  6.57657    ,  0.163937   , -0.202501   ,  5.57594    ]), Female allosomes
+900     , -102.406    , array([ 0.0846895  ,  0.98758    ,  0.0570457  ,  0.916188   ,  6.57657    ,  0.163937   , -0.202501   ,  5.57594    ]), Male allosomes
+900     , -780.642    , array([ 0.0846895  ,  0.98758    ,  0.0570457  ,  0.916188   ,  6.57657    ,  0.163937   , -0.202501   ,  5.57594    ]), Autosomes
+930     , -207.596    , array([ 0.0846895  ,  0.988194   ,  0.0570457  ,  0.918215   ,  6.57657    ,  0.163937   , -0.202376   ,  5.57594    ]), Female allosomes
+930     , -102.399    , array([ 0.0846895  ,  0.988194   ,  0.0570457  ,  0.918215   ,  6.57657    ,  0.163937   , -0.202376   ,  5.57594    ]), Male allosomes
+930     , -780.641    , array([ 0.0846895  ,  0.988194   ,  0.0570457  ,  0.918215   ,  6.57657    ,  0.163937   , -0.202376   ,  5.57594    ]), Autosomes
+Step 2 completed.
+----------------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------
+Results from multiple optimization runs with different starting parameters:
+-------------------------------------
+Run |       LogLik | Found parameters
+-------------------------------------
+  1 |     -1258.36 | [0.08363, 0.981, 0.07359, -0.1838, 6.603, 0.1757, -0.1324, 5.603]
+  2 | -4.15817e+27 | [0.0848, 0, 0.07016, 0, 6.366, 0.1765, 0, 5.366]
+  3 |     -1090.58 | [0.08469, 0.9882, 0.05705, 0.9182, 6.577, 0.1639, -0.2024, 5.576]
+-------------------------------------
+
+Final parameters and corresponding likelihood:
+--------------------------------------------------------------------------------------------------------------------------
+      LogLik |         REUR REUR_sex_bias         RNAT RNAT_sex_bias           t1        REUR2 REUR2_sex_bias           t2
+--------------------------------------------------------------------------------------------------------------------------
+    -1090.58 |      0.08469       0.9882      0.05705       0.9182        6.577       0.1639      -0.2024        5.576
+--------------------------------------------------------------------------------------------------------------------------
+Results saved to : ./output_two_pulses/
+
+{&#39;destination_dir&#39;: PosixPath(&#39;/home/runner/work/tracts/tracts/docs/source/auto_examples/ASW/output_two_pulses&#39;), &#39;table_file&#39;: PosixPath(&#39;/home/runner/work/tracts/tracts/docs/source/auto_examples/ASW/output_two_pulses/ASW_test_output_optimal_parameters.txt&#39;)}
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tracts.driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_tracts</span>
+
+<span class="n">script_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+<span class="n">driver_filename</span> <span class="o">=</span> <span class="s2">&quot;ASW_two_pulses.yaml&quot;</span>
+
+<span class="n">run_tracts</span><span class="p">(</span><span class="n">driver_filename</span> <span class="o">=</span> <span class="n">driver_filename</span><span class="p">,</span> <span class="n">script_dir</span> <span class="o">=</span> <span class="n">script_path</span><span class="p">)</span>
+
+
+<span class="c1"># Don&#39;t run the code below: for documentation purposes only.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tracts.doc_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_example_outputs_for_docs</span>
+<span class="n">prepare_example_outputs_for_docs</span><span class="p">(</span><span class="s2">&quot;output_two_pulses&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (16 minutes 57.255 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-asw-asw-two-pulses-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/4396e2e5dff3417be030372bdf6857ab/ASW_two_pulses.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">ASW_two_pulses.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/a1160cfbd7be7a9b43561a7fcf3bd4fd/ASW_two_pulses.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">ASW_two_pulses.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/611e89272c33dd937454e78bde389b39/ASW_two_pulses.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">ASW_two_pulses.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="ASW_one_pulse.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ASW inference - One pulse model</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="ASW_three_pulses.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">ASW inference - Three pulses model</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#optimal-parameters">Optimal parameters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tract-length-histograms">Tract length histograms</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#autosomal-admixture">Autosomal admixture</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#x-chromosome-admixture-in-females">X chromosome admixture in females</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#x-chromosome-admixture-in-males">X chromosome admixture in males</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/auto_examples/ASW/ASW_two_pulses.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

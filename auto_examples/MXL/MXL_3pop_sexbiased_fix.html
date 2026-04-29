@@ -1,0 +1,843 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MXL inference - continuous pulse model &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/MXL/MXL_3pop_sexbiased_fix';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Phase-type models" href="../../tutorials/index.html" />
+    <link rel="prev" title="MXL population" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../examples/data_description.html">Data description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/data_processing.html">Data Processing</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../ASW/index.html">ASW population</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../ASW/ASW_one_pulse.html">ASW inference - One pulse model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ASW/ASW_two_pulses.html">ASW inference - Two pulses model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ASW/ASW_three_pulses.html">ASW inference - Three pulses model</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">MXL population</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">MXL inference - continuous pulse model</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../examples/index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">MXL population</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">MXL inference - continuous pulse model</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-mxl-mxl-3pop-sexbiased-fix-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="mxl-inference-continuous-pulse-model">
+<span id="sphx-glr-auto-examples-mxl-mxl-3pop-sexbiased-fix-py"></span><h1>MXL inference - continuous pulse model<a class="headerlink" href="#mxl-inference-continuous-pulse-model" title="Link to this heading">#</a></h1>
+<p>This example implements inference for the MXL population under a continuous pulse model of admixture, using the tracts package.
+Inference is performed using autosomal and X chromosome data, allowing for the specification of sex-biased admixture.</p>
+<p>To implement this example, we use the following driver file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">samples</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./TrioPhased/</span>
+<span class="w">  </span><span class="nt">individual_names</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="s">&quot;NA19648&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19649&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19651&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19652&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19654&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19655&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19657&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19658&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19661&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19663&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19664&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19669&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19670&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19676&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19678&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19679&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19681&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19682&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19684&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19716&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19717&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19719&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19720&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19722&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19723&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19725&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19726&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19728&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19729&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19731&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19732&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19734&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19735&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19740&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19741&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19746&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19747&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19749&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19750&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19752&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19755&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19756&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19758&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19759&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19761&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19762&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19764&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19770&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19771&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19773&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19774&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19776&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19777&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19779&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19780&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19782&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19783&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19785&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19786&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19788&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19789&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19792&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19794&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19795&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">male_names </span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="s">&quot;NA19649&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19652&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19655&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19658&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19661&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19664&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19670&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19676&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19679&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19682&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19717&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19720&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19723&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19726&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19729&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19732&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19735&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19741&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19747&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19750&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19756&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19759&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19762&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19771&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19774&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19777&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19780&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19783&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19786&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19789&quot;</span><span class="p p-Indicator">,</span>
+<span class="w">    </span><span class="s">&quot;NA19792&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19795&quot;</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1">#see Readme_dataprocessing.md for how this was generated</span>
+<span class="w">  </span><span class="nt">filename_format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{name}_{label}_final.bed&quot;</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">B</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1">#If this field is omitted, &#39;A&#39; and &#39;B&#39; will be used by default</span>
+<span class="w">  </span><span class="nt">chromosomes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1-22</span><span class="w"> </span><span class="c1">#The chromosomes to use for analysis. Can be specified as a list or a range</span>
+<span class="w">  </span><span class="nt">allosomes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">X</span><span class="p p-Indicator">]</span>
+
+<span class="nt">output_filename_format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;MXL_test_output_{label}&quot;</span>
+<span class="nt">log_filename</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;ASW_continuous_pulse.log&#39;</span>
+<span class="nt">output_directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./output_continuous_pulse/</span>
+<span class="nt">verbose_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">verbose_screen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+<span class="nt">log_scale </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+
+<span class="nt">model_filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../models/ccc.yaml</span>
+<span class="nt">start_params</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">t1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">13.5</span>
+<span class="w">  </span><span class="nt">REUR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">  </span><span class="nt">RAFR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.02</span>
+<span class="w">  </span><span class="nt">RNAT</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">  </span><span class="nt">t2</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6.8</span>
+
+<span class="w">  </span><span class="nt">REUR_sex_bias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-0.99</span><span class="w"> </span><span class="c1"># more males</span>
+<span class="w">  </span><span class="nt">RNAT_sex_bias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.99</span><span class="w"> </span><span class="c1"># more females</span>
+<span class="w">  </span><span class="nt">RAFR_sex_bias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-0.1</span>
+<span class="nt">repetitions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="nt">maximum_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="nt">unknown_labels_for_smoothing</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;UNK&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;centromere&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;miscall&quot;</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1"># segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.</span>
+<span class="nt">exclude_tracts_below_cm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">npts </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="c1">#fix_parameters_from_ancestry_proportions: [&#39;REUR&#39;, &#39;RAFR&#39;,&#39;REUR_sex_bias&#39;, &#39;RAFR_sex_bias&#39;]</span>
+
+<span class="nt">ad_model_autosomes </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">M</span>
+<span class="nt">ad_model_allosomes </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DC</span>
+</pre></div>
+</div>
+<p>Complete results from this analysis are saved in the output directory specified in the driver file. Below, we display the optimal parameters estimated from this analysis,
+as well as the plots illustrating the inferred tract length distributions, compared to the observed histograms, for every source population and chromosome type (autosomes and X chromosome).</p>
+<section id="optimal-parameters">
+<h2>Optimal parameters<a class="headerlink" href="#optimal-parameters" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table" id="id1">
+<caption><span class="caption-text">Estimated optimal parameters</span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>parameter</p></th>
+<th class="head"><p>value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>REUR</p></td>
+<td><p>0.17172266430843788</p></td>
+</tr>
+<tr class="row-odd"><td><p>REUR_sex_bias</p></td>
+<td><p>-0.0750442769953914</p></td>
+</tr>
+<tr class="row-even"><td><p>RNAT</p></td>
+<td><p>0.18231245251774572</p></td>
+</tr>
+<tr class="row-odd"><td><p>RNAT_sex_bias</p></td>
+<td><p>0.006295500257754494</p></td>
+</tr>
+<tr class="row-even"><td><p>RAFR</p></td>
+<td><p>0.022699852907508773</p></td>
+</tr>
+<tr class="row-odd"><td><p>RAFR_sex_bias</p></td>
+<td><p>0.010138025743403611</p></td>
+</tr>
+<tr class="row-even"><td><p>t1</p></td>
+<td><p>14.141787108267799</p></td>
+</tr>
+<tr class="row-odd"><td><p>t2</p></td>
+<td><p>6.567998329803946</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="tract-length-histograms">
+<h2>Tract length histograms<a class="headerlink" href="#tract-length-histograms" title="Link to this heading">#</a></h2>
+<section id="autosomal-admixture">
+<h3>Autosomal admixture<a class="headerlink" href="#autosomal-admixture" title="Link to this heading">#</a></h3>
+<a class="reference internal image-reference" href="../../_images/MXL_test_output_autosomes_all_populations.png"><img alt="African ancestry tract histogram" src="../../_images/MXL_test_output_autosomes_all_populations.png" style="width: 700px;" />
+</a>
+</section>
+<section id="x-chromosome-admixture-in-females">
+<h3>X chromosome admixture in females<a class="headerlink" href="#x-chromosome-admixture-in-females" title="Link to this heading">#</a></h3>
+<a class="reference internal image-reference" href="../../_images/MXL_test_output_female_allosomes_all_populations.png"><img alt="European ancestry tract histogram" src="../../_images/MXL_test_output_female_allosomes_all_populations.png" style="width: 700px;" />
+</a>
+</section>
+<section id="x-chromosome-admixture-in-males">
+<h3>X chromosome admixture in males<a class="headerlink" href="#x-chromosome-admixture-in-males" title="Link to this heading">#</a></h3>
+<a class="reference internal image-reference" href="../../_images/MXL_test_output_male_allosomes_all_populations.png"><img alt="Native American ancestry tract histogram" src="../../_images/MXL_test_output_male_allosomes_all_populations.png" style="width: 700px;" />
+</a>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>------------------------------------------------------------------------------------------------
+
+Running tracts 2.0 with driver file: MXL_continuous.yaml
+
+Reading data, demographic model and driver specifications...
+
+------------------------------------------------------------------------------------------------
+
+excluding_tracts_below set to 2.0 cM.
+Ancestries: [&#39;EUR&#39;, &#39;NAT&#39;, &#39;AFR&#39;]
+Data autosome proportions: [0.468066   0.49277278 0.03920868]
+Data allosome proportions: [0.33731709 0.62309703 0.03958588]
+Model parameters : [&#39;REUR&#39;, &#39;REUR_sex_bias&#39;, &#39;RNAT&#39;, &#39;RNAT_sex_bias&#39;, &#39;RAFR&#39;, &#39;RAFR_sex_bias&#39;, &#39;t1&#39;, &#39;t2&#39;]
+
+Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs.
+
+Run | Starting parameters
+---------------------------------------------------
+  1 | [0.2, -0.8, 0.2, 0.8, 0.02, -0.1, 13.58, 7.821]
+  2 | [0.2, -0.8, 0.2, 0.8, 0.02, -0.1, 13.2, 7.07]
+  3 | [0.2, -0.8, 0.2, 0.8, 0.02, -0.1, 12.79, 6.644]
+---------------------------------------------------
+
+Optimization run #1
+
+-----------------------------------------------------------------------------------------
+Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+Optimization is performed in two steps.
+Step 1 : Optimizing autosomal likelihood over parameters [&#39;REUR&#39;, &#39;RNAT&#39;, &#39;RAFR&#39;, &#39;t1&#39;, &#39;t2&#39;].
+Iter.    Log-likelihood  Model parameters        Transmission
+-----------------------------------------------------------------------------------------
+30      , -891.942    , array([ 0.201816   ,  0          ,  0.20138    ,  0          ,  0.0205409  ,  0          ,  13.5728    ,  7.14392    ]), Autosomes
+60      , -870.746    , array([ 0.197281   ,  0          ,  0.200909   ,  0          ,  0.0209357  ,  0          ,  13.5733    ,  6.92884    ]), Autosomes
+90      , -864.537    , array([ 0.195854   ,  0          ,  0.200363   ,  0          ,  0.0211367  ,  0          ,  13.5143    ,  6.86632    ]), Autosomes
+120     , -863.424    , array([ 0.195482   ,  0          ,  0.200276   ,  0          ,  0.0211756  ,  0          ,  13.5191    ,  6.8601     ]), Autosomes
+150     , -862.512    , array([ 0.195171   ,  0          ,  0.200206   ,  0          ,  0.0212078  ,  0          ,  13.5235    ,  6.85463    ]), Autosomes
+180     , -861.594    , array([ 0.194857   ,  0          ,  0.200122   ,  0          ,  0.0212402  ,  0          ,  13.5296    ,  6.84909    ]), Autosomes
+Step 1 completed.
+---------------------------------------------------------------------------------------------------------------------------
+Step 2 : Optimizing autosomal + allosomal likelihood over parameters : [&#39;REUR_sex_bias&#39;, &#39;RNAT_sex_bias&#39;, &#39;RAFR_sex_bias&#39;].
+Non-sex-bias parameters fixed at values from previous optimization step.
+Iter.    Log-likelihood  Model parameters        Transmission
+---------------------------------------------------------------------------------------------------------------------------
+210     , -192.904    , array([ 0.19487    , -0.0879264  ,  0.200128   ,  0.0127501  ,  0.0212398  ,  0.0205299  ,  13.5298    ,  6.8496     ]), Female allosomes
+210     , -133.549    , array([ 0.19487    , -0.0879264  ,  0.200128   ,  0.0127501  ,  0.0212398  ,  0.0205299  ,  13.5298    ,  6.8496     ]), Male allosomes
+210     , -861.575    , array([ 0.19487    , -0.0879264  ,  0.200128   ,  0.0127501  ,  0.0212398  ,  0.0205299  ,  13.5298    ,  6.8496     ]), Autosomes
+240     , -191.532    , array([ 0.19487    , -0.155599   ,  0.200128   ,  0.0111662  ,  0.0212398  ,  0.0278943  ,  13.5298    ,  6.8496     ]), Female allosomes
+240     , -133.038    , array([ 0.19487    , -0.155599   ,  0.200128   ,  0.0111662  ,  0.0212398  ,  0.0278943  ,  13.5298    ,  6.8496     ]), Male allosomes
+240     , -861.454    , array([ 0.19487    , -0.155599   ,  0.200128   ,  0.0111662  ,  0.0212398  ,  0.0278943  ,  13.5298    ,  6.8496     ]), Autosomes
+270     , 2.22045e+16 , array([ 0.19487    , -0.183354   ,  0.200128   ,  0.00968818 ,  0.0212398  ,  0.0330325  ,  13.5298    ,  6.8496     ]), OOB (oob=-2.220446049250313e-16)
+300     , -190.844    , array([ 0.19487    , -0.189858   ,  0.200128   ,  0.00955509 ,  0.0212398  ,  0.0343935  ,  13.5298    ,  6.8496     ]), Female allosomes
+300     , -132.789    , array([ 0.19487    , -0.189858   ,  0.200128   ,  0.00955509 ,  0.0212398  ,  0.0343935  ,  13.5298    ,  6.8496     ]), Male allosomes
+300     , -861.359    , array([ 0.19487    , -0.189858   ,  0.200128   ,  0.00955509 ,  0.0212398  ,  0.0343935  ,  13.5298    ,  6.8496     ]), Autosomes
+330     , -190.763    , array([ 0.19487    , -0.193911   ,  0.200128   ,  0.00951946 ,  0.0212398  ,  0.0354028  ,  13.5298    ,  6.8496     ]), Female allosomes
+330     , -132.759    , array([ 0.19487    , -0.193911   ,  0.200128   ,  0.00951946 ,  0.0212398  ,  0.0354028  ,  13.5298    ,  6.8496     ]), Male allosomes
+330     , -861.347    , array([ 0.19487    , -0.193911   ,  0.200128   ,  0.00951946 ,  0.0212398  ,  0.0354028  ,  13.5298    ,  6.8496     ]), Autosomes
+360     , -190.74     , array([ 0.19487    , -0.19509    ,  0.200128   ,  0.00951451 ,  0.0212398  ,  0.0356503  ,  13.5298    ,  6.8496     ]), Female allosomes
+360     , -132.75     , array([ 0.19487    , -0.19509    ,  0.200128   ,  0.00951451 ,  0.0212398  ,  0.0356503  ,  13.5298    ,  6.8496     ]), Male allosomes
+360     , -861.343    , array([ 0.19487    , -0.19509    ,  0.200128   ,  0.00951451 ,  0.0212398  ,  0.0356503  ,  13.5298    ,  6.8496     ]), Autosomes
+Step 2 completed.
+---------------------------------------------------------------------------------------------------------------------------
+
+Optimization run #2
+
+-----------------------------------------------------------------------------------------
+Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+Optimization is performed in two steps.
+Step 1 : Optimizing autosomal likelihood over parameters [&#39;REUR&#39;, &#39;RNAT&#39;, &#39;RAFR&#39;, &#39;t1&#39;, &#39;t2&#39;].
+Iter.    Log-likelihood  Model parameters        Transmission
+-----------------------------------------------------------------------------------------
+30      , -856.817    , array([ 0.192746   ,  0          ,  0.200003   ,  0          ,  0.021417   ,  0          ,  13.5088    ,  6.82596    ]), Autosomes
+60      , -849.169    , array([ 0.189168   ,  0          ,  0.19848    ,  0          ,  0.0216601  ,  0          ,  13.5648    ,  6.80239    ]), Autosomes
+90      , -847.076    , array([ 0.188371   ,  0          ,  0.197955   ,  0          ,  0.021765   ,  0          ,  13.5855    ,  6.79094    ]), Autosomes
+120     , -846.155    , array([ 0.188004   ,  0          ,  0.197657   ,  0          ,  0.0218046  ,  0          ,  13.5975    ,  6.7864     ]), Autosomes
+150     , -845.529    , array([ 0.187765   ,  0          ,  0.197481   ,  0          ,  0.021838   ,  0          ,  13.6056    ,  6.78331    ]), Autosomes
+180     , -844.958    , array([ 0.187529   ,  0          ,  0.197315   ,  0          ,  0.0218643  ,  0          ,  13.6152    ,  6.78033    ]), Autosomes
+Step 1 completed.
+---------------------------------------------------------------------------------------------------------------------------
+Step 2 : Optimizing autosomal + allosomal likelihood over parameters : [&#39;REUR_sex_bias&#39;, &#39;RNAT_sex_bias&#39;, &#39;RAFR_sex_bias&#39;].
+Non-sex-bias parameters fixed at values from previous optimization step.
+Iter.    Log-likelihood  Model parameters        Transmission
+---------------------------------------------------------------------------------------------------------------------------
+210     , -192.316    , array([ 0.187455   , -0.0541543  ,  0.197255   ,  0.00901379 ,  0.0218736  ,  0.0132859  ,  13.618     ,  6.77938    ]), Female allosomes
+210     , -133.006    , array([ 0.187455   , -0.0541543  ,  0.197255   ,  0.00901379 ,  0.0218736  ,  0.0132859  ,  13.618     ,  6.77938    ]), Male allosomes
+210     , -844.756    , array([ 0.187455   , -0.0541543  ,  0.197255   ,  0.00901379 ,  0.0218736  ,  0.0132859  ,  13.618     ,  6.77938    ]), Autosomes
+240     , -191.203    , array([ 0.187455   , -0.111391   ,  0.197255   ,  0.0141195  ,  0.0218736  ,  0.021631   ,  13.618     ,  6.77938    ]), Female allosomes
+240     , -132.549    , array([ 0.187455   , -0.111391   ,  0.197255   ,  0.0141195  ,  0.0218736  ,  0.021631   ,  13.618     ,  6.77938    ]), Male allosomes
+240     , -844.708    , array([ 0.187455   , -0.111391   ,  0.197255   ,  0.0141195  ,  0.0218736  ,  0.021631   ,  13.618     ,  6.77938    ]), Autosomes
+270     , -190.641    , array([ 0.187455   , -0.14032    ,  0.197255   ,  0.0141106  ,  0.0218736  ,  0.0264049  ,  13.618     ,  6.77938    ]), Female allosomes
+270     , -132.337    , array([ 0.187455   , -0.14032    ,  0.197255   ,  0.0141106  ,  0.0218736  ,  0.0264049  ,  13.618     ,  6.77938    ]), Male allosomes
+270     , -844.668    , array([ 0.187455   , -0.14032    ,  0.197255   ,  0.0141106  ,  0.0218736  ,  0.0264049  ,  13.618     ,  6.77938    ]), Autosomes
+300     , -190.067    , array([ 0.187455   , -0.170362   ,  0.197255   ,  0.0139925  ,  0.0218736  ,  0.0314085  ,  13.618     ,  6.77938    ]), Female allosomes
+300     , -132.121    , array([ 0.187455   , -0.170362   ,  0.197255   ,  0.0139925  ,  0.0218736  ,  0.0314085  ,  13.618     ,  6.77938    ]), Male allosomes
+300     , -844.614    , array([ 0.187455   , -0.170362   ,  0.197255   ,  0.0139925  ,  0.0218736  ,  0.0314085  ,  13.618     ,  6.77938    ]), Autosomes
+330     , -189.807    , array([ 0.187455   , -0.184067   ,  0.197255   ,  0.0137091  ,  0.0218736  ,  0.0339175  ,  13.618     ,  6.77938    ]), Female allosomes
+330     , -132.025    , array([ 0.187455   , -0.184067   ,  0.197255   ,  0.0137091  ,  0.0218736  ,  0.0339175  ,  13.618     ,  6.77938    ]), Male allosomes
+330     , -844.585    , array([ 0.187455   , -0.184067   ,  0.197255   ,  0.0137091  ,  0.0218736  ,  0.0339175  ,  13.618     ,  6.77938    ]), Autosomes
+360     , -189.527    , array([ 0.187455   , -0.198879   ,  0.197255   ,  0.0131866  ,  0.0218736  ,  0.0363636  ,  13.618     ,  6.77938    ]), Female allosomes
+360     , -131.923    , array([ 0.187455   , -0.198879   ,  0.197255   ,  0.0131866  ,  0.0218736  ,  0.0363636  ,  13.618     ,  6.77938    ]), Male allosomes
+360     , -844.551    , array([ 0.187455   , -0.198879   ,  0.197255   ,  0.0131866  ,  0.0218736  ,  0.0363636  ,  13.618     ,  6.77938    ]), Autosomes
+Step 2 completed.
+---------------------------------------------------------------------------------------------------------------------------
+
+Optimization run #3
+
+-----------------------------------------------------------------------------------------
+Admixture is modelled with the M model for autosomes and with the DC model for allosomes.
+Optimization is performed in two steps.
+Step 1 : Optimizing autosomal likelihood over parameters [&#39;REUR&#39;, &#39;RNAT&#39;, &#39;RAFR&#39;, &#39;t1&#39;, &#39;t2&#39;].
+Iter.    Log-likelihood  Model parameters        Transmission
+-----------------------------------------------------------------------------------------
+30      , -839.57     , array([ 0.183856   ,  0          ,  0.195493   ,  0          ,  0.0221893  ,  0          ,  13.4096    ,  6.75129    ]), Autosomes
+60      , -827.174    , array([ 0.176409   ,  0          ,  0.187956   ,  0          ,  0.0227785  ,  0          ,  13.7219    ,  6.66409    ]), Autosomes
+90      , -821.985    , array([ 0.173436   ,  0          ,  0.184106   ,  0          ,  0.0228318  ,  0          ,  14.0421    ,  6.58555    ]), Autosomes
+120     , -821.129    , array([ 0.172708   ,  0          ,  0.183349   ,  0          ,  0.0227807  ,  0          ,  14.0742    ,  6.58266    ]), Autosomes
+150     , -820.108    , array([ 0.171919   ,  0          ,  0.182519   ,  0          ,  0.0227173  ,  0          ,  14.1276    ,  6.57129    ]), Autosomes
+Step 1 completed.
+---------------------------------------------------------------------------------------------------------------------------
+Step 2 : Optimizing autosomal + allosomal likelihood over parameters : [&#39;REUR_sex_bias&#39;, &#39;RNAT_sex_bias&#39;, &#39;RAFR_sex_bias&#39;].
+Non-sex-bias parameters fixed at values from previous optimization step.
+Iter.    Log-likelihood  Model parameters        Transmission
+---------------------------------------------------------------------------------------------------------------------------
+180     , -191.503    , array([ 0.171723   , -0.00748584 ,  0.182312   ,  0.00518231 ,  0.0226999  ,  0.00519144 ,  14.1418    ,  6.568      ]), Female allosomes
+180     , -132.459    , array([ 0.171723   , -0.00748584 ,  0.182312   ,  0.00518231 ,  0.0226999  ,  0.00519144 ,  14.1418    ,  6.568      ]), Male allosomes
+180     , -819.847    , array([ 0.171723   , -0.00748584 ,  0.182312   ,  0.00518231 ,  0.0226999  ,  0.00519144 ,  14.1418    ,  6.568      ]), Autosomes
+210     , -190.266    , array([ 0.171723   , -0.0719643  ,  0.182312   ,  0.00817069 ,  0.0226999  ,  0.00820686 ,  14.1418    ,  6.568      ]), Female allosomes
+210     , -131.984    , array([ 0.171723   , -0.0719643  ,  0.182312   ,  0.00817069 ,  0.0226999  ,  0.00820686 ,  14.1418    ,  6.568      ]), Male allosomes
+210     , -819.833    , array([ 0.171723   , -0.0719643  ,  0.182312   ,  0.00817069 ,  0.0226999  ,  0.00820686 ,  14.1418    ,  6.568      ]), Autosomes
+240     , 2.22045e+16 , array([ 0.171723   , -0.0750938  ,  0.182312   ,  0.00629775 ,  0.0226999  ,  0.0101424  ,  14.1418    ,  6.568      ]), OOB (oob=-2.220446049250313e-16)
+Step 2 completed.
+---------------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------
+Results from multiple optimization runs with different starting parameters:
+-------------------------------------
+Run |       LogLik | Found parameters
+-------------------------------------
+  1 |     -1184.83 | [0.1949, -0.1951, 0.2001, 0.009514, 0.02124, 0.03566, 13.53, 6.85]
+  2 |     -1165.98 | [0.1875, -0.1996, 0.1973, 0.01315, 0.02187, 0.03654, 13.62, 6.779]
+  3 |        -1142 | [0.1717, -0.07504, 0.1823, 0.006296, 0.0227, 0.01014, 14.14, 6.568]
+-------------------------------------
+
+Final parameters and corresponding likelihood:
+-------------------------------------------------------------------------------------------------------------------------
+      LogLik |         REUR REUR_sex_bias         RNAT RNAT_sex_bias         RAFR RAFR_sex_bias           t1           t2
+-------------------------------------------------------------------------------------------------------------------------
+       -1142 |       0.1717     -0.07504       0.1823     0.006296       0.0227      0.01014        14.14        6.568
+-------------------------------------------------------------------------------------------------------------------------
+Results saved to : ./output_continuous_pulse/
+
+{&#39;destination_dir&#39;: PosixPath(&#39;/home/runner/work/tracts/tracts/docs/source/auto_examples/MXL/output_continuous_pulse&#39;), &#39;table_file&#39;: PosixPath(&#39;/home/runner/work/tracts/tracts/docs/source/auto_examples/MXL/output_continuous_pulse/MXL_test_output_optimal_parameters.txt&#39;)}
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tracts.driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_tracts</span>
+
+<span class="n">script_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+<span class="n">driver_filename</span> <span class="o">=</span> <span class="s2">&quot;MXL_continuous.yaml&quot;</span>
+
+<span class="n">run_tracts</span><span class="p">(</span><span class="n">driver_filename</span> <span class="o">=</span> <span class="n">driver_filename</span><span class="p">,</span> <span class="n">script_dir</span> <span class="o">=</span> <span class="n">script_path</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+
+
+<span class="c1"># Don&#39;t run the code below: for documentation purposes only.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tracts.doc_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_example_outputs_for_docs</span>
+<span class="n">prepare_example_outputs_for_docs</span><span class="p">(</span><span class="s2">&quot;output_continuous_pulse&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (132 minutes 27.082 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-mxl-mxl-3pop-sexbiased-fix-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/799a4e2ee02338491e24656d76aa6575/MXL_3pop_sexbiased_fix.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">MXL_3pop_sexbiased_fix.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/955878ea72fe03043ccd1a529f50b77c/MXL_3pop_sexbiased_fix.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">MXL_3pop_sexbiased_fix.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/6d1868b15d88406d2dda9fd2fa2fc6b8/MXL_3pop_sexbiased_fix.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">MXL_3pop_sexbiased_fix.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">MXL population</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../tutorials/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Phase-type models</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#optimal-parameters">Optimal parameters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tract-length-histograms">Tract length histograms</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#autosomal-admixture">Autosomal admixture</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#x-chromosome-admixture-in-females">X chromosome admixture in females</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#x-chromosome-admixture-in-males">X chromosome admixture in males</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/auto_examples/MXL/MXL_3pop_sexbiased_fix.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

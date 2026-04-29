@@ -1,0 +1,1399 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>tracts.population.Population &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/tracts.population.Population';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="tracts.tract" href="tracts.tract.html" />
+    <link rel="prev" title="tracts.population.preprocess_color_dict" href="tracts.population.preprocess_color_dict.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../core_modules.html">Core modules</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tracts.chromosome.html">tracts.chromosome</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.core.html">tracts.core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.driver.html">tracts.driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.driver_utils.html">tracts.driver_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.haploid.html">tracts.haploid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.indiv.html">tracts.indiv</a></li>
+<li class="toctree-l2 current active"><a class="reference internal" href="tracts.population.html">tracts.population</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.tract.html">tracts.tract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.util.html">tracts.util</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../phase_type.html">Phase-type models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.base_phase_type.html">tracts.phase_type.base_phase_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.monoecious.html">tracts.phase_type.monoecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.dioecious.html">tracts.phase_type.dioecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.hybrid_pedigree.html">tracts.phase_type.hybrid_pedigree</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../demography.html">Demography</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.base_parametrized_demography.html">tracts.demography.base_parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.parameter.html">tracts.demography.parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.parametrized_demography.html">tracts.demography.parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.parametrized_demography_sex_biased.html">tracts.demography.parametrized_demography_sex_biased</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API documentation</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../core_modules.html" class="nav-link">Core modules</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="tracts.population.html" class="nav-link">tracts.population</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tracts.population.Population</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tracts-population-population">
+<h1>tracts.population.Population<a class="headerlink" href="#tracts-population-population" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tracts.population.Population">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Population</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_indivs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selectchrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_length_consistency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filenames_by_individual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">male_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A class representing a population of diploid individuals. A <a class="reference internal" href="#tracts.population.Population" title="tracts.population.Population"><code class="xref py py-class docutils literal notranslate"><span class="pre">Population</span></code></a> is
+a list of <a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a> objects.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.currentplot">
+<span class="sig-name descname"><span class="pre">currentplot</span></span><a class="headerlink" href="#tracts.population.Population.currentplot" title="Link to this definition">#</a></dt>
+<dd><p>The index of the currently plotted individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.win">
+<span class="sig-name descname"><span class="pre">win</span></span><a class="headerlink" href="#tracts.population.Population.win" title="Link to this definition">#</a></dt>
+<dd><p>The Tkinter window used for plotting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tk.Tk</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.canv">
+<span class="sig-name descname"><span class="pre">canv</span></span><a class="headerlink" href="#tracts.population.Population.canv" title="Link to this definition">#</a></dt>
+<dd><p>The Tkinter canvas used for plotting the current individual. This is stored as an attribute to allow for updating the plot when navigating between individuals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tk.Canvas</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.chro_canvas">
+<span class="sig-name descname"><span class="pre">chro_canvas</span></span><a class="headerlink" href="#tracts.population.Population.chro_canvas" title="Link to this definition">#</a></dt>
+<dd><p>The Tkinter canvas used for plotting chromosomes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tk.Canvas</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.colordict">
+<span class="sig-name descname"><span class="pre">colordict</span></span><a class="headerlink" href="#tracts.population.Population.colordict" title="Link to this definition">#</a></dt>
+<dd><p>A dictionary mapping ancestry labels to color strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population._flats">
+<span class="sig-name descname"><span class="pre">_flats</span></span><a class="headerlink" href="#tracts.population.Population._flats" title="Link to this definition">#</a></dt>
+<dd><p>A cached flattened list of tracts for the population. If None, the flattened list has not been computed yet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="tracts.tract.Tract.html#tracts.tract.Tract" title="tracts.tract.Tract">Tract</a>] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.allosome_labels">
+<span class="sig-name descname"><span class="pre">allosome_labels</span></span><a class="headerlink" href="#tracts.population.Population.allosome_labels" title="Link to this definition">#</a></dt>
+<dd><p>A list of labels for the allosomes in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.allosome_lengths">
+<span class="sig-name descname"><span class="pre">allosome_lengths</span></span><a class="headerlink" href="#tracts.population.Population.allosome_lengths" title="Link to this definition">#</a></dt>
+<dd><p>A dictionary mapping allosome labels to their lengths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.indivs">
+<span class="sig-name descname"><span class="pre">indivs</span></span><a class="headerlink" href="#tracts.population.Population.indivs" title="Link to this definition">#</a></dt>
+<dd><p>A list of individuals in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv">Indiv</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.male_list">
+<span class="sig-name descname"><span class="pre">male_list</span></span><a class="headerlink" href="#tracts.population.Population.male_list" title="Link to this definition">#</a></dt>
+<dd><p>A list of labels for male individuals in the population. This is used to determine the sex of individuals when the sex cannot be inferred from the data. If None, the sex of individuals will be inferred from the data by checking the number of X chromosomes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.nind">
+<span class="sig-name descname"><span class="pre">nind</span></span><a class="headerlink" href="#tracts.population.Population.nind" title="Link to this definition">#</a></dt>
+<dd><p>The number of individuals in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.Ls">
+<span class="sig-name descname"><span class="pre">Ls</span></span><a class="headerlink" href="#tracts.population.Population.Ls" title="Link to this definition">#</a></dt>
+<dd><p>A list of chromosome lengths for the individuals in the population. It is assumed that all individuals have the same chromosome lengths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.maxLen">
+<span class="sig-name descname"><span class="pre">maxLen</span></span><a class="headerlink" href="#tracts.population.Population.maxLen" title="Link to this definition">#</a></dt>
+<dd><p>The maximum chromosome length among the individuals in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.num_males">
+<span class="sig-name descname"><span class="pre">num_males</span></span><a class="headerlink" href="#tracts.population.Population.num_males" title="Link to this definition">#</a></dt>
+<dd><p>The number of male individuals in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.population.Population.num_females">
+<span class="sig-name descname"><span class="pre">num_females</span></span><a class="headerlink" href="#tracts.population.Population.num_females" title="Link to this definition">#</a></dt>
+<dd><p>The number of female individuals in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_indivs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selectchrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_length_consistency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filenames_by_individual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">male_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the <a class="reference internal" href="#tracts.population.Population" title="tracts.population.Population"><code class="xref py py-class docutils literal notranslate"><span class="pre">Population</span></code></a> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>list_indivs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of <a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a> objects representing the individuals in the population. If provided, this will be used to initialize the population directly.</p></li>
+<li><p><strong>names</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of names for the individuals in the population. This is used when initializing the population from a file format.</p></li>
+<li><p><strong>fname</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A tuple with the start, middle and end of the filenames for loading individuals from files. The individual files should be specified in the format <cite>start–Indiv–Middle–_A–End</cite>.</p></li>
+<li><p><strong>labs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of labels for the chromosome copies. This is used when initializing the population from a file format.</p></li>
+<li><p><strong>selectchrom</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of chromosome labels to select when initializing the population from a file format. If None, all chromosomes will be selected.</p></li>
+<li><p><strong>allosomes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of labels for the allosomes in the population. This is used when initializing the population from a file format to identify which chromosomes are allosomes.</p></li>
+<li><p><strong>ignore_length_consistency</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – A flag indicating whether to ignore consistency in chromosome lengths across individuals when initializing the population from a file format. If False, an error will be raised if individuals have different chromosome lengths. If True, the population will be initialized even if individuals have different chromosome lengths.</p></li>
+<li><p><strong>filenames_by_individual</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A dictionary mapping individual names to lists of filenames for loading individuals from files. The individual files should be specified in the format <cite>start–Indiv–Middle–_A–End</cite>. This is an alternative to using <cite>fname</cite> and <cite>names</cite> for loading individuals from files, and allows for more flexibility in specifying the filenames for each individual.</p></li>
+<li><p><strong>male_list</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of labels for male individuals in the population.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>There are two ways to build populations, either from a dataset stored in files or from a list of individuals. The facilities for
+loading populations from files present in this constructor are deprecated. It is advised to instead load a list of individuals,
+using <a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv.from_files" title="tracts.indiv.Indiv.from_files"><code class="xref py py-func docutils literal notranslate"><span class="pre">tracts.indiv.Indiv.from_files()</span></code></a>, and to then pass that list to this constructor.</p>
+<p>The population can be initialized by providing it with a list <cite>list_indivs</cite> of <a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a> objects,
+or a file format <cite>fname</cite> and a list <cite>names</cite> of names. If reading from a file, <cite>fname</cite> should be a tuple with the start,
+middle and end of the filenames, where an individual file is specified by <cite>start–Indiv–Middle–_A–End</cite>. Otherwise, provide list of individuals.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.ancestry_at_pos">
+<span class="sig-name descname"><span class="pre">ancestry_at_pos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">select_chrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.ancestry_at_pos" title="Link to this definition">#</a></dt>
+<dd><p>Finds ancestry proportion at specific position. The cutoff is used to look only at tracts that extend beyond a given position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>select_chrom</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the chromosome to analyze. It is assumed that all individuals have the same number of chromosomes and that the chromosome with index <cite>select_chrom</cite> corresponds to the same chromosome across individuals.</p></li>
+<li><p><strong>pos</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The position along the chromosome at which to calculate ancestry proportions. It is assumed that all individuals have the same chromosome lengths and that the position <cite>pos</cite> corresponds to the same location along the chromosome across individuals.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A threshold for the length of ancestry tracts to consider when calculating ancestry proportions. Only tracts that extend beyond the position <cite>pos</cite> by at least <cite>cutoff</cite> will be included in the calculation of ancestry proportions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing two dictionaries. The first dictionary maps ancestry labels to the count of tracts of that ancestry that extend beyond the position <cite>pos</cite> by at least <cite>cutoff</cite>. The second dictionary maps ancestry labels to the average length of tracts of that ancestry that extend beyond the position <cite>pos</cite> by at least <cite>cutoff</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[dict[str, int], dict[str, float]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.ancestry_per_pos">
+<span class="sig-name descname"><span class="pre">ancestry_per_pos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">select_chrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.ancestry_per_pos" title="Link to this definition">#</a></dt>
+<dd><p>Prepare the ancestry per position across chromosome.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>select_chrom</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the chromosome to analyze. It is assumed that all individuals have the same number of chromosomes and that the chromosome with index <cite>select_chrom</cite> corresponds to the same chromosome across individuals.</p></li>
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of positions along the chromosome at which to calculate ancestry proportions. The positions will be evenly spaced along the chromosome, starting from position 0 and ending at the length of the chromosome.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A threshold for the length of ancestry tracts to consider when calculating ancestry proportions. Only tracts that extend beyond the position <cite>pos</cite> by at least <cite>cutoff</cite> will be included in the calculation of ancestry proportions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>np.ndarray</em> – An array of positions along the chromosome at which ancestry proportions were calculated. The positions are evenly spaced along the chromosome, starting from position 0 and ending at the length of the chromosome.</p></li>
+<li><p><em>list[tuple[dict[str, int], dict[str, float]]]</em> – A list of tuples, where each tuple corresponds to a position along the chromosome and contains two dictionaries. The first dictionary maps ancestry labels to the count of tracts of that ancestry that extend beyond the corresponding position by at least <cite>cutoff</cite>. The second dictionary maps ancestry labels to the average length of tracts of that ancestry that extend beyond the corresponding position by at least <cite>cutoff</cite>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.applychrom">
+<span class="sig-name descname"><span class="pre">applychrom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indlist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.applychrom" title="Link to this definition">#</a></dt>
+<dd><p>Apply a function to chromosomes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – A function that takes a Chrom object as input and returns a value. This function will be applied to each chromosome in the population.</p></li>
+<li><p><strong>indlist</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – A list of individuals to which the function should be applied. If None, the function will be applied to all individuals in the population.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of the results of applying the function <cite>func</cite> to each chromosome in the population (or to the chromosomes of the individuals in <cite>indlist</cite> if it is not None).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.bootinds">
+<span class="sig-name descname"><span class="pre">bootinds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.bootinds" title="Link to this definition">#</a></dt>
+<dd><p>Returns a bootstrapped list of individuals in the population. Set this function as the <cite>indlist</cite>
+parameter of <code class="xref py py-func docutils literal notranslate"><span class="pre">get_global_tractlength()</span></code> to get a bootstrapped sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The random seed to use for bootstrapping. Setting the seed allows for reproducibility of the bootstrapped samples.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.calculate_allosome_lengths">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">calculate_allosome_lengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indivs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosome_labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.calculate_allosome_lengths" title="Link to this definition">#</a></dt>
+<dd><p>Calculate the lengths of allosomes across individuals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indivs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a>]</span>) – A list of individuals in the population.</p></li>
+<li><p><strong>allosome_labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of labels for the allosomes in the population. This is used to identify which chromosomes are allosomes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary mapping allosome labels to their lengths. The length of an allosome is determined by the length of the chromosome with that label in the first individual that has that allosome. It is assumed that all individuals have the same lengths for their allosomes, and an error is raised if this is not the case.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.calculate_allosome_proportions">
+<span class="sig-name descname"><span class="pre">calculate_allosome_proportions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosome_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.calculate_allosome_proportions" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the mean ancestry proportion across individuals in the population using only data from a specified allosome.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>population_labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the ancestry proportions.</p></li>
+<li><p><strong>allosome_label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The label for the allosome to use for calculating ancestry proportions. It is assumed that all individuals have the same allosomes and that the allosome with label <cite>allosome_label</cite> corresponds to the same chromosome across individuals.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A threshold for the length of ancestry tracts to consider when calculating ancestry proportions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of ancestry proportions corresponding to the ancestry labels in the input <cite>population_labels</cite> list, averaged across all individuals in the population, calculated using only data from the specified allosome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[float]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>IDE warnings may appear and can be ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.calculate_ancestry_proportions">
+<span class="sig-name descname"><span class="pre">calculate_ancestry_proportions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.calculate_ancestry_proportions" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the mean ancestry proportion across individuals in the population using only autosomal data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>population_labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the ancestry proportions. The function will calculate the ancestry proportion for each ancestry label in this list for each individual in the population.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A threshold for the length of ancestry tracts to consider when calculating ancestry proportions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of ancestry proportions corresponding to the ancestry labels in the input <cite>population_labels</cite> list, averaged across all individuals in the population.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.calculate_num_sexes">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">calculate_num_sexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indivs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosome_labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.calculate_num_sexes" title="Link to this definition">#</a></dt>
+<dd><p>Calculate the number of males and females in the population based on their allosome composition.
+If the allosome labels do not include ‘X’, a warning is raised and the number of males and females
+is recorded as zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indivs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a>]</span>) – A list of individuals in the population.</p></li>
+<li><p><strong>allosome_labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of labels for the allosomes in the population. This is used to identify which chromosomes are allosomes and to determine the sex of individuals based on their allosome composition.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the number of males and females in the population.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[int, int]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Currently, the function only checks for the presence of ‘X’ in the allosome labels.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.flatpop">
+<span class="sig-name descname"><span class="pre">flatpop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.flatpop" title="Link to this definition">#</a></dt>
+<dd><p>Returns a flattened version of a population-wide list at the tract level,
+and throws away the start and end information of the tract.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ls</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of tracts to flatten. If None, the function will flatten the complete list of tracts contained in this population. If a list is provided, the function will flatten that list instead of the complete list of tracts in the population.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of Tract objects representing the flattened version of the input list of tracts (or the complete list of tracts in the population if <cite>ls</cite> is None). The start and end information of the tracts is discarded in the returned list.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="tracts.tract.Tract.html#tracts.tract.Tract" title="tracts.tract.Tract">Tract</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.getMeansByChrom">
+<span class="sig-name descname"><span class="pre">getMeansByChrom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.getMeansByChrom" title="Link to this definition">#</a></dt>
+<dd><p>Gets the ancestry proportions in each individual of the population for each chromosome.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the ancestry proportions for each chromosome. The function will calculate the ancestry proportions for each ancestry label in this list for each chromosome in each individual in the population.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of lists of lists, where the outer list contains one inner list for each individual in the population, the middle list contains one inner list for each ancestry label in the input <cite>ancestries</cite> list, and the innermost list contains the ancestry proportions for each chromosome for that ancestry label for that individual.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[list[list[float]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_global_allosome_tractlengths">
+<span class="sig-name descname"><span class="pre">get_global_allosome_tractlengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allosome</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indlist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_tracts_below_cM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_global_allosome_tractlengths" title="Link to this definition">#</a></dt>
+<dd><p>Returns the allosomal tractlength histogram in males and the allosomal tractlength histogram in females.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>allosome</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The label for the allosome to analyze.</p></li>
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of bins for the histogram.</p></li>
+<li><p><strong>tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The tolerance for full chromosomes.</p></li>
+<li><p><strong>indlist</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – The individuals for which we want the tractlength</p></li>
+<li><p><strong>exclude_tracts_below_cM</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The minimum length of tracts to include in the histogram.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>np.ndarray</em> – The bins for the histogram.</p></li>
+<li><p><em>dict[SexType, dict[str, np.ndarray]]</em> – A dictionary with keys <cite>SexType.MALE</cite> and <cite>SexType.FEMALE</cite>, where the value for each key is a dictionary with ancestry labels as
+keys and a histogram of tract lengths as values for each ancestry.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_global_tractlength_table">
+<span class="sig-name descname"><span class="pre">get_global_tractlength_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lenbound</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_global_tractlength_table" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the fraction of the genome covered by ancestry tracts of different lengths, specified by <cite>lenbound</cite> (which must be sorted).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lenbound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – A sorted list of length boundaries for categorizing ancestry tracts. The function will calculate the fraction of the genome covered by ancestry tracts that fall into each of the length categories defined by these boundaries.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list[float]</em> – The length boundaries for categorizing ancestry tracts, as specified by the input <cite>lenbound</cite>.</p></li>
+<li><p><em>dict[str, np.ndarray]</em> – A dictionary with ancestry labels as keys and an array of the fraction of the genome covered by ancestry tracts of different lengths as values.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_global_tractlengths">
+<span class="sig-name descname"><span class="pre">get_global_tractlengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indlist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_tracts_below_cM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_global_tractlengths" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The tolerance for full chromosomes.</p></li>
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of bins for the histogram.</p></li>
+<li><p><strong>indlist</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – The individuals for which we want the tractlength. To bootstrap over individuals, provide a bootstrapped list individuals.</p></li>
+<li><p><strong>split_count</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – If greater than 1, the population is split into <cite>split_count</cite> groups according to their ancestry proportions, and the tractlength histogram is computed separately for each group.</p></li>
+<li><p><strong>exclude_tracts_below_cM</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Exclude tracts below this length in cM.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>np.ndarray</em> – The bins for the histogram</p></li>
+<li><p><em>dict[str, np.ndarray]</em> – A dictionary with ancestry labels as keys and a histogram of tract lengths as values.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Sometimes there are small issues at the edges of the chromosomes. If a segment is within tol Morgans of the full chromosome, it counts as a full
+chromosome note that we return an extra bin with the complete chromosome bin, so that we have one more data point than we have bins.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_mean_ancestry_proportions">
+<span class="sig-name descname"><span class="pre">get_mean_ancestry_proportions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_mean_ancestry_proportions" title="Link to this definition">#</a></dt>
+<dd><p>Gets the mean ancestry proportion averaged across individuals in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the mean ancestry proportion. The function will calculate the mean ancestry proportion for each ancestry label in this list, averaged across all individuals in the population.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of mean ancestry proportions corresponding to the ancestry labels in the input <cite>ancestries</cite> list.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_means">
+<span class="sig-name descname"><span class="pre">get_means</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_means" title="Link to this definition">#</a></dt>
+<dd><p>Gets the mean ancestry proportion (only among ancestries in ancestries) for all individuals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the mean ancestry proportion for each individual.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of lists, where each inner list contains the mean ancestry proportions for the ancestry labels in the input <cite>ancestries</cite> list for a single individual in the population. The outer list contains one inner list for each individual in the population.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[list[float]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_meanvar">
+<span class="sig-name descname"><span class="pre">get_meanvar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_meanvar" title="Link to this definition">#</a></dt>
+<dd><p>Gets the mean and variance of ancestry proportions across individuals in the population, for ancestries in <cite>ancestries</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the mean and variance of ancestry proportions across individuals in the population.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list[float]</em> – A list of mean ancestry proportions corresponding to the ancestry labels in the input <cite>ancestries</cite> list, averaged across all individuals in the population.</p></li>
+<li><p><em>list[float]</em> – A list of variances of ancestry proportions corresponding to the ancestry labels in the input <cite>ancestries</cite> list, calculated across all individuals in the population.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.get_variance">
+<span class="sig-name descname"><span class="pre">get_variance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.get_variance" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the total variance in ancestry proportions, the genealogy variance, and the
+assortment variance, that corresponds to the mean uncertainty about the proportion of genealogical ancestors, given observed ancestry
+patterns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels for which to calculate the variance in ancestry proportions. The function will calculate the variance in ancestry proportions for each ancestry label in this list across all individuals in the population.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list[float]</em> – A list of total variances in ancestry proportions corresponding to the ancestry labels in the input <cite>ancestries</cite> list, calculated across all individuals in the population.</p></li>
+<li><p><em>list[float]</em> – A list of genealogy variances corresponding to the ancestry labels in the input <cite>ancestries</cite> list, calculated across all individuals in the population.</p></li>
+<li><p><em>list[float]</em> – A list of assortment variances corresponding to the ancestry labels in the input <cite>ancestries</cite> list, calculated across all individuals in the population.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>All unlisted ancestries are considered uncalled. For example, calling the function with a single ancestry leads to no variance (and some 0/0 errors).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.iflatten">
+<span class="sig-name descname"><span class="pre">iflatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indivs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.iflatten" title="Link to this definition">#</a></dt>
+<dd><p>Flattens a list of individuals to the tract level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indivs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of individuals to flatten. If None, the function will flatten the complete list of individuals contained in this population. If a list is provided, the function will flatten that list of individuals instead of the complete list of individuals in the population.</p></li>
+<li><p><strong>Returns</strong></p></li>
+<li><p><strong>generator</strong> – A generator that yields Tract objects representing the flattened version of the input list of individuals (or the complete list of individuals in the population if <cite>indivs</cite> is None). The start and end information of the tracts is preserved in the yielded Tract objects.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.list_chromosome">
+<span class="sig-name descname"><span class="pre">list_chromosome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chronum</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.list_chromosome" title="Link to this definition">#</a></dt>
+<dd><p>Collects the chromosomes with the given number across the whole population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>chronum</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the chromosome to collect across the population. It is assumed that all individuals have the same number of chromosomes and that the chromosome with index <cite>chronum</cite> corresponds to the same chromosome across individuals.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of Chrom objects corresponding to the chromosome with index <cite>chronum</cite> across all individuals in the population.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="tracts.chromosome.Chrom.html#tracts.chromosome.Chrom" title="tracts.chromosome.Chrom">Chrom</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.merge_ancestries">
+<span class="sig-name descname"><span class="pre">merge_ancestries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newlabel</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.merge_ancestries" title="Link to this definition">#</a></dt>
+<dd><p>Treats ancestries in label list <cite>ancestries</cite> as a single population
+with label <cite>newlabel</cite>. Adjacent tracts of the new ancestry are merged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestry labels to merge into a single population. The function will treat all tracts with labels in this list as belonging to the same population and will merge adjacent tracts of these ancestries into a single tract with the label <cite>newlabel</cite>.</p></li>
+<li><p><strong>newlabel</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The label to assign to the merged ancestry.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.new_indiv">
+<span class="sig-name descname"><span class="pre">new_indiv</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.new_indiv" title="Link to this definition">#</a></dt>
+<dd><p>Creates a new individual by randomly selecting two parents from the population, creating gametes from each parent, and combining those gametes to form a new individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new Indiv object representing the offspring of the two randomly selected parents.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="tracts.indiv.Indiv.html#tracts.indiv.Indiv" title="tracts.indiv.Indiv">Indiv</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.newgen">
+<span class="sig-name descname"><span class="pre">newgen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.newgen" title="Link to this definition">#</a></dt>
+<dd><p>Build a new generation from this population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new Population object representing the next generation.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#tracts.population.Population" title="tracts.population.Population">Population</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colordict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot" title="Link to this definition">#</a></dt>
+<dd><p>Plots the individuals in the population using a color dictionary that maps ancestry labels to colors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>colordict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A dictionary that maps ancestry labels (as strings) to color codes (also as strings) that can be used in plotting.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_all_ancestries">
+<span class="sig-name descname"><span class="pre">plot_all_ancestries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colordict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">startfig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_all_ancestries" title="Link to this definition">#</a></dt>
+<dd><p>Plots the ancestry proportions along all chromosomes across individuals in the population using a color dictionary that maps ancestry labels to colors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of points along each chromosome at which to plot the ancestry proportions.</p></li>
+<li><p><strong>colordict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A dictionary that maps ancestry labels (as strings) to color codes (also as strings) that can be used in plotting. If None, a default color dictionary will be used that maps “CEU” to ‘blue’ and “YRI” to ‘red’.</p></li>
+<li><p><strong>startfig</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The starting figure number for plotting. The function will plot the ancestry proportions for each chromosome in a separate subplot, and the figure numbers for these subplots will start from this value.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A threshold for the length of ancestry tracts to consider when calculating ancestry proportions at each point along the chromosomes. Only tracts that are longer than this threshold will be considered when calculating the ancestry proportions at each point.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_ancestries">
+<span class="sig-name descname"><span class="pre">plot_ancestries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colordict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_ancestries" title="Link to this definition">#</a></dt>
+<dd><p>Plots the ancestry proportions along a chromosome across individuals in the population using a color dictionary that maps ancestry labels to colors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chrom</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the chromosome to plot. It is assumed that all individuals have the same number of chromosomes and that the chromosome with index <cite>chrom</cite> corresponds to the same chromosome across individuals.</p></li>
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of points along the chromosome at which to plot the ancestry proportions.</p></li>
+<li><p><strong>colordict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A dictionary that maps ancestry labels (as strings) to color codes (also as strings) that can be used in plotting. If None, a default color dictionary will be used that maps “CEU” to ‘blue’ and “YRI” to ‘red’.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A threshold for the length of ancestry tracts to consider when calculating ancestry proportions at each point along the chromosome. Only tracts that are longer than this threshold will be considered when calculating the ancestry proportions at each point.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_chromosome">
+<span class="sig-name descname"><span class="pre">plot_chromosome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colordict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_chromosome" title="Link to this definition">#</a></dt>
+<dd><p>Plot a single chromosome across individuals in the population using a color dictionary that maps ancestry labels to colors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the chromosome to plot. It is assumed that all individuals have the same number of chromosomes and that the chromosome with index <cite>i</cite> corresponds to the same chromosome across individuals.</p></li>
+<li><p><strong>colordict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A dictionary that maps ancestry labels (as strings) to color codes (also as strings) that can be used in plotting.</p></li>
+<li><p><strong>win</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tk</span></code></span>) – A Tkinter window in which to plot the chromosome. If None, a new window will be created for the plot. If a window is provided, the chromosome will be plotted in that window instead of creating a new one.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_global_tractlengths">
+<span class="sig-name descname"><span class="pre">plot_global_tractlengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colordict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_global_tractlengths" title="Link to this definition">#</a></dt>
+<dd><p>Plot the distribution of global tract lengths for each population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>colordict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A dictionary that maps ancestry labels (as strings) to color codes (also as strings) that can be used in plotting. The function will plot the distribution of global tract lengths for each ancestry label in this dictionary using the corresponding color.</p></li>
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of bins for the histogram of tract lengths. The function will use this number of bins when plotting the distribution of global tract lengths for each ancestry label.</p></li>
+<li><p><strong>legend</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether to include a legend in the plot. If True, a legend will be included that maps ancestry labels to colors. If False, no legend will be included in the plot.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_indiv">
+<span class="sig-name descname"><span class="pre">plot_indiv</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_indiv" title="Link to this definition">#</a></dt>
+<dd><p>Plots the individual at the current plot index and stores it in <cite>self.canv</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_next">
+<span class="sig-name descname"><span class="pre">plot_next</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_next" title="Link to this definition">#</a></dt>
+<dd><p>Plots the next individual in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A visual representation of the individual’s ancestry tracts. See <code class="xref py py-func docutils literal notranslate"><span class="pre">plot()</span></code> for details on the visual representation.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tk.Tk</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.plot_previous">
+<span class="sig-name descname"><span class="pre">plot_previous</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.plot_previous" title="Link to this definition">#</a></dt>
+<dd><p>Plots the previous individual in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A visual representation of the individual’s ancestry tracts. See <code class="xref py py-func docutils literal notranslate"><span class="pre">plot()</span></code> for details on the visual representation.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tk.Tk</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.save" title="Link to this definition">#</a></dt>
+<dd><p>Saves the current plot of the population to a file. The user is prompted to choose a file location and name for saving the plot.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.set_males">
+<span class="sig-name descname"><span class="pre">set_males</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">male_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosome_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.set_males" title="Link to this definition">#</a></dt>
+<dd><p>Sets the list of males for each individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>male_list</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of labels for male individuals in the population.</p></li>
+<li><p><strong>allosome_label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The label for the allosome to use for determining the sex of individuals when the sex cannot be inferred from the data.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.smooth_unknowns">
+<span class="sig-name descname"><span class="pre">smooth_unknowns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allosome_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.smooth_unknowns" title="Link to this definition">#</a></dt>
+<dd><p>Smooths the unknown labels for each individual in the population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>allosome_labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A list of labels for the allosomes in the population.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.split_by_props">
+<span class="sig-name descname"><span class="pre">split_by_props</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">count</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.split_by_props" title="Link to this definition">#</a></dt>
+<dd><p>Splits this population into groups according to their ancestry proportions.
+The individuals are sorted in ascending order of their ancestry named <cite>anc</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>count</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of groups to split the population into. If <cite>count</cite> is 1, the function returns a list containing this population without splitting.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of <cite>count</cite> Population objects, each containing a group of individuals from the original population.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="#tracts.population.Population" title="tracts.population.Population">Population</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.population.Population.tractlength_histogram">
+<span class="sig-name descname"><span class="pre">tractlength_histogram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracts_by_population</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_tracts_below_cM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxLen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.population.Population.tractlength_histogram" title="Link to this definition">#</a></dt>
+<dd><p>Helper function for get_global_tractlengths that takes in a dictionary of tracts organized by population and returns the histogram of tract lengths for each population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tracts_by_population</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<a class="reference internal" href="tracts.tract.Tract.html#tracts.tract.Tract" title="tracts.tract.Tract"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tract</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]]</span>) – A dictionary where the keys are ancestry labels and the values are lists of tuples, where each tuple contains a Tract object and the length of the chromosome that tract is on. This dictionary is used to compute the histogram of tract lengths for each ancestry label.</p></li>
+<li><p><strong>npts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of bins for the histogram.</p></li>
+<li><p><strong>tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The tolerance for full chromosomes. Sometimes there are small issues at the edges of the chromosomes. If a segment is within tol Morgans of the full chromosome, it counts as a full chromosome note that we return an extra bin with the complete chromosome bin, so that we have one more data point than we have bins.</p></li>
+<li><p><strong>exclude_tracts_below_cM</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Exclude tracts below this length in centiMorgans from the histogram.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>np.ndarray</em> – The bins for the histogram.</p></li>
+<li><p><em>dict[str, np.ndarray]</em> – A dictionary with ancestry labels as keys and a histogram of tract lengths as values.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="tracts.population.preprocess_color_dict.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tracts.population.preprocess_color_dict</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="tracts.tract.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">tracts.tract</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population"><code class="docutils literal notranslate"><span class="pre">Population</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.currentplot"><code class="docutils literal notranslate"><span class="pre">Population.currentplot</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.win"><code class="docutils literal notranslate"><span class="pre">Population.win</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.canv"><code class="docutils literal notranslate"><span class="pre">Population.canv</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.chro_canvas"><code class="docutils literal notranslate"><span class="pre">Population.chro_canvas</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.colordict"><code class="docutils literal notranslate"><span class="pre">Population.colordict</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population._flats"><code class="docutils literal notranslate"><span class="pre">Population._flats</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.allosome_labels"><code class="docutils literal notranslate"><span class="pre">Population.allosome_labels</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.allosome_lengths"><code class="docutils literal notranslate"><span class="pre">Population.allosome_lengths</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.indivs"><code class="docutils literal notranslate"><span class="pre">Population.indivs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.male_list"><code class="docutils literal notranslate"><span class="pre">Population.male_list</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.nind"><code class="docutils literal notranslate"><span class="pre">Population.nind</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.Ls"><code class="docutils literal notranslate"><span class="pre">Population.Ls</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.maxLen"><code class="docutils literal notranslate"><span class="pre">Population.maxLen</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.num_males"><code class="docutils literal notranslate"><span class="pre">Population.num_males</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.num_females"><code class="docutils literal notranslate"><span class="pre">Population.num_females</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.__init__"><code class="docutils literal notranslate"><span class="pre">Population.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.ancestry_at_pos"><code class="docutils literal notranslate"><span class="pre">Population.ancestry_at_pos()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.ancestry_per_pos"><code class="docutils literal notranslate"><span class="pre">Population.ancestry_per_pos()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.applychrom"><code class="docutils literal notranslate"><span class="pre">Population.applychrom()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.bootinds"><code class="docutils literal notranslate"><span class="pre">Population.bootinds()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.calculate_allosome_lengths"><code class="docutils literal notranslate"><span class="pre">Population.calculate_allosome_lengths()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.calculate_allosome_proportions"><code class="docutils literal notranslate"><span class="pre">Population.calculate_allosome_proportions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.calculate_ancestry_proportions"><code class="docutils literal notranslate"><span class="pre">Population.calculate_ancestry_proportions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.calculate_num_sexes"><code class="docutils literal notranslate"><span class="pre">Population.calculate_num_sexes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.flatpop"><code class="docutils literal notranslate"><span class="pre">Population.flatpop()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.getMeansByChrom"><code class="docutils literal notranslate"><span class="pre">Population.getMeansByChrom()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_global_allosome_tractlengths"><code class="docutils literal notranslate"><span class="pre">Population.get_global_allosome_tractlengths()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_global_tractlength_table"><code class="docutils literal notranslate"><span class="pre">Population.get_global_tractlength_table()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_global_tractlengths"><code class="docutils literal notranslate"><span class="pre">Population.get_global_tractlengths()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_mean_ancestry_proportions"><code class="docutils literal notranslate"><span class="pre">Population.get_mean_ancestry_proportions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_means"><code class="docutils literal notranslate"><span class="pre">Population.get_means()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_meanvar"><code class="docutils literal notranslate"><span class="pre">Population.get_meanvar()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.get_variance"><code class="docutils literal notranslate"><span class="pre">Population.get_variance()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.iflatten"><code class="docutils literal notranslate"><span class="pre">Population.iflatten()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.list_chromosome"><code class="docutils literal notranslate"><span class="pre">Population.list_chromosome()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.merge_ancestries"><code class="docutils literal notranslate"><span class="pre">Population.merge_ancestries()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.new_indiv"><code class="docutils literal notranslate"><span class="pre">Population.new_indiv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.newgen"><code class="docutils literal notranslate"><span class="pre">Population.newgen()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot"><code class="docutils literal notranslate"><span class="pre">Population.plot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_all_ancestries"><code class="docutils literal notranslate"><span class="pre">Population.plot_all_ancestries()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_ancestries"><code class="docutils literal notranslate"><span class="pre">Population.plot_ancestries()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_chromosome"><code class="docutils literal notranslate"><span class="pre">Population.plot_chromosome()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_global_tractlengths"><code class="docutils literal notranslate"><span class="pre">Population.plot_global_tractlengths()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_indiv"><code class="docutils literal notranslate"><span class="pre">Population.plot_indiv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_next"><code class="docutils literal notranslate"><span class="pre">Population.plot_next()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.plot_previous"><code class="docutils literal notranslate"><span class="pre">Population.plot_previous()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.save"><code class="docutils literal notranslate"><span class="pre">Population.save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.set_males"><code class="docutils literal notranslate"><span class="pre">Population.set_males()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.smooth_unknowns"><code class="docutils literal notranslate"><span class="pre">Population.smooth_unknowns()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.split_by_props"><code class="docutils literal notranslate"><span class="pre">Population.split_by_props()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.population.Population.tractlength_histogram"><code class="docutils literal notranslate"><span class="pre">Population.tractlength_histogram()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/api/generated/tracts.population.Population.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

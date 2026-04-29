@@ -1,0 +1,89 @@
+
+
+.. _sphx_glr_auto_examples_ASW:
+
+.. _example-asw:
+
+ASW population
+==============
+
+This page collects the example analyses for the ASW population.
+
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example implements inference for the ASW population under a one pulse model of admixture, using the tracts package. Inference is performed using autosomal and X chromosome data, allowing for the specification of sex-biased admixture. ">
+
+.. only:: html
+
+  .. image:: /auto_examples/ASW/images/thumb/sphx_glr_ASW_one_pulse_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/ASW/ASW_one_pulse`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">ASW inference - One pulse model</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example implements inference for the ASW population under a two pulses model of admixture, using the tracts package. Inference is performed using autosomal and X chromosome data, allowing for the specification of sex-biased admixture. ">
+
+.. only:: html
+
+  .. image:: /auto_examples/ASW/images/thumb/sphx_glr_ASW_two_pulses_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/ASW/ASW_two_pulses`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">ASW inference - Two pulses model</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example implements inference for the ASW population under a three pulses model of admixture, using the tracts package. Inference is performed using autosomal and X chromosome data, allowing for the specification of sex-biased admixture. ">
+
+.. only:: html
+
+  .. image:: /auto_examples/ASW/images/thumb/sphx_glr_ASW_three_pulses_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/ASW/ASW_three_pulses`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">ASW inference - Three pulses model</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/ASW/ASW_one_pulse
+   /auto_examples/ASW/ASW_two_pulses
+   /auto_examples/ASW/ASW_three_pulses
+

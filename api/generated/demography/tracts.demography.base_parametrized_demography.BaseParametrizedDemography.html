@@ -1,0 +1,1101 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>tracts.demography.base_parametrized_demography.BaseParametrizedDemography &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="tracts.demography.base_parametrized_demography.FixedParametersHandler" href="tracts.demography.base_parametrized_demography.FixedParametersHandler.html" />
+    <link rel="prev" title="tracts.demography.base_parametrized_demography.BaseMigrationEvent" href="tracts.demography.base_parametrized_demography.BaseMigrationEvent.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../core_modules.html">Core modules</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.chromosome.html">tracts.chromosome</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.core.html">tracts.core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.driver.html">tracts.driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.driver_utils.html">tracts.driver_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.haploid.html">tracts.haploid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.indiv.html">tracts.indiv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.population.html">tracts.population</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.tract.html">tracts.tract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.util.html">tracts.util</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../phase_type.html">Phase-type models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../phase_type/tracts.phase_type.base_phase_type.html">tracts.phase_type.base_phase_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../phase_type/tracts.phase_type.monoecious.html">tracts.phase_type.monoecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../phase_type/tracts.phase_type.dioecious.html">tracts.phase_type.dioecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../phase_type/tracts.phase_type.hybrid_pedigree.html">tracts.phase_type.hybrid_pedigree</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../demography.html">Demography</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="reference internal" href="tracts.demography.base_parametrized_demography.html">tracts.demography.base_parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.demography.parameter.html">tracts.demography.parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.demography.parametrized_demography.html">tracts.demography.parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.demography.parametrized_demography_sex_biased.html">tracts.demography.parametrized_demography_sex_biased</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">API documentation</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../demography.html" class="nav-link">Demography</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="tracts.demography.base_parametrized_demography.html" class="nav-link">tracts.demography.base_parametrized_demography</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tracts.demography.base_parametrized_demography.BaseParametrizedDemography</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tracts-demography-base-parametrized-demography-baseparametrizeddemography">
+<h1>tracts.demography.base_parametrized_demography.BaseParametrizedDemography<a class="headerlink" href="#tracts-demography-base-parametrized-demography-baseparametrizeddemography" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">BaseParametrizedDemography</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base class for parametrized demographies. A parametrized demography is a demographic model in which the migration events are defined by a set of parameters (that are optimized during inference).
+The class includes methods for adding migration events, checking the validity of the resulting migration matrices, and calculating the ancestry proportions resulting from the migration events.
+The class also allows fixing certain parameters based on known ancestry proportions of the sample populations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.name" title="Link to this definition">#</a></dt>
+<dd><p>The name of the parametrized demography.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.min_time">
+<span class="sig-name descname"><span class="pre">min_time</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.min_time" title="Link to this definition">#</a></dt>
+<dd><p>The minimum time for time parameters in the model. This is used to set the bounds for time parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.max_time">
+<span class="sig-name descname"><span class="pre">max_time</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.max_time" title="Link to this definition">#</a></dt>
+<dd><p>The maximum time for time parameters in the model. This is used to set the bounds for time parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constraints">
+<span class="sig-name descname"><span class="pre">constraints</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constraints" title="Link to this definition">#</a></dt>
+<dd><p>A list of constraints on the parameters of the model. Constraints are of the form <span class="math notranslate nohighlight">\(g(\theta) \geq 0\)</span>, where <span class="math notranslate nohighlight">\(\theta\)</span> denotes the model parameters. <code class="docutils literal notranslate"><span class="pre">constraint</span></code> is a dict with keys <code class="docutils literal notranslate"><span class="pre">param_subset</span></code>, <code class="docutils literal notranslate"><span class="pre">expression</span></code>, and <code class="docutils literal notranslate"><span class="pre">message</span></code>. <code class="docutils literal notranslate"><span class="pre">param_subset</span></code> is a tuple of parameter names that are involved in the constraint (<span class="math notranslate nohighlight">\(\theta\)</span>). <code class="docutils literal notranslate"><span class="pre">expression</span></code> is a lambda function representing <span class="math notranslate nohighlight">\(g\)</span> and <code class="docutils literal notranslate"><span class="pre">message</span></code> is a string that describes the constraint, which is used for logging when the constraint is violated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params">
+<span class="sig-name descname"><span class="pre">model_base_params</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping parameter names to <code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code> objects for the free parameters of the model. Free parameters are parameters that can be optimized directly. They may become fixed during optimization if they are fixed by ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, <a class="reference internal" href="tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter" title="tracts.demography.parameter.Parameter">Parameter</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.fixed_params">
+<span class="sig-name descname"><span class="pre">fixed_params</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.fixed_params" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping parameter names to <code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code> objects for the parameters that have been fixed by ancestry proportions. These parameters cannot be optimized directly and are computed from the ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, <a class="reference internal" href="tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter" title="tracts.demography.parameter.Parameter">Parameter</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.dependent_params">
+<span class="sig-name descname"><span class="pre">dependent_params</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.dependent_params" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping parameter names to <code class="xref py py-class docutils literal notranslate"><span class="pre">DependentParameter</span></code> objects for the parameters that are dependent on other parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, <a class="reference internal" href="tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter" title="tracts.demography.parameter.DependentParameter">DependentParameter</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constant_params">
+<span class="sig-name descname"><span class="pre">constant_params</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constant_params" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping parameter names to <code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code> objects for the parameters that are fixed by the user to a certain value. These parameters cannot be optimized and are not computed from ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, <a class="reference internal" href="tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter" title="tracts.demography.parameter.Parameter">Parameter</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.reduced_constraints">
+<span class="sig-name descname"><span class="pre">reduced_constraints</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.reduced_constraints" title="Link to this definition">#</a></dt>
+<dd><p>A list of constraints that have been reduced from the original constraints after fixing parameters by ancestry proportions. These constraints are of the same form as the original constraints, but they only involve the free parameters that are being optimized after fixing parameters by ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.population_indices">
+<span class="sig-name descname"><span class="pre">population_indices</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.population_indices" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping population names to their corresponding indices in the migration matrices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalized">
+<span class="sig-name descname"><span class="pre">finalized</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalized" title="Link to this definition">#</a></dt>
+<dd><p>A boolean indicating whether the model has been finalized. The model is finalized after all parameters and populations have been added and the indices for the parameters and populations have been set. The model must be finalized before it can be used for inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.founder_events">
+<span class="sig-name descname"><span class="pre">founder_events</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.founder_events" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping the names of founder events to their corresponding <a class="reference internal" href="tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent" title="tracts.demography.base_parametrized_demography.FounderEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">FounderEvent</span></code></a> objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, <a class="reference internal" href="tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent" title="tracts.demography.base_parametrized_demography.FounderEvent">FounderEvent</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.events">
+<span class="sig-name descname"><span class="pre">events</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.events" title="Link to this definition">#</a></dt>
+<dd><p>A dict mapping population names to a list of migration events that affect that population. Each migration event is a <a class="reference internal" href="tracts.demography.base_parametrized_demography.BaseMigrationEvent.html#tracts.demography.base_parametrized_demography.BaseMigrationEvent" title="tracts.demography.base_parametrized_demography.BaseMigrationEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMigrationEvent</span></code></a> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, list[<a class="reference internal" href="tracts.demography.base_parametrized_demography.BaseMigrationEvent.html#tracts.demography.base_parametrized_demography.BaseMigrationEvent" title="tracts.demography.base_parametrized_demography.BaseMigrationEvent">BaseMigrationEvent</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_handler">
+<span class="sig-name descname"><span class="pre">parameter_handler</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_handler" title="Link to this definition">#</a></dt>
+<dd><p>A <a class="reference internal" href="tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler" title="tracts.demography.base_parametrized_demography.FixedParametersHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedParametersHandler</span></code></a> object that handles the fixing of parameters based on ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler" title="tracts.demography.base_parametrized_demography.FixedParametersHandler">FixedParametersHandler</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parametrized_populations">
+<span class="sig-name descname"><span class="pre">parametrized_populations</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parametrized_populations" title="Link to this definition">#</a></dt>
+<dd><p>A list of population names that are affected by migration events. This is used to determine which populations are included in the migration matrices and which populations’ ancestry proportions are calculated from the migration matrices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.logger">
+<span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.logger" title="Link to this definition">#</a></dt>
+<dd><p>The logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>logging.Logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseParametrizedDemography</span></code></a> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – The name of the parametrized demography. If None, the name is set to an empty string.</p></li>
+<li><p><strong>min_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The minimum time for time parameters in the model. This is used to set the bounds for time parameters.</p></li>
+<li><p><strong>max_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The maximum time for time parameters in the model. This is used to set the bounds for time parameters.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_dependent_parameter">
+<span class="sig-name descname"><span class="pre">add_dependent_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expression</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ParamType.UNTYPED</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_dependent_parameter" title="Link to this definition">#</a></dt>
+<dd><p>Dependent parameters cannot be optimized directly. This is used in sex-biased migration to define a sex-specific migration rate computed from an overall migration rate and sex.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The name of the parameter to be added.</p></li>
+<li><p><strong>expression</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseParametrizedDemography</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – A function that computes the value of the dependent parameter based on other parameters.</p></li>
+<li><p><strong>param_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType" title="tracts.demography.parameter.ParamType"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParamType</span></code></a></span>) – The type of the parameter, which is used to set the default bounds for the parameter if bounds are not provided. If ParamType.UNTYPED is used, bounds must be provided.</p></li>
+<li><p><strong>bounds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A tuple representing the bounds for the parameter. If None, the bounds are set to the default bounds for the parameter type. If ParamType.UNTYPED is used, bounds must be provided.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_parameter">
+<span class="sig-name descname"><span class="pre">add_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ParamType.UNTYPED</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_parameter" title="Link to this definition">#</a></dt>
+<dd><p>Adds the given parameter name to the free parameters of the model. Free parameters include all parameters that can be optimized directly, and may become fixed during optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The name of the parameter to be added.</p></li>
+<li><p><strong>param_type</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType" title="tracts.demography.parameter.ParamType"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParamType</span></code></a></span>) – The type of the parameter, which is used to set the default bounds for the parameter if bounds are not provided. If ParamType.UNTYPED is used, bounds must be provided.</p></li>
+<li><p><strong>bounds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A tuple representing the bounds for the parameter. If None, the bounds are set to the default bounds for the parameter type. If ParamType.UNTYPED is used, bounds must be provided.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_population">
+<span class="sig-name descname"><span class="pre">add_population</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_population" title="Link to this definition">#</a></dt>
+<dd><p>Adds the given population name to the populations of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>population_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The name of the population to be added.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_bounds">
+<span class="sig-name descname"><span class="pre">check_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Checks the bounds on parameters. Bounds should be absolute restrictions on possible parameter values, whereas constraints should be restrictions on parameter values relative to each other.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – The list of parameter values for the free parameters of the model. The order of the values corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A violation score, which is negative if any of the bounds are violated and non-negative otherwise. The violation score is the largest negative value from all the bounds.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_constraints">
+<span class="sig-name descname"><span class="pre">check_constraints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_constraints" title="Link to this definition">#</a></dt>
+<dd><p>Checks the constraints on parameters. Constraints take the form of a dict <code class="docutils literal notranslate"><span class="pre">{'param_subset':tuple[str],</span> <span class="pre">'expression':</span> <span class="pre">lambda</span> <span class="pre">(param_subset),</span> <span class="pre">'message':</span> <span class="pre">str}</span></code> (see <code class="docutils literal notranslate"><span class="pre">constraints</span></code> in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseParametrizedDemography</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – The list of parameter values for the free parameters of the model. The order of the values corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A violation score, which is negative if any of the constraints are violated and non-negative otherwise. The violation score is the largest negative value from all the constraints.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.execute_migration_events">
+<span class="sig-name descname"><span class="pre">execute_migration_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">migration_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.execute_migration_events" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalize">
+<span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalize" title="Link to this definition">#</a></dt>
+<dd><p>Finalizes the model by setting the indices for the parameters and populations. This should be called after all parameters and populations have been added to the model and before the model is used for inference.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_index">
+<span class="sig-name descname"><span class="pre">get_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">population_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_index" title="Link to this definition">#</a></dt>
+<dd><p>Returns the matrix index as a tuple from the position and time. Reduces repetitive code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple of the form (time, population_index) representing the index in the migration matrix corresponding to the given time parameter and population name.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[float, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_param_value">
+<span class="sig-name descname"><span class="pre">get_param_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_param_value" title="Link to this definition">#</a></dt>
+<dd><p>Gets the correct value from the name of the parameter and the list of passed <code class="docutils literal notranslate"><span class="pre">params</span></code>. If <code class="docutils literal notranslate"><span class="pre">param_name</span></code> is a number instead, uses the number directly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The name of the parameter to get the value for, or a float representing the value directly.</p></li>
+<li><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – The list of parameter values for the free parameters of the model. The order of the values corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_violation_score">
+<span class="sig-name descname"><span class="pre">get_violation_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_violation_score" title="Link to this definition">#</a></dt>
+<dd><p>Takes in a list of params equal to the length of <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a> and returns a negative violation score if the resulting matrix would be or is invalid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – The list of parameter values for the free parameters of the model. The order of the values corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a>.</p></li>
+<li><p><strong>verbose</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, logs the bound score, constraint score, and migration matrix violation scores when a violation is detected.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A violation score, which is negative if the resulting migration matrix would be or is invalid and non-negative otherwise. The violation score is the largest negative value from the bound violations, constraint violations, and migration matrix violations.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.has_been_fixed">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">has_been_fixed</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.has_been_fixed" title="Link to this definition">#</a></dt>
+<dd><p>Whether any parameters have been fixed by ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if any parameters have been fixed by ancestry proportions, False otherwise.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.insert_params">
+<span class="sig-name descname"><span class="pre">insert_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_from_proportions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.insert_params" title="Link to this definition">#</a></dt>
+<dd><p>Merges the parameters solved by the primary optimizer with the parameters found from the known ancestry proportions into a single list of parameters in the correct order for the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – The list of parameter values for the free parameters of the model that are being optimized by the primary optimizer. The order of the values corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a> that are not fixed by ancestry proportions.</p></li>
+<li><p><strong>params_from_proportions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – The list of parameter values for the parameters that are fixed by ancestry proportions, which are computed from the known ancestry proportions. The order of the values corresponds to the order of the parameters in <code class="docutils literal notranslate"><span class="pre">params_fixed_by_ancestry</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of parameter values for all the free parameters of the model, in the correct order.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.is_time_param">
+<span class="sig-name descname"><span class="pre">is_time_param</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.is_time_param" title="Link to this definition">#</a></dt>
+<dd><p>Determines if each parameter is a time parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of booleans indicating whether each parameter is a time parameter. The order of the booleans corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[bool]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_bounds">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">parameter_bounds</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Gets the bounds for the free parameters of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of tuples representing the bounds for the free parameters of the model. The order of the bounds corresponds to the order of the parameters in <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_base_params</span></code></a>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[tuple[float, float]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_ancestry">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">params_fixed_by_ancestry</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_ancestry" title="Link to this definition">#</a></dt>
+<dd><p>Gets the names of the parameters that are fixed by ancestry proportions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dict of the names of the parameters that are fixed by ancestry proportions and their corresponding values.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_value">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">params_fixed_by_value</span></span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_value" title="Link to this definition">#</a></dt>
+<dd><p>Gets the names of the parameters that are fixed by user-defined values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dict of the names of the parameters that are fixed by user-defined values and their corresponding values.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parse_proportions">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">parse_proportions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestor_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proportions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parse_proportions" title="Link to this definition">#</a></dt>
+<dd><p>Parses the ancestry proportions used in a founding event into a dict of parametrized source populations and a remainder population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ancestor_names</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of the names of the ancestor populations in the founding event. The order of the names should correspond to the order of the proportions in <code class="docutils literal notranslate"><span class="pre">proportions</span></code>.</p></li>
+<li><p><strong>proportions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of the proportions of ancestry contributed by each ancestor population in the founding event. The order of the proportions should correspond to the order of the names in <code class="docutils literal notranslate"><span class="pre">ancestor_names</span></code>. One of the proportions should be a string of the form “1-[the other proportions]”, which indicates that the proportion for that ancestor population is equal to 1 minus the sum of the other proportions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple of the form (<code class="docutils literal notranslate"><span class="pre">source_populations</span></code>, <code class="docutils literal notranslate"><span class="pre">remainder_population</span></code>), where <code class="docutils literal notranslate"><span class="pre">source_populations</span></code> is a dict mapping the names of the ancestor populations with parametrized proportions to their corresponding proportion parameters, and <code class="docutils literal notranslate"><span class="pre">remainder_population</span></code> is the name of the ancestor population whose proportion is equal to 1 minus the sum of the other proportions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices">
+<span class="sig-name descname"><span class="pre">proportions_from_matrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">migration_matrices</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the ancestry proportions for a set of migration matrices, each describing the migration events affecting a particular sample population.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>migration_matrices</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – A dict mapping sample population names to their corresponding migration matrices.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict mapping sample population names to their corresponding ancestry proportions resulting from the migration events represented by the migration matrices.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices_return_keys">
+<span class="sig-name descname"><span class="pre">proportions_from_matrices_return_keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices_return_keys" title="Link to this definition">#</a></dt>
+<dd><p>This method returns the expected keys from <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices"><code class="xref py py-func docutils literal notranslate"><span class="pre">proportions_from_matrices()</span></code></a>.
+It is used by <a class="reference internal" href="tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler" title="tracts.demography.base_parametrized_demography.FixedParametersHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedParametersHandler</span></code></a> to validate that the fixed parameter will be solvable from the given data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The expected keys from <a class="reference internal" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices" title="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices"><code class="xref py py-func docutils literal notranslate"><span class="pre">proportions_from_matrices()</span></code></a>, which are the names of the sample populations that are affected by migration events.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>set[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrix">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">proportions_from_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">migration_matrix</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrix" title="Link to this definition">#</a></dt>
+<dd><p>Takes in a migration matrix and returns the ancestry proportions resulting from the migration events represented by the matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>migration_matrix</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – A migration matrix representing the migration events. The matrix should have dimensions <span class="math notranslate nohighlight">\((T, P)\)</span>, where <span class="math notranslate nohighlight">\(T\)</span> is the number of time points and <span class="math notranslate nohighlight">\(P\)</span> is the number of populations. Each entry in the matrix represents the fraction of the admixed population that is replaced by migrants from a source population at a given time point.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An array of shape <span class="math notranslate nohighlight">\((P,)\)</span> representing the ancestry proportions resulting from the migration events represented by the migration matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.demography.base_parametrized_demography.BaseParametrizedDemography.set_up_fixed_parameters">
+<span class="sig-name descname"><span class="pre">set_up_fixed_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_to_fix_by_ancestry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proportions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_to_fix_by_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.set_up_fixed_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Tells the model to calculate certain rate parameters based on the known ancestry proportions of the sample populations. Proportions are given as a dict with keys corresponding to the sample populations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params_to_fix_by_ancestry</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of the names of the parameters to be fixed by ancestry proportions.</p></li>
+<li><p><strong>proportions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – A dict mapping sample population names to their corresponding ancestry proportions, which are used to fix the parameters in <code class="docutils literal notranslate"><span class="pre">params_to_fix_by_ancestry</span></code>.</p></li>
+<li><p><strong>params_to_fix_by_value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – A dict mapping parameter names to their corresponding values, which are used to fix parameters by user-defined values. These parameters cannot be optimized and are not computed from ancestry proportions.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="tracts.demography.base_parametrized_demography.BaseMigrationEvent.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tracts.demography.base_parametrized_demography.BaseMigrationEvent</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="tracts.demography.base_parametrized_demography.FixedParametersHandler.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">tracts.demography.base_parametrized_demography.FixedParametersHandler</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.name"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.min_time"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.min_time</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.max_time"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.max_time</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constraints"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.constraints</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.model_base_params</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.fixed_params"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.fixed_params</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.dependent_params"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.dependent_params</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constant_params"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.constant_params</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.reduced_constraints"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.reduced_constraints</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.population_indices"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.population_indices</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalized"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.finalized</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.founder_events"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.founder_events</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.events"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.events</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_handler"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.parameter_handler</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parametrized_populations"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.parametrized_populations</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.logger"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.logger</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.__init__"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_dependent_parameter"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.add_dependent_parameter()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_parameter"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.add_parameter()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_population"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.add_population()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_bounds"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.check_bounds()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_constraints"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.check_constraints()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.execute_migration_events"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.execute_migration_events()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalize"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.finalize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_index"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.get_index()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_param_value"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.get_param_value()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_violation_score"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.get_violation_score()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.has_been_fixed"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.has_been_fixed</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.insert_params"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.insert_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.is_time_param"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.is_time_param()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_bounds"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.parameter_bounds</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_ancestry"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.params_fixed_by_ancestry</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_value"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.params_fixed_by_value</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parse_proportions"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.parse_proportions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.proportions_from_matrices()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices_return_keys"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.proportions_from_matrices_return_keys()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrix"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.proportions_from_matrix()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.set_up_fixed_parameters"><code class="docutils literal notranslate"><span class="pre">BaseParametrizedDemography.set_up_fixed_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../../_sources/api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

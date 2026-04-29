@@ -1,0 +1,783 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>User guide &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/index';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Examples" href="../examples/index.html" />
+    <link rel="prev" title="tracts" href="../index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">User guide</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="user-guide">
+<h1>User guide<a class="headerlink" href="#user-guide" title="Link to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">tracts</span></code> is a Python library for inferring migration histories from the distribution of ancestry tracts in admixed individuals. It supports time-dependent gene flow from multiple populations,
+including sex-biased migration and recombination, enabling modeling for autosomes and the X chromosome.</p>
+<p>A typical workflow consists of four steps:</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils" id="id1">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+1. Define a demographic model</div>
+<p class="sd-card-text">Specify migration events in YAML.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="#demographic-models"><span class="std std-ref">1. Define a demographic model</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+2. Prepare data</div>
+<p class="sd-card-text">Provide ancestry tracts.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="#input-data"><span class="std std-ref">2. Prepare data</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+3. Configure driver</div>
+<p class="sd-card-text">Set admixture model and optimization parameters.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="#driver-file"><span class="std std-ref">3. Configure driver</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+4. Run <code class="docutils literal notranslate"><span class="pre">tracts</span></code></div>
+<p class="sd-card-text">Run tracts and get the output.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="#run-tracts"><span class="std std-ref">4. Run tracts</span></a></div>
+</div>
+</div>
+</div>
+<section id="define-a-demographic-model">
+<span id="demographic-models"></span><h2>1. Define a demographic model<a class="headerlink" href="#define-a-demographic-model" title="Link to this heading">#</a></h2>
+<div class="tip admonition">
+<p class="admonition-title">Key idea</p>
+<p>Instead of working with migration matrices, <code class="docutils literal notranslate"><span class="pre">tracts</span></code> uses <strong>parametric demographic models</strong> to reduce complexity.
+Demographic models describe migration using a small number of parameters.</p>
+</div>
+<p>The demographic model has to be specified in a YAML file. It may contain:</p>
+<section id="a-founding-pulse">
+<h3>A founding pulse<a class="headerlink" href="#a-founding-pulse" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">demes</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EUR</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AFR</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">X</span>
+<span class="w">    </span><span class="nt">ancestors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">EUR</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">AFR</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">proportions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">R</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1-R</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">start_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tx</span>
+</pre></div>
+</div>
+<p>The previous block specifies a founding pulse at generation <code class="docutils literal notranslate"><span class="pre">tx</span></code> with a proportion <code class="docutils literal notranslate"><span class="pre">R</span></code> of <code class="docutils literal notranslate"><span class="pre">EUR</span></code> individuals and a proportion <code class="docutils literal notranslate"><span class="pre">1-R</span></code> of <code class="docutils literal notranslate"><span class="pre">AFR</span></code> individuals. The code <code class="docutils literal notranslate"><span class="pre">X</span></code> denotes the admixed population receving migration.</p>
+</section>
+<section id="multiple-migration-pulses">
+<h3>Multiple migration pulses<a class="headerlink" href="#multiple-migration-pulses" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pulses</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">EUR</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">dest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">X</span>
+<span class="w">    </span><span class="nt">proportions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">P</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">t2</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">EUR</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">dest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">X</span>
+<span class="w">    </span><span class="nt">proportions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">P</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">t3</span>
+</pre></div>
+</div>
+<p>The previous block specifies one pulse from <code class="docutils literal notranslate"><span class="pre">EUR</span></code> population at generation <code class="docutils literal notranslate"><span class="pre">t2</span></code> in the past, replacing a proportion <code class="docutils literal notranslate"><span class="pre">P</span></code> of the admixed individuals in <code class="docutils literal notranslate"><span class="pre">X</span></code>. Another pulse from the same population and with the same proportion is considered at generation <code class="docutils literal notranslate"><span class="pre">t3</span></code>.</p>
+</section>
+<section id="a-continuous-migration">
+<h3>A continuous migration<a class="headerlink" href="#a-continuous-migration" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">migrations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EUR</span>
+<span class="w">    </span><span class="nt">dest</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">X</span>
+<span class="w">    </span><span class="nt">rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">K</span>
+<span class="w">    </span><span class="nt">start_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">t1</span>
+<span class="w">    </span><span class="nt">end_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">t2</span>
+</pre></div>
+</div>
+<p>Continuous migration between generations <code class="docutils literal notranslate"><span class="pre">t1</span></code> and <code class="docutils literal notranslate"><span class="pre">t2</span></code> can be specified as below.</p>
+<div class="tip admonition">
+<p class="admonition-title">Sex-bias specification</p>
+<p>If allosomes are present in the sample, each migration proportion will be automatically associated with a corresponding sex-bias parameter, which specifies the proportion of female migrants. For a given migration rate <code class="docutils literal notranslate"><span class="pre">R</span></code>, this parameter is defined as <code class="docutils literal notranslate"><span class="pre">R_sex_bias</span> <span class="pre">=</span> <span class="pre">2</span> <span class="pre">*</span> <span class="pre">(F_R</span> <span class="pre">-</span> <span class="pre">1/2)</span></code>, where <code class="docutils literal notranslate"><span class="pre">F_R</span> <span class="pre">∈</span> <span class="pre">(0,1)</span></code> denotes the proportion of female migrants in the pulse. Consequently, <code class="docutils literal notranslate"><span class="pre">R_sex_bias</span> <span class="pre">=</span> <span class="pre">1</span></code> corresponds to exclusively female migration, <code class="docutils literal notranslate"><span class="pre">R_sex_bias</span> <span class="pre">=</span> <span class="pre">-1</span></code> to exclusively male migration, and <code class="docutils literal notranslate"><span class="pre">R_sex_bias</span> <span class="pre">=</span> <span class="pre">0</span></code> to unbiased migration.</p>
+<p>The initial value of <code class="docutils literal notranslate"><span class="pre">R_sex_bias</span></code> must be specified by the user when configuring the driver file. It is not explicitly included in the construction of the demographic model.</p>
+</div>
+</section>
+</section>
+<section id="prepare-data">
+<span id="input-data"></span><h2>2. Prepare data<a class="headerlink" href="#prepare-data" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tracts</span></code> takes as input a <strong>folder</strong> containing a set of BED-style files describing the local ancestry of genomic segments. Each file includes two additional columns specifying the genetic (cM) positions of the segments.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>chrom                begin           end             assignment      cmBegin      cmEnd
+chr13                0               18110261        UNKNOWN         0.0          0.19
+chr13                18110261        28539742        YRI             0.19         22.193
+chr13                28539742        28540421        UNKNOWN         22.193       22.193
+chr13                28540421        91255067        CEU             22.193       84.7013
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Each individual must have <strong>two files (for each haploid genome copy)</strong>, distinguished with user-specified labels e.g. <code class="docutils literal notranslate"><span class="pre">indiv1_A.bed</span></code> and <code class="docutils literal notranslate"><span class="pre">indiv1_B.bed</span></code>.</p>
+<p>Consequently, <code class="docutils literal notranslate"><span class="pre">tracts</span></code> must be provided with a folder containing <cite>2n</cite> <code class="docutils literal notranslate"><span class="pre">.bed</span></code> files, for a sample of <cite>n</cite> individuals.</p>
+</div>
+</section>
+<section id="configure-driver">
+<span id="driver-file"></span><h2>3. Configure driver<a class="headerlink" href="#configure-driver" title="Link to this heading">#</a></h2>
+<p>Finally, the user must provide a driver YAML file controlling the inference. The driver file specifies the optimization parameters and the admixture models to be used. It is composed of several groups of parameters:</p>
+<section id="sample-configuration">
+<h3>Sample configuration<a class="headerlink" href="#sample-configuration" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">samples</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./G10/</span>
+<span class="w">  </span><span class="nt">filename_format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{name}_{label}.bed&quot;</span>
+<span class="w">  </span><span class="nt">individual_names</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;NA19700&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;NA19701&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">male_names </span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;NA19649&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;NA19652&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">B</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">chromosomes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1-22</span>
+<span class="w">  </span><span class="nt">allosomes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">X</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">directory</span></code>: the path to the folder where the <code class="docutils literal notranslate"><span class="pre">.bed</span></code> <a class="reference internal" href="#input-data"><span class="std std-ref">data files</span></a> are located.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">filename_format</span></code>: The file name format for the <code class="docutils literal notranslate"><span class="pre">.bed</span></code> <a class="reference internal" href="#input-data"><span class="std std-ref">data files</span></a>. It must indicate where the individual name <code class="docutils literal notranslate"><span class="pre">{name}</span></code> and the haploid copy label <code class="docutils literal notranslate"><span class="pre">{label}</span></code> are located in the file name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">individual_names</span></code>: A list containing the names of the individuals in the sample.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">male_names</span></code>: A list containing the names of the male individuals in the sample. Needed for inference on the X chromosome.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">labels</span></code>: The labels chosen to distinguish the haploid copies.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chromosomes</span></code>: The autosomes present in data, if any.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allosomes</span></code>: The allosomes present in data, if any.</p></li>
+</ul>
+</section>
+<section id="model-reference">
+<h3>Model reference<a class="headerlink" href="#model-reference" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model_filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../models/ppp.yaml</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">model_filename</span></code>: The path to the <a class="reference internal" href="#demographic-models"><span class="std std-ref">YAML file</span></a>  specifying the demographic model.</p></li>
+</ul>
+</section>
+<section id="parameters-and-optimization">
+<h3>Parameters and optimization<a class="headerlink" href="#parameters-and-optimization" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">start_params</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">R</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1:0.2</span>
+<span class="w">  </span><span class="nt">t</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10:11</span>
+<span class="w">  </span><span class="nt">R_sex_bias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">  </span><span class="nt">t2</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5.5</span>
+
+<span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="nt">repetitions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="nt">maximum_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="nt">exclude_tracts_below_cm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="nt">npts </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="nt">unknown_labels_for_smoothing</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;UNK&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;centromere&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;miscall&quot;</span><span class="p p-Indicator">]</span>
+<span class="nt">fix_parameters_from_ancestry_proportions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;R&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;R_sex_bias&#39;</span><span class="p p-Indicator">]</span>
+
+<span class="nt">ad_model_autosomes </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DC</span>
+<span class="nt">ad_model_allosomes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">H-DC</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">start_params</span></code>: Initial values for the parameters defined in the <a class="reference internal" href="#demographic-models"><span class="std std-ref">demographic model</span></a>. The user can set a single value or an interval <code class="docutils literal notranslate"><span class="pre">min:max</span></code>, from which an initial value is randomly selected.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code>: The random seed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">repetitions</span></code>: Number of independent optimization runs performed from different initial values, randomly chosen within the bounds set by the user. Since the optimizer may converge to different local optima, the algorithm repeats the optimization <code class="docutils literal notranslate"><span class="pre">repetitions</span></code> times and automatically retains the run with the highest likelihood.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maximum_iterations</span></code>: The maximum number of iterations during likelihood optimization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exclude_tracts_below_cm</span></code>: The minimum tract length (in cM) required for a tract to be included in the optimization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npts</span></code>: The number of bins controlling the resolution of the tract length histogram.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unknown_labels_for_smoothing</span></code>: Segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fix_parameters_from_ancestry_proportions</span></code>: These parameters are analytically computed from the ancestry proportions, and the optimization is restricted to the remaining parameters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ad_model_autosomes</span></code>: The admixture model used to perform inference on autosomes. Must be either <code class="docutils literal notranslate"><span class="pre">M</span></code> (Monoecious), <code class="docutils literal notranslate"><span class="pre">DC</span></code> (Dioecious-Coarse), <code class="docutils literal notranslate"><span class="pre">DF</span></code> (Dioecious-Fine), <code class="docutils literal notranslate"><span class="pre">H-DC</span></code> (The hybrid-pedigree refinement of the Dioecious-Coarse model) or <code class="docutils literal notranslate"><span class="pre">H-DF</span></code> (The hybrid-pedigree refinement of the Dioecious-Fine model).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ad_model_allosomes</span></code>: The admixture model used to perform inference on allosomes. Must be either <code class="docutils literal notranslate"><span class="pre">DC</span></code> (Dioecious-Coarse), <code class="docutils literal notranslate"><span class="pre">DF</span></code> (Dioecious-Fine), <code class="docutils literal notranslate"><span class="pre">H-DC</span></code> (The hybrid-pedigree refinement of the Dioecious-Coarse model) or <code class="docutils literal notranslate"><span class="pre">H-DF</span></code> (The hybrid-pedigree refinement of the Dioecious-Fine model).</p></li>
+</ul>
+<div class="tip admonition">
+<p class="admonition-title">Using <code class="docutils literal notranslate"><span class="pre">fix_parameters_from_ancestry_proportions</span></code></p>
+<p>This option fixes a specified subset of parameters to values computed from the observed ancestry proportions in the sample. These parameters are then excluded from the optimization, reducing the dimension of the parameter space and improving convergence speed. However, it also constrains the optimization problem, which may make it more difficult for the optimizer to reach a good optimum; in practice, this often results in a lower likelihood compared to leaving all parameters free. When using this option, we recommended to set <code class="docutils literal notranslate"><span class="pre">repetitions</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>.</p>
+</div>
+</section>
+<section id="output">
+<h3>Output<a class="headerlink" href="#output" title="Link to this heading">#</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">output_directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./output_files/</span>
+<span class="nt">output_filename_format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;filename_{label}&quot;</span>
+<span class="nt">log_filename</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;my_example.log&#39;</span>
+<span class="nt">verbose_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">verbose_screen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">log_scale</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">output_directory</span></code>: Path to the directory where output files are stored. The directory is created automatically if it does not exist.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_filename_format</span></code>: The file name format for the output files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_scale</span></code>: Whether the tract lenght distributions are depicted in log-scaled counts. Default is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_filename</span></code> : The name of the log file where execution details are recorded. If not specified, a default filename (<code class="docutils literal notranslate"><span class="pre">tracts.log</span></code>) is used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verbose_log</span></code> : Controls the level of detail reported in the log file during execution. If greater than zero, logs optimization status every <code class="docutils literal notranslate"><span class="pre">verbose</span></code> steps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verbose_screen</span></code> : Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every <code class="docutils literal notranslate"><span class="pre">verbose</span></code> steps.</p></li>
+</ul>
+</section>
+</section>
+<section id="run-tracts">
+<span id="id2"></span><h2>4. Run <code class="docutils literal notranslate"><span class="pre">tracts</span></code><a class="headerlink" href="#run-tracts" title="Link to this heading">#</a></h2>
+<p>Once the <a class="reference internal" href="#driver-file"><span class="std std-ref">driver file</span></a> is ready, the inference can be run using the <code class="docutils literal notranslate"><span class="pre">run_tracts</span></code> function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tracts.driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_tracts</span>
+
+<span class="n">run_tracts</span><span class="p">(</span><span class="n">driver_filename</span> <span class="o">=</span> <span class="s2">&quot;driverfile.yaml&quot;</span><span class="p">,</span> <span class="n">script_dir</span> <span class="o">=</span><span class="s2">&quot;/path/to/folder/&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">driver_filename</span></code>: The name of the <a class="reference internal" href="#driver-file"><span class="std std-ref">driver file</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script_dir</span></code>: The path to the folder where <code class="docutils literal notranslate"><span class="pre">driver_filename</span></code> is located.</p></li>
+</ul>
+<p>The software displays the initial parameters to be optimized, along with the ancestry proportions estimated from the sample. It then performs a two-stage optimization:</p>
+<ul class="simple">
+<li><p>First, the parameters unrelated to sex bias are optimized using only autosomal tracts. In this stage, the <code class="docutils literal notranslate"><span class="pre">ad_model_autosomes</span></code> admixture model specified in the <a class="reference internal" href="#driver-file"><span class="std std-ref">driver file</span></a> is considered.</p></li>
+<li><p>Next, these non–sex-bias parameters are fixed, and only the sex-bias parameters are optimized using both autosomal and allosomal tracts. In this stage, the <code class="docutils literal notranslate"><span class="pre">ad_model_allosomes</span></code> admixture model specified in the <a class="reference internal" href="#driver-file"><span class="std std-ref">driver file</span></a> is considered.</p></li>
+</ul>
+<section id="outputs">
+<h3>Outputs<a class="headerlink" href="#outputs" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">tracts</span></code> saves results in the <code class="docutils literal notranslate"><span class="pre">output_directory</span></code> specified in the <a class="reference internal" href="#driver-file"><span class="std std-ref">driver file</span></a>. For autosomes, allosomes in males and allosomes in females, these include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_bins</span></code>: the bins used in the discretization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_dat_sample_tract_distribution</span></code>: the observed counts in each bin.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_predicted_tract_distribution</span></code>: the predicted counts in each bin, according to the model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_migration_matrix</span></code>: the inferred migration matrix, with the most recent generation at the top, and one column per migrant population. Entry <cite>(i,j)</cite> in the matrix represents the proportion of individuals in the admixed population who originate from the source population <cite>j</cite> at generation <cite>i</cite> in the past.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_optimal_parameters</span></code>: the optimal parameters for the considered <a class="reference internal" href="#demographic-models"><span class="std std-ref">demographic model</span></a>.</p></li>
+<li><p>A plot comparing the sample and the predicted tract length distribution for all source populations. Three plots are produced for autosomes, allosomes in females and allosomes in males, respectively.</p></li>
+</ul>
+</section>
+</section>
+<section id="faq">
+<h2>FAQ<a class="headerlink" href="#faq" title="Link to this heading">#</a></h2>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">The inferred distribution of tract lengths decreases as a function of tract length, but increases at the very last bin. This was not seen in the original paper.</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The last bin corresponds to chromosomes with no ancestry switches, i.e., tracts that span the entire chromosome.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">When I have a single pulse of admixture, I would expect an exponential distribution of tract length, which is not observed. Why is that?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Since ancestry tracts cannot extend beyond chromosomes, <code class="docutils literal notranslate"><span class="pre">tracts</span></code> transforms the Phase-Type distribution to consider the observed tracts <cite>on a finite interval</cite>. This yields a departure from an exponential distribution in the one-pulse case. See the paper for details on this transformation.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Individuals in my population vary considerably in their ancestry proportion. Is that a problem?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This is not a problem as long as the population is close to random mating. If admixture is recent, random mating is not inconsistent with ancestry variance. If admixture is ancient, however, variation in ancestry proportion may indicate population structure, and the random mating assumption may fail.</p>
+</div>
+</details></section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tracts</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../examples/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Examples</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-a-demographic-model">1. Define a demographic model</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#a-founding-pulse">A founding pulse</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#multiple-migration-pulses">Multiple migration pulses</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#a-continuous-migration">A continuous migration</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prepare-data">2. Prepare data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configure-driver">3. Configure driver</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sample-configuration">Sample configuration</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#model-reference">Model reference</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters-and-optimization">Parameters and optimization</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#output">Output</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#run-tracts">4. Run <code class="docutils literal notranslate"><span class="pre">tracts</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#outputs">Outputs</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#faq">FAQ</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/user_guide/index.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

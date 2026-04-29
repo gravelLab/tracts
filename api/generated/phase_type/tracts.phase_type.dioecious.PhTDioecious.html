@@ -1,0 +1,1206 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>tracts.phase_type.dioecious.PhTDioecious &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="tracts.phase_type.hybrid_pedigree" href="tracts.phase_type.hybrid_pedigree.html" />
+    <link rel="prev" title="tracts.phase_type.dioecious" href="tracts.phase_type.dioecious.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../core_modules.html">Core modules</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.chromosome.html">tracts.chromosome</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.core.html">tracts.core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.driver.html">tracts.driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.driver_utils.html">tracts.driver_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.haploid.html">tracts.haploid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.indiv.html">tracts.indiv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.population.html">tracts.population</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.tract.html">tracts.tract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tracts.util.html">tracts.util</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../phase_type.html">Phase-type models</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tracts.phase_type.base_phase_type.html">tracts.phase_type.base_phase_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.phase_type.monoecious.html">tracts.phase_type.monoecious</a></li>
+<li class="toctree-l2 current active"><a class="reference internal" href="tracts.phase_type.dioecious.html">tracts.phase_type.dioecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.phase_type.hybrid_pedigree.html">tracts.phase_type.hybrid_pedigree</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../demography.html">Demography</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../demography/tracts.demography.base_parametrized_demography.html">tracts.demography.base_parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../demography/tracts.demography.parameter.html">tracts.demography.parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../demography/tracts.demography.parametrized_demography.html">tracts.demography.parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../demography/tracts.demography.parametrized_demography_sex_biased.html">tracts.demography.parametrized_demography_sex_biased</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">API documentation</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../phase_type.html" class="nav-link">Phase-type models</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="tracts.phase_type.dioecious.html" class="nav-link">tracts.phase_type.dioecious</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tracts.phase_type.dioecious.PhTDioecious</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tracts-phase-type-dioecious-phtdioecious">
+<h1>tracts.phase_type.dioecious.PhTDioecious<a class="headerlink" href="#tracts-phase-type-dioecious-phtdioecious" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">PhTDioecious</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">migration_matrix_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">migration_matrix_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_chromosome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_chromosome_male</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sex_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DC'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TPED</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setting_TP</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution" title="tracts.phase_type.base_phase_type.PhaseTypeDistribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhaseTypeDistribution</span></code></a></p>
+<p>A subclass of <code class="xref py py-class docutils literal notranslate"><span class="pre">PhaseTypeDistribution</span></code> providing the
+specific Phase-Type tools for the Dioecious Fine (DF)
+and Dioecious Coarse (DC) Markov approximations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.X_chr">
+<span class="sig-name descname"><span class="pre">X_chr</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.X_chr" title="Link to this definition">#</a></dt>
+<dd><p>Whether admixture is considered on the X chromosome. Set to the value given as input by the X_chromosome parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.X_chr_male">
+<span class="sig-name descname"><span class="pre">X_chr_male</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.X_chr_male" title="Link to this definition">#</a></dt>
+<dd><p>If <cite>X_chr</cite> is True, whether the sex of the individual at generation 0 is male. Set to the value given as input by the <cite>X_chromosome_male</cite> parameter.
+If <cite>X_chr</cite> is False, this attribute is ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.rho_f">
+<span class="sig-name descname"><span class="pre">rho_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.rho_f" title="Link to this definition">#</a></dt>
+<dd><p>The female-specific recombination rate <span class="math notranslate nohighlight">\(\rho_f\)</span>, given by the input parameter <cite>rho_f</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.rho_m">
+<span class="sig-name descname"><span class="pre">rho_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.rho_m" title="Link to this definition">#</a></dt>
+<dd><p>The male-specific recombination rate <span class="math notranslate nohighlight">\(\rho_m\)</span>, given by the input parameter <cite>rho_m</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.migration_matrix_f">
+<span class="sig-name descname"><span class="pre">migration_matrix_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.migration_matrix_f" title="Link to this definition">#</a></dt>
+<dd><p>A transformed version of the female migration matrix given as input. For internal use only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>npt.ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.migration_matrix_m">
+<span class="sig-name descname"><span class="pre">migration_matrix_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.migration_matrix_m" title="Link to this definition">#</a></dt>
+<dd><p>A transformed version of the male migration matrix given as input. For internal use only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>npt.ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.num_populations">
+<span class="sig-name descname"><span class="pre">num_populations</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.num_populations" title="Link to this definition">#</a></dt>
+<dd><p>The number of populations considered in the demographic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.num_generations">
+<span class="sig-name descname"><span class="pre">num_generations</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.num_generations" title="Link to this definition">#</a></dt>
+<dd><p>The number of generations considered in the demographic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.t0_proportions_f">
+<span class="sig-name descname"><span class="pre">t0_proportions_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.t0_proportions_f" title="Link to this definition">#</a></dt>
+<dd><p>The ancestry proportion in the present population from each ancestry among all the haploid copies inherited from a female parent. For autosomes,
+computed using Eq. (F-27) in the manuscript. For the X chromosome, computing using the recursive equations (F-28) and (F-29) in the manuscript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>npt.ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.t0_proportions_m">
+<span class="sig-name descname"><span class="pre">t0_proportions_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.t0_proportions_m" title="Link to this definition">#</a></dt>
+<dd><p>The ancestry proportion in the present population from each ancestry among all the haploid copies inherited from a male parent. For autosomes,
+computed using Eq. (F-27) in the manuscript. For the X chromosome, computing using the recursive equations (F-28) and (F-29) in the manuscript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>npt.ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.sex_model">
+<span class="sig-name descname"><span class="pre">sex_model</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.sex_model" title="Link to this definition">#</a></dt>
+<dd><p>The Dioecious approximation that is being used. Taken from the input parameter <cite>sex_model</cite>, that is one in ‘DF’, ‘DC’.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_f">
+<span class="sig-name descname"><span class="pre">full_transition_matrix_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_f" title="Link to this definition">#</a></dt>
+<dd><p>The intensity matrix <span class="math notranslate nohighlight">\(\mathbf{S}_f\)</span>  of the Dioecious (Fine or Coarse) Markov odel. Corresponds to Eq. (EQ) and (EQ) in the manuscript for DF and DC, respectively.
+This submodel corresponds to the maternally inherited allele (<span class="math notranslate nohighlight">\(\xi=f\)</span>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>npt.ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_m">
+<span class="sig-name descname"><span class="pre">full_transition_matrix_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_m" title="Link to this definition">#</a></dt>
+<dd><p>The intensity matrix <span class="math notranslate nohighlight">\(\mathbf{S}_m\)</span> of the Dioecious (Fine or Coarse) Markov model. Corresponds to Eq. (EQ) and (EQ) in the manuscript for DF and DC, respectively.
+This submodel corresponds to the paternally inherited allele (<span class="math notranslate nohighlight">\(\xi=m\)</span>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>npt.ArrayLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.alpha_list_f">
+<span class="sig-name descname"><span class="pre">alpha_list_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.alpha_list_f" title="Link to this definition">#</a></dt>
+<dd><p>A list containing, for each ancestral population, the initial state of the Phase-type distribution for maternally inherited tracts (<span class="math notranslate nohighlight">\(\xi=f\)</span>).
+Corresponds to Eq. (EQ) in the manuscript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.alpha_list_m">
+<span class="sig-name descname"><span class="pre">alpha_list_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.alpha_list_m" title="Link to this definition">#</a></dt>
+<dd><p>A list containing, for each ancestral population, the initial state of the Phase-type distribution for paternally inherited tracts (<span class="math notranslate nohighlight">\(\xi=m\)</span>).
+Corresponds to Eq. (EQ) in the manuscript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.transition_matrices_f">
+<span class="sig-name descname"><span class="pre">transition_matrices_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.transition_matrices_f" title="Link to this definition">#</a></dt>
+<dd><p>A list containing, for each ancestral population, the submatrix of <cite>full_transition_matrix_f</cite> corresponding to transitions within that population.
+It is used to compute the distribution of tract lengths of maternally (<span class="math notranslate nohighlight">\(\xi=f\)</span>) inherited alleles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.transition_matrices_m">
+<span class="sig-name descname"><span class="pre">transition_matrices_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.transition_matrices_m" title="Link to this definition">#</a></dt>
+<dd><p>A list containing, for each ancestral population, the submatrix of <cite>full_transition_matrix_m</cite> corresponding to transitions within that population.
+It is used to compute the distribution of tract lengths of paternally (<span class="math notranslate nohighlight">\(\xi=m\)</span>) inherited alleles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.S0_list_f">
+<span class="sig-name descname"><span class="pre">S0_list_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.S0_list_f" title="Link to this definition">#</a></dt>
+<dd><p>A list containing the sum across columns of every transition matrix in <cite>transition_matrices_f</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.S0_list_m">
+<span class="sig-name descname"><span class="pre">S0_list_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.S0_list_m" title="Link to this definition">#</a></dt>
+<dd><p>A list containing the sum across columns of every transition matrix in <cite>transition_matrices_m</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_f">
+<span class="sig-name descname"><span class="pre">inverse_S0_list_f</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_f" title="Link to this definition">#</a></dt>
+<dd><p>A list containing the sum across columns of the inverse of every transition matrix in <cite>transition_matrices_f</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_m">
+<span class="sig-name descname"><span class="pre">inverse_S0_list_m</span></span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_m" title="Link to this definition">#</a></dt>
+<dd><p>A list containing the sum across columns of the inverse of every transition matrix in <cite>transition_matrices_m</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>migration_matrix_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – An array containing the female migration proportions from a discrete number of populations over the last generations.
+Each row is a time, each column is a population. Row zero corresponds to the current
+generation. The <span class="math notranslate nohighlight">\((i,j)\)</span> element of this matrix specifies the proportion of female individuals from the admixed population that
+are replaced by female individuals from population <span class="math notranslate nohighlight">\(j\)</span> at generation <span class="math notranslate nohighlight">\(i\)</span>. The migration rate at the last generation (<cite>migration_matrix_f[-1,:]</cite>) must sum up to 1.</p></li>
+<li><p><strong>migration_matrix_m</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Counterpart of <cite>migration_matrix_f</cite> for male migration rates.</p></li>
+<li><p><strong>rho_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The female-specific recombination rate.</p></li>
+<li><p><strong>rho_m</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The male-specific recombination rate. For X chromosome admixture, this value is ignored and set to 0.</p></li>
+<li><p><strong>X_chromosome</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether admixture is considered on the X chromosome. If False, the model considers autosomal admixture.</p></li>
+<li><p><strong>X_chromosome_male</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If <cite>X_chromosome</cite> is True, whether the individual at generation 0 is a male. In that case, only maternally inherited alleles are taken
+into account. If <cite>X_chromosome</cite> is False, this parameter is ignored.</p></li>
+<li><p><strong>sex_model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The Dioecious model to be considered. Takes the value ‘DF’ for Dioecious Fine and ‘DC’ for Dioecious Coarse.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The Dioecious Coarse model (<cite>sex_model</cite> = ‘DC’) should be preferred over the Dioecious Fine model (<cite>sex_model</cite> = ‘DF’)
+due to its computational efficiency. Both models produce very similar or identical phase-type densities unless
+there is a strong sex-bias in migration or recombination rates. For autosomal admixture, the Monoecious model
+should be used instead, for the same reasons, unless the sex bias is exceptionally strong.</p>
+<p>Non-listed parameters are for internal use only.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.PhT_CDF">
+<span class="sig-name descname"><span class="pre">PhT_CDF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">population_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_CDF" title="Link to this definition">#</a></dt>
+<dd><p>Computes a Phase-type CDF at a given point <span class="math notranslate nohighlight">\(x\)</span> in <span class="math notranslate nohighlight">\((0, \infty)\)</span>.
+The Phase-type parameters (initial state, transition matrix) are taken from a
+PhTDioecious object togther with the specification of a population of interest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A point in <span class="math notranslate nohighlight">\((0, \infty)\)</span> where the density function is evaluted.</p></li>
+<li><p><strong>population_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1.</p></li>
+<li><p><strong>s1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – The sex of the individual at generation 1. If <cite>s1 = 0</cite> (resp. 1), only alleles
+paternally (resp. maternally) inherited alleles are considered. If set to None,
+tracts on both copies are combined.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The CDF value at <span class="math notranslate nohighlight">\(x\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.PhT_CDF_windowed">
+<span class="sig-name descname"><span class="pre">PhT_CDF_windowed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S0_inv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pop_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_Sx_per_bin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hybrid_pedigree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_CDF_windowed" title="Link to this definition">#</a></dt>
+<dd><p>Computes a Phase-Type CDF on a finite chromosome of length L and evaluates it on a point grid.
+The PhT parameters (initial state, transition matrix) are taken from a PhTDioecious object
+(together with the specification of a population of interest) but also directly
+introduced as an input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>S</strong> (<em>npt.ArrayLike</em>) – The transition submatrix.</p></li>
+<li><p><strong>alpha</strong> (<em>npt.ArrayLike</em>) – The initial state of the Phase-Type distribution.</p></li>
+<li><p><strong>S0_inv</strong> (<em>npt.ArrayLike</em>) – The sum across columns of the inverse of the transition submatrix.</p></li>
+<li><p><strong>bins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – A point grid on (0, L) where the CDF has to be evaluated.</p></li>
+<li><p><strong>L</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The length of the finite chromosome.</p></li>
+<li><p><strong>s1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The sex of the individual at generation 1. If s1 = 0 (resp. 1), only alleles
+paternally (resp. maternally) inherited alleles are considered. If set to None,
+tracts on both copies are combined.</p></li>
+<li><p><strong>hybrid_pedigree</strong> (<em>bool</em><em>, </em><em>default False</em>) – For internal use only. This parameter indicates whether a hybrid pedigree model is being used.</p></li>
+<li><p><strong>pop_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1, corresponding to the column of the migration matrix.</p></li>
+<li><p><strong>exp_Sx_per_bin</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The precomputed values of e^(S*x) for every x in bins. Used internally to speed up computation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>npt.ArrayLike</em> – The CDF evaluated on bins.</p></li>
+<li><p><em>float</em> – The tract length expectation of the corresponding model considering an infinite chromosome.</p></li>
+<li><p><em>float</em> – The normalization factor Z of the corresponding model.</p></li>
+<li><p><em>float</em> – The tract length expectation on the finite chromosome of the corresponding model.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.PhT_density">
+<span class="sig-name descname"><span class="pre">PhT_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">population_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_density" title="Link to this definition">#</a></dt>
+<dd><p>Computes a Phase-type density at a given point <span class="math notranslate nohighlight">\(x\)</span> in <span class="math notranslate nohighlight">\((0, \infty)\)</span>.
+The Phase-type parameters (initial state, transition matrix) are taken from a
+PhTDioecious object together with the specification of a population of interest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – A point in <span class="math notranslate nohighlight">\((0, \infty)\)</span> where the density function is evaluated.</p></li>
+<li><p><strong>population_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1.</p></li>
+<li><p><strong>s1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – The sex of the individual at generation 1. If <cite>s1 = 0</cite> (resp. 1), only alleles
+paternally (resp. maternally) inherited alleles are considered. If set to None,
+tracts on both copies are combined.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The density value at <span class="math notranslate nohighlight">\(x\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.PhT_density_windowed">
+<span class="sig-name descname"><span class="pre">PhT_density_windowed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S0_inv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_Sx_per_bin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hybrid_pedigree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_density_windowed" title="Link to this definition">#</a></dt>
+<dd><p>Computes a Phase-type density on a finite chromosome of length <span class="math notranslate nohighlight">\(L\)</span> and evaluates it on a point grid.
+The Phase-type parameters (initial state, transition matrix) are taken from a <a class="reference internal" href="#tracts.phase_type.dioecious.PhTDioecious" title="tracts.phase_type.dioecious.PhTDioecious"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhTDioecious</span></code></a> object
+(together with the specification of a population of interest) but also directly
+introduced as an input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>population_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1, corresponding to the column of the migration matrix.</p></li>
+<li><p><strong>S</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The transition submatrix.</p></li>
+<li><p><strong>alpha</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The initial state of the Phase-type distribution.</p></li>
+<li><p><strong>S0_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The sum across columns of the inverse of the transition submatrix.</p></li>
+<li><p><strong>bins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – A point grid on <span class="math notranslate nohighlight">\((0, L)\)</span> where the density has to be evaluated.</p></li>
+<li><p><strong>L</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The length of the finite chromosome.</p></li>
+<li><p><strong>s1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – The sex of the individual at generation <span class="math notranslate nohighlight">\(t=1\)</span>. If <cite>s1 = 0</cite> (resp. 1), only alleles
+paternally (resp. maternally) inherited alleles are considered. If set to None,
+tracts on both copies are combined.</p></li>
+<li><p><strong>hybrid_pedigree</strong> (<em>bool</em><em>, </em><em>default False</em>) – For internal use only. This parameter indicates whether a hybrid pedigree model is being used.</p></li>
+<li><p><strong>exp_Sx_per_bin</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The precomputed values of <span class="math notranslate nohighlight">\(e^{\mathbf{S}x}\)</span> for every <span class="math notranslate nohighlight">\(x\)</span> in bins. Used internally to speed up computation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>npt.ArrayLike</em> – The corrected bins grid as described in Notes.</p></li>
+<li><p><em>npt.ArrayLike</em> – The density evaluated on bins.</p></li>
+<li><p><em>float</em> – The tract length expectation of the corresponding model.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The code truncates bins to the interval <span class="math notranslate nohighlight">\([0,L]\)</span> and adds the point <span class="math notranslate nohighlight">\(L\)</span> if it is not included in bins.
+This is done because the density is defined on the finite chromosome <span class="math notranslate nohighlight">\([0,L]\)</span> as a mixture of a continuous density on <span class="math notranslate nohighlight">\([0,L)\)</span> and a Dirac measure at <span class="math notranslate nohighlight">\(L\)</span>.
+Consequently, the function returns as a first argument the transformed grid, that can be used as x-axis to plot the density.</p>
+<p><strong>Don’t run</strong> this function directly. To get a Phase-type density on a finite chromosome,
+use <code class="xref py py-func docutils literal notranslate"><span class="pre">tractlength_histogram_windowed()</span></code> setting <cite>density=True</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DC">
+<span class="sig-name descname"><span class="pre">PhT_parameters_DC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent_sex</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_pedigree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">migration_setting_at_TP</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DC" title="Link to this definition">#</a></dt>
+<dd><p>Computes the parameters of the Dioecious-Coarse model, given the sex of the parent at generation <span class="math notranslate nohighlight">\(t=1\)</span>, that is,
+the value of <span class="math notranslate nohighlight">\(\xi\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent_sex</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The sex of the individual at generation <span class="math notranslate nohighlight">\(t=1\)</span>. If <cite>parent_sex=0</cite> (resp. <cite>parent_sex=1</cite>), paternally- (resp. maternally-) inherited tracts are considered.</p></li>
+<li><p><strong>T_pedigree</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of generations in the pedigree when computing the hybrid-pedigree refinement of this model. If the hybrid-pedigree refinement is not being computed,
+this parameter is ignored.</p></li>
+<li><p><strong>migration_setting_at_TP</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – A binary matrix of shape (<cite>T_pedigree</cite>, number of populations) describing the migration setting at generation <cite>T_pedigree</cite> for the hybrid-pedigree refinement of this model.
+The entry at row <cite>t</cite> and column <cite>p</cite> is 0 if the ancestor from population <cite>p</cite> is admixed at generation <cite>t</cite>, and 1 otherwise. If the hybrid-pedigree refinement is not being computed,
+this parameter is ignored.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>S</strong> (<em>npt.ArrayLike</em>) – The transition matrix of the Dioecious-Coarse model.</p></li>
+<li><p><strong>source_pops</strong> (<em>npt.ArrayLike</em>) – The populations from which tracts can be drawn in the model.</p></li>
+<li><p><strong>sub_matrices</strong> (<em>list of npt.ArrayLike</em>) – The list of transition sub-matrices corresponding to tracts drawn from each source population.</p></li>
+<li><p><strong>alpha_list</strong> (<em>list of npt.ArrayLike</em>) – The list of initial states corresponding to tracts drawn from each source population.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Transition probabilities for the Dioecious-Coarse model are computed by appropriately averaging
+transition probabilities under the Dioecious-Fine model, as the DC model is built as a quotient
+Markov chain of the DF model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DF">
+<span class="sig-name descname"><span class="pre">PhT_parameters_DF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent_sex</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computing_coarse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulses</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_pedigree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">migration_setting_at_TP</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DF" title="Link to this definition">#</a></dt>
+<dd><p>Computes the parameters of the Phase-type distribution under the Dioecious-Fine admixture model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parent_sex</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The sex of the parent from which the tract is inherited. Must be either 0 (paternal inheritance) or 1 (maternal inheritance).</p></li>
+<li><p><strong>computing_coarse</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether the parameters are computed for the coarse model, as this function is called in that case. If False, the parameters are computed for the fine model.</p></li>
+<li><p><strong>pulses</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – The pulse matrix of the model, of shape (number of pulses, 4), as specified in <code class="xref py py-func docutils literal notranslate"><span class="pre">discrete_prob_DF()</span></code>. If not provided, it is computed from the migration matrices.</p></li>
+<li><p><strong>T_pedigree</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – If the hybrid-pedigree refinement is used, the number of generations included in the pedigree. Ignored otherwise.</p></li>
+<li><p><strong>migration_setting_at_TP</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – If the hybrid-pedigree refinement is used, the migration setting at the time of pedigree truncation. See <a class="reference internal" href="tracts.phase_type.hybrid_pedigree.hybrid_pedigree_distribution.html#tracts.phase_type.hybrid_pedigree.hybrid_pedigree_distribution" title="tracts.phase_type.hybrid_pedigree.hybrid_pedigree_distribution"><code class="xref py py-func docutils literal notranslate"><span class="pre">hybrid_pedigree_distribution()</span></code></a> for details. Ignored otherwise.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>npt.ArrayLike</em> – The transition matrix of the Phase-type distribution.</p></li>
+<li><p><em>npt.ArrayLike</em> – The source populations involved in the model.</p></li>
+<li><p><em>npt.ArrayLike</em> – The transition submatrices for each source population.</p></li>
+<li><p><em>npt.ArrayLike</em> – The initial state of the Phase-type distribution.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.S_matrix">
+<span class="sig-name descname"><span class="pre">S_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ped</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DF'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.S_matrix" title="Link to this definition">#</a></dt>
+<dd><p>Compute the transition matrix of the TCMC defined by the Dioecious admixture model. Corresponds to Equation (EQ) for the Dioecious-Fine
+model and to Equation (EQ) for the Dioecious-Coarse model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> (<em>npt.ArrayLike</em>) – The state space of the process, represented as a matrix of shape (number of states, 3 + T), where T is the maximum generation of migration.
+Each row corresponds to a state and is of the form [<span class="math notranslate nohighlight">\(p\)</span>, <span class="math notranslate nohighlight">\({\delta}\)</span>, <span class="math notranslate nohighlight">\(m_p^{\delta}(t)\)</span>, <span class="math notranslate nohighlight">\(s_0\)</span>, <span class="math notranslate nohighlight">\(s_1\)</span>, …, <span class="math notranslate nohighlight">\(s_{t-1}\)</span>], where
+<span class="math notranslate nohighlight">\(p\)</span> is the ancestral population, <span class="math notranslate nohighlight">\({\delta}\)</span> is the sex of the ancestor.</p></li>
+<li><p><strong>pulses</strong> (<em>np.ndarray</em>) – The pulse matrix of the model, of shape (number of pulses, 4), as specified in <code class="xref py py-func docutils literal notranslate"><span class="pre">discrete_prob_DF()</span></code>.</p></li>
+<li><p><strong>T_ped</strong> (<em>int</em>) – If the hybrid-pedigree refinement is used, the number of generations included in the pedigree. Ignored otherwise.</p></li>
+<li><p><strong>D_model</strong> (<em>str</em>) – The type of discrete model for which the transition matrix is computed. Must be either ‘DF’ for the Dioecious-Fine model or ‘DC’ for the Dioecious-Coarse model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The transition matrix of the TCMC defined by the Dioecious admixture model, in compressed sparse row format. The order of the states in the matrix corresponds to the order of the states in the input <cite>states</cite> matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>sparse.csr_matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">migration_matrix_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">migration_matrix_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_chromosome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_chromosome_male</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sex_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DC'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TPED</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setting_TP</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the PhTDioecious object by constructing the transition matrix and the initial state of the Phase-Type distribution.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.discrete_prob_DF">
+<span class="sig-name descname"><span class="pre">discrete_prob_DF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pulses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_right</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ped</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.discrete_prob_DF" title="Link to this definition">#</a></dt>
+<dd><p>Compute the transition probabilities between a pair of states for the embedded
+Dioecious-Fine Markov model, which is a discrete TCMC. This corresponds to
+Equation (EQ) in the manuscript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pulses</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Pulse matrix of the model, with shape <code class="docutils literal notranslate"><span class="pre">(number</span> <span class="pre">of</span> <span class="pre">pulses,</span> <span class="pre">4)</span></code>.
+Each row is of the form <span class="math notranslate nohighlight">\((p, \delta, t, m_p^{\delta}(t))\)</span>.</p></li>
+<li><p><strong>state_left</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Current state of the embedded process; see Notes.</p></li>
+<li><p><strong>state_right</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Next state of the embedded process; see Notes.</p></li>
+<li><p><strong>T_ped</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of generations included in the pedigree when the hybrid-pedigree
+refinement is used. Ignored otherwise.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>States in the DF model are of the form <span class="math notranslate nohighlight">\((\delta, p, \vec{s})\)</span>,
+where <span class="math notranslate nohighlight">\(\delta\)</span> is the sex of the ancestor, <span class="math notranslate nohighlight">\(p\)</span> is their
+ancestral population, and <span class="math notranslate nohighlight">\(\vec{s}\)</span> contains the sexes of all
+individuals that carried the haplotype from the present time up to the
+ancestor.</p>
+<p>In the code, states are represented as vectors of length <span class="math notranslate nohighlight">\(3 + t\)</span>
+of the form <span class="math notranslate nohighlight">\((p, \delta, m_p^{\delta}(t), s_0, s_1, \ldots, s_{t-1})\)</span>,
+where <span class="math notranslate nohighlight">\(t\)</span> is the generation of the ancestor. See Section (SEC) in
+the manuscript for details on the DF model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.submodel_probabilities">
+<span class="sig-name descname"><span class="pre">submodel_probabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.submodel_probabilities" title="Link to this definition">#</a></dt>
+<dd><p>Computes the probability for a tract at generation <span class="math notranslate nohighlight">\(t=0\)</span> to be drawn from the connected Markov model or the single-state isolated models
+that yield tracts of full length. See Appendix G in the manuscript for details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>population_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1, corresponding to the column of the migration matrix.</p></li>
+<li><p><strong>s1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – The sex of the individual at generation 1. If <cite>s1 = 0</cite> (resp. 1), only alleles
+paternally (resp. maternally) inherited alleles are considered. If set to None,
+tracts on both copies are combined.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – The probability for a tract at generation <span class="math notranslate nohighlight">\(t=0\)</span> to be drawn from the single-state isolated model that yields tracts of full length.</p></li>
+<li><p><em>float</em> – The probability for a tract at generation <span class="math notranslate nohighlight">\(t=0\)</span> to be drawn from the connected Markov model.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.tract_length_histogram_multi_windowed">
+<span class="sig-name descname"><span class="pre">tract_length_histogram_multi_windowed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chrom_lengths</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.tract_length_histogram_multi_windowed" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the tract length histogram on multiple chromosomes of different lengths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>population_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1, corresponding to the column of the migration matrix.</p></li>
+<li><p><strong>bins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – A point grid where the histogram has to be computed. The same grid is used for all chromosomes, and should be defined on the interval <cite>(0, max(chrom_lengths))</cite>.</p></li>
+<li><p><strong>chrom_lengths</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – A list of chromosome lengths.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The histogram values on the intervals defined by bins, summed across all chromosomes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.tractlength_histogram_windowed">
+<span class="sig-name descname"><span class="pre">tractlength_histogram_windowed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_Sx_per_bin_f</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_Sx_per_bin_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hybrid_ped</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.tractlength_histogram_windowed" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the tractlength histogram or density function on a finite chromosome,
+using the <a class="reference internal" href="#tracts.phase_type.dioecious.PhTDioecious" title="tracts.phase_type.dioecious.PhTDioecious"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhTDioecious</span></code></a> admixture model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>population_number</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The index of the population of interest whose tract length distribution has to be computed.
+An integer from 0 to the number of populations - 1, corresponding to the column of the migration matrix.</p></li>
+<li><p><strong>bins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – A point grid where the CDF or density have to be computed.</p></li>
+<li><p><strong>L</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The length of the finite chromosome.</p></li>
+<li><p><strong>exp_Sx_per_bin_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The precomputed values of <span class="math notranslate nohighlight">\(e^{\mathbf{S}x}\)</span> for every <span class="math notranslate nohighlight">\(x\)</span> in bins, for the maternally inherited alleles. Used internally to speed up computation.</p></li>
+<li><p><strong>exp_Sx_per_bin_m</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Buffer</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">_SupportsArray</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">_NestedSequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>]]</span>) – The precomputed values of <span class="math notranslate nohighlight">\(e^{\mathbf{S}x}\)</span> for every <span class="math notranslate nohighlight">\(x\)</span> in bins, for the paternally inherited alleles. Used internally to speed up computation.</p></li>
+<li><p><strong>density</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, computes the Phase-type density values evaluated on the grid. Else, returns the histogram values on the grid.</p></li>
+<li><p><strong>freq</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If density is True, whether to return density on the frequency scale.
+If True, the density values are scaled so that their integral over <span class="math notranslate nohighlight">\((0,L)\)</span> is equal to the expected number of tracts on <span class="math notranslate nohighlight">\((0,L)\)</span>.
+If False, the density values integrate to 1 over <span class="math notranslate nohighlight">\((0,L)\)</span>.</p></li>
+<li><p><strong>return_only</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – For internal use only. Manages the combination of maternally and paternally inherited fracts. If set to 0 (resp. 1), only paternally (resp. maternally) inherited tracts are considered.
+If None, tracts from both parents are combined. If the X chromosome is considered and the individual at generation 0 is male (<cite>X_chromosome_male = True</cite>),
+this parameter is ignored and only maternally inherited tracts are computed.</p></li>
+<li><p><strong>hybrid_ped</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – For internal use only. Whether the hybrid pedigree model is being used. If True, no scale corrections are performed and densities or CDFs corresponding to connected components are returned, to be combined
+in the <cite>hybrid_pedigree</cite> module.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>npt.ArrayLike</em> – If density is True, the corrected bins grid as described in Notes. Else, the bins provided as input.</p></li>
+<li><p><em>npt.ArrayLike</em> – If density is True, the Phase-type density evaluated on the corrected bins grid. Returned on the frequency scale if <cite>freq = True</cite>.
+If density is False, the histogram values on the intervals defined by bins.</p></li>
+<li><p><em>float</em> – The tract length expectation of the corresponding model.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>When <cite>density</cite> is True, the first returned argument is a transformed version of the input bins grid. This is because the density is defined on the finite chromosome <span class="math notranslate nohighlight">\([0,L]\)</span> as a mixture of a density
+with support on <span class="math notranslate nohighlight">\((0,L)\)</span> and point masses at 0 and L. The returned bins grid removes the points <span class="math notranslate nohighlight">\(0\)</span> and <span class="math notranslate nohighlight">\(L\)</span> if they were included in the input bins grid,
+since the density is not defined at these points. The returned density values correspond to this transformed bins grid.</p>
+<p>For details on the scale factors and the transformation of the Phase-type densities into histograms, see Appendix F.3 of the manuscript.</p>
+<p>The <cite>return_only</cite> parameter is used to select only maternally or paternally inherited tracts. Besides controlling the case of allosomal admixture on male individuals, it is used to return
+distributions corresponding to connected components in the hybrid pedigree model, that need to be combined a posteriori: connected components corresponding to maternally (resp. paternally)
+-inherited alleles are first combined into one maternally (resp. paternally) -inherited distribution. Then, the resulting pair of Phase-type mixtures is combined at the end. See <cite>hybrid_pedigree.py</cite> for details.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.phase_type.dioecious.PhTDioecious.unnormalized_prob_sex_vector">
+<span class="sig-name descname"><span class="pre">unnormalized_prob_sex_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pulses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ped</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.phase_type.dioecious.PhTDioecious.unnormalized_prob_sex_vector" title="Link to this definition">#</a></dt>
+<dd><p>Compute the unnormalized probability of the sex vector. Corresponds to Equation (EQ) in the manuscript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pulses</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – The pulse matrix of the model, of shape (number of pulses, 4), as specified in <code class="xref py py-func docutils literal notranslate"><span class="pre">discrete_prob_DF()</span></code>.</p></li>
+<li><p><strong>state_left</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – The current state of the embedded process.</p></li>
+<li><p><strong>T_ped</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – If the hybrid-pedigree refinement is used, the number of generations included in the pedigree. Ignored otherwise.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="tracts.phase_type.dioecious.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tracts.phase_type.dioecious</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="tracts.phase_type.hybrid_pedigree.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">tracts.phase_type.hybrid_pedigree</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious"><code class="docutils literal notranslate"><span class="pre">PhTDioecious</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.X_chr"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.X_chr</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.X_chr_male"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.X_chr_male</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.rho_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.rho_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.rho_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.rho_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.migration_matrix_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.migration_matrix_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.migration_matrix_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.migration_matrix_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.num_populations"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.num_populations</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.num_generations"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.num_generations</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.t0_proportions_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.t0_proportions_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.t0_proportions_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.t0_proportions_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.sex_model"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.sex_model</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.full_transition_matrix_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.full_transition_matrix_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.alpha_list_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.alpha_list_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.alpha_list_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.alpha_list_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.transition_matrices_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.transition_matrices_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.transition_matrices_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.transition_matrices_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.S0_list_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.S0_list_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.S0_list_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.S0_list_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_f"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.inverse_S0_list_f</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_m"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.inverse_S0_list_m</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_CDF"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.PhT_CDF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_CDF_windowed"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.PhT_CDF_windowed()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_density"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.PhT_density()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_density_windowed"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.PhT_density_windowed()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DC"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.PhT_parameters_DC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DF"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.PhT_parameters_DF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.S_matrix"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.S_matrix()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.__init__"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.discrete_prob_DF"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.discrete_prob_DF()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.submodel_probabilities"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.submodel_probabilities()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.tract_length_histogram_multi_windowed"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.tract_length_histogram_multi_windowed()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.tractlength_histogram_windowed"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.tractlength_histogram_windowed()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.phase_type.dioecious.PhTDioecious.unnormalized_prob_sex_vector"><code class="docutils literal notranslate"><span class="pre">PhTDioecious.unnormalized_prob_sex_vector()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../../_sources/api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

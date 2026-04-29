@@ -1,0 +1,1751 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Index &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
+ | <a href="#X"><strong>X</strong></a>
+ 
+</div>
+<h2 id="_">_</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseFounderEvent.html#tracts.demography.base_parametrized_demography.BaseFounderEvent.__init__">__init__() (BaseFounderEvent method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseMigrationEvent.html#tracts.demography.base_parametrized_demography.BaseMigrationEvent.__init__">(BaseMigrationEvent method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.__init__">(BaseParametrizedDemography method)</a>
+</li>
+        <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.__init__">(Chrom method)</a>
+</li>
+        <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair.__init__">(Chropair method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent.__init__">(ContinuousEvent method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter.__init__">(DependentParameter method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent.__init__">(FounderEvent method)</a>
+</li>
+        <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.__init__">(Haploid method)</a>
+</li>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.__init__">(Indiv method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter.__init__">(Parameter method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.__init__">(ParametrizedDemography method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType.__init__">(ParamType method)</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.__init__">(PhaseTypeDistribution method)</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.__init__">(PhTDioecious method)</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.__init__">(PhTMonoecious method)</a>
+</li>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.__init__">(Population method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.PulseEvent.html#tracts.demography.parametrized_demography.PulseEvent.__init__">(PulseEvent method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType.__init__">(SexType method)</a>
+</li>
+        <li><a href="api/generated/tracts.tract.Tract.html#tracts.tract.Tract.__init__">(Tract method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population._flats">_flats (Population attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population._split_indivs.html#tracts.population._split_indivs">_split_indivs() (in module tracts.population)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.ad_model_allosomes">ad_model_allosomes (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.ad_model_autosomes">ad_model_autosomes (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.add_continuous_migration">add_continuous_migration() (ParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.add_continuous_migration">(ParametrizedDemographySexBiased method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_dependent_parameter">add_dependent_parameter() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.add_fixed_parameters">add_fixed_parameters() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.add_founder_event">add_founder_event() (ParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.add_founder_event">(ParametrizedDemographySexBiased method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_parameter">add_parameter() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.add_population">add_population() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.add_pulse_migration">add_pulse_migration() (ParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.add_pulse_migration">(ParametrizedDemographySexBiased method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.all_possible_trees_as_arrays.html#tracts.phase_type.hybrid_pedigree.all_possible_trees_as_arrays">all_possible_trees_as_arrays() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/tracts.util.all_same_sign.html#tracts.util.all_same_sign">all_same_sign() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.allosome_label">allosome_label (ParametrizedDemographySexBiased attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.allosome_labels">allosome_labels (Population attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.allosome_lengths">allosome_lengths (Population attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.allosomes">allosomes (Haploid attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.allosomes">(Indiv attribute)</a>
+</li>
+        <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.allosomes">(SamplesConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.alpha_list">alpha_list (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.alpha_list">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.alpha_list_f">alpha_list_f (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.alpha_list_f">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.alpha_list_m">alpha_list_m (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.alpha_list_m">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.ancestry_at_pos">ancestry_at_pos() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.ancestry_per_pos">ancestry_per_pos() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.ancestryAmt">ancestryAmt() (Indiv method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.ancestryProps">ancestryProps() (Indiv method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.ancestryPropsByChrom">ancestryPropsByChrom() (Indiv method)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair.applychrom">applychrom() (Chropair method)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.applychrom">(Indiv method)</a>
+</li>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.applychrom">(Population method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseFounderEvent.html#tracts.demography.base_parametrized_demography.BaseFounderEvent">BaseFounderEvent (class in tracts.demography.base_parametrized_demography)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseMigrationEvent.html#tracts.demography.base_parametrized_demography.BaseMigrationEvent">BaseMigrationEvent (class in tracts.demography.base_parametrized_demography)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography">BaseParametrizedDemography (class in tracts.demography.base_parametrized_demography)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.bootinds">bootinds() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter.bounds">bounds (DependentParameter attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter.bounds">(Parameter attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType.bounds">(ParamType attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.calculate_allosome_lengths">calculate_allosome_lengths() (Population static method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.calculate_allosome_proportions">calculate_allosome_proportions() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.calculate_ancestry_proportions">calculate_ancestry_proportions() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.calculate_num_sexes">calculate_num_sexes() (Population static method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.canv">canv (Population attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_bounds">check_bounds() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.check_constraints">check_constraints() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.check_for_improper_constraint">check_for_improper_constraint() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.check_for_unsolvable_proportions">check_for_unsolvable_proportions() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.chro_canvas">chro_canvas (Population attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom">Chrom (class in tracts.chromosome)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.chromosomes">chromosomes (SamplesConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.chroms">chroms (Haploid attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.chroms">(Indiv attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair">Chropair (class in tracts.chromosome)</a>
+</li>
+      <li><a href="api/generated/tracts.population.collect_pop.html#tracts.population.collect_pop">collect_pop() (in module tracts.population)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.colordict">colordict (Population attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.compute_params_fixed_by_ancestry">compute_params_fixed_by_ancestry() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constant_params">constant_params (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.constraints">constraints (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent">ContinuousEvent (class in tracts.demography.parametrized_demography)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.convert_to_optimizer_params">convert_to_optimizer_params() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.convert_to_physical_params">convert_to_physical_params() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair.copies">copies (Chropair attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.tract.Tract.html#tracts.tract.Tract.copy">copy() (Tract method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.create_gamete">create_gamete() (Indiv method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.currentplot">currentplot (Population attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.demography">demography (FixedParametersHandler attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.density_hybrid_pedigree.html#tracts.phase_type.hybrid_pedigree.density_hybrid_pedigree">density_hybrid_pedigree() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.dependent_params">dependent_params (BaseParametrizedDemography attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter">DependentParameter (class in tracts.demography.parameter)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.directory">directory (SamplesConfig attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.discrete_prob_DF">discrete_prob_DF() (PhTDioecious method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.distribution_scaling_factor">distribution_scaling_factor() (PhTMonoecious method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.end">end (Chrom attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent.end_parameter">end_parameter (ContinuousEvent attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseFounderEvent.html#tracts.demography.base_parametrized_demography.BaseFounderEvent.end_time">end_time (BaseFounderEvent attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent.end_time">(FounderEvent attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.util.eprint.html#tracts.util.eprint">eprint() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.equilibrium_distribution">equilibrium_distribution (PhTMonoecious attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.events">events (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.exclude_tracts_below_cm">exclude_tracts_below_cm (InferenceConfig attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent.execute">execute() (ContinuousEvent method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent.execute">(FounderEvent method)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.PulseEvent.html#tracts.demography.parametrized_demography.PulseEvent.execute">(PulseEvent method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.execute_migration_events">execute_migration_events() (BaseParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.execute_migration_events">(ParametrizedDemography method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter.expression">expression (DependentParameter attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType.expression">(SexType attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.extend_parameters">extend_parameters() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.extract">extract() (Chrom method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType.FEMALE">FEMALE (SexType attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.filename_format">filename_format (SamplesConfig attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalize">finalize() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.finalized">finalized (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.fix_parameters_from_ancestry_proportions">fix_parameters_from_ancestry_proportions (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.fixed_params">fixed_params (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler">FixedParametersHandler (class in tracts.demography.base_parametrized_demography)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.flat_imap">flat_imap() (Indiv method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.flatpop">flatpop() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseFounderEvent.html#tracts.demography.base_parametrized_demography.BaseFounderEvent.found_time">found_time (BaseFounderEvent attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent.found_time">(FounderEvent attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.founder_events">founder_events (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent">FounderEvent (class in tracts.demography.base_parametrized_demography)</a>
+</li>
+      <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.from_file">from_file() (Haploid static method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.from_files">from_files() (Indiv static method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.from_haploids">from_haploids() (Indiv static method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.full_CDF">full_CDF() (PhaseTypeDistribution method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.full_params_objective_func">full_params_objective_func() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.full_transition_matrix">full_transition_matrix (PhTMonoecious attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_f">full_transition_matrix_f (PhTDioecious attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.full_transition_matrix_m">full_transition_matrix_m (PhTDioecious attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.generate_trees.html#tracts.phase_type.hybrid_pedigree.generate_trees">generate_trees() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.get_equilibrium_distribution">get_equilibrium_distribution() (PhTMonoecious method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.get_founding_time">get_founding_time() (ParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_global_allosome_tractlengths">get_global_allosome_tractlengths() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_global_tractlength_table">get_global_tractlength_table() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_global_tractlengths">get_global_tractlengths() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_index">get_index() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/tracts.tract.Tract.html#tracts.tract.Tract.get_label">get_label() (Tract method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_mean_ancestry_proportions">get_mean_ancestry_proportions() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_means">get_means() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_meanvar">get_meanvar() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.get_migration_matrices">get_migration_matrices() (ParametrizedDemography method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_param_value">get_param_value() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.get_pedigree.html#tracts.phase_type.hybrid_pedigree.get_pedigree">get_pedigree() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.get_random_parameters">get_random_parameters() (ParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.get_sorted_indices">get_sorted_indices() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.get_survival_factors.html#tracts.phase_type.base_phase_type.get_survival_factors">get_survival_factors() (in module tracts.phase_type.base_phase_type)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.get_time_scaled_model_bounds.html#tracts.driver_utils.get_time_scaled_model_bounds">get_time_scaled_model_bounds() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.get_time_scaled_model_func.html#tracts.driver_utils.get_time_scaled_model_func">get_time_scaled_model_func() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.get_transition_matrix">get_transition_matrix() (PhTMonoecious method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.get_variance">get_variance() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.get_violation_score">get_violation_score() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.getMeansByChrom">getMeansByChrom() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.goto">goto() (Chrom method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid">Haploid (class in tracts.haploid)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.has_been_fixed">has_been_fixed (BaseParametrizedDemography property)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.has_been_fixed">(FixedParametersHandler property)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.HP_loglik.html#tracts.phase_type.hybrid_pedigree.HP_loglik">HP_loglik() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.HP_tract_length_histogram_multi_windowed.html#tracts.phase_type.hybrid_pedigree.HP_tract_length_histogram_multi_windowed">HP_tract_length_histogram_multi_windowed() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.hybrid_pedigree_distribution.html#tracts.phase_type.hybrid_pedigree.hybrid_pedigree_distribution">hybrid_pedigree_distribution() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.iflatten">iflatten() (Indiv method)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.iflatten">(Population method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter.index">index (DependentParameter attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter.index">(Parameter attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.indices_to_labels">indices_to_labels() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv">Indiv (class in tracts.indiv)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.individual_names">individual_names (SamplesConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.indivs">indivs (Population attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig">InferenceConfig (class in tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.initialize_CDF_values">initialize_CDF_values() (PhaseTypeDistribution static method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.initialize_density_bins">initialize_density_bins() (PhaseTypeDistribution static method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.inner_CDF">inner_CDF() (PhaseTypeDistribution method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.insert_fixed_params">insert_fixed_params() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.insert_params">insert_params() (BaseParametrizedDemography method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.insert_solved_params">insert_solved_params() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.inverse_S0_list">inverse_S0_list (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.inverse_S0_list">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.inverse_S0_list_f">inverse_S0_list_f (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_f">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.inverse_S0_list_m">inverse_S0_list_m (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.inverse_S0_list_m">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.is_equal">is_equal() (Chrom method)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.tract.Tract.html#tracts.tract.Tract.is_equal">(Tract method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.is_time_param">is_time_param() (BaseParametrizedDemography method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.known_ancestry_proportions">known_ancestry_proportions (FixedParametersHandler attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.labels">labels (SamplesConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.labs">labs (Haploid attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.len">len (Chrom attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair.len">(Chropair attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.tract.Tract.html#tracts.tract.Tract.len">len() (Tract method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.list_chromosome">list_chromosome() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.load_driver_file.html#tracts.driver_utils.load_driver_file">load_driver_file() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.load_from_YAML">load_from_YAML() (ParametrizedDemography static method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.load_from_YAML">(ParametrizedDemographySexBiased static method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.driver_utils.load_model_from_driver.html#tracts.driver_utils.load_model_from_driver">load_model_from_driver() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.load_population.html#tracts.driver_utils.load_population">load_population() (in module tracts.driver_utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.driver_utils.locate_file_path.html#tracts.driver_utils.locate_file_path">locate_file_path() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.log_filename">log_filename (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.log_scale">log_scale (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.logger">logger (BaseParametrizedDemography attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.logger">(FixedParametersHandler attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.logger">(ParametrizedDemography attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.logger">(ParametrizedDemographySexBiased attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.loglik">loglik() (PhaseTypeDistribution method)</a>
+</li>
+      <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.Ls">Ls (Haploid attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.Ls">(Indiv attribute)</a>
+</li>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.Ls">(Population attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType.MALE">MALE (SexType attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType.male_female_sex_type_function">male_female_sex_type_function() (SexType static method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.male_list">male_list (Population attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.male_names">male_names (SamplesConfig attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.max_time">max_time (BaseParametrizedDemography attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.max_time">(ParametrizedDemography attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.max_time">(ParametrizedDemographySexBiased attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.maximum_iterations">maximum_iterations (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.maxLen">maxLen (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.maxLen">(Population attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.merge_ancestries">merge_ancestries() (Chrom method)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.merge_ancestries">(Population method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.migration_matrix">migration_matrix (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.migration_matrix">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.migration_matrix_f">migration_matrix_f (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.migration_matrix_f">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.migration_matrix_m">migration_matrix_m (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.migration_matrix_m">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.min_time">min_time (BaseParametrizedDemography attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.min_time">(ParametrizedDemography attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.min_time">(ParametrizedDemographySexBiased attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params">model_base_params (BaseParametrizedDemography attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.model_config">model_config (InferenceConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig.model_config">(SamplesConfig attribute)</a>
+</li>
+        <li><a href="api/generated/tracts.driver_utils.StartParamsConfig.html#tracts.driver_utils.StartParamsConfig.model_config">(StartParamsConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.model_filename">model_filename (InferenceConfig attribute)</a>
+</li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="api/generated/tracts.chromosome.html#module-tracts.chromosome">tracts.chromosome</a>
+</li>
+        <li><a href="api/generated/tracts.core.html#module-tracts.core">tracts.core</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.html#module-tracts.demography.base_parametrized_demography">tracts.demography.base_parametrized_demography</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parameter.html#module-tracts.demography.parameter">tracts.demography.parameter</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.html#module-tracts.demography.parametrized_demography">tracts.demography.parametrized_demography</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.html#module-tracts.demography.parametrized_demography_sex_biased">tracts.demography.parametrized_demography_sex_biased</a>
+</li>
+        <li><a href="api/generated/tracts.driver.html#module-tracts.driver">tracts.driver</a>
+</li>
+        <li><a href="api/generated/tracts.driver_utils.html#module-tracts.driver_utils">tracts.driver_utils</a>
+</li>
+        <li><a href="api/generated/tracts.haploid.html#module-tracts.haploid">tracts.haploid</a>
+</li>
+        <li><a href="api/generated/tracts.indiv.html#module-tracts.indiv">tracts.indiv</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.html#module-tracts.phase_type.base_phase_type">tracts.phase_type.base_phase_type</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.html#module-tracts.phase_type.dioecious">tracts.phase_type.dioecious</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.html#module-tracts.phase_type.hybrid_pedigree">tracts.phase_type.hybrid_pedigree</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.html#module-tracts.phase_type.monoecious">tracts.phase_type.monoecious</a>
+</li>
+        <li><a href="api/generated/tracts.population.html#module-tracts.population">tracts.population</a>
+</li>
+        <li><a href="api/generated/tracts.tract.html#module-tracts.tract">tracts.tract</a>
+</li>
+        <li><a href="api/generated/tracts.util.html#module-tracts.util">tracts.util</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.name">name (BaseParametrizedDemography attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter.name">(DependentParameter attribute)</a>
+</li>
+        <li><a href="api/generated/tracts.haploid.Haploid.html#tracts.haploid.Haploid.name">(Haploid attribute)</a>
+</li>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.name">(Indiv attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter.name">(Parameter attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography.name">(ParametrizedDemography attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.name">(ParametrizedDemographySexBiased attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.new_indiv">new_indiv() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.newgen">newgen() (Population method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.nind">nind (Population attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.normalization_factor">normalization_factor() (PhaseTypeDistribution method)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.npts">npts (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.num_females">num_females (Population attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.num_generations">num_generations (PhTDioecious attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.num_generations">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.num_males">num_males (Population attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.num_populations">num_populations (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.num_populations">(PhTDioecious attribute)</a>
+</li>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.num_populations">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.core.optimize_cob.html#tracts.core.optimize_cob">optimize_cob() (in module tracts.core)</a>
+</li>
+      <li><a href="api/generated/tracts.core.optimize_cob_sex_biased.html#tracts.core.optimize_cob_sex_biased">optimize_cob_sex_biased() (in module tracts.core)</a>
+</li>
+      <li><a href="api/generated/tracts.core.optimize_cob_sex_biased_fixed_values.html#tracts.core.optimize_cob_sex_biased_fixed_values">optimize_cob_sex_biased_fixed_values() (in module tracts.core)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.order_fixed_param_dict">order_fixed_param_dict() (FixedParametersHandler method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.outer_CDF">outer_CDF() (PhaseTypeDistribution method)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.output_directory">output_directory (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.output_filename_format">output_filename_format (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.output_simulation_data_sex_biased.html#tracts.driver_utils.output_simulation_data_sex_biased">output_simulation_data_sex_biased() (in module tracts.driver_utils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter">Parameter (class in tracts.demography.parameter)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_bounds">parameter_bounds (BaseParametrizedDemography property)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parameter_handler">parameter_handler (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parametrized_populations">parametrized_populations (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ParametrizedDemography.html#tracts.demography.parametrized_demography.ParametrizedDemography">ParametrizedDemography (class in tracts.demography.parametrized_demography)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased">ParametrizedDemographySexBiased (class in tracts.demography.parametrized_demography_sex_biased)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_ancestry">params_fixed_by_ancestry (BaseParametrizedDemography property)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.params_fixed_by_ancestry">(FixedParametersHandler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.params_fixed_by_value">params_fixed_by_value (BaseParametrizedDemography property)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.params_not_fixed_by_ancestry">params_not_fixed_by_ancestry (FixedParametersHandler attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType">ParamType (class in tracts.demography.parameter)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.parse_chromosomes.html#tracts.driver_utils.parse_chromosomes">parse_chromosomes() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.parse_individual_filenames.html#tracts.driver_utils.parse_individual_filenames">parse_individual_filenames() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.parse_proportions">parse_proportions() (BaseParametrizedDemography static method)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.parse_start_params.html#tracts.driver_utils.parse_start_params">parse_start_params() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution">PhaseTypeDistribution (class in tracts.phase_type.base_phase_type)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.PhT_CDF">PhT_CDF() (PhTDioecious method)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.PhT_CDF">(PhTMonoecious method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.PhT_CDF_windowed">PhT_CDF_windowed() (PhTDioecious method)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.PhT_CDF_windowed">(PhTMonoecious method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.PhT_density">PhT_density() (PhTDioecious method)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.PhT_density">(PhTMonoecious method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.PhT_density_windowed">PhT_density_windowed() (PhTDioecious method)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.PhT_density_windowed">(PhTMonoecious method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DC">PhT_parameters_DC() (PhTDioecious method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.PhT_parameters_DF">PhT_parameters_DF() (PhTDioecious method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious">PhTDioecious (class in tracts.phase_type.dioecious)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious">PhTMonoecious (class in tracts.phase_type.monoecious)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.plot">plot() (Chrom method)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair.plot">(Chropair method)</a>
+</li>
+        <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.plot">(Indiv method)</a>
+</li>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot">(Population method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_all_ancestries">plot_all_ancestries() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_ancestries">plot_ancestries() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_chromosome">plot_chromosome() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_global_tractlengths">plot_global_tractlengths() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_indiv">plot_indiv() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_next">plot_next() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.plot_previous">plot_previous() (Population method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.populate_CDF_values">populate_CDF_values() (PhaseTypeDistribution method)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.populate_density_bins">populate_density_bins() (PhaseTypeDistribution method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population">Population (class in tracts.population)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.population_indices">population_indices (BaseParametrizedDemography attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population.preprocess_color_dict.html#tracts.population.preprocess_color_dict">preprocess_color_dict() (in module tracts.population)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.prob_of_pop_setting.html#tracts.phase_type.hybrid_pedigree.prob_of_pop_setting">prob_of_pop_setting() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices">proportions_from_matrices() (BaseParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.proportions_from_matrices">(ParametrizedDemographySexBiased method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrices_return_keys">proportions_from_matrices_return_keys() (BaseParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.html#tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased.proportions_from_matrices_return_keys">(ParametrizedDemographySexBiased method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.proportions_from_matrix">proportions_from_matrix() (BaseParametrizedDemography static method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.PulseEvent.html#tracts.demography.parametrized_demography.PulseEvent">PulseEvent (class in tracts.demography.parametrized_demography)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType.RATE">RATE (ParamType attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseMigrationEvent.html#tracts.demography.base_parametrized_demography.BaseMigrationEvent.rate_param">rate_param (BaseMigrationEvent attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent.rate_parameter">rate_parameter (ContinuousEvent attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.PulseEvent.html#tracts.demography.parametrized_demography.PulseEvent.rate_parameter">(PulseEvent attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.util.rate_to_optimizer_function.html#tracts.util.rate_to_optimizer_function">rate_to_optimizer_function() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/tracts.util.rate_to_physical_function.html#tracts.util.rate_to_physical_function">rate_to_physical_function() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chropair.html#tracts.chromosome.Chropair.recombine">recombine() (Chropair method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.reduce_parameters">reduce_parameters() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.reduced_constraints">reduced_constraints (BaseParametrizedDemography attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.reduced_constraints">(FixedParametersHandler attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.release_fixed_parameters">release_fixed_parameters() (FixedParametersHandler method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseFounderEvent.html#tracts.demography.base_parametrized_demography.BaseFounderEvent.remainder_population">remainder_population (BaseFounderEvent attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent.remainder_population">(FounderEvent attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.repetitions">repetitions (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.rho_f">rho_f (PhTDioecious attribute)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.rho_m">rho_m (PhTDioecious attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver.run_model.html#tracts.driver.run_model">run_model() (in module tracts.driver)</a>
+</li>
+      <li><a href="api/generated/tracts.driver.run_model_multi_init.html#tracts.driver.run_model_multi_init">run_model_multi_init() (in module tracts.driver)</a>
+</li>
+      <li><a href="api/generated/tracts.driver.run_model_sex_biased.html#tracts.driver.run_model_sex_biased">run_model_sex_biased() (in module tracts.driver)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.run_optimize_cob">run_optimize_cob (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver.run_tracts.html#tracts.driver.run_tracts">run_tracts() (in module tracts.driver)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.S0_list">S0_list (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.S0_list">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.S0_list_f">S0_list_f (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.S0_list_f">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.S0_list_m">S0_list_m (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.S0_list_m">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.S_matrix">S_matrix() (PhTDioecious method)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.samples">samples (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.SamplesConfig.html#tracts.driver_utils.SamplesConfig">SamplesConfig (class in tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.save">save() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.scale_select_indices.html#tracts.driver_utils.scale_select_indices">scale_select_indices() (in module tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.seed">seed (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.set_males">set_males() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseParametrizedDemography.html#tracts.demography.base_parametrized_demography.BaseParametrizedDemography.set_up_fixed_parameters">set_up_fixed_parameters() (BaseParametrizedDemography method)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.set_up_fixed_parameters">(FixedParametersHandler method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType.SEX_BIAS">SEX_BIAS (ParamType attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.util.sex_bias_to_optimizer_function.html#tracts.util.sex_bias_to_optimizer_function">sex_bias_to_optimizer_function() (in module tracts.util)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.util.sex_bias_to_physical_function.html#tracts.util.sex_bias_to_physical_function">sex_bias_to_physical_function() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.sex_model">sex_model (PhTDioecious attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType">SexType (class in tracts.demography.parametrized_demography_sex_biased)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.smooth_unknown">smooth_unknown() (Chrom method)</a>
+</li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.smooth_unknowns">smooth_unknowns() (Population method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseMigrationEvent.html#tracts.demography.base_parametrized_demography.BaseMigrationEvent.source_population">source_population (BaseMigrationEvent attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent.source_population">(ContinuousEvent attribute)</a>
+</li>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.PulseEvent.html#tracts.demography.parametrized_demography.PulseEvent.source_population">(PulseEvent attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.BaseFounderEvent.html#tracts.demography.base_parametrized_demography.BaseFounderEvent.source_populations">source_populations (BaseFounderEvent attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FounderEvent.html#tracts.demography.base_parametrized_demography.FounderEvent.source_populations">(FounderEvent attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.split_by_props">split_by_props() (Population method)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.start">start (Chrom attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.ContinuousEvent.html#tracts.demography.parametrized_demography.ContinuousEvent.start_parameter">start_parameter (ContinuousEvent attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.start_params">start_params (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.StartParamsConfig.html#tracts.driver_utils.StartParamsConfig">StartParamsConfig (class in tracts.driver_utils)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.submodel_probabilities">submodel_probabilities() (PhTDioecious method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.SexType.html#tracts.demography.parametrized_demography_sex_biased.SexType.suffix">suffix (SexType attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.t0_proportions">t0_proportions (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.t0_proportions">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.t0_proportions_f">t0_proportions_f (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.t0_proportions_f">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.t0_proportions_m">t0_proportions_m (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.t0_proportions_m">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType.TIME">TIME (ParamType attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parametrized_demography.PulseEvent.html#tracts.demography.parametrized_demography.PulseEvent.time_parameter">time_parameter (PulseEvent attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.util.time_to_optimizer_function.html#tracts.util.time_to_optimizer_function">time_to_optimizer_function() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/tracts.util.time_to_physical_function.html#tracts.util.time_to_physical_function">time_to_physical_function() (in module tracts.util)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.to_optimizer_params_functions">to_optimizer_params_functions (FixedParametersHandler attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.to_physical_params_functions">to_physical_params_functions (FixedParametersHandler attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.tract.Tract.html#tracts.tract.Tract">Tract (class in tracts.tract)</a>
+</li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.tract_length_histogram_multi_windowed">tract_length_histogram_multi_windowed() (PhTDioecious method)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.tract_length_histogram_multi_windowed">(PhTMonoecious method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.tractlength_histogram">tractlength_histogram() (PhaseTypeDistribution method)</a>
+
+      <ul>
+        <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.tractlength_histogram">(Population method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.tractlength_histogram_windowed">tractlength_histogram_windowed() (PhTDioecious method)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.tractlength_histogram_windowed">(PhTMonoecious method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.tractlengths">tractlengths() (Chrom method)</a>
+</li>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.tracts">tracts (Chrom attribute)</a>
+</li>
+      <li>
+    tracts.chromosome
+
+      <ul>
+        <li><a href="api/generated/tracts.chromosome.html#module-tracts.chromosome">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.core
+
+      <ul>
+        <li><a href="api/generated/tracts.core.html#module-tracts.core">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.demography.base_parametrized_demography
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.html#module-tracts.demography.base_parametrized_demography">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.demography.parameter
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parameter.html#module-tracts.demography.parameter">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.demography.parametrized_demography
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography.html#module-tracts.demography.parametrized_demography">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.demography.parametrized_demography_sex_biased
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parametrized_demography_sex_biased.html#module-tracts.demography.parametrized_demography_sex_biased">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    tracts.driver
+
+      <ul>
+        <li><a href="api/generated/tracts.driver.html#module-tracts.driver">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.driver_utils
+
+      <ul>
+        <li><a href="api/generated/tracts.driver_utils.html#module-tracts.driver_utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.haploid
+
+      <ul>
+        <li><a href="api/generated/tracts.haploid.html#module-tracts.haploid">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.indiv
+
+      <ul>
+        <li><a href="api/generated/tracts.indiv.html#module-tracts.indiv">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.phase_type.base_phase_type
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.html#module-tracts.phase_type.base_phase_type">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.phase_type.dioecious
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.html#module-tracts.phase_type.dioecious">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.phase_type.hybrid_pedigree
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.html#module-tracts.phase_type.hybrid_pedigree">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.phase_type.monoecious
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.html#module-tracts.phase_type.monoecious">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.population
+
+      <ul>
+        <li><a href="api/generated/tracts.population.html#module-tracts.population">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.tract
+
+      <ul>
+        <li><a href="api/generated/tracts.tract.html#module-tracts.tract">module</a>
+</li>
+      </ul></li>
+      <li>
+    tracts.util
+
+      <ul>
+        <li><a href="api/generated/tracts.util.html#module-tracts.util">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.transition_matrices">transition_matrices (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.monoecious.PhTMonoecious.html#tracts.phase_type.monoecious.PhTMonoecious.transition_matrices">(PhTMonoecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.transition_matrices_f">transition_matrices_f (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.transition_matrices_f">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.transition_matrices_m">transition_matrices_m (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.transition_matrices_m">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/generated/phase_type/tracts.phase_type.hybrid_pedigree.tree_to_array.html#tracts.phase_type.hybrid_pedigree.tree_to_array">tree_to_array() (in module tracts.phase_type.hybrid_pedigree)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.two_steps_optimization">two_steps_optimization (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.DependentParameter.html#tracts.demography.parameter.DependentParameter.type">type (DependentParameter attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/demography/tracts.demography.parameter.Parameter.html#tracts.demography.parameter.Parameter.type">(Parameter attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.chromosome.Chrom.html#tracts.chromosome.Chrom.unknown_labels">unknown_labels (Chrom attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.unknown_labels_for_smoothing">unknown_labels_for_smoothing (InferenceConfig attribute)</a>
+</li>
+      <li><a href="api/generated/tracts.indiv.Indiv.html#tracts.indiv.Indiv.unnamed_counter">unnamed_counter (Indiv attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.unnormalized_prob_sex_vector">unnormalized_prob_sex_vector() (PhTDioecious method)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.parameter.ParamType.html#tracts.demography.parameter.ParamType.UNTYPED">UNTYPED (ParamType attribute)</a>
+</li>
+      <li><a href="api/generated/demography/tracts.demography.base_parametrized_demography.FixedParametersHandler.html#tracts.demography.base_parametrized_demography.FixedParametersHandler.user_params_fixed_by_value">user_params_fixed_by_value (FixedParametersHandler attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.verbose_log">verbose_log (InferenceConfig attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.driver_utils.InferenceConfig.html#tracts.driver_utils.InferenceConfig.verbose_screen">verbose_screen (InferenceConfig attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/tracts.population.Population.html#tracts.population.Population.win">win (Population attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="X">X</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.X_chr">X_chr (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.X_chr">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/generated/phase_type/tracts.phase_type.base_phase_type.PhaseTypeDistribution.html#tracts.phase_type.base_phase_type.PhaseTypeDistribution.X_chr_male">X_chr_male (PhaseTypeDistribution attribute)</a>
+
+      <ul>
+        <li><a href="api/generated/phase_type/tracts.phase_type.dioecious.PhTDioecious.html#tracts.phase_type.dioecious.PhTDioecious.X_chr_male">(PhTDioecious attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

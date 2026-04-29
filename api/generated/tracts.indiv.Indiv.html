@@ -1,0 +1,830 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>tracts.indiv.Indiv &#8212; tracts 2.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=7ae24c84" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../_static/documentation_options.js?v=60dbed4a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/tracts.indiv.Indiv';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="tracts.population" href="tracts.population.html" />
+    <link rel="prev" title="tracts.indiv" href="tracts.indiv.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">tracts</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorials/index.html">
+    Phase-type models
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    API documentation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/gravellab/tracts" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../core_modules.html">Core modules</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tracts.chromosome.html">tracts.chromosome</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.core.html">tracts.core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.driver.html">tracts.driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.driver_utils.html">tracts.driver_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.haploid.html">tracts.haploid</a></li>
+<li class="toctree-l2 current active"><a class="reference internal" href="tracts.indiv.html">tracts.indiv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.population.html">tracts.population</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.tract.html">tracts.tract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracts.util.html">tracts.util</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../phase_type.html">Phase-type models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.base_phase_type.html">tracts.phase_type.base_phase_type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.monoecious.html">tracts.phase_type.monoecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.dioecious.html">tracts.phase_type.dioecious</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phase_type/tracts.phase_type.hybrid_pedigree.html">tracts.phase_type.hybrid_pedigree</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../demography.html">Demography</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.base_parametrized_demography.html">tracts.demography.base_parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.parameter.html">tracts.demography.parameter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.parametrized_demography.html">tracts.demography.parametrized_demography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demography/tracts.demography.parametrized_demography_sex_biased.html">tracts.demography.parametrized_demography_sex_biased</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API documentation</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../core_modules.html" class="nav-link">Core modules</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="tracts.indiv.html" class="nav-link">tracts.indiv</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tracts.indiv.Indiv</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tracts-indiv-indiv">
+<h1>tracts.indiv.Indiv<a class="headerlink" href="#tracts-indiv-indiv" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Indiv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'POP'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('_A',</span> <span class="pre">'_B')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selectchrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chroms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The class of diploid individuals. An individual is thought of as a list of pairs of chromosomes. Equivalently, a diploid individual
+is a pair of haploid individuals. Thus, it is possible to construct instances of this class from a pair
+of instances of the haploid class, as well as directly from a sequence of chropair instances.</p>
+<p>The interface for loading individuals from files uses the haploid-oriented approach, since individual .bed files describe only
+one haplotype. The loading process is the following (i) load haploid individuals for each haplotype and (ii) combine the haploid
+individuals into a diploid individual.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.Ls">
+<span class="sig-name descname"><span class="pre">Ls</span></span><a class="headerlink" href="#tracts.indiv.Indiv.Ls" title="Link to this definition">#</a></dt>
+<dd><p>The lengths of the chromosomes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.chroms">
+<span class="sig-name descname"><span class="pre">chroms</span></span><a class="headerlink" href="#tracts.indiv.Indiv.chroms" title="Link to this definition">#</a></dt>
+<dd><p>The chromosome pairs that make up this individual. See the documentation for <a class="reference internal" href="tracts.chromosome.Chropair.html#tracts.chromosome.Chropair" title="tracts.chromosome.Chropair"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chropair</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <a class="reference internal" href="tracts.chromosome.Chropair.html#tracts.chromosome.Chropair" title="tracts.chromosome.Chropair"><code class="xref py py-class docutils literal notranslate"><span class="pre">tracts.chromosome.Chropair</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#tracts.indiv.Indiv.name" title="Link to this definition">#</a></dt>
+<dd><p>An optional name for the individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.allosomes">
+<span class="sig-name descname"><span class="pre">allosomes</span></span><a class="headerlink" href="#tracts.indiv.Indiv.allosomes" title="Link to this definition">#</a></dt>
+<dd><p>A dictionary mapping chromosome labels to chromosome objects, for chromosomes that are treated as allosomes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'POP'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('_A',</span> <span class="pre">'_B')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selectchrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chroms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Constructs a diploid individual. There are several ways to build individuals, either from files, from existing data, or
+programmatically. The most straightforward way to build an individual is from existing data, by supplying
+only the <code class="docutils literal notranslate"><span class="pre">Ls</span></code> and <code class="docutils literal notranslate"><span class="pre">chroms</span></code> arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ls</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>. The lengths of the chromosomes in the order in which they appear in <cite>chroms</cite>.</p></li>
+<li><p><strong>chroms</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="tracts.chromosome.Chropair.html#tracts.chromosome.Chropair" title="tracts.chromosome.Chropair"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chropair</span></code></a>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>. The chromosome pairs that make up this individual. See the documentation for <a class="reference internal" href="tracts.chromosome.Chropair.html#tracts.chromosome.Chropair" title="tracts.chromosome.Chropair"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chropair</span></code></a>.</p></li>
+<li><p><strong>label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Default is <code class="docutils literal notranslate"><span class="pre">POP</span></code>. The label to use for building single-tract chromosomes when no other data is given to buid this individual.</p></li>
+<li><p><strong>fname</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Paths are generated by concatenating the first component of <code class="docutils literal notranslate"><span class="pre">fname</span></code>, each label from <code class="docutils literal notranslate"><span class="pre">labs</span></code> in turn, and the second
+component of <code class="docutils literal notranslate"><span class="pre">fname</span></code>.</p></li>
+<li><p><strong>labs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Default is <code class="docutils literal notranslate"><span class="pre">(&quot;_A&quot;,</span> <span class="pre">&quot;_B&quot;)</span></code>. The labels used to identify maternal and paternal haplotypes in the paths leading to .bed files.</p></li>
+<li><p><strong>selectchrom</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>. Selects which chromosomes to load. The default value of <code class="docutils literal notranslate"><span class="pre">None</span></code> selects all chromosomes.</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>. An identifier for this individual.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">Ls</span></code> is given, but <code class="docutils literal notranslate"><span class="pre">chroms</span></code> is not, then chromosomes consisting each of a single tract will be created with the label <code class="docutils literal notranslate"><span class="pre">label</span></code> and lengths drawn from <code class="docutils literal notranslate"><span class="pre">Ls</span></code>. If the <code class="docutils literal notranslate"><span class="pre">fname</span></code> argument is given, the constructor will perform path manipulation involving the components of <cite>fname</cite> and <cite>labs</cite> to generate file names that are commonly used when dealing with .bed files. The facilities in this constructor for loading individuals from files are deprecated. It is recommended to instead use the static methods <a class="reference internal" href="#tracts.indiv.Indiv.from_files" title="tracts.indiv.Indiv.from_files"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_files()</span></code></a> or <a class="reference internal" href="#tracts.indiv.Indiv.from_haploids" title="tracts.indiv.Indiv.from_haploids"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_haploids()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.ancestryAmt">
+<span class="sig-name descname"><span class="pre">ancestryAmt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestry</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.ancestryAmt" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the total length of the genome in segments of the given ancestry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestry</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The ancestry for which to calculate the total length.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The total length of the genome in segments of the given ancestry.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.ancestryProps">
+<span class="sig-name descname"><span class="pre">ancestryProps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosome_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.ancestryProps" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the proportion of the genome represented by the given ancestries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – A list of ancestries for which to calculate the proportions.</p></li>
+<li><p><strong>allosome_label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – An optional label for the allosome chromosome to consider when calculating ancestry proportions. If <cite>False</cite> (the default), allosomes will not be considered when calculating ancestry proportions. If a string is provided, only the chromosome with the corresponding label in <cite>self.allosomes</cite> will be considered when calculating ancestry proportions. If the specified label is not present in <cite>self.allosomes</cite>, a warning will be logged and no chromosomes will be considered as allosomes.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – An optional cutoff value for tract lengths. Only tracts with lengths greater than this cutoff will be considered when calculating ancestry proportions. The default value is 0, meaning that all tracts will be considered regardless of their length.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of proportions corresponding to the input list of ancestries, where each proportion represents the fraction of the genome that is represented by segments of the corresponding ancestry. The order of the proportions corresponds to the order of the input ancestries.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.ancestryPropsByChrom">
+<span class="sig-name descname"><span class="pre">ancestryPropsByChrom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ancestries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.ancestryPropsByChrom" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the proportion of the genome represented by the given ancestries, separately for each chromosome.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ancestries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of ancestries for which to calculate the proportions.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of lists of proportions, where the outer list corresponds to the input list of ancestries, and the inner lists correspond to the chromosomes of the individual. Each inner list contains the proportions of the corresponding chromosome that are represented by segments of the corresponding ancestry. The order of the outer list corresponds to the order of the input ancestries, and the order of the inner lists corresponds to the order of the chromosomes in the individual’s <cite>chroms</cite> attribute.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of list of float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.applychrom">
+<span class="sig-name descname"><span class="pre">applychrom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.applychrom" title="Link to this definition">#</a></dt>
+<dd><p>Apply the function <cite>func</cite> to each chromosome of the individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>func</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – A function that takes a chromosome as input and returns a value. This function will be applied to each chromosome of the individual, and the results will be collected into a list.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list containing the results of applying <cite>func</cite> to each chromosome of the individual. The order of the results corresponds to the order of the chromosomes in the individual’s <cite>chroms</cite> attribute.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.create_gamete">
+<span class="sig-name descname"><span class="pre">create_gamete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.create_gamete" title="Link to this definition">#</a></dt>
+<dd><p>Creates a haploid gamete from the individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A haploid genome representing a gamete produced by this individual. The gamete is generated by recombining the chromosome pairs of this individual, and then taking one chromosome from each pair.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="tracts.haploid.Haploid.html#tracts.haploid.Haploid" title="tracts.haploid.Haploid">Haploid</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.flat_imap">
+<span class="sig-name descname"><span class="pre">flat_imap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.flat_imap" title="Link to this definition">#</a></dt>
+<dd><p>Lazily map a function over the full underlying structure of this individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – A function that takes three parameters: <cite>chrom</cite>, the chromosome pair containing the tract, <cite>copy</cite>, the chromosome containing the tract and <cite>tract</cite>, the tract itself. This function will be applied to each tract in the individual’s genome, and the results will be collected into a list. The order of the results corresponds to the order of the tracts in the individual’s genome, as determined by iterating through the chromosomes, then the copies within each chromosome, and then the tracts within each copy.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list containing the results of applying <cite>f</cite> to each tract in the individual’s genome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.from_files">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selectchrom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.from_files" title="Link to this definition">#</a></dt>
+<dd><p>Constructs a diploid individual from two files, which describe the individuals haplotypes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paths</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – A list of two file paths, each describing one haplotype of the individual. The files should be tab-delimited text files with columns: chrom, start, end, label, and optionally others. The first line may be a header, which will be automatically skipped if it contains the expected column names.</p></li>
+<li><p><strong>selectchrom</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – An optional list of chromosome labels to select from the files. If not provided, all chromosomes will be selected. Chromosome labels should be integers or strings corresponding to the chromosome numbers in the files (e.g., “1” for chromosome 1). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – An optional name for the individual. If not provided, the name will be set to the name of the first haploid individual loaded from the files.</p></li>
+<li><p><strong>allosomes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – An optional list of chromosome labels that should be treated as allosomes. If not provided, no chromosomes will be treated as allosomes. Chromosome labels should be strings corresponding to the chromosome identifiers in the files (e.g., “X” for the X chromosome). Chromosome labels that are not present in the files will be ignored, and no chromosomes will be treated as allosomes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of the <a class="reference internal" href="#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a> class representing the combined diploid individual loaded from the files.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Individual</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.from_haploids">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_haploids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">haps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allosome_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.from_haploids" title="Link to this definition">#</a></dt>
+<dd><p>Construct a diploid individual from a list of two haploid individuals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>haps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="tracts.haploid.Haploid.html#tracts.haploid.Haploid" title="tracts.haploid.Haploid"><code class="xref py py-class docutils literal notranslate"><span class="pre">Haploid</span></code></a>]</span>) – A list of two haploid individuals to combine into a diploid individual.</p></li>
+<li><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – An optional name for the individual. If not provided, the name will be set to the name of the first haploid individual.</p></li>
+<li><p><strong>allosome_labels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – An optional list of chromosome labels that should be treated as allosomes. If not provided, no chromosomes will be treated as allosomes. Chromosome labels should be strings corresponding to the chromosome identifiers in the haploid individuals (e.g., “X” for the X chromosome). Chromosome labels that are not present in the haploid individuals will be ignored, and no chromosomes will be treated as allosomes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of the <a class="reference internal" href="#tracts.indiv.Indiv" title="tracts.indiv.Indiv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Indiv</span></code></a> class representing the combined diploid individual.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Individual</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.iflatten">
+<span class="sig-name descname"><span class="pre">iflatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allosome_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.iflatten" title="Link to this definition">#</a></dt>
+<dd><p>Lazily flatten this individual to the tract level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>allosome_label</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – An optional label for the allosome chromosome to consider when flattening. If <cite>False</cite> (the default), allosomes will not be considered when flattening. If a string is provided, only the chromosome with the corresponding label in <cite>self.allosomes</cite> will be considered when flattening. If the specified label is not present in <cite>self.allosomes</cite>, a warning will be logged and no chromosomes will be considered as allosomes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colordict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tracts.indiv.Indiv.plot" title="Link to this definition">#</a></dt>
+<dd><p>Plots an individual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>colordict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – A dictionary mapping population labels to colors, used to determine the color of each tract when plotting. E.g.: <code class="docutils literal notranslate"><span class="pre">colordict</span> <span class="pre">=</span> <span class="pre">{&quot;CEU&quot;:'r',&quot;YRI&quot;:b}</span></code>.</p></li>
+<li><p><strong>win</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tk</span></code></span>) – An optional Tkinter window to plot on. If not provided, a new window will be created for this plot. If provided, the plot will be drawn on the given window instead of creating a new one. This can be used to plot multiple individuals on the same window, or to integrate the plot of this individual into a larger Tkinter application.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Tkinter window on which the plot was drawn.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tk.Tk</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tracts.indiv.Indiv.unnamed_counter">
+<span class="sig-name descname"><span class="pre">unnamed_counter</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#tracts.indiv.Indiv.unnamed_counter" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="tracts.indiv.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">tracts.indiv</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="tracts.population.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">tracts.population</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv"><code class="docutils literal notranslate"><span class="pre">Indiv</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.Ls"><code class="docutils literal notranslate"><span class="pre">Indiv.Ls</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.chroms"><code class="docutils literal notranslate"><span class="pre">Indiv.chroms</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.name"><code class="docutils literal notranslate"><span class="pre">Indiv.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.allosomes"><code class="docutils literal notranslate"><span class="pre">Indiv.allosomes</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.__init__"><code class="docutils literal notranslate"><span class="pre">Indiv.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.ancestryAmt"><code class="docutils literal notranslate"><span class="pre">Indiv.ancestryAmt()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.ancestryProps"><code class="docutils literal notranslate"><span class="pre">Indiv.ancestryProps()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.ancestryPropsByChrom"><code class="docutils literal notranslate"><span class="pre">Indiv.ancestryPropsByChrom()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.applychrom"><code class="docutils literal notranslate"><span class="pre">Indiv.applychrom()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.create_gamete"><code class="docutils literal notranslate"><span class="pre">Indiv.create_gamete()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.flat_imap"><code class="docutils literal notranslate"><span class="pre">Indiv.flat_imap()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.from_files"><code class="docutils literal notranslate"><span class="pre">Indiv.from_files()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.from_haploids"><code class="docutils literal notranslate"><span class="pre">Indiv.from_haploids()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.iflatten"><code class="docutils literal notranslate"><span class="pre">Indiv.iflatten()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.plot"><code class="docutils literal notranslate"><span class="pre">Indiv.plot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tracts.indiv.Indiv.unnamed_counter"><code class="docutils literal notranslate"><span class="pre">Indiv.unnamed_counter</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/api/generated/tracts.indiv.Indiv.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Javier González-Delgado, Andrii Serdiuk, Victor Krim-Yee and Simon Gravel.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
