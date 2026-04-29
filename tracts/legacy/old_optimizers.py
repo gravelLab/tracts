@@ -3,8 +3,8 @@ import logging
 import numpy as np
 import scipy.optimize
 from matplotlib import pylab
-from tracts.demography.demographic_model import DemographicModel
-from tracts.demography.composite_demographic_model import CompositeDemographicModel
+from tracts.legacy.demographic_model import DemographicModel
+from tracts.legacy.composite_demographic_model import CompositeDemographicModel
 from tracts.util import eprint
 logger = logging.getLogger(__name__)
 

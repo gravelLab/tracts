@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**07:26.167** total execution time for 4 files **from all galleries**:
+**08:19.907** total execution time for 4 files **from all galleries**:
 
 .. container::
 
@@ -32,15 +32,15 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_auto_examples_MXL_MXL_3pop_sexbiased_fix.py` (``../../example/documentation_examples/MXL/MXL_3pop_sexbiased_fix.py``)
-     - 03:25.717
-     - 0.0
    * - :ref:`sphx_glr_auto_examples_ASW_ASW_two_pulses.py` (``../../example/documentation_examples/ASW/ASW_two_pulses.py``)
-     - 03:22.619
+     - 04:01.708
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_MXL_MXL_3pop_sexbiased_fix.py` (``../../example/documentation_examples/MXL/MXL_3pop_sexbiased_fix.py``)
+     - 03:29.591
      - 0.0
    * - :ref:`sphx_glr_auto_examples_ASW_ASW_three_pulses.py` (``../../example/documentation_examples/ASW/ASW_three_pulses.py``)
-     - 00:25.866
+     - 00:31.087
      - 0.0
    * - :ref:`sphx_glr_auto_examples_ASW_ASW_one_pulse.py` (``../../example/documentation_examples/ASW/ASW_one_pulse.py``)
-     - 00:11.964
+     - 00:17.521
      - 0.0

@@ -299,7 +299,7 @@ def test_founder_event_parameter_creation(model_with_founder_event):
     # Verify parameter bounds
     assert model_with_founder_event.model_base_params["founder_rate1"].bounds == (small, 1-small)
     assert model_with_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1, 1)
-    assert model_with_founder_event.model_base_params["found_time"].bounds == (2, np.inf)
+    assert model_with_founder_event.model_base_params["found_time"].bounds == (1, np.inf)
     
     # Verify dependent parameters were created
     assert "founder_rate1_male" in model_with_founder_event.dependent_params
@@ -325,9 +325,9 @@ def test_continuous_founder_event_parameter_creation(model_with_continuous_found
     # Verify parameter bounds
     assert model_with_continuous_founder_event.model_base_params["founder_rate1"].bounds == (small, 1-small)
     assert model_with_continuous_founder_event.model_base_params["founder_rate1_sex_bias"].bounds == (-1, 1)
-    assert model_with_continuous_founder_event.model_base_params["found_time"].bounds == (2, np.inf)
+    assert model_with_continuous_founder_event.model_base_params["found_time"].bounds == (1, np.inf)
     assert model_with_continuous_founder_event.model_base_params["founder_rate2_sex_bias"].bounds == (-1, 1)
-    assert model_with_continuous_founder_event.model_base_params["end_time"].bounds == (2, np.inf)
+    assert model_with_continuous_founder_event.model_base_params["end_time"].bounds == (1, np.inf)
     # Verify dependent parameters were created
     assert "founder_rate1_male" in model_with_continuous_founder_event.dependent_params
     assert "founder_rate1_female" in model_with_continuous_founder_event.dependent_params

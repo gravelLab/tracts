@@ -1,4 +1,4 @@
-from tracts.demography.demographic_model import DemographicModel
+from tracts.legacy.demographic_model import DemographicModel
 import numpy as np
 from scipy.special import gammaln
 

@@ -120,31 +120,31 @@ class Population:
         The number of female individuals in the population.
     """
 
-    def __init__(self, list_indivs: list[Indiv] | None = None, names: list[str] | None = None, fname: str | None = None,
-                labs: list[str] | None = None, selectchrom: list[str] | None = None, allosomes:list[str] | None = None, 
-                ignore_length_consistency: bool = False, filenames_by_individual: list[str] | None = None, male_list: list[str] | str = None):
+    def __init__(self, list_indivs: list[Indiv] | None = None, names: list[str] | None = None, fname: tuple[str, str, str] | None = None,
+                labs: list[str] | None = None, selectchrom: list[int] | None = None, allosomes:list[str] | None = None, 
+                ignore_length_consistency: bool = False, filenames_by_individual: dict[str, list[str]] | None = None, male_list: list[str] | str | None = None):
         """
         Initializes the :class:`~tracts.population.Population` class.
 
         Parameters
         ----------
-        list_indivs: list[Indiv]
+        list_indivs: list[Indiv] | None
             A list of :class:`~tracts.indiv.Indiv` objects representing the individuals in the population. If provided, this will be used to initialize the population directly.
-        names: list[str]
+        names: list[str] | None
             A list of names for the individuals in the population. This is used when initializing the population from a file format.
-        fname: str
+        fname: tuple[str, str, str] | None
             A tuple with the start, middle and end of the filenames for loading individuals from files. The individual files should be specified in the format `start--Indiv--Middle--_A--End`.
-        labs: list[str]
+        labs: list[str] | None
             A list of labels for the chromosome copies. This is used when initializing the population from a file format.
-        selectchrom: list[str]
+        selectchrom: list[int] | None
             A list of chromosome labels to select when initializing the population from a file format. If None, all chromosomes will be selected.
-        allosomes: list[str]
+        allosomes: list[str] | None
             A list of labels for the allosomes in the population. This is used when initializing the population from a file format to identify which chromosomes are allosomes.
         ignore_length_consistency: bool
             A flag indicating whether to ignore consistency in chromosome lengths across individuals when initializing the population from a file format. If False, an error will be raised if individuals have different chromosome lengths. If True, the population will be initialized even if individuals have different chromosome lengths.
-        filenames_by_individual: dict[str, list[str]]
+        filenames_by_individual: dict[str, list[str]] | None
             A dictionary mapping individual names to lists of filenames for loading individuals from files. The individual files should be specified in the format `start--Indiv--Middle--_A--End`. This is an alternative to using `fname` and `names` for loading individuals from files, and allows for more flexibility in specifying the filenames for each individual.
-        male_list: list[str] | str
+        male_list: list[str] | str | None
             A list of labels for male individuals in the population. 
               
         Notes
@@ -624,7 +624,10 @@ class Population:
         """
         num_males_processed = 0;
         if male_list != "auto":
-            self.male_list = list(male_list)
+            if isinstance(male_list, str):
+                self.male_list = [male_list]
+            else:
+                self.male_list = list(male_list)            
             male_set = set(self.male_list)
 
             for indiv in self:
@@ -652,7 +655,7 @@ class Population:
             print(f"Identified {num_males_processed} males from allosomal data")
         self.males_set = True
 
-    def smooth_unknowns(self, allosome_labels: list[str]=['X']):
+    def smooth_unknowns(self, allosome_labels: list[str] | None = None):
         """
         Smooths the unknown labels for each individual in the population.
 
@@ -661,7 +664,10 @@ class Population:
         allosome_labels: list[str], default 'X'
             A list of labels for the allosomes in the population.
         """
-       
+
+        if allosome_labels is None:
+            allosome_labels = ['X']
+
         for indiv in self:
             for allosome_label in allosome_labels:             
                 if allosome_label not in indiv.allosomes:
