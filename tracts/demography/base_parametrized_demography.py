@@ -677,7 +677,7 @@ class BaseParametrizedDemography(ABC):
         return violation_score
 
     @staticmethod
-    def parse_proportions(ancestor_names: list[str], proportions: list[str]) -> tuple[dict[str:str], str]:
+    def parse_proportions(ancestor_names: list[str], proportions: list[str]) -> tuple[dict[str, str], str]:
         """
         Parses the ancestry proportions used in a founding event into a dict of parametrized source populations and a remainder population.
 
