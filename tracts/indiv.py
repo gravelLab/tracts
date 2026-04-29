@@ -142,7 +142,7 @@ class Indiv:
                 self.name = name
             else:
                 self.name = self._next_unnamed_name()
-                logger.warning(f"No name for individual provided, setting name to {self.name}'.")
+                logger.warning(f"No name for individual provided, setting name to {self.name}.")
             if chroms is None:
                 self.chroms = [Chropair(chropair_len=length,
                                         label=label) for length in Ls]
