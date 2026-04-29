@@ -1287,7 +1287,9 @@ class FixedParametersHandler:
         """
         def objective_func(params):
             migration_matrices = demography.get_migration_matrices(params)
-            diff = [prop[:-1] - self.known_ancestry_proportions[sample_pop] for sample_pop, prop in demography.proportions_from_matrices(migration_matrices=migration_matrices)]
+            diff = [prop[:-1] - self.known_ancestry_proportions[sample_pop]
+                    for sample_pop, prop in demography.proportions_from_matrices(
+                        migration_matrices=migration_matrices).items()]
             return np.linalg.norm(diff)
         
         result = scipy.optimize.minimize(objective_func, 
