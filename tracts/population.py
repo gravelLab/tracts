@@ -172,6 +172,9 @@ class Population:
         self.allosome_labels=allosomes
         self.allosome_lengths: dict[str, float]={}
         self.indivs: list[Indiv] = []
+        if isinstance(male_list, str):
+            male_list = [male_list] # For backward compatibility, if a single string is provided, convert it to a list with one element. Not docummented to avoid encouraging this use.
+        self.male_list = [] if male_list is None else list(male_list)
         if male_list is None:
             self.male_list: list[str] = [] # Will be populated by labels of male individuals.
         else:

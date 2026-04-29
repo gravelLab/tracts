@@ -23,10 +23,14 @@ class Indiv:
     name: str
         An optional name for the individual.
     allosomes: dict
-        A dictionary mapping chromosome labels to chromosome objects, for chromosomes that are treated as allosomes.   
-    unnamed_counter: int
-        The number of unnamed individuals, used to generate unique names for them.  
+        A dictionary mapping chromosome labels to chromosome objects, for chromosomes that are treated as allosomes.    
     """
+
+    unnamed_counter = 0
+    @classmethod
+    def _next_unnamed_name(cls) -> str:
+        cls.unnamed_counter += 1
+        return f"unnamed_{cls.unnamed_counter}"
 
     @staticmethod
     def from_haploids(haps: list[Haploid], name: str = None, allosome_labels: list[str] | None = None):
@@ -74,7 +78,7 @@ class Indiv:
         paths: list of str
             A list of two file paths, each describing one haplotype of the individual. The files should be tab-delimited text files with columns: chrom, start, end, label, and optionally others. The first line may be a header, which will be automatically skipped if it contains the expected column names.
         selectchrom: list[int | str], optional
-            An optional list of chromosome labels to select from the files. If not provided, all chromosomes will be selected. The list should contain chromosome identifiers separated by commas (e.g., ["1", "2", "3"]). Chromosome identifiers should be integers corresponding to the chromosome numbers in the files (e.g., "1" for chromosome 1). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
+            An optional list of chromosome labels to select from the files. If not provided, all chromosomes will be selected. Chromosome labels should be integers or strings corresponding to the chromosome numbers in the files (e.g., "1" for chromosome 1). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
         name: str, optional
             An optional name for the individual. If not provided, the name will be set to the name of the first haploid individual loaded from the files.
         allosomes: list of str, optional
@@ -137,9 +141,8 @@ class Indiv:
             if name:    
                 self.name = name
             else:
-                self.unnamed_counter += 1
-                self.name = "unnamed_" + str(self.unnamed_counter) 
-                logger.warning(f"No name provided for individual {self.name}, setting name to 'unnamed_{self.unnamed_counter}'.")
+                self.name = self._next_unnamed_name()
+                logger.warning(f"No name for individual provided, setting name to {self.name}'.")
             if chroms is None:
                 self.chroms = [Chropair(chropair_len=length,
                                         label=label) for length in Ls]
