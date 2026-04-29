@@ -92,7 +92,7 @@ def model_with_multiple_populations(basic_model):
 def test_initialization(basic_model):
     """Test that a new instance initializes correctly with default parameters"""
     assert basic_model.name == ""
-    assert basic_model.min_time == 2
+    assert basic_model.min_time == 1
     assert basic_model.max_time == np.inf
     assert len(basic_model.model_base_params) == 0
     assert len(basic_model.dependent_params) == 0
@@ -138,7 +138,7 @@ def test_add_parameter(basic_model):
     basic_model.add_parameter("time1", ParamType.TIME)
     assert "time1" in basic_model.model_base_params
     assert basic_model.model_base_params["time1"].type == ParamType.TIME
-    assert basic_model.model_base_params["time1"].bounds == (2, np.inf)
+    assert basic_model.model_base_params["time1"].bounds == (1, np.inf)
 
 
 def test_parameter_bounds(custom_time_model):

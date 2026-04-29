@@ -18,7 +18,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List
 from pydantic_core import PydanticUndefined
 import logging
-logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 # ---------- Driver file setup ----------
