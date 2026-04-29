@@ -318,7 +318,7 @@ class BaseParametrizedDemography(ABC):
         list[tuple[float, float]]
             A list of tuples representing the bounds for the free parameters of the model. The order of the bounds corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         """
-        return [param.bound for param in self.model_base_params.values()]
+        return [param.bounds for param in self.model_base_params.values()]
 
     @staticmethod
     def proportions_from_matrix(migration_matrix: np.ndarray):
