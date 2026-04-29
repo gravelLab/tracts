@@ -81,8 +81,8 @@ sex_types=[SexType.MALE, SexType.FEMALE]
 
 class ParametrizedDemographySexBiased(ParametrizedDemography):
     """
-    A class representing a demographic history with varying rates of male and female migration. The classc onstructs a separate migration matrix for male and female individuals,
-    where each entry represents the proportion admixed individuals of that sex that is replaced during that migration.
+    A class representing a demographic history with varying rates of male and female migration. The class constructs a separate migration matrix for male and female individuals,
+    where each entry represents the proportion of admixed individuals of that sex that is replaced during that migration.
     The matrices are implemented as two subpopulations whose migrations have independent rate parameters but linked time parameters.
 
     Attributes
