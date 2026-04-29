@@ -95,8 +95,8 @@ class SamplesConfig(BaseModel):
         The directory where the sample files are located.
     individual_names: List[str]
         A list of individual names corresponding to the sample files. 
-    male_names: List[str] | str
-        A list of individual names corresponding to male individuals, or "auto" to automatically determine based on the presence of allosomes.
+    male_names: List[str] | None
+        A list of individual names corresponding to male individuals, or None to automatically determine based on the presence of allosomes.
     filename_format: str
         The format of the sample filenames, which should include placeholders for the individual name and chromosome (e.g. "{individual}_{chromosome}.txt").
     labels: List[str]
@@ -111,7 +111,7 @@ class SamplesConfig(BaseModel):
 
     directory: str
     individual_names: List[str]
-    male_names: List[str] | str = "auto" 
+    male_names: List[str] | None = None
     filename_format: str
     labels: List[str] = Field(default_factory=lambda: ["A", "B"])
     chromosomes: str
@@ -372,18 +372,20 @@ def load_population(driver_path: str, driver_spec: InferenceConfig, script_dir: 
                                                       script_dir=script_dir,
                                                       absolute_driver_yaml_path=driver_path)
     
+    allosome_labels = allosome_labels if allosome_labels is not None else []
     male_list = driver_spec.samples.male_names
     chromosome_list = parse_chromosomes(driver_spec.samples.chromosomes)
     logger.info(f'Chromosomes: {chromosome_list}')
-    logger.info(f'Allosomes: {allosome_labels if allosome_labels else []}')
+    logger.info(f'Allosomes: {allosome_labels}')
     pop = Population(filenames_by_individual=individual_filenames,
                     selectchrom=chromosome_list,
-                    allosomes=allosome_labels if allosome_labels else [],
+                    allosomes=allosome_labels,
                     male_list = male_list)
-    if len(allosome_labels)>=1 and allosome_labels is not None:
+    if len(allosome_labels)>=1:
         assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome."
-    if len(allosome_labels) >0:
-        pop.set_males(male_list = male_list, allosome_label = allosome_labels[0]) 
+    if len(allosome_labels)>0:
+        pop.set_males(male_list=male_list,
+                    allosome_label=allosome_labels[0]) 
     return pop
 
 

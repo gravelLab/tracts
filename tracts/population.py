@@ -106,7 +106,7 @@ class Population:
         A dictionary mapping allosome labels to their lengths.
     indivs: list[Indiv]
         A list of individuals in the population.
-    male_list: list[str]
+    male_list: list[str] | None
         A list of labels for male individuals in the population. This is used to determine the sex of individuals when the sex cannot be inferred from the data. If None, the sex of individuals will be inferred from the data by checking the number of X chromosomes.
     nind: int
         The number of individuals in the population.
@@ -121,8 +121,8 @@ class Population:
     """
 
     def __init__(self, list_indivs: list[Indiv] | None = None, names: list[str] | None = None, fname: tuple[str, str, str] | None = None,
-                labs: list[str] | None = None, selectchrom: list[int] | None = None, allosomes:list[str] | None = None, 
-                ignore_length_consistency: bool = False, filenames_by_individual: dict[str, list[str]] | None = None, male_list: list[str] | str | None = None):
+                labs: list[str] | None = None, selectchrom: list[int | str] | None = None, allosomes: list[str] | None = None, 
+                ignore_length_consistency: bool = False, filenames_by_individual: dict[str, list[str]] | None = None, male_list: list[str] | None = None):
         """
         Initializes the :class:`~tracts.population.Population` class.
 
@@ -136,7 +136,7 @@ class Population:
             A tuple with the start, middle and end of the filenames for loading individuals from files. The individual files should be specified in the format `start--Indiv--Middle--_A--End`.
         labs: list[str] | None
             A list of labels for the chromosome copies. This is used when initializing the population from a file format.
-        selectchrom: list[int] | None
+        selectchrom: list[int | str] | None
             A list of chromosome labels to select when initializing the population from a file format. If None, all chromosomes will be selected.
         allosomes: list[str] | None
             A list of labels for the allosomes in the population. This is used when initializing the population from a file format to identify which chromosomes are allosomes.
@@ -144,7 +144,7 @@ class Population:
             A flag indicating whether to ignore consistency in chromosome lengths across individuals when initializing the population from a file format. If False, an error will be raised if individuals have different chromosome lengths. If True, the population will be initialized even if individuals have different chromosome lengths.
         filenames_by_individual: dict[str, list[str]] | None
             A dictionary mapping individual names to lists of filenames for loading individuals from files. The individual files should be specified in the format `start--Indiv--Middle--_A--End`. This is an alternative to using `fname` and `names` for loading individuals from files, and allows for more flexibility in specifying the filenames for each individual.
-        male_list: list[str] | str | None
+        male_list: list[str] | None
             A list of labels for male individuals in the population. 
               
         Notes
@@ -172,6 +172,9 @@ class Population:
         self.allosome_labels=allosomes
         self.allosome_lengths: dict[str, float]={}
         self.indivs: list[Indiv] = []
+        if isinstance(male_list, str):
+            male_list = [male_list] # For backward compatibility, if a single string is provided, convert it to a list with one element. Not documented to avoid encouraging this use.
+        self.male_list = [] if male_list is None else list(male_list)
         if male_list is None:
             self.male_list: list[str] = [] # Will be populated by labels of male individuals.
         else:
@@ -611,21 +614,23 @@ class Population:
         return bins, dat
 
  
-    def set_males(self, male_list: list[str] | str, allosome_label: str='X'):
+    def set_males(self, male_list: list[str] | None, allosome_label: str='X'):
         """
         Sets the list of males for each individual.
         
         Parameters
         ----------
-        male_list: list[str] | str
+        male_list: list[str] | None
             A list of labels for male individuals in the population. 
         allosome_label: str, default 'X'
             The label for the allosome to use for determining the sex of individuals when the sex cannot be inferred from the data. 
         """
-        num_males_processed = 0;
-        if male_list != "auto":
+        num_males_processed = 0
+        if male_list is not None:
+
             if isinstance(male_list, str):
                 self.male_list = [male_list]
+                logger.warning(f"male_list should be a list of strings, but a single string was provided. Interpreting the string as a list with one element: {self.male_list}.")
             else:
                 self.male_list = list(male_list)            
             male_set = set(self.male_list)

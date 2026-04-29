@@ -3,6 +3,8 @@ from typing import Any
 from tracts.tract import Tract
 from tracts.chromosome import Chrom
 import numpy as np
+import logging
+logger=logging.getLogger(__name__)
 class Haploid:
     """
     A class representing a haploid genome, composed of a set of chromosomes,
@@ -23,7 +25,7 @@ class Haploid:
     """
 
     @staticmethod
-    def from_file(path: str, name: str = None, selectchrom: list[int] | None = None, allosome_labels: set | None = None):
+    def from_file(path: str, name: str = None, selectchrom: list[int | str] | None = None, allosome_labels: set | None = None):
         """
         Load a haploid genome from a file.
 
@@ -33,9 +35,9 @@ class Haploid:
             The path to the file containing the haploid genome data. The file should be a tab-delimited text file with columns: chrom, start, end, label, and optionally others. The first line may be a header, which will be automatically skipped if it contains the expected column names.
         name: str, optional
             An optional name for the haploid genome. If not provided, the name will be set to None.
-        selectchrom: list[int], optional
-            An optional list of chromosome numbers to select from the file. If not provided, all chromosomes will be selected. Chromosome numbers should be integers corresponding to the chromosome numbers in the file (e.g., 1 for chromosome 1). Chromosome numbers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
-        allosome_labels: set, optional
+        selectchrom: list[int | str] | None
+            An optional list of chromosome identifiers specifying which chromosomes to select from the file. If not provided, all chromosomes will be selected. Elements are converted to integers when possible. Non-numeric values are ignored with a warning.
+        allosome_labels: set | None, optional
             An optional set of chromosome labels that should be treated as allosomes. If not provided, no chromosomes will be treated as allosomes. Chromosome labels should be strings corresponding to the chromosome identifiers in the file (e.g., "X" for the X chromosome). Chromosome labels that are not present in the file will be ignored, and no chromosomes will be treated as allosomes.
         
         Returns
@@ -84,7 +86,7 @@ class Haploid:
         labs = []
         Ls: list[int] = []
         allosomes: dict[Any, Chrom]={}
-
+            
         # Construct a function that tells us whether a given chromosome is selected or not.
         if selectchrom is None:
             # selectchrom being None means that all chromosomes are selected, so the selection function always returns True.
@@ -96,7 +98,16 @@ class Haploid:
             # backwards-compatibility with previous scripts that specified
             # chromosome numbers as strings.) And we make a set out of the
             # resulting normalized list, to speed up lookups later.
-            sc = set(map(int, selectchrom))
+            valid_chroms = set()
+            invalid = []
+            for x in selectchrom:
+                try:
+                    valid_chroms.add(int(x))
+                except (ValueError, TypeError):
+                    invalid.append(x)
+            if invalid:
+                logger.warning(f"Ignoring non-numeric chromosome identifiers: {invalid}. Please ensure that all chromosome identifiers in selectchrom can be converted to integers.")
+            sc = set(valid_chroms)
 
             # The function that tests for inclusion simply casts its argument
             # (which is a string since it's read in from a file) to an int, and checks whether its in our set.
@@ -131,8 +142,8 @@ class Haploid:
 
         return Haploid(Ls=Ls, lschroms=chroms, labs=labs, name=name, allosomes=allosomes)
 
-    def __init__(self, Ls: list=None, lschroms: list=None, fname: str=None, selectchrom: set=None,
-                 labs: list=None, name: str=None, allosomes: dict[Any, Chrom]=None):
+    def __init__(self, Ls: list = None, lschroms: list = None, fname: str = None, selectchrom: list[int | str] | None = None,
+                 labs: list = None, name: str = None, allosomes: dict[Any, Chrom] = None):
         """
         Initialize a Haploid object.
 
@@ -144,8 +155,8 @@ class Haploid:
             The chromosome objects. If not provided, the chromosome objects will be loaded from the file specified by fname. If neither lschroms nor fname are provided, an error will be raised.
         fname: str, optional
             The path to the file containing the haploid genome data. If not provided, the chromosome objects will be provided directly in lschroms. If neither fname nor lschroms are provided, an error will be raised. The file should be a tab-delimited text file with columns: chrom, start, end, label, and optionally others. The first line may be a header, which will be automatically skipped if it contains the expected column names.
-        selectchrom: set, optional
-            An optional set of chromosome identifiers specifying which chromosomes to select from the file. If not provided, all chromosomes will be selected. The set should contain chromosome identifiers as strings corresponding to the chromosome numbers in the file (e.g., {"1", "2", "3"}). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
+        selectchrom: list[int | str] | None, optional
+            An optional list of chromosome identifiers specifying which chromosomes to select from the file. If not provided, all chromosomes will be selected. The list should contain chromosome identifiers as strings or integers corresponding to the chromosome numbers in the file (e.g., ["1", "2", "3"]). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
         labs: list of str, optional
             A list of labels for the chromosomes. If not provided, no labels will be assigned.
         name: str, optional
@@ -164,7 +175,8 @@ class Haploid:
             self.name = name
             self.allosomes=allosomes if allosomes else {}
         else:
-            h = Haploid.from_file(fname, selectchrom=selectchrom)
+            h = Haploid.from_file(path=fname,
+                                selectchrom=selectchrom)
             self.Ls = h.Ls
             self.chroms = h.chroms
             self.labs = h.labs
