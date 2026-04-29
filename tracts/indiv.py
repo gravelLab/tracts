@@ -63,7 +63,7 @@ class Indiv:
         return Indiv(chroms=chroms, Ls=haps[0].Ls, allosomes=allosomes, name=name)
 
     @staticmethod
-    def from_files(paths: list[str], selectchrom: str | None = None, name: str | None = None, allosomes: list[str] | None = None):
+    def from_files(paths: list[str], selectchrom: list[int | str] | None = None, name: str | None = None, allosomes: list[str] | None = None):
         """ 
         Constructs a diploid individual from two files, which describe the individuals haplotypes.
 
@@ -71,8 +71,8 @@ class Indiv:
         ----------
         paths: list of str
             A list of two file paths, each describing one haplotype of the individual. The files should be tab-delimited text files with columns: chrom, start, end, label, and optionally others. The first line may be a header, which will be automatically skipped if it contains the expected column names.
-        selectchrom: str, optional
-            An optional string specifying which chromosomes to select from the files. If not provided, all chromosomes will be selected. The string should contain chromosome identifiers separated by commas (e.g., "1,2,3"). Chromosome identifiers should be integers corresponding to the chromosome numbers in the files (e.g., "1" for chromosome 1). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
+        selectchrom: list[int | str], optional
+            An optional list of chromosome labels to select from the files. If not provided, all chromosomes will be selected. The list should contain chromosome identifiers separated by commas (e.g., ["1", "2", "3"]). Chromosome identifiers should be integers corresponding to the chromosome numbers in the files (e.g., "1" for chromosome 1). Chromosome identifiers that cannot be converted to integers will be ignored, and the corresponding chromosomes will not be selected.
         name: str, optional
             An optional name for the individual. If not provided, the name will be set to the name of the first haploid individual loaded from the files.
         allosomes: list of str, optional
@@ -98,7 +98,7 @@ class Indiv:
                                     allosome_labels=allosomes)
 
     def __init__(self, Ls:list[float]|None=None, label:str="POP", fname:str|None=None, 
-                 labs: tuple[str, str]=("_A", "_B"), selectchrom: list[int]|None=None, chroms: list[Chropair] | None = None, 
+                 labs: tuple[str, str]=("_A", "_B"), selectchrom: list[int | str]|None=None, chroms: list[Chropair] | None = None, 
                  allosomes: dict[str, list[Chrom]]=None, name:str|None=None):
         """ 
         Constructs a diploid individual. There are several ways to build individuals, either from files, from existing data, or
@@ -118,7 +118,7 @@ class Indiv:
             component of ``fname``.
         labs : 2-tuple of str
             Default is ``("_A", "_B")``. The labels used to identify maternal and paternal haplotypes in the paths leading to .bed files.
-        selectchrom : list[int] | None
+        selectchrom : list[int | str] | None
             Default is ``None``. Selects which chromosomes to load. The default value of ``None`` selects all chromosomes.
         name : string
             Default is ``None``. An identifier for this individual.
@@ -136,13 +136,15 @@ class Indiv:
             else:
                 self.name = fname[0].split('/')[-1]  
             if chroms is None:
-                self.chroms = [Chropair(chropair_len=length, label=label) for length in Ls]
+                self.chroms = [Chropair(chropair_len=length,
+                                        label=label) for length in Ls]
             else:
                 self.chroms = chroms
             self.allosomes=allosomes
         else:
             fnames = [fname[0] + lab + fname[1] for lab in labs]
-            i = Indiv.from_files(fnames, selectchrom)
+            i = Indiv.from_files(paths=fnames,
+                                selectchrom=selectchrom)
             if name:    
                 self.name = name
             else:

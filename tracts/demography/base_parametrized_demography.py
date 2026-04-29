@@ -690,7 +690,7 @@ class BaseParametrizedDemography(ABC):
         
         Returns
         -------
-        tuple[dict[str:str], str]
+        tuple[dict[str, str], str]
             A tuple of the form (``source_populations``, ``remainder_population``), where ``source_populations`` is a dict mapping the names of the ancestor populations with parametrized proportions to their corresponding proportion parameters, and ``remainder_population`` is the name of the ancestor population whose proportion is equal to 1 minus the sum of the other proportions.
         """
         #TODO: Add support for constants in proportions.
@@ -708,7 +708,7 @@ class BaseParametrizedDemography(ABC):
                         'This syntax is reserved for the population whose proportion is fixed'
                         ' by the proportions of the other populations '
                         'such that the sum of all proportions is 1.\n'
-                        'Only one proportion should be an expression beginning with "1-"')
+                        'Only one proportion should be an expression beginning with "1-".')
                 remainder_population = population
                 remainder_proportion_string = proportion
             else:
@@ -721,7 +721,7 @@ class BaseParametrizedDemography(ABC):
                                       'When using parametrized founding proportions, a population must be specified '
                                       'whose proportion takes the form "1-[the other proportions]".\n'
                                       'For example, in a three-population founder event, '
-                                      'if two of the proportions are "a" and "b", the other must be "1-a-b."')
+                                      'if two of the proportions are "a" and "b", the other must be "1-a-b".')
 
         # Check if the "1-" expression correctly contains all the other parameters.
         if not all(p1 == p2 for p1, p2 in
@@ -731,7 +731,7 @@ class BaseParametrizedDemography(ABC):
                 'When using parametrized founding proportions, a population must be specified '
                 'whose proportion takes the form "1-[the other proportions]".\n'
                 'For example, in a three-population founder event, if two of the proportions are "a" and "b",'
-                ' the other must be "1-a-b."')
+                ' the other must be "1-a-b".')
 
         return source_populations, remainder_population
     
@@ -744,7 +744,7 @@ class BaseParametrizedDemography(ABC):
         return
 
     def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list[str], 
-                                proportions: dict[str: list[float]], params_to_fix_by_value:dict[str:float]={}):
+                                proportions: dict[str, list[float]], params_to_fix_by_value: dict[str, float]={}):
         """
         Tells the model to calculate certain rate parameters based on the known ancestry proportions of the sample populations. Proportions are given as a dict with keys corresponding to the sample populations.
 
@@ -752,9 +752,9 @@ class BaseParametrizedDemography(ABC):
         ----------
         params_to_fix_by_ancestry: list[str]
             A list of the names of the parameters to be fixed by ancestry proportions.
-        proportions: dict[str: list[float]]
+        proportions: dict[str, list[float]]
             A dict mapping sample population names to their corresponding ancestry proportions, which are used to fix the parameters in ``params_to_fix_by_ancestry``.
-        params_to_fix_by_value: dict[str:float]
+        params_to_fix_by_value: dict[str, float]
             A dict mapping parameter names to their corresponding values, which are used to fix parameters by user-defined values. These parameters cannot be optimized and are not computed from ancestry proportions.
         """
 
@@ -830,7 +830,7 @@ class FixedParametersHandler:
         return self.known_ancestry_proportions is not None
 
 
-    def order_fixed_param_dict(self, fixed_params_dict: dict[str: float]):
+    def order_fixed_param_dict(self, fixed_params_dict: dict[str, float]):
         """
         Orders the given dict of fixed parameters by the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
 
@@ -923,7 +923,7 @@ class FixedParametersHandler:
 
 
     def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str],
-                                    proportions: dict[str: list[float]], user_params_to_fix_by_value:dict[str:float]={}):
+                                    proportions: dict[str, list[float]], user_params_to_fix_by_value: dict[str, float]={}):
         """
         Tells the model to calculate certain rate parameters based on the known ancestry proportions of the sample populations, or to fix them by value. 
         
@@ -933,9 +933,9 @@ class FixedParametersHandler:
             The demography object that this FixedParametersHandler is associated with.
         params_to_fix_by_ancestry: list[str]
             A list of the names of the parameters to be fixed by ancestry proportions.
-        proportions: dict[str: list[float]]
+        proportions: dict[str, list[float]]
             A dict mapping sample population names to their corresponding ancestry proportions, which are used to fix the parameters in ``params_to_fix_by_ancestry``.
-        user_params_to_fix_by_value: dict[str:float]
+        user_params_to_fix_by_value: dict[str, float]
             A dict mapping parameter names to their corresponding values, which are used to fix parameters by user-defined values. These parameters cannot be optimized and are not computed from ancestry proportions.       
         """
 
