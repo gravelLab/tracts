@@ -134,7 +134,6 @@ class Indiv:
         -----
 	    If ``Ls`` is given, but ``chroms`` is not, then chromosomes consisting each of a single tract will be created with the label ``label`` and lengths drawn from ``Ls``. If the ``fname`` argument is given, the constructor will perform path manipulation involving the components of `fname` and `labs` to generate file names that are commonly used when dealing with .bed files. The facilities in this constructor for loading individuals from files are deprecated. It is recommended to instead use the static methods :func:`~tracts.indiv.Indiv.from_files` or :func:`~tracts.indiv.Indiv.from_haploids`.
         """
-        self.unnamed_counter = 0
 
         if fname is None:
             self.Ls = Ls
@@ -142,7 +141,7 @@ class Indiv:
                 self.name = name
             else:
                 self.name = self._next_unnamed_name()
-                logger.warning(f"No name for individual provided, setting name to {self.name}'.")
+                logger.warning(f"No name for individual provided, setting name to {self.name}.")
             if chroms is None:
                 self.chroms = [Chropair(chropair_len=length,
                                         label=label) for length in Ls]
