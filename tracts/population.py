@@ -622,9 +622,14 @@ class Population:
         allosome_label: str, default 'X'
             The label for the allosome to use for determining the sex of individuals when the sex cannot be inferred from the data. 
         """
-        num_males_processed = 0;
+        num_males_processed = 0
         if male_list is not None:
-            self.male_list = list(male_list)            
+
+            if isinstance(male_list, str):
+                self.male_list = [male_list]
+                logger.warning(f"male_list should be a list of strings, but a single string was provided. Interpreting the string as a list with one element: {self.male_list}.")
+            else:
+                self.male_list = list(male_list)            
             male_set = set(self.male_list)
 
             for indiv in self:

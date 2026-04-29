@@ -3,6 +3,8 @@ from typing import Any
 from tracts.tract import Tract
 from tracts.chromosome import Chrom
 import numpy as np
+import logging
+logger=logging.getLogger(__name__)
 class Haploid:
     """
     A class representing a haploid genome, composed of a set of chromosomes,
@@ -34,7 +36,7 @@ class Haploid:
         name: str, optional
             An optional name for the haploid genome. If not provided, the name will be set to None.
         selectchrom: list[int | str] | None
-            An optional list of chromosome identifiers specifying which chromosomes to select from the file. If not provided, all chromosomes will be selected.
+            An optional list of chromosome identifiers specifying which chromosomes to select from the file. If not provided, all chromosomes will be selected. Elements are converted to integers when possible. Non-numeric values are ignored with a warning.
         allosome_labels: set | None, optional
             An optional set of chromosome labels that should be treated as allosomes. If not provided, no chromosomes will be treated as allosomes. Chromosome labels should be strings corresponding to the chromosome identifiers in the file (e.g., "X" for the X chromosome). Chromosome labels that are not present in the file will be ignored, and no chromosomes will be treated as allosomes.
         
@@ -84,7 +86,7 @@ class Haploid:
         labs = []
         Ls: list[int] = []
         allosomes: dict[Any, Chrom]={}
-
+            
         # Construct a function that tells us whether a given chromosome is selected or not.
         if selectchrom is None:
             # selectchrom being None means that all chromosomes are selected, so the selection function always returns True.
@@ -96,7 +98,16 @@ class Haploid:
             # backwards-compatibility with previous scripts that specified
             # chromosome numbers as strings.) And we make a set out of the
             # resulting normalized list, to speed up lookups later.
-            sc = set(map(int, selectchrom))
+            valid_chroms = set()
+            invalid = []
+            for x in selectchrom:
+                try:
+                    valid_chroms.add(int(x))
+                except (ValueError, TypeError):
+                    invalid.append(x)
+            if invalid:
+                logger.warning(f"Ignoring non-numeric chromosome identifiers: {invalid}. Please ensure that all chromosome identifiers in selectchrom can be converted to integers.")
+            sc = set(valid_chroms)
 
             # The function that tests for inclusion simply casts its argument
             # (which is a string since it's read in from a file) to an int, and checks whether its in our set.

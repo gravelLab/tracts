@@ -372,17 +372,18 @@ def load_population(driver_path: str, driver_spec: InferenceConfig, script_dir: 
                                                       script_dir=script_dir,
                                                       absolute_driver_yaml_path=driver_path)
     
+    allosome_labels = allosome_labels if allosome_labels is not None else []
     male_list = driver_spec.samples.male_names
     chromosome_list = parse_chromosomes(driver_spec.samples.chromosomes)
     logger.info(f'Chromosomes: {chromosome_list}')
-    logger.info(f'Allosomes: {allosome_labels if allosome_labels else []}')
+    logger.info(f'Allosomes: {allosome_labels}')
     pop = Population(filenames_by_individual=individual_filenames,
                     selectchrom=chromosome_list,
-                    allosomes=allosome_labels if allosome_labels else [],
+                    allosomes=allosome_labels,
                     male_list = male_list)
-    if len(allosome_labels)>=1 and allosome_labels is not None:
+    if len(allosome_labels)>=1:
         assert(allosome_labels[0] == 'X'), "Currently only X allosome is supported for male determination. Should be first allosome."
-    if len(allosome_labels) >0:
+    if len(allosome_labels)>0:
         pop.set_males(male_list=male_list,
                     allosome_label=allosome_labels[0]) 
     return pop
