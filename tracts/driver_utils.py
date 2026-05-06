@@ -555,14 +555,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The model for autosomal admixture. Defaults to 'DC'.
     ad_model_allosomes: str
         The model for allosomal admixture. Defaults to 'DC'.
-
     """
     
     # ------ Create output directory if it doesn't exist ------
     output_dir = driver_spec.output_directory
     if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-
+        os.makedirs(output_dir)
+        
     # ------- Set up output filename format and load required parameters for output production ------
     output_filename_format = driver_spec.output_filename_format
     exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
@@ -982,3 +981,5 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # Final message
     print('Results saved to : ' + output_dir)
     logger.info('Results saved to : ' + output_dir)
+
+

@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Callable
 import numpy as np
+import os
 from tracts.population import Population
 from tracts.core import optimize_cob, optimize_cob_sex_biased, optimize_cob_sex_biased_fixed_values
 from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
@@ -39,16 +40,27 @@ def run_tracts(driver_filename: str, script_dir: str):
     else:
         log_filename = "tracts.log"
         logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
-    set_log_file(log_filename, memory_handler)
-    logger.info(f"Using log file: {log_filename}")
+    
+    output_dir = driver_spec.output_directory # Create output directory if it doesn't exist 
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    set_log_file(log_filename=Path(output_dir) / log_filename,
+                memory_handler=memory_handler)
+    
     logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
+    output_message = f"Results will be written to: {output_dir}."
+    logger_message = f"Using log file: {log_filename}."
+    tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.\n'
 
     # ------ Print initial information -------
     print('------------------------------------------------------------------------------------------------\n')
     print('Running tracts 2.0 with driver file:', driver_filename,'\n')
     print('Reading data, demographic model and driver specifications...\n')
     print('------------------------------------------------------------------------------------------------\n')   
-    print(f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.')
+    for message in (output_message, logger_message, tracts_below_cm_message):
+        print(message)
+        logger.info(message)
     
     # ----- Extract specifications from the driver file and do necessary checks -------
     # Autosomal admixture model is correctly specified
@@ -72,7 +84,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         print('Model for allosomal admixture not specified. Setting DC by default.')
         ad_model_allosomes = 'DC'
     else:
-        print('No allosomes found in the sample. Modelling only autosomal admixture.')
+        print('No allosomes specified in the driver file. Modelling only autosomal admixture.')
         ad_model_allosomes = None # This will trigger the code to not model allosomal admixture.
 
     # ------ Load the population -------

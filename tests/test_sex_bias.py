@@ -7,48 +7,73 @@ from tracts.demography.parameter import ParamType
 small = 10**-9
 large = 1/small
 
+"""
+This test suite checks the functionality of the ParametrizedDemographySexBiased class, which extends the ParametrizedDemography class to include sex bias parameters. The tests cover the following aspects:
+1. Model initialization and parameter addition: Tests that the model can be initialized with different parameters and that sex bias parameters can be added correctly with appropriate bounds.
+2. Dependent parameter creation: Tests that dependent parameters for male and female rates are created correctly based on the base rate and sex bias parameters.
+3. Population handling: Tests that populations are correctly handled for sex-specific operations and that sex-specific parameters are correctly associated with the population.
+4. Migration handling: Tests that pulse and continuous migrations can be added with sex bias parameters and that the migration matrices are generated correctly for both sexes.
+5. Founder event handling: Tests that founder events can be added with sex bias parameters and that the founder event parameters are created correctly with appropriate bounds. Also tests that founder events add populations correctly and that the sex bias is calculated correctly for founder events.
+6. YAML loading: Tests that a model can be loaded from a YAML file with sex-biased parameters and that the model is constructed correctly based on the YAML specifications.
+"""
 
-# Basic model fixtures
+# --------------- Basic model fixtures ---------------
+
 @pytest.fixture
 def basic_model():
-    """Fixture that provides a basic ParametrizedDemographySexBiased model."""
+    """
+    Fixture that provides a basic ParametrizedDemographySexBiased model.
+    """
     return ParametrizedDemographySexBiased()
 
 @pytest.fixture
 def custom_time_model():
-    """Fixture that provides a model with custom time bounds."""
+    """
+    Fixture that provides a model with custom time bounds.
+    """
     return ParametrizedDemographySexBiased(min_time=5, max_time=100)
 
 @pytest.fixture
 def named_model():
-    """Fixture that provides a model with a custom name."""
+    """
+    Fixture that provides a model with a custom name.
+    """
     return ParametrizedDemographySexBiased(name="TestModel")
 
 @pytest.fixture
 def complete_model():
-    """Fixture that provides a model with all initialization parameters specified."""
+    """
+    Fixture that provides a model with all initialization parameters specified.
+    """
     return ParametrizedDemographySexBiased(
         name="CompleteModel",
         min_time=10,
         max_time=200
     )
 
-# Sex bias parameter fixtures
+# --------------- Sex bias parameter fixtures ---------------
+
 @pytest.fixture
 def model_with_sex_bias_param(basic_model):
-    """Fixture that provides a model with a sex bias parameter."""
+    """
+    Fixture that provides a model with a sex bias parameter.
+    """
     basic_model.add_parameter("bias1", ParamType.SEX_BIAS)
     return basic_model
 
 @pytest.fixture
 def model_with_custom_bounds_sex_bias_param(custom_time_model):
-    """Fixture that provides a model with a sex bias parameter with custom bounds."""
+    """
+    Fixture that provides a model with a sex bias parameter with custom bounds.
+    """
     custom_time_model.add_parameter("bias1", ParamType.SEX_BIAS, bounds=(-0.5, 0.5))
     return custom_time_model
 
 @pytest.fixture
 def model_with_dependent_params(basic_model):
-    """Fixture that provides a model with sex-biased dependent parameters."""
+    """
+    Fixture that provides a model with sex-biased dependent parameters.
+    """
     # Add base rate parameter
     basic_model.add_parameter("rate1", ParamType.RATE)
     
@@ -69,7 +94,9 @@ def model_with_dependent_params(basic_model):
 
 @pytest.fixture
 def model_with_population_and_sex_bias(basic_model):
-    """Fixture that provides a model with a population and sex-specific parameters."""
+    """
+    Fixture that provides a model with a population and sex-specific parameters.
+    """
     # Add base population
     basic_model.add_population("pop1")
     
@@ -89,25 +116,30 @@ def model_with_population_and_sex_bias(basic_model):
     
     return basic_model
 
-# Founder event fixtures
+# --------------- Founder event fixtures ---------------
+
 @pytest.fixture
 def model_with_founder_event(basic_model):
-    """Fixture that provides a model with a founder event."""
+    """
+    Fixture that provides a model with a founder event.
+    """
     basic_model.add_founder_event("destination_pop", {"source_pop1": "founder_rate1"}, "source_pop2", "found_time")
     return basic_model
 
-
-
 @pytest.fixture
 def model_with_founder_event_and_params(model_with_founder_event):
-    """Fixture that provides a model with a founder event and its parameters."""
+    """
+    Fixture that provides a model with a founder event and its parameters.
+    """
     model_with_founder_event.add_parameter("founder_rate1", ParamType.RATE)
     model_with_founder_event.add_parameter("founder_rate1_sex_bias", ParamType.SEX_BIAS)
     return model_with_founder_event
 
 @pytest.fixture
 def model_with_continuous_founder_event(basic_model):
-    """Fixture that provides a model with a founder event."""
+    """
+    Fixture that provides a model with a founder event.
+    """
     basic_model.add_founder_event("destination_pop", {"source_pop1": "founder_rate1","source_pop2":"founder_rate2"}, None, "found_time", end_time = "end_time")
     basic_model.add_parameter("founder_rate1", ParamType.RATE)
     basic_model.add_parameter("founder_rate2", ParamType.RATE)
@@ -115,29 +147,38 @@ def model_with_continuous_founder_event(basic_model):
     basic_model.add_parameter("founder_rate2_sex_bias", ParamType.SEX_BIAS)
     return basic_model
 
-# Migration fixtures
+# --------------- Migration fixtures ---------------
+
 @pytest.fixture
 def model_with_pulse_migration(model_with_founder_event):
-    """Fixture that provides a model with a founder event and pulse migration."""
+    """
+    Fixture that provides a model with a founder event and pulse migration.
+    """
     model_with_founder_event.add_pulse_migration("destination_pop", "source_pop1", "rate1", "time1")
     return model_with_founder_event
 
 @pytest.fixture
 def model_with_continuous_migration(model_with_founder_event):
-    """Fixture that provides a model with a founder event and continuous migration."""
+    """
+    Fixture that provides a model with a founder event and continuous migration.
+    """
     model_with_founder_event.add_continuous_migration("destination_pop", "source_pop1", "rate1", "start1", "end1")
     return model_with_founder_event
 
 @pytest.fixture
 def model_with_both_migrations(model_with_founder_event):
-    """Fixture that provides a model with a founder event and both types of migrations."""
+    """
+    Fixture that provides a model with a founder event and both types of migrations.
+    """
     model_with_founder_event.add_pulse_migration("destination_pop", "source_pop1", "rate1", "time1")
     model_with_founder_event.add_continuous_migration("destination_pop", "source_pop2", "rate2", "start1", "end1")
     return model_with_founder_event
 
 @pytest.fixture
 def model_with_multiple_populations(basic_model):
-    """Fixture that provides a model with multiple populations and migrations."""
+    """
+    Fixture that provides a model with multiple populations and migrations.
+    """
     # Add founder events for destination populations
     basic_model.add_founder_event("dest_pop1", {"source_pop1": "founder_rate1"}, "source_pop2", "found_time1")
     basic_model.add_founder_event("dest_pop2", {"source_pop2": "founder_rate2"}, "source_pop1", "found_time2")
@@ -148,21 +189,28 @@ def model_with_multiple_populations(basic_model):
     
     return basic_model
 
-# Test functions using fixtures
+# --------------- Test functions using fixtures ---------------
+
 def test_add_sex_bias_parameter(model_with_sex_bias_param):
-    """Test adding different types of parameters"""
+    """
+    Checks that sex-bias parameters are added correctly to the model with appropriate bounds.
+    """
     # Test adding sex bias parameter
     assert "bias1" in model_with_sex_bias_param.model_base_params
     assert model_with_sex_bias_param.model_base_params["bias1"].type == ParamType.SEX_BIAS
     assert model_with_sex_bias_param.model_base_params["bias1"].bounds == (-1, 1)
 
 def test_sex_bias_parameter_bounds(model_with_custom_bounds_sex_bias_param):
-    """Test that parameters are created with correct bounds"""
+    """
+    Checks that parameters are created with correct bounds.
+    """
     # Test custom bounds for sex bias parameter
     assert model_with_custom_bounds_sex_bias_param.model_base_params["bias1"].bounds == (-0.5, 0.5)
 
 def test_dependent_parameter_creation(model_with_dependent_params):
-    """Test creation of sex-biased dependent parameters"""
+    """
+    Test creation of sex-biased dependent parameters.
+    """
     # Test dependent parameters
     assert "rate1_male" in model_with_dependent_params.dependent_params
     assert "rate1_female" in model_with_dependent_params.dependent_params
@@ -178,7 +226,9 @@ def test_dependent_parameter_creation(model_with_dependent_params):
     assert np.isclose(female_rate, 0.5 * (1 + 0.3))
 
 def test_population_sex_specific(model_with_population_and_sex_bias):
-    """Test that populations are correctly handled for sex-specific operations"""
+    """
+    Test that populations are correctly handled for sex-specific operations.
+    """
     # Finalize the model
     model_with_population_and_sex_bias.finalize()
     
@@ -194,7 +244,9 @@ def test_population_sex_specific(model_with_population_and_sex_bias):
     assert np.isclose(female_rate, 0.5 * (1 + 0.3))
 
 def test_add_pulse_migration(model_with_pulse_migration):
-    """Test adding pulse migrations with sex bias"""
+    """
+    Checks that pulse migrations with sex bias are added correctly. This includes verifying that the appropriate parameters are created and that the migration events are recorded for both sexes.
+    """
     # Verify parameters were added
     assert "rate1" in model_with_pulse_migration.model_base_params
     assert "rate1_sex_bias" in model_with_pulse_migration.model_base_params
@@ -217,7 +269,9 @@ def test_add_pulse_migration(model_with_pulse_migration):
     assert len(model_with_pulse_migration.events["destination_pop_female"]) == 1
 
 def test_add_continuous_migration(model_with_continuous_migration):
-    """Test adding continuous migrations with sex bias"""
+    """
+    Checks that continuous migrations with sex-bias are added correctly. This includes verifying that the appropriate parameters are created and that the migration events are recorded for both sexes.
+    """
     # Verify parameters were added
     assert "rate1" in model_with_continuous_migration.model_base_params
     assert "rate1_sex_bias" in model_with_continuous_migration.model_base_params
@@ -241,7 +295,9 @@ def test_add_continuous_migration(model_with_continuous_migration):
     assert len(model_with_continuous_migration.events["destination_pop_female"]) == 1
 
 def test_migration_parameter_creation(model_with_pulse_migration):
-    """Test that sex bias parameters are created correctly for migrations"""
+    """
+    Checks that migration parameters are created correctly with sex-bias for both pulse and continuous migrations.
+    """
     # Verify sex bias parameter
     assert "rate1_sex_bias" in model_with_pulse_migration.model_base_params
     assert model_with_pulse_migration.model_base_params["rate1_sex_bias"].type == ParamType.SEX_BIAS
@@ -256,7 +312,9 @@ def test_migration_parameter_creation(model_with_pulse_migration):
     assert model_with_pulse_migration.model_base_params["rate2_sex_bias"].bounds == (-1, 1)
 
 def test_migration_execution(model_with_pulse_migration):
-    """Test that migrations are executed correctly for both sexes"""
+    """
+    Test that migrations are executed correctly for both sexes. This includes verifying that the migration matrices are generated correctly based on the sex-biased parameters and that the migration rates are applied correctly for both pulse migrations.
+    """
     # Finalize the model
     model_with_pulse_migration.finalize()
     
@@ -285,7 +343,10 @@ def test_migration_execution(model_with_pulse_migration):
     assert np.isclose(migration_matrices["destination_pop_female"][5, 0], female_rate)
 
 def test_founder_event_parameter_creation(model_with_founder_event):
-    """Test that founder event parameters are created correctly with sex bias"""
+    """
+    Test that founder event parameters are created correctly with sex-bias. This includes verifying that the appropriate parameters are created with correct types and bounds, 
+    and that dependent parameters for male and female rates are created correctly based on the base rate and sex-bias parameters. 
+    """
     # Verify parameters were added
     assert "founder_rate1" in model_with_founder_event.model_base_params
     assert "founder_rate1_sex_bias" in model_with_founder_event.model_base_params
@@ -306,7 +367,10 @@ def test_founder_event_parameter_creation(model_with_founder_event):
     assert "founder_rate1_female" in model_with_founder_event.dependent_params
 
 def test_continuous_founder_event_parameter_creation(model_with_continuous_founder_event):
-    """Test that founder event parameters are created correctly with sex bias"""
+    """
+    Checks that founder event parameters are created correctly with sex-bias for continuous founder events. This includes verifying that the appropriate parameters are created with correct types and bounds, 
+    and that dependent parameters for male and female rates are created correctly based on the base rate and sex-bias parameters for both founder_rate1 and founder_rate2.
+    """
     # Verify parameters were added
     assert "founder_rate1" in model_with_continuous_founder_event.model_base_params
     assert "founder_rate1_sex_bias" in model_with_continuous_founder_event.model_base_params
@@ -334,7 +398,9 @@ def test_continuous_founder_event_parameter_creation(model_with_continuous_found
 
 
 def test_founder_event_population_addition(model_with_founder_event):
-    """Test that founder event adds populations correctly"""
+    """
+    Checks that founder event adds populations correctly. This includes verifying that the destination population is added to the model and that the founder event is recorded for both male and female populations with the correct source populations and rates.
+    """
     # Verify populations were added
     assert "source_pop1" in model_with_founder_event.population_indices
     assert "source_pop2" in model_with_founder_event.population_indices
@@ -350,7 +416,10 @@ def test_founder_event_population_addition(model_with_founder_event):
     assert model_with_founder_event.founder_events["destination_pop_female"].remainder_population == "source_pop2"
 
 def test_founder_event_sex_bias_calculation(model_with_founder_event_and_params):
-    """Test that founder event sex bias is calculated correctly"""
+    """
+    Test that founder event sex bias is calculated correctly.
+    This includes verifying that the dependent parameters for male and female founder rates are calculated correctly based on the base founder rate and the sex bias parameter for a simple founder event.
+    """
     # Finalize the model
     model_with_founder_event_and_params.finalize()
     
@@ -370,7 +439,11 @@ def test_founder_event_sex_bias_calculation(model_with_founder_event_and_params)
     assert np.isclose(female_rate, expected_female_rate)
 
 def test_continuous_founder_event_sex_bias_calculation(model_with_continuous_founder_event):
-    """Test that founder event sex bias is calculated correctly"""
+    """
+    Checks that founder event sex-bias is calculated correctly for continuous founder events. This includes verifying that the dependent parameters
+    for male and female founder rates are calculated correctly based on the base founder rates and the sex-bias parameters for both founder_rate1
+    and founder_rate2 for a continuous founder event.
+    """
     # Finalize the model
     model_with_continuous_founder_event.finalize()
     
@@ -402,7 +475,12 @@ def test_continuous_founder_event_sex_bias_calculation(model_with_continuous_fou
 
 
 def test_yaml_loading_basic():
-    """Test loading a basic sex-biased demography from YAML"""
+    """
+    Test loading a basic sex-biased demography from YAML. This test checks that a model can be loaded from a YAML file with
+    sex-biased parameters and that the model is constructed correctly based on the YAML specifications. It verifies that the model name,
+    founder events, parameters, dependent parameters, and events are all loaded correctly from the YAML file.
+    """
+
     # Create a temporary YAML file
     yaml_content = """
 model_name: TestModel
@@ -467,7 +545,12 @@ migrations:
         os.unlink(temp_file_path)
 
 def test_yaml_loading_multiple_populations():
-    """Test loading a sex-biased demography with multiple populations from YAML"""
+    """
+    Test loading a sex-biased demography with multiple populations from YAML. This test checks that a model with multiple populations and migrations
+    can be loaded from a YAML file with sex-biased parameters and that the model is constructed correctly based on the YAML specifications.
+    It verifies that the model name, founder events, parameters, dependent parameters, and events are all loaded correctly from the YAML file for multiple populations.
+    """
+
     # Create a temporary YAML file
     yaml_content = """
 model_name: MultiPopModel
@@ -563,7 +646,10 @@ migrations:
         os.unlink(temp_file_path)
 
 def test_yaml_loading_missing_required():
-    """Test loading a YAML file with missing required fields raises appropriate errors"""
+    """
+    Checks that loading a YAML file with missing required fields raises appropriate errors.    
+    """
+
     # Create a temporary YAML file with missing required fields
     yaml_content = """
 model_name: MissingRequiredModel
@@ -593,7 +679,12 @@ pulses:
         os.unlink(temp_file_path)
 
 def test_migration_matrix_basic(model_with_both_migrations):
-    """Test that migration matrices are generated correctly for a basic model"""
+    """
+    Test that migration matrices are generated correctly for a basic model. This includes verifying that the migration matrices
+    are generated correctly based on the sex-biased parameters for both pulse and continuous migrations, and that the migration
+    rates are applied correctly for both types of migrations for both sexes.
+    """
+
     # Finalize the model
     model_with_both_migrations.finalize()
     
@@ -647,10 +738,12 @@ def test_migration_matrix_basic(model_with_both_migrations):
 
 
 def test_migration_matrix_continuous_founder(model_with_continuous_founder_event):
-    """Test that migration matrices are generated correctly for a basic model"""
+    """
+    Checks that migration matrices are generated correctly for a continuous founder event with sex-bias.
+    """
+
     # Finalize the model
     model_with_continuous_founder_event.finalize()
-    
 
     # Test parameter evaluation
     founder_rate_1 = 0.2
@@ -661,8 +754,6 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
     end_time=2
     test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
 
-
-    
     # Get migration matrices
     migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
     
@@ -689,7 +780,6 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
     assert np.isclose(migration_matrices["destination_pop_male"][6, 1], male_founder_rate2)
     assert np.isclose(migration_matrices["destination_pop_female"][6, 1], female_founder_rate2)
 
-
     # Verify that rates sum to 1 for each sex at the founding time
     assert np.isclose(migration_matrices["destination_pop_male"][maxgen-1, 0] + migration_matrices["destination_pop_male"][maxgen-1, 1], 1)
     assert np.isclose(migration_matrices["destination_pop_female"][maxgen-1, 0] + migration_matrices["destination_pop_female"][maxgen-1, 1], 1)
@@ -702,14 +792,11 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
     found_time = 8
     end_time=2
     test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
-
-
     
     # Get migration matrices
     migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
     diff =migration_matrices["destination_pop_male"] - migration_matrices["destination_pop_female"]
     assert np.isclose( np.sum(diff**2),0), f"males and females should be equal if no sex bias. "
-
 
     # Test parameter evaluation, strong bias
     founder_rate_1 = 0.5
@@ -719,8 +806,6 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
     found_time = 8
     end_time=2
     test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
-
-
     
     # Get migration matrices
     migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
@@ -730,7 +815,11 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
 
 
 def test_migration_matrix_multiple_populations(model_with_multiple_populations):
-    """Test that migration matrices are generated correctly for multiple populations"""
+    """ 
+    Checks that migration matrices are generated correctly for a model with multiple populations and migrations with sex-bias. This includes verifying that
+    the migration matrices are generated correctly based on the sex-biased parameters for both pulse and continuous migrations for multiple populations,
+    and that the migration rates are applied correctly for both types of migrations for both sexes across multiple populations.
+    """
     # Finalize the model
     model_with_multiple_populations.finalize()
     
@@ -793,15 +882,10 @@ def test_migration_matrix_multiple_populations(model_with_multiple_populations):
         assert np.isclose(migration_matrices["dest_pop2_female"][t, 0], female_continuous_rate)
 
 
-
-
-
-
-
-
-
 def test_migration_matrix_sex_bias(model_with_both_migrations):
-    """Test that sex bias is correctly applied in migration matrices"""
+    """
+    Checks that migration matrices are generated correctly with different sex-bias values for both pulse and continuous migrations.
+    """
     # Finalize the model
     model_with_both_migrations.finalize()
     
@@ -873,7 +957,9 @@ def test_migration_matrix_sex_bias(model_with_both_migrations):
     assert migration_matrices3["destination_pop_male"][3, 1] > migration_matrices3["destination_pop_female"][3, 1]
 
 def test_error_invalid_yaml_file():
-    """Test that loading non-existent YAML files raises appropriate errors"""
+    """
+    Checks that loading non-existent YAML files raises appropriate errors.
+    """
     # Try to load a non-existent YAML file
     with pytest.raises(FileNotFoundError):
         ParametrizedDemographySexBiased.load_from_YAML("non_existent_file.yaml")

@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from scipy.special import expit, logit
 
 from tracts.util import (
     time_to_physical_function,
@@ -11,6 +10,11 @@ from tracts.util import (
     sex_bias_to_optimizer_function,
 )
 
+"""
+This test suite verifies the correctness of the transformations between optimizer-space and physical-space parameters for time, rate, and sex bias. 
+The tests check that the transformations are inverses of each other, that they map to the correct ranges, and that they produce expected values for known inputs.
+Additionally, the tests ensure that vectorized and scalar inputs are both supported by the transformation functions.
+"""
 
 def test_time_transform_inverse_roundtrip():
     """

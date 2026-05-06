@@ -1,13 +1,10 @@
 from timeit import default_timer as time
 import numpy
 import tracts
-from tests.test_data import bins, Ls
+from test_data import bins, Ls
 from tracts.legacy.demographic_model import DemographicModel
 
-"""
-Tests for component methods of tracts core
-"""
-
+#TODO: Verify the usefulness of these functions.
 
 def benchmark_PTD(migration_matrix, bins, Ls, runs):
     print('Benchmarking Phase-Type Distribution')

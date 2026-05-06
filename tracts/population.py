@@ -285,8 +285,8 @@ class Population:
         """
         file_name, func_name, line_number = get_current_func_info()
         if 'X' not in allosome_labels:
-            logger.warning("X is not in the allosomes of this population. The number of males and females will be recorded as 0.")
-            logger.warning(f"If using different sex chromosomes please change this function: {func_name} in {file_name} at line {line_number}.")
+            logger.info("X is not in the allosomes of this population. The number of males and females will be recorded as 0.")
+            logger.info(f"If using different sex chromosomes please change this function: {func_name} in {file_name} at line {line_number}.")
             return 0, 0
         
         num_males = 0
@@ -655,9 +655,9 @@ class Population:
                     indiv.is_male = True
                 
                 else:
-                    raise ValueError("There should be one or two allosome copies")
+                    raise ValueError("There should be one or two allosome copies.")
                 num_males_processed += indiv.is_male
-            print(f"Identified {num_males_processed} males from allosomal data")
+            print(f"Identified {num_males_processed} males from allosomal data.")
         self.males_set = True
 
     def smooth_unknowns(self, allosome_labels: list[str] | None = None):
