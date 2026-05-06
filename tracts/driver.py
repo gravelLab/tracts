@@ -41,11 +41,20 @@ def run_tracts(driver_filename: str, script_dir: str):
         log_filename = "tracts.log"
         logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
     
-    output_dir = driver_spec.output_directory # Create output directory if it doesn't exist 
-    if not os.path.exists(output_dir):
+    if not driver_spec.output_directory:
+        logger.warning("No output directory specified in driver file. Defaulting to current working directory.")
+        output_dir = Path.cwd()
+    else:
+        output_dir = Path(driver_spec.output_directory)
+
+    if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
         os.makedirs(output_dir)
     
-    set_log_file(log_filename=Path(output_dir) / log_filename,
+    log_full_path = Path(log_filename)
+    if not log_full_path.is_absolute() and log_full_path.parent == Path("."): # If log_filename is a relative path without directories, save it in the output directory. Otherwise, save it in the specified path (which may be absolute or relative with directories).
+        log_full_path = Path(output_dir) / log_full_path
+
+    set_log_file(log_filename=log_full_path,
                 memory_handler=memory_handler)
     
     logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")

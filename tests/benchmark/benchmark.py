@@ -1,7 +1,7 @@
 from timeit import default_timer as time
 import numpy
 import tracts
-from test_data import bins, Ls
+from tests.test_data import bins, Ls
 from tracts.legacy.demographic_model import DemographicModel
 
 #TODO: Verify the usefulness of these functions.

@@ -61,6 +61,13 @@ def set_log_file(log_filename: str | Path, memory_handler):
 
     logger = logging.getLogger(LOGGER_NAME)
     formatter = _get_formatter()
+    log_filename = Path(log_filename)
+
+    # Remove previous file handlers
+    for handler in list(logger.handlers):
+        if isinstance(handler, logging.FileHandler):
+            logger.removeHandler(handler)
+            handler.close()
 
     file_handler = logging.FileHandler(log_filename, mode="w")
     file_handler.setLevel(logging.INFO)

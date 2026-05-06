@@ -181,11 +181,11 @@ class InferenceConfig(BaseModel):
     start_params: StartParamsConfig
     repetitions: int =1 
     seed: int
-    maximum_iterations: int|None=None 
+    maximum_iterations: int|None = None 
     npts: int = 50
     exclude_tracts_below_cm: float = 1
     fix_parameters_from_ancestry_proportions: List[str] = []
-    output_directory: str = ""
+    output_directory: str|None= None
     output_filename_format: str
     log_filename: Optional[str] = "tracts.log"
     ad_model_autosomes: str = "DC"
@@ -561,7 +561,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     output_dir = driver_spec.output_directory
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-        
+
     # ------- Set up output filename format and load required parameters for output production ------
     output_filename_format = driver_spec.output_filename_format
     exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
