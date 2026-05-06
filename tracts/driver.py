@@ -44,8 +44,10 @@ def run_tracts(driver_filename: str, script_dir: str):
     if not driver_spec.output_directory:
         logger.warning("No output directory specified in driver file. Defaulting to current working directory.")
         output_dir = Path.cwd()
+        driver_spec.output_directory = str(output_dir)
     else:
         output_dir = Path(driver_spec.output_directory)
+    
 
     if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
         os.makedirs(output_dir)
@@ -60,7 +62,7 @@ def run_tracts(driver_filename: str, script_dir: str):
     logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
     output_message = f"Results will be written to: {output_dir}."
     logger_message = f"Using log file: {log_filename}."
-    tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.\n'
+    tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.'
 
     # ------ Print initial information -------
     print('------------------------------------------------------------------------------------------------\n')

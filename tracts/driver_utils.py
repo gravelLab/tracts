@@ -154,7 +154,7 @@ class InferenceConfig(BaseModel):
         The minimum tract length in centiMorgans to include in the analysis. Tracts shorter than this length will be excluded. Defaults to 1 cM.
     fix_parameters_from_ancestry_proportions: List[str]
         A list of parameter names to fix based on the ancestry proportions. See online documentation for details.
-    output_directory: str
+    output_directory: str | None
         The directory where the output files will be saved. 
     output_filename_format: str
         The format of the output filenames.
@@ -558,8 +558,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
     """
     
     # ------ Create output directory if it doesn't exist ------
-    output_dir = driver_spec.output_directory
-    if not os.path.exists(output_dir):
+    output_dir = Path.cwd() if not driver_spec.output_directory else Path(driver_spec.output_directory)
+    if not os.path.exists(output_dir): 
         os.makedirs(output_dir)
 
     # ------- Set up output filename format and load required parameters for output production ------
