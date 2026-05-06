@@ -78,6 +78,7 @@ class TestDriver(unittest.TestCase):
         driver_files_allosomes = sorted(
             [f.name for f in script_dir.iterdir() if "allosomes" in f.name]
         )
+        
         output_dir = Path(__file__).parent / "drivers" / "test_output"
         log_name = "test_logfile.log"
         

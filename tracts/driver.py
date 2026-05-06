@@ -61,7 +61,7 @@ def run_tracts(driver_filename: str, script_dir: str):
     
     logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
     output_message = f"Results will be written to: {output_dir}."
-    logger_message = f"Using log file: {log_filename}."
+    logger_message = f"Using log file: {log_full_path}."
     tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.'
 
     # ------ Print initial information -------

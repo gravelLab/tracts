@@ -285,8 +285,8 @@ class Population:
         """
         file_name, func_name, line_number = get_current_func_info()
         if 'X' not in allosome_labels:
-            logger.info("X is not in the allosomes of this population. The number of males and females will be recorded as 0.")
-            logger.info(f"If using different sex chromosomes please change this function: {func_name} in {file_name} at line {line_number}.")
+            logger.warning("X is not in the allosomes of this population. The number of males and females will be recorded as 0.")
+            logger.warning(f"If using different sex chromosomes please change this function: {func_name} in {file_name} at line {line_number}.")
             return 0, 0
         
         num_males = 0

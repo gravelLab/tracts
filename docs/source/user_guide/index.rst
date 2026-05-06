@@ -251,8 +251,8 @@ Outputs
 
 ``tracts`` saves results in the ``output_directory`` specified in the :ref:`driver file<driver-file>`. For autosomes, allosomes in males and allosomes in females, these include:
 
-- ``_autosome_bins``: the bins used in the discretization for the autosomal distribution.
-- ``_allosome_bins``: if allosomes are present in the sample, the bins used in the discretization for the allosomal distributions.
+- ``_tract_length_autosome_bins``: the bins used in the discretization for the autosomal distribution.
+- ``_tract_length_allosome_bins``: if allosomes are present in the sample, the bins used in the discretization for the allosomal distributions.
 - ``_autosome_sample_tract_distribution``: the observed counts in each bin for the autosomal distribution.
 - ``_female_allosome_sample_tract_distribution``: if allosomes are present in the sample, the observed counts in each bin for the allosomal distribution in females.
 - ``_male_allosome_sample_tract_distribution``: if allosomes are present in the sample, the observed counts in each bin for the allosomal distribution in males.
@@ -261,7 +261,7 @@ Outputs
 - ``_male_allosome_predicted_tract_distribution``: if allosomes are present in the sample, the predicted counts in each bin for the allosomal distribution in males, according to the predicted model.
 - ``_female_migration_matrix``: the inferred female-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
 - ``_male_migration_matrix``: the inferred male-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
-- ``_optimal_parameters``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`.
+- ``_optimal_parameters.txt``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`.
 - ``_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
 - ``_female_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in females.
 - ``_male_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in males.
