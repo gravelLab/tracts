@@ -262,9 +262,9 @@ Outputs
 - ``_female_migration_matrix``: the inferred female-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
 - ``_male_migration_matrix``: the inferred female-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
 - ``_optimal_parameters``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`.
-- ``_output_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
-- ``_output_female_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in females.
-- ``_output_male_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in males.
+- ``_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
+- ``_female_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in females.
+- ``_male_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in males.
 
 
 
