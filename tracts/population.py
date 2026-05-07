@@ -655,9 +655,9 @@ class Population:
                     indiv.is_male = True
                 
                 else:
-                    raise ValueError("There should be one or two allosome copies")
+                    raise ValueError("There should be one or two allosome copies.")
                 num_males_processed += indiv.is_male
-            print(f"Identified {num_males_processed} males from allosomal data")
+            print(f"Identified {num_males_processed} males from allosomal data.")
         self.males_set = True
 
     def smooth_unknowns(self, allosome_labels: list[str] | None = None):

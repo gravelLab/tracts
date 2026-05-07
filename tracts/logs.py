@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import inspect      
 from pathlib import Path
 import sys
@@ -15,30 +16,37 @@ def _get_formatter():
 def setup_logger():
     logger = logging.getLogger(LOGGER_NAME)
 
-    if logger.handlers:
-        memory_handler = next(
-            (h for h in logger.handlers if isinstance(h, logging.handlers.MemoryHandler)),
-            None
-        )
-        return logger, memory_handler
-
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
     formatter = _get_formatter()
 
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(logging.WARNING)
-    stream_handler.setFormatter(formatter)
+    # Add stream handler only once
+    has_stream_handler = any(
+        isinstance(h, logging.StreamHandler)
+        and not isinstance(h, logging.FileHandler)
+        for h in logger.handlers
+    )
 
+    if not has_stream_handler:
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(logging.WARNING)
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
+    # Remove any stale MemoryHandler from a previous incomplete run
+    for handler in list(logger.handlers):
+        if isinstance(handler, logging.handlers.MemoryHandler):
+            logger.removeHandler(handler)
+            handler.close()
+
+    # Always create a fresh MemoryHandler for the current run
     memory_handler = logging.handlers.MemoryHandler(
         capacity=10000,
         flushLevel=logging.CRITICAL,
-        target=None
+        target=None,
     )
     memory_handler.setLevel(logging.INFO)
-
-    logger.addHandler(stream_handler)
     logger.addHandler(memory_handler)
 
     return logger, memory_handler
@@ -60,11 +68,17 @@ def set_log_file(log_filename: str | Path, memory_handler):
 
     logger = logging.getLogger(LOGGER_NAME)
     formatter = _get_formatter()
+    log_filename = Path(log_filename)
+
+    # Remove previous file handlers
+    for handler in list(logger.handlers):
+        if isinstance(handler, logging.FileHandler):
+            logger.removeHandler(handler)
+            handler.close()
 
     file_handler = logging.FileHandler(log_filename, mode="w")
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
-
     logger.addHandler(file_handler)
 
     if memory_handler is not None:

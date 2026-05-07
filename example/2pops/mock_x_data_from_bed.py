@@ -1,7 +1,6 @@
 import os
 import random
 
-
 source_dir = "G10_allosomes"
 
 def main():

@@ -1,38 +1,47 @@
 import os
 import tempfile
 import numpy as np
-
 import pytest
-
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
-
 from tracts.demography.parameter import small
 
+"""
+This test suite checks the functionality of the `ParametrizedDemography` class, which is responsible for modeling demographic events such as founder events and migrations in a population.
+"""
 
-
+# ------------ Create fixtures for different model configurations ------------
 
 @pytest.fixture
 def basic_model():
-    """Fixture that provides a basic ParametrizedDemography model."""
+    """
+    Fixture that provides a basic ParametrizedDemography model.
+    This model is initialized with default parameters and can be used as a starting point for various tests. It does not contain any founder events or migrations, allowing tests to add these events as needed.
+    """
     return ParametrizedDemography()
 
 
 @pytest.fixture
 def custom_time_model():
-    """Fixture that provides a model with custom time bounds."""
+    """
+    Fixture that provides a model with custom time bounds.
+    """
     return ParametrizedDemography(min_time=5, max_time=100)
 
 
 @pytest.fixture
 def named_model():
-    """Fixture that provides a model with a custom name."""
+    """
+    Fixture that provides a model with a custom name.
+    """
     return ParametrizedDemography(name="TestModel")
 
 
 @pytest.fixture
 def complete_model():
-    """Fixture that provides a model with all initialization parameters specified."""
+    """
+    Fixture that provides a model with all initialization parameters specified.
+    """
     return ParametrizedDemography(
         name="CompleteModel",
         min_time=10,
@@ -42,34 +51,44 @@ def complete_model():
 
 @pytest.fixture
 def model_with_founder_event(basic_model):
-    """Fixture that provides a model with a founder event."""
+    """
+    Fixture that provides a model with a founder event.
+    """
     basic_model.add_founder_event("destination_pop", {"source_pop1": "founder_rate1"}, "source_pop2", "found_time")
     return basic_model
 
 @pytest.fixture
 def model_with_continuous_founder_event(basic_model):
-    """Fixture that provides a model with a continuous founder event."""
+    """
+    Fixture that provides a model with a continuous founder event.
+    """
     basic_model.add_founder_event("destination_pop", {"source_pop1": "founder_rate1", "source_pop2": "founder_rate2"}, None, "found_time", end_time="end_time")
     return basic_model
 
 
 @pytest.fixture
 def model_with_pulse_migration(model_with_founder_event):
-    """Fixture that provides a model with a founder event and pulse migration."""
+    """
+    Fixture that provides a model with a founder event and pulse migration.
+    """
     model_with_founder_event.add_pulse_migration("destination_pop", "source_pop1", "rate1", "time1")
     return model_with_founder_event
 
 
 @pytest.fixture
 def model_with_continuous_migration(model_with_founder_event):
-    """Fixture that provides a model with a founder event and continuous migration."""
+    """
+    Fixture that provides a model with a founder event and continuous migration.
+    """
     model_with_founder_event.add_continuous_migration("destination_pop", "source_pop1", "rate1", "start1", "end1")
     return model_with_founder_event
 
 
 @pytest.fixture
 def model_with_both_migrations(model_with_founder_event):
-    """Fixture that provides a model with a founder event and both types of migrations."""
+    """
+    Fixture that provides a model with a founder event and both types of migrations.
+    """
     model_with_founder_event.add_pulse_migration("destination_pop", "source_pop1", "rate1", "time1")
     model_with_founder_event.add_continuous_migration("destination_pop", "source_pop2", "rate2", "start1", "end1")
     return model_with_founder_event
@@ -77,7 +96,10 @@ def model_with_both_migrations(model_with_founder_event):
 
 @pytest.fixture
 def model_with_multiple_populations(basic_model):
-    """Fixture that provides a model with multiple populations and migrations."""
+    """
+    Fixture that provides a model with multiple populations and migrations.
+     This model includes two destination populations, each with its own founder event and migrations. It allows for testing the functionality of the `ParametrizedDemography` class when handling multiple populations and complex migration scenarios.
+    """
     # Add founder events for destination populations
     basic_model.add_founder_event("dest_pop1", {"source_pop1": "founder_rate1"}, "source_pop2", "found_time1")
     basic_model.add_founder_event("dest_pop2", {"source_pop2": "founder_rate2"}, "source_pop1", "found_time2")
@@ -89,8 +111,12 @@ def model_with_multiple_populations(basic_model):
     return basic_model
 
 
+# ------------ Tests for ParametrizedDemography functionality ------------
+
 def test_initialization(basic_model):
-    """Test that a new instance initializes correctly with default parameters"""
+    """
+    Test that a new instance initializes correctly with default parameters.    
+    """
     assert basic_model.name == ""
     assert basic_model.min_time == 1
     assert basic_model.max_time == np.inf
@@ -102,20 +128,24 @@ def test_initialization(basic_model):
 
 
 def test_custom_time_bounds(custom_time_model):
-    """Test initialization with custom min_time and max_time values"""
+    """
+    Test initialization with custom min_time and max_time values.
+    """
     assert custom_time_model.min_time == 5
     assert custom_time_model.max_time == 100
 
 
 def test_name_assignment(named_model):
-    """Test that the model name is correctly assigned"""
+    """
+    Test that the model name is correctly assigned.
+    """
     assert named_model.name == "TestModel"
 
 
-
-
 def test_initialization_with_all_params(complete_model):
-    """Test initialization with all parameters specified"""
+    """
+    Test initialization with all parameters specified.
+    """
     assert complete_model.name == "CompleteModel"
     assert complete_model.min_time == 10
     assert complete_model.max_time == 200
@@ -127,7 +157,11 @@ def test_initialization_with_all_params(complete_model):
 
 
 def test_add_parameter(basic_model):
-    """Test adding different types of parameters"""
+    """
+    Test adding different types of parameters.
+    This test verifies that parameters of different types (rate and time) can be added to the model correctly, and that they are stored with the appropriate type and bounds.
+    It checks that the `add_parameter` method correctly adds parameters to the `model_base_params` dictionary with the correct type and default bounds based on the parameter type.
+    """
     # Test adding rate parameter
     basic_model.add_parameter("rate1", ParamType.RATE)
     assert "rate1" in basic_model.model_base_params
@@ -142,7 +176,9 @@ def test_add_parameter(basic_model):
 
 
 def test_parameter_bounds(custom_time_model):
-    """Test that parameters are created with correct bounds"""
+    """
+    Test that parameters are created with correct bounds.
+    """
     # Test custom bounds for rate parameter
     custom_time_model.add_parameter("rate1", ParamType.RATE, bounds=(0.1, 0.5))
     assert custom_time_model.model_base_params["rate1"].bounds == (0.1, 0.5)
@@ -153,7 +189,9 @@ def test_parameter_bounds(custom_time_model):
 
 
 def test_add_population(basic_model):
-    """Test adding populations to the model"""
+    """
+    Test adding populations to the model.
+    """
     # Add a single population
     basic_model.add_population("pop1")
     assert "pop1" in basic_model.population_indices
@@ -175,7 +213,6 @@ def test_add_population(basic_model):
     indices = list(basic_model.population_indices.values())
     assert len(indices) == len(set(indices))
 
-
 #def test_population_after_fix(basic_model):
 #    """Test that adding populations after fixing proportions raises appropriate errors"""
 #    """IMPORTANT: This test does not reflect ideal behaviour.
@@ -195,6 +232,9 @@ def test_add_population(basic_model):
 #        basic_model.add_population("pop3")
 
 def test_continuous_founder_event(model_with_continuous_founder_event):
+    """
+    Checks that the continuous founder event is added correctly to the model, including the correct parameters and event structure.
+    """
     assert "found_time" in model_with_continuous_founder_event.model_base_params
     assert "end_time" in model_with_continuous_founder_event.model_base_params
     assert "founder_rate1" in model_with_continuous_founder_event.model_base_params
@@ -202,7 +242,9 @@ def test_continuous_founder_event(model_with_continuous_founder_event):
 
 
 def test_add_pulse_migration(model_with_pulse_migration):
-    """Test adding pulse migrations"""
+    """
+    Checks that the pulse migration event is added correctly to the model, including the correct parameters and event structure.
+    """
     # Verify parameters were added
     assert "rate1" in model_with_pulse_migration.model_base_params
     assert "time1" in model_with_pulse_migration.model_base_params
@@ -216,7 +258,9 @@ def test_add_pulse_migration(model_with_pulse_migration):
 
 
 def test_add_continuous_migration(model_with_continuous_migration):
-    """Test adding continuous migrations"""
+    """
+    Checks that the continuous migration event is added correctly to the model, including the correct parameters and event structure.
+    """
     # Verify parameters were added
     assert "rate1" in model_with_continuous_migration.model_base_params
     assert "start1" in model_with_continuous_migration.model_base_params
@@ -231,7 +275,9 @@ def test_add_continuous_migration(model_with_continuous_migration):
 
 
 def test_migration_matrix_basic(model_with_both_migrations):
-    """Test that migration matrices are generated correctly for a basic model"""
+    """
+    Checks that the migration matrix generated by the `ParametrizedDemography` model for a founder event with both pulse and continuous migrations matches expected values based on the defined parameters and events.
+    """
     # Finalize the model
     model_with_both_migrations.finalize()
     
@@ -272,7 +318,9 @@ def test_migration_matrix_basic(model_with_both_migrations):
 
 
 def test_migration_matrix_multiple_populations(model_with_multiple_populations):
-    """Test that migration matrices are generated correctly for multiple populations"""
+    """
+    Checks that the migration matrices generated by the `ParametrizedDemography` model for multiple populations with various founder events and migrations match expected values based on the defined parameters and events.
+    """
     # Finalize the model
     model_with_multiple_populations.finalize()
     
@@ -319,7 +367,9 @@ def test_migration_matrix_multiple_populations(model_with_multiple_populations):
 
 
 def test_error_migration_without_founder(basic_model):
-    """Test that adding migrations without a founder event raises appropriate errors"""
+    """
+    Checks that adding migration events without a corresponding founder event raises appropriate errors.
+    """
     # Try to add a pulse migration without a founder event
     with pytest.raises(ValueError):
         basic_model.add_pulse_migration("dest_pop", "source_pop", "rate1", "time1")
@@ -330,7 +380,9 @@ def test_error_migration_without_founder(basic_model):
 
 
 def test_error_duplicate_founder_event(basic_model):
-    """Test that adding duplicate founder events raises appropriate errors"""
+    """
+    Checks that adding duplicate founder events raises appropriate errors.
+    """
     # Add a founder event
     basic_model.add_founder_event("dest_pop", {"source_pop1": "founder_rate1"}, "source_pop2", "found_time")
     
@@ -340,14 +392,18 @@ def test_error_duplicate_founder_event(basic_model):
 
 
 def test_error_invalid_founder_event(basic_model):
-    """Test that adding founder events with invalid parameters raises appropriate errors"""
+    """
+    Checks that adding founder events with invalid parameters raises appropriate errors.
+    """
     # Try to add a founder event with an empty source populations dict
     with pytest.raises(ValueError):
         basic_model.add_founder_event("dest_pop", {}, "source_pop", "found_time")    
 
 
 def test_error_invalid_parameter_values(model_with_both_migrations):
-    """Test that evaluating parameters with invalid values raises appropriate errors"""
+    """
+    Checks that evaluating parameters with invalid values raises appropriate errors.
+    """
     # Finalize the model
     model_with_both_migrations.finalize()
     
@@ -361,7 +417,9 @@ def test_error_invalid_parameter_values(model_with_both_migrations):
 
 
 def test_error_invalid_yaml_file():
-    """Test that loading non-existent YAML files raises appropriate errors"""
+    """
+    Checks that loading non-existent YAML files raises appropriate errors.
+    """
     # Try to load a non-existent YAML file
     with pytest.raises(FileNotFoundError):
         ParametrizedDemography.load_from_YAML("non_existent_file.yaml")
@@ -375,13 +433,13 @@ def test_error_invalid_yaml_file():
 
 def test_non_integer_founding_time():
     """
-    Test that non-integer founding times are handled correctly.
-    
+    Checks that non-integer founding times are handled correctly.
+
     This test:
-    1. Creates a model with a founding event
-    2. Tests it with both integer and non-integer founding times
-    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the founding time
-    4. Verifies that the final proportions match those of the integer model
+    1. Creates a model with a founding event,
+    2. Tests it with both integer and non-integer founding times,
+    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the founding time,
+    4. Verifies that the final proportions match those of the integer model.
     """
     # Create a model
     model = ParametrizedDemography(name="TestModel")
@@ -433,13 +491,13 @@ def test_non_integer_founding_time():
 
 def test_non_integer_founding_time_continuous_founder():
     """
-    Test that non-integer founding times are handled correctly.
-    
+    Checks that non-integer founding times are handled correctly.
+
     This test:
-    1. Creates a model with a founding event
-    2. Tests it with both integer and non-integer founding times
-    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the founding time
-    4. Verifies that the final proportions match those of the integer model
+    1. Creates a model with a founding event,
+    2. Tests it with both integer and non-integer founding times,
+    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the founding time,
+    4. Verifies that the final proportions match those of the integer model.
     """
     # Create a model
     model = ParametrizedDemography(name="TestModel")
@@ -497,13 +555,13 @@ def test_non_integer_founding_time_continuous_founder():
 
 def test_non_integer_pulse_time(model_with_pulse_migration):
     """
-    Test that non-integer pulse times are handled correctly.
+    Checks that non-integer pulse times are handled correctly.
     
     This test:
-    1. Uses a model with a founding event and a pulse migration
-    2. Tests it with both integer and non-integer pulse times
-    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the pulse time
-    4. Verifies that the final proportions match those of the integer model
+    1. Uses a model with a founding event and a pulse migration,
+    2. Tests it with both integer and non-integer pulse times,
+    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the pulse time.
+    4. Verifies that the final proportions match those of the integer model.
     """
     # Finalize the model
     model_with_pulse_migration.finalize()
@@ -541,13 +599,13 @@ def test_non_integer_pulse_time(model_with_pulse_migration):
 
 def test_non_integer_continuous_migration_time(model_with_continuous_migration):
     """
-    Test that non-integer continuous migration times are handled correctly.
+    Checks that non-integer continuous migration times are handled correctly.
     
     This test:
-    1. Uses a model with a founding event and a continuous migration
-    2. Tests it with both integer and non-integer continuous migration times
-    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the migration times
-    4. Verifies that the final proportions match those of the integer model
+    1. Uses a model with a founding event and a continuous migration,
+    2. Tests it with both integer and non-integer continuous migration times,
+    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the migration times,
+    4. Verifies that the final proportions match those of the integer model.
     """
     # Finalize the model
     model_with_continuous_migration.finalize()
@@ -565,7 +623,6 @@ def test_non_integer_continuous_migration_time(model_with_continuous_migration):
     # Get the matrices for the target population
     matrix_int = migration_matrices_int["destination_pop"]
     matrix_non_int = migration_matrices_non_int["destination_pop"]
-
     
     # Verify that the non-integer model has non-zero rates at both the nearest integers to the migration times
     assert matrix_non_int[4, 0]>0  # source_pop1 proportion at floor(start time)

@@ -9,13 +9,22 @@ samples:
   filename_format: "{name}_{label}.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22
-model_filename: pp.yaml
+  
+output_filename_format: "one_pulse_fix_{label}"
+log_filename: 'one_pulse_fix.log'
+output_directory: ./output_fix_one_pulse/
+verbose_log: 1
+verbose_screen: 30
+log_scale : True
+
+model_filename: ./models/pp.yaml
 start_params: 
   tx: 6:8
+
 repetitions: 2
+maximum_iterations: 1000
 seed: 100
 exclude_tracts_below_cm: 2
-time_scaling_factor: 100 #Times will be scaled down by this much when running the optimizer.
 fix_parameters_from_ancestry_proportions: ['R'] 
-#output_directory: ./output_fix/
-#output_filename_format: "one_pulse_{label}"
+
+ad_model_autosomes : DC

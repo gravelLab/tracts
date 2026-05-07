@@ -154,7 +154,7 @@ class InferenceConfig(BaseModel):
         The minimum tract length in centiMorgans to include in the analysis. Tracts shorter than this length will be excluded. Defaults to 1 cM.
     fix_parameters_from_ancestry_proportions: List[str]
         A list of parameter names to fix based on the ancestry proportions. See online documentation for details.
-    output_directory: str
+    output_directory: str | None
         The directory where the output files will be saved. 
     output_filename_format: str
         The format of the output filenames.
@@ -181,11 +181,11 @@ class InferenceConfig(BaseModel):
     start_params: StartParamsConfig
     repetitions: int =1 
     seed: int
-    maximum_iterations: int|None=None 
+    maximum_iterations: int|None = None 
     npts: int = 50
     exclude_tracts_below_cm: float = 1
     fix_parameters_from_ancestry_proportions: List[str] = []
-    output_directory: str = ""
+    output_directory: str|None= None
     output_filename_format: str
     log_filename: Optional[str] = "tracts.log"
     ad_model_autosomes: str = "DC"
@@ -555,13 +555,12 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The model for autosomal admixture. Defaults to 'DC'.
     ad_model_allosomes: str
         The model for allosomal admixture. Defaults to 'DC'.
-
     """
     
     # ------ Create output directory if it doesn't exist ------
-    output_dir = driver_spec.output_directory
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
+    output_dir = Path.cwd() if not driver_spec.output_directory else Path(driver_spec.output_directory)
+    if not os.path.exists(output_dir): 
+        os.makedirs(output_dir)
 
     # ------- Set up output filename format and load required parameters for output production ------
     output_filename_format = driver_spec.output_filename_format
@@ -627,22 +626,22 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
     
     # Save autosome results
-    with open(output_dir + output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
+    with open(output_dir / output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
         fbins.write("\t".join(map(str, autosome_bins)))
-    with open(output_dir + output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
+    with open(output_dir / output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
         for population in model.population_indices.keys():
             try:
                 fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
             except KeyError:
                 autosome_data[population] = np.zeros(len(autosome_bins)).tolist()
                 print(f'Population {population} not found in autosome data.')
-    with open(output_dir + output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
+    with open(output_dir / output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
         for line in female_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
-    with open(output_dir + output_filename_format.format(label='male_migration_matrix'), 'w') as fmig2:
+    with open(output_dir / output_filename_format.format(label='male_migration_matrix'), 'w') as fmig2:
         for line in male_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
-    with open(output_dir + output_filename_format.format(label='autosome_predicted_tract_distribution'), 'w') as fpred2:
+    with open(output_dir / output_filename_format.format(label='autosome_predicted_tract_distribution'), 'w') as fpred2:
         for pop, pop_num in model.population_indices.items():
             fpred2.write("\t".join(map(
                 str,
@@ -731,29 +730,29 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
     
         # Save allosome results
-        with open(output_dir + output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
+        with open(output_dir / output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
             fbins.write("\t".join(map(str, allosome_bins)))
-        with open(output_dir + output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
+        with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
             for population in model.population_indices.keys():
                 try:
                     fdat.write("\t".join(map(str, female_data[population])) + "\n")
                 except KeyError:
                     female_data[population] = np.zeros(len(allosome_bins)).tolist()
                     print(f'Population {population} not found in female allosome data.')
-        with open(output_dir + output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
+        with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
             for population in model.population_indices.keys():
                 try:
                     fdat.write("\t".join(map(str, male_data[population])) + "\n")
                 except KeyError:
                     male_data[population] = np.zeros(len(allosome_bins)).tolist()
                     print(f'Population {population} not found in male allosome data.')           
-        with open(output_dir + output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
+        with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
             for pop, pop_num in model.population_indices.items():
                 fpred2.write("\t".join(map(
                     str,
                     [num_females * num_tracts for num_tracts in female_predicted[pop]]))
                             + "\n")
-        with open(output_dir + output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
+        with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
             for pop, pop_num in model.population_indices.items():
                 fpred2.write("\t".join(map(
                     str,
@@ -762,7 +761,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     # ------ Save optimal parameters -------
     param_names = list(model.model_base_params.keys())
-    params_file_path = output_dir + output_filename_format.format(label="optimal_parameters") + ".txt"
+    params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
     with open(params_file_path, "w") as f:
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
@@ -980,5 +979,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         )
     
     # Final message
-    print('Results saved to : ' + output_dir)
-    logger.info('Results saved to : ' + output_dir)
+    print('Results saved to : ' + str(output_dir))
+    logger.info('Results saved to : ' + str(output_dir))
+
+

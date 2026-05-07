@@ -1,0 +1,30 @@
+samples:
+  directory: ./G10/
+  individual_names: [
+    "NA19700", "NA19701", "NA19704", "NA19703", "NA19819", "NA19818",
+    "NA19835", "NA19834", "NA19901", "NA19900", "NA19909", "NA19908",
+    "NA19917", "NA19916", "NA19713", "NA19982", "NA20127", "NA20126",
+    "NA20357", "NA20356"
+    ]
+  filename_format: "{name}_{label}.bed"
+  labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
+  chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
+
+output_filename_format: "one_pulse_{label}"
+log_filename: 'one_pulse.log'
+output_directory: ./output_one_pulse/
+verbose_log: 1
+verbose_screen: 30
+log_scale : True
+
+model_filename: ./models/pp.yaml
+start_params: 
+  R: 0.1:0.2
+  tx: 5:8
+
+repetitions: 2
+maximum_iterations: 1000
+seed: 100
+exclude_tracts_below_cm: 2
+
+ad_model_autosomes : DC
