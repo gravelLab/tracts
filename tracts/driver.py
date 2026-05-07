@@ -301,7 +301,7 @@ def run_tracts(driver_filename: str, script_dir: str):
 # ----- Runner functions -----
 
 def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, 
-                        start_params_list: list[np.ndarray], population_dict : dict, parameter_handler: FixedParametersHandler | None = None , 
+                        start_params_list: list[np.ndarray], population_dict : dict, parameter_handler: FixedParametersHandler, 
                         max_iter: int=None, exclude_tracts_below_cM: int = 0, ad_model_autosomes = 'DC', 
                         ad_model_allosomes = 'DC', npts: int = 50, verbose_log: int = 0, verbose_screen:int = 0, 
                         two_steps_optimization: bool = True) -> tuple[list[np.ndarray], list[float]]:
@@ -321,8 +321,8 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    A list of initial parameter arrays to start the optimization.
         population_dict: dict
             A dictionary mapping population labels to their corresponding indices in the model.
-        parameter_handler: FixedParametersHandler, optional
-            An object that handles parameter transformations and fixed parameters. Default is None.
+        parameter_handler: FixedParametersHandler
+            An object that handles parameter transformations and fixed parameters.
         max_iter: int, optional
             Maximum number of iterations for the optimization algorithm. Default is None, which means no limit.
         exclude_tracts_below_cM: int, optional
@@ -372,7 +372,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     return optimal_params, likelihoods
 
 def run_model(model_func: callable, bound_func: callable, population: Population, 
-                        startparams: list, population_dict: dict, parameter_handler: FixedParametersHandler | None = None, max_iter: int | None = None, 
+                        startparams: list, population_dict: dict, parameter_handler: FixedParametersHandler, max_iter: int | None = None, 
                         exclude_tracts_below_cM: float = 0, ad_model_autosomes: str = 'DC', ad_model_allosomes: str = 'DC',
                         npts: int = 0, verbose_log: int = 0, verbose_screen: int = 0, two_steps_optimization: bool = True):
     
@@ -391,8 +391,8 @@ def run_model(model_func: callable, bound_func: callable, population: Population
         An array of initial parameters to start the optimization.
     population_dict: dict
         A dictionary mapping population labels to their corresponding indices in the model.
-    parameter_handler: FixedParametersHandler, optional
-        An object that handles parameter transformations and fixed parameters. Default is None.
+    parameter_handler: FixedParametersHandler
+        An object that handles parameter transformations and fixed parameters.
     max_iter: int, optional
         Maximum number of iterations for the optimization algorithm. Default is None, which means no limit.
     exclude_tracts_below_cM: float, optional

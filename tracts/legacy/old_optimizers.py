@@ -10,10 +10,14 @@ from tracts.legacy.composite_demographic_model import CompositeDemographicModel
 from tracts.util import eprint
 logger = logging.getLogger(__name__)
 
+_counter = 0
+_out_of_bounds_val = -1e32
+_min_out_of_bounds_val = -1e-10
+
 # ------------------- Unused optimizers -------------------
 
 def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.ndarray], nsamp:int, 
-                 model_func:callable, outofbounds_fun:callable=None, cutoff:int=0, verbose_screen:int=0, 
+                 model_func:callable, outofbounds_fun:callable, cutoff:int=0, verbose_screen:int=0, 
                  flush_delay:float=1, maxiter:int=None, func_args:list=None, reset_counter:bool=True) -> np.ndarray:
     """
     Optimizes model parameters using the COBYLA method. Valid only for autosomal data. Admixture is modelled with 
@@ -31,15 +35,15 @@ def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.nda
         Spectrum with data.
     model_func:callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    outofbounds_fun: callable, Optional
+    outofbounds_fun: callable
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
     cutoff: int, default:0 
         The number of bins to drop at the beginning of the array. This could be achieved with masks.
     verbose_screen: int, default: 0
-        If greater than zero, prints optimization status every ``verbose`` iterations.
+        If greater than zero, enables optimization status output during objective function evaluation.
     flush_delay: float, default: 1
-        Standard output will be flushed once every ``flush_delay`` minutes. This
-        is useful to avoid overloading I/O on clusters.
+        Standard output will be flushed once every ``flush_delay`` minutes when verbose output is enabled. This controls flushing frequency, not how often
+        status messages are emitted.
     maxiter: int, default: None
         Maximum iterations to run for.
     func_args: list, default: None
@@ -55,7 +59,7 @@ def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.nda
         An array containing the optimal parameters found by the optimizer.
 
     """
-    print(PhTMonoecious)
+    logger.debug("Using modelling method %s", PhTMonoecious)
     if func_args is None:
         func_args = []
     if reset_counter:

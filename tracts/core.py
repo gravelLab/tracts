@@ -297,7 +297,7 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
     return outputs, likelihood
 
 
-def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler | None = None,
+def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
                                     ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
@@ -314,7 +314,7 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         A Population object containing the data to fit.
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    parameter_handler: FixedParametersHandler | None, optional
+    parameter_handler: FixedParametersHandler
         An object that handles parameter transformations and fixed parameters. Default is None.
     outofbounds_fun: callable, Optional
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
@@ -374,7 +374,7 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         for k, v in male_data.items():
             male_data_mapped[dict(p_dict)[k]] = v
 
-    local_parameter_handler = copy.deepcopy(parameter_handler) if parameter_handler is not None else FixedParametersHandler()
+    local_parameter_handler = copy.deepcopy(parameter_handler)
 
     free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
                                 (value.type == ParamType.SEX_BIAS) and 

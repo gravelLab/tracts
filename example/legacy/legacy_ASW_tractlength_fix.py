@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import tracts
+from tracts.legacy.demographic_model import DemographicModel
 import tracts.legacy_models.models_2pop as models_2pop
+from tracts.legacy.old_optimizers import optimize_cob_fracs2
 import numpy
 from legacy_ASW_data import *
 
@@ -68,7 +69,7 @@ bound2 = models_2pop.outofbounds_pp_px_fix
 startparams2 = numpy.array([0.107152, 0.0438957, 0.051725])
 startparams2p = numpy.array([0.07152, 0.03, 1e-8])
 
-optmod = tracts.DemographicModel(func(startparams, props))
+optmod = DemographicModel(func(startparams, props))
 
 
 def randomize(arr, scale=2):
@@ -87,13 +88,13 @@ optmod2 = None
 optpars2 = None
 
 for i in range(rep_pp):
-    xopt = tracts.optimize_cob_fracs2(
+    xopt = optimize_cob_fracs2(
         startrand, bins, Ls, data, nind, func, props, outofbounds_fun=bound,
         cutoff=cutoff, epsilon=1e-2)
     # optimize_cob_fracs2 takes one additional parameter: the proportion of
     # each ancestry that will be used to fix the parameters.
-    optmodlocal = tracts.DemographicModel(func(xopt, props))
-    loclik = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
+    optmodlocal = DemographicModel(func(xopt, props))
+    loclik = optmodlocal.loglik(bins, Ls, data, nind, cutoff=cutoff)
     if loclik > maxlik:
         optmod = optmodlocal
         optpars = xopt
@@ -108,11 +109,11 @@ startrand2 = startparams2
 maxlik2 = -1e18
 
 for i in range(0, rep_pp_px):
-    xopt2 = tracts.optimize_cob_fracs2(
+    xopt2 = optimize_cob_fracs2(
         startrand2, bins, Ls, data, nind, func2, props, outofbounds_fun=bound2,
         cutoff=cutoff, epsilon=1e-2)
     try:
-        optmod2loc = tracts.DemographicModel(func2(xopt2, props))
+        optmod2loc = DemographicModel(func2(xopt2, props))
         loclik = optmod2loc.loglik(bins, Ls, data, nind, cutoff=cutoff)
         if loclik > maxlik2:
             optmod2 = optmod2loc
