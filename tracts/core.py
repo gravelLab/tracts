@@ -1,84 +1,24 @@
 import logging
 import numpy as np
-import numpy.typing as npt
 import scipy.optimize
 import copy
 
 from tracts.phase_type import hybrid_pedigree as HP
 from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography_sex_biased import SexType
+from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.population import Population
 from tracts.util import eprint
 from tracts.demography.parameter import ParamType
 logger = logging.getLogger(__name__)
 
-# ----- Counts calls to object_func -----
 _counter = 0
 _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
 
 # ------ Optimizers ------
 
-def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.ndarray], nsamp:int, 
-                 model_func:callable, outofbounds_fun:callable=None, cutoff:int=0, verbose_screen:int=0, 
-                 flush_delay:float=1, maxiter:int=None, func_args:list=None, reset_counter:bool=True) -> np.ndarray:
-    """
-    Optimizes model parameters using the COBYLA method. Valid only for autosomal data. Admixture is modelled with 
-    the Monoecious model.
-
-    Parameters
-    ----------
-    p0: list
-        An array of initial parameters to start the optimization.
-    bins:npt.ArrayLike
-        A point grid on where the tract length distribution has to be evaluated.  
-    Ls: npt.ArrayLike
-        The lengths of the chromosomes present in data.
-    data:list[np.ndarray]
-        Spectrum with data.
-    model_func:callable
-        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    outofbounds_fun: callable, Optional
-        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    cutoff: int, default:0 
-        The number of bins to drop at the beginning of the array. This could be achieved with masks.
-    verbose_screen: int, default: 0
-        If greater than zero, prints optimization status every ``verbose`` iterations.
-    flush_delay: float, default: 1
-        Standard output will be flushed once every ``flush_delay`` minutes. This
-        is useful to avoid overloading I/O on clusters.
-    maxiter: int, default: None
-        Maximum iterations to run for.
-    func_args: list, default: None
-        List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
-        first argument is an array of parameters to optimize.
-    reset_counter: bool, default: True
-        Resets the iteration counter to zero. Set to False to
-        continue iteration count (e.g., if optimization continues from previous point).
-
-    Returns
-    -------
-    np.ndarray
-        An array containing the optimal parameters found by the optimizer.
-
-    """
-    print(PhTMonoecious)
-    if func_args is None:
-        func_args = []
-    if reset_counter:
-        global _counter
-        _counter = 0
-
-    fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func, outofbounds_fun=outofbounds_fun, cutoff=cutoff,
-                                 verbose=verbose_screen, flush_delay=flush_delay, func_args=func_args,
-                                 modelling_method=PhTMonoecious)
-
-    outputs = scipy.optimize.fmin_cobyla(
-        fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-
-    return outputs
-
-def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler=None, outofbounds_fun:callable=None, 
+def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
                             verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
                             maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
                             ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
@@ -94,8 +34,8 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
         A Population object containing the data to fit.
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    parameter_handler: ParameterHandler, optional
-        An object that handles parameter transformations and fixed parameters. Default is None.
+    parameter_handler: FixedParametersHandler
+        An object that handles parameter transformations and fixed parameters.
     outofbounds_fun: callable, Optional
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
     verbose_log: int, default: 0
@@ -357,7 +297,7 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
     return outputs, likelihood
 
 
-def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_func:callable, parameter_handler,
+def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
                                     ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
@@ -374,7 +314,7 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         A Population object containing the data to fit.
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    parameter_handler: ParameterHandler, optional
+    parameter_handler: FixedParametersHandler
         An object that handles parameter transformations and fixed parameters. Default is None.
     outofbounds_fun: callable, Optional
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.

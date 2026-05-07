@@ -1,15 +1,79 @@
 import sys
 import logging
 import numpy as np
+import numpy.typing as npt
 import scipy.optimize
 from matplotlib import pylab
+from tracts.phase_type import PhTMonoecious
 from tracts.legacy.demographic_model import DemographicModel
 from tracts.legacy.composite_demographic_model import CompositeDemographicModel
 from tracts.util import eprint
 logger = logging.getLogger(__name__)
 
+_counter = 0
+_out_of_bounds_val = -1e32
+_min_out_of_bounds_val = -1e-10
+
 # ------------------- Unused optimizers -------------------
 
+def optimize_cob(p0:list, bins:npt.ArrayLike, Ls:npt.ArrayLike, data:list[np.ndarray], nsamp:int, 
+                 model_func:callable, outofbounds_fun:callable, cutoff:int=0, verbose_screen:int=0, 
+                 flush_delay:float=1, maxiter:int=None, func_args:list=None, reset_counter:bool=True) -> np.ndarray:
+    """
+    Optimizes model parameters using the COBYLA method. Valid only for autosomal data. Admixture is modelled with 
+    the Monoecious model.
+
+    Parameters
+    ----------
+    p0: list
+        An array of initial parameters to start the optimization.
+    bins:npt.ArrayLike
+        A point grid on where the tract length distribution has to be evaluated.  
+    Ls: npt.ArrayLike
+        The lengths of the chromosomes present in data.
+    data:list[np.ndarray]
+        Spectrum with data.
+    model_func:callable
+        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
+    outofbounds_fun: callable
+        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
+    cutoff: int, default:0 
+        The number of bins to drop at the beginning of the array. This could be achieved with masks.
+    verbose_screen: int, default: 0
+        If greater than zero, enables optimization status output during objective function evaluation.
+    flush_delay: float, default: 1
+        Standard output will be flushed once every ``flush_delay`` minutes when verbose output is enabled. This controls flushing frequency, not how often
+        status messages are emitted.
+    maxiter: int, default: None
+        Maximum iterations to run for.
+    func_args: list, default: None
+        List of additional arguments to ``model_func``. It is assumed that ``model_func``'s
+        first argument is an array of parameters to optimize.
+    reset_counter: bool, default: True
+        Resets the iteration counter to zero. Set to False to
+        continue iteration count (e.g., if optimization continues from previous point).
+
+    Returns
+    -------
+    np.ndarray
+        An array containing the optimal parameters found by the optimizer.
+
+    """
+    logger.debug("Using modelling method %s", PhTMonoecious)
+    if func_args is None:
+        func_args = []
+    if reset_counter:
+        global _counter
+        _counter = 0
+
+    fun = lambda x: _object_func(x, bins, Ls, data, nsamp, model_func, outofbounds_fun=outofbounds_fun, cutoff=cutoff,
+                                 verbose=verbose_screen, flush_delay=flush_delay, func_args=func_args,
+                                 modelling_method=PhTMonoecious)
+
+    outputs = scipy.optimize.fmin_cobyla(
+        fun, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+
+    return outputs
 
 def plotmig(mig, colordict=None, order=None):
     if colordict is None:

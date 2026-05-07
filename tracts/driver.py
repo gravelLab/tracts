@@ -4,10 +4,10 @@ from typing import Callable
 import numpy as np
 import os
 from tracts.population import Population
-from tracts.core import optimize_cob, optimize_cob_sex_biased, optimize_cob_sex_biased_fixed_values
+from tracts.core import optimize_cob_sex_biased, optimize_cob_sex_biased_fixed_values
 from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
-from tracts.phase_type import PhTMonoecious
 from tracts.demography.parameter import ParamType
+from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, output_simulation_data_sex_biased
 from tracts.logs import setup_logger, set_log_file
 logger = logging.getLogger(__name__)
@@ -235,7 +235,6 @@ def run_tracts(driver_filename: str, script_dir: str):
     params_found, likelihoods = run_model_multi_init(model_func=func,
                                                     bound_func=bound,
                                                     population=pop, 
-                                                    population_labels=ancestor_labels,
                                                     start_params_list=optimizer_start_params,
                                                     population_dict=model.population_indices.items(),
                                                     parameter_handler=model.parameter_handler,
@@ -246,8 +245,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                     npts=driver_spec.npts, 
                                                     verbose_log=driver_spec.verbose_log,
                                                     verbose_screen=driver_spec.verbose_screen, 
-                                                    two_steps_optimization=driver_spec.two_steps_optimization, 
-                                                    run_optimize_cob=driver_spec.run_optimize_cob)
+                                                    two_steps_optimization=driver_spec.two_steps_optimization)
 
     # ------ Process and print results ------
     formatted_likelihoods = [float(x) for x in likelihoods] # One likelihood per optimization run. If multiple runs were done, these will be printed in a table with the corresponding parameters. The best likelihood and parameters across runs will be selected as the final result.
@@ -302,10 +300,11 @@ def run_tracts(driver_filename: str, script_dir: str):
 
 # ----- Runner functions -----
 
-def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, population_labels: list[str], 
-                          start_params_list: list[np.ndarray], population_dict : dict, parameter_handler = None , 
-                          max_iter: int=None, exclude_tracts_below_cM: int = 0, ad_model_autosomes = 'DC', 
-                          ad_model_allosomes = 'DC', npts: int = 50, verbose_log: int = 0, verbose_screen:int = 0, two_steps_optimization: bool = True, run_optimize_cob: bool = False) -> tuple[list[np.ndarray], list[float]]:
+def run_model_multi_init(model_func: Callable, bound_func: Callable, population: Population, 
+                        start_params_list: list[np.ndarray], population_dict : dict, parameter_handler: FixedParametersHandler, 
+                        max_iter: int=None, exclude_tracts_below_cM: int = 0, ad_model_autosomes = 'DC', 
+                        ad_model_allosomes = 'DC', npts: int = 50, verbose_log: int = 0, verbose_screen:int = 0, 
+                        two_steps_optimization: bool = True) -> tuple[list[np.ndarray], list[float]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -318,14 +317,12 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     	    A function that calculates the violation score for the parameters. 	
         population: :class:`tracts.population.Population`
     	    The population object containing individual data.
-        population_labels: list[str]
-    	    A list of labels corresponding to the populations.	
         start_params_list: list[np.ndarray]
     	    A list of initial parameter arrays to start the optimization.
         population_dict: dict
             A dictionary mapping population labels to their corresponding indices in the model.
-        parameter_handler: ParameterHandler, optional
-            An object that handles parameter transformations and fixed parameters. Default is None.
+        parameter_handler: FixedParametersHandler
+            An object that handles parameter transformations and fixed parameters.
         max_iter: int, optional
             Maximum number of iterations for the optimization algorithm. Default is None, which means no limit.
         exclude_tracts_below_cM: int, optional
@@ -359,7 +356,6 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
         params_found, likelihood_found = run_model(model_func=model_func,
                                                    bound_func=bound_func, 
                                                    population=population, 
-                                                   population_labels=population_labels, 
                                                    startparams=start_params,
                                                    population_dict=population_dict,
                                                    parameter_handler=parameter_handler,
@@ -370,111 +366,13 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
                                                    npts=npts,
                                                    verbose_log=verbose_log,
                                                    verbose_screen=verbose_screen,
-                                                   two_steps_optimization=two_steps_optimization, 
-                                                   run_optimize_cob=run_optimize_cob)
+                                                   two_steps_optimization=two_steps_optimization)
         optimal_params.append(params_found)
         likelihoods.append(likelihood_found)
     return optimal_params, likelihoods
 
-def run_model(model_func: callable, bound_func: callable, population: Population, population_labels: list[str], startparams: list,
-            population_dict: dict, parameter_handler=None, max_iter: int | None = None, 
-            exclude_tracts_below_cM: float =0, ad_model_autosomes:str ='DC', ad_model_allosomes:str ='DC', 
-            npts:int =0, verbose_log:int=0, verbose_screen:int =0, two_steps_optimization: bool = True, run_optimize_cob: bool = False):
-    
-    """
-    Runs the optimization for any demographic model, including sex-biased models. This function allows to run the old optimization function optimize_cob.
-
-    Parameters
-    ----------
-    model_func: callable
-        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    bound_func: callable
-        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    population: :class:`tracts.population.Population`
-        A Population object containing the data to fit.
-    population_labels: list[str]
-    	A list of labels corresponding to the populations.	
-    startparams: list
-        An array of initial parameters to start the optimization.
-    population_dict: dict
-        A dictionary mapping population labels to their corresponding indices in the model.
-    parameter_handler: ParameterHandler, optional
-        An object that handles parameter transformations and fixed parameters. Default is None.
-    max_iter: int, optional
-        Maximum number of iterations for the optimization algorithm. Default is None, which means no limit.
-    exclude_tracts_below_cM: float, optional
-        Minimum tract length in centimorgans to exclude from analysis. Default is 0.
-    ad_model_autosomes: str, optional
-        The model to use for autosomal admixture. Must be one of 'DC', 'DF', 'M', 'H-DC' or 'H-DF'. Default is 'DC'.
-    ad_model_allosomes: str, optional
-        The model to use for allosomal admixture. Must be one of 'DC', 'DF', 'H-DC' or 'H-DF'. Default is 'DC'. If None, allosomal admixture will not be modeled.
-    npts: int, optional
-        Number of bins for the tract length histogram. Default is 50.
-    verbose_log: int, optional
-        Verbosity level for logging. Default is 0 (no verbose output). If greater than 0, iterations are logged every ``verbose_log`` steps.
-    verbose_screen: int, optional
-        Verbosity level for screen prints. Default is 0 (no verbose output). If greater than 0, iterations are printed every ``verbose_screen`` steps.
-    two_steps_optimization: bool, optional
-        Whether to use a two-step optimization procedure for sex-biased models. If True, the optimization will first be run on non-sex bias parameters using only autosomal data. Then, a second optimization will be run with sex-bias parameters using both autosomal and allosomal data, starting from the results of the first optimization. Default is True.  
-    run_optimize_cob: bool, optional
-        Whether to run the optimize_cob function. Default is False.
-        
-    Returns
-    -------
-    tuple [np.ndarray, float]
-        A tuple containing the optimal parameters found and the corresponding likelihood.
-
-    Notes
-    -----
-    The optimize_cob function implements the PhTMonoecious model on autosomal data. Corresponds to the previous version of tracts. 
-
-    """
-    # NOTE: If optimize_cob is no longer used, this function can be removed and replaced by run_model_sex_bias
-    
-
-    if not run_optimize_cob:
-        return run_model_sex_biased(
-            model_func=model_func,
-            bound_func=bound_func,
-            population=population,
-            startparams=startparams,
-            population_dict=population_dict,
-            parameter_handler=parameter_handler,
-            max_iter=max_iter,
-            exclude_tracts_below_cM=exclude_tracts_below_cM,
-            ad_model_autosomes=ad_model_autosomes,
-            ad_model_allosomes=ad_model_allosomes,
-            npts=npts,
-            verbose_log=verbose_log,
-            verbose_screen=verbose_screen,
-            two_steps_optimization=two_steps_optimization,
-        )
-    elif ad_model_allosomes is None:
-        Ls = population.Ls
-        nind = population.nind
-        bins, data = population.get_global_tractlengths(npts=npts,
-                                                        exclude_tracts_below_cM=exclude_tracts_below_cM)
-        data = [data[poplab] for poplab in population_labels]
-        model_func_sample_pop = lambda params:list(model_func(params).values())[0]
-        xopt = optimize_cob(p0=startparams,
-                            bins=bins,
-                            Ls=Ls,
-                            data=data,
-                            nsamp=nind, 
-                            model_func=model_func_sample_pop,
-                            outofbounds_fun=bound_func,
-                            verbose=verbose_screen)
-        optmod = PhTMonoecious(model_func_sample_pop(xopt))
-        optlik = optmod.loglik(bins=bins,
-                               Ls=Ls,
-                               data=data,
-                               num_samples=nind)
-        return xopt, optlik
-    else:
-        raise Exception("The optimize_cob method does not accept allosomal admixture.")
-
-def run_model_sex_biased(model_func: callable, bound_func: callable, population: Population, 
-                        startparams: list, population_dict: dict, parameter_handler = None, max_iter: int | None = None, 
+def run_model(model_func: callable, bound_func: callable, population: Population, 
+                        startparams: list, population_dict: dict, parameter_handler: FixedParametersHandler, max_iter: int | None = None, 
                         exclude_tracts_below_cM: float = 0, ad_model_autosomes: str = 'DC', ad_model_allosomes: str = 'DC',
                         npts: int = 0, verbose_log: int = 0, verbose_screen: int = 0, two_steps_optimization: bool = True):
     
@@ -493,8 +391,8 @@ def run_model_sex_biased(model_func: callable, bound_func: callable, population:
         An array of initial parameters to start the optimization.
     population_dict: dict
         A dictionary mapping population labels to their corresponding indices in the model.
-    parameter_handler: ParameterHandler, optional
-        An object that handles parameter transformations and fixed parameters. Default is None.
+    parameter_handler: FixedParametersHandler
+        An object that handles parameter transformations and fixed parameters.
     max_iter: int, optional
         Maximum number of iterations for the optimization algorithm. Default is None, which means no limit.
     exclude_tracts_below_cM: float, optional

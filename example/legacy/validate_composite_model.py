@@ -4,10 +4,13 @@ import json
 import os
 import sys
 
-import tracts
+from tracts.legacy.demographic_model import DemographicModel
+from tracts.legacy.composite_demographic_model import CompositeDemographicModel
+from tracts.legacy.old_optimizers import optimize_brute_multifracs, optimize_brute_fracs2
 from tracts.legacy_models.models_2pop import *
-
-import example.FancyPlot as fp
+from tracts.population import Population
+from tracts.indiv import Indiv
+import example.legacy.FancyPlot as fp
 
 import numpy as np
 
@@ -79,7 +82,7 @@ def load_population(path_pairs):
         haplotypes for an individual, build a tracts population.
     """
     eprint('loading population')
-    return tracts.Population([tracts.Indiv.from_files(t) for t in path_pairs])
+    return Population([Indiv.from_files(t) for t in path_pairs])
 
 
 def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
@@ -120,14 +123,14 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
     #        cutoff=cutoff, epsilon=1e-12)
 
     # Optimize the model parameters using brute
-    composite_model_parameters, _ = tracts.optimize_brute_multifracs(
+    composite_model_parameters, _ = optimize_brute_multifracs(
         bins, pop.Ls, group_data, ninds, migration_fun,
         group_ancestry_averages, startparams,
         outofbounds_fun=migration_outofbounds_fun,
         cutoff=cutoff)
 
     # Construct the composite demographic model
-    composite_model = tracts.CompositeDemographicModel(
+    composite_model = CompositeDemographicModel(
         migration_fun, composite_model_parameters,
         group_ancestry_averages)
 
@@ -140,12 +143,12 @@ def dual_analysis(labels, pop, migration_fun, migration_outofbounds_fun,
 
     ancestry_averages = pop.get_mean_ancestry_proportions(ancestry_labels)
 
-    fracs2_model_parameters, _ = tracts.optimize_brute_fracs2(
+    fracs2_model_parameters, _ = optimize_brute_fracs2(
         bins, pop.Ls, data, nind,
         migration_fun, ancestry_averages, startparams,
         outofbounds_fun=migration_outofbounds_fun, cutoff=cutoff)
 
-    fracs2_model = tracts.DemographicModel(
+    fracs2_model = DemographicModel(
         migration_fun(fracs2_model_parameters, ancestry_averages))
 
     return {

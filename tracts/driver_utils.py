@@ -194,8 +194,6 @@ class InferenceConfig(BaseModel):
     verbose_screen: int = 30
     log_scale: bool = True
     two_steps_optimization: bool = True
-    run_optimize_cob: bool = False
-
 
 # ---------- Driver file setup ----------
 
