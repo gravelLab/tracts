@@ -18,7 +18,7 @@ _min_out_of_bounds_val = -1e-10
 
 # ------ Optimizers ------
 
-def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler | None = None, outofbounds_fun:callable=None, 
+def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
                             verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
                             maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
                             ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
@@ -34,8 +34,8 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
         A Population object containing the data to fit.
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    parameter_handler: FixedParametersHandler | None
-        An object that handles parameter transformations and fixed parameters. Default is None.
+    parameter_handler: FixedParametersHandler
+        An object that handles parameter transformations and fixed parameters.
     outofbounds_fun: callable, Optional
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
     verbose_log: int, default: 0

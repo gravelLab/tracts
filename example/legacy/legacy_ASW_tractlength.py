@@ -44,7 +44,7 @@ maxlik = -1e18
 startrand = startparams
 for i in range(rep_pp):
     xopt = optimize_cob(
-        startrand, bins, Ls, data, nind, func, outofbounds_fun=bound, cutoff=cutoff, epsilon=1e-2)
+        startrand, bins, Ls, data, nind, func, outofbounds_fun=bound, cutoff=cutoff)
     try:
         optmodlocal = DemographicModel(func(xopt))
         loclik = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
@@ -68,7 +68,7 @@ optmod2 = None
 
 for i in range(0, rep_pp_px):
     xopt2 = optimize_cob(
-        startrand2, bins, Ls, data, nind, func2, outofbounds_fun=bound2, cutoff=cutoff, epsilon=1e-2)
+        startrand2, bins, Ls, data, nind, func2, outofbounds_fun=bound2, cutoff=cutoff)
     try:
         optmod2loc = DemographicModel(func2(xopt2))
         loclik = optmod2loc.loglik(bins, Ls, data, nind, cutoff=cutoff)

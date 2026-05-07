@@ -10,7 +10,7 @@ from tracts.legacy.old_optimizers import optimize_brute_multifracs, optimize_bru
 from tracts.legacy_models.models_2pop import *
 from tracts.population import Population
 from tracts.indiv import Indiv
-from example.legacy.FancyPlot import FancyPlot as fp
+import example.legacy.FancyPlot as fp
 
 import numpy as np
 
