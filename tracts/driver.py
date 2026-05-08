@@ -4,7 +4,7 @@ from typing import Callable
 import numpy as np
 import os
 from tracts.population import Population
-from tracts.core import optimize_cob_sex_biased, optimize_cob_sex_biased_fixed_values
+from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
 from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
 from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
@@ -416,7 +416,7 @@ def run_model(model_func: callable, bound_func: callable, population: Population
         A tuple containing the optimal parameters found and the corresponding likelihood.
     """
     if not two_steps_optimization:
-        optimal_params, optimal_likelihood = optimize_cob_sex_biased(p0=startparams, 
+        optimal_params, optimal_likelihood = optimize_cob_sex_biased_single_step(p0=startparams, 
                                                                     population=population,
                                                                     model_func=model_func, 
                                                                     parameter_handler=parameter_handler,
@@ -430,7 +430,7 @@ def run_model(model_func: callable, bound_func: callable, population: Population
                                                                     ad_model_allosomes=ad_model_allosomes,
                                                                     npts=npts)
     else:
-        optimal_params, optimal_likelihood = optimize_cob_sex_biased_fixed_values(p0=startparams, 
+        optimal_params, optimal_likelihood = optimize_cob_sex_biased_two_steps(p0=startparams, 
                                                                                 population=population, 
                                                                                 model_func=model_func, 
                                                                                 parameter_handler= parameter_handler, 
@@ -446,7 +446,3 @@ def run_model(model_func: callable, bound_func: callable, population: Population
     
     return optimal_params, optimal_likelihood
        
-
-
-
-   

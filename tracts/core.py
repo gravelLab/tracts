@@ -18,7 +18,7 @@ _min_out_of_bounds_val = -1e-10
 
 # ------ Optimizers ------
 
-def optimize_cob_sex_biased(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
+def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
                             verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
                             maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
                             ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
@@ -297,7 +297,7 @@ def optimize_cob_sex_biased(p0:list, population: Population, model_func: callabl
     return outputs, likelihood
 
 
-def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
+def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
                                     ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', npts:int=50) -> tuple[np.ndarray, float]:
@@ -315,7 +315,7 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
     model_func: callable
         A function that takes a parameter array and returns a dictionary of migration matrices for each population.
     parameter_handler: FixedParametersHandler
-        An object that handles parameter transformations and fixed parameters. Default is None.
+        An object that handles parameter transformations and fixed parameters.
     outofbounds_fun: callable, Optional
         A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
     cutoff: int, default:0 
@@ -357,7 +357,8 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
     for k, v in autosome_data.items():
         autosome_data_mapped[dict(p_dict)[k]] = v
     
-    if ad_model_allosomes is not None:
+    if ad_model_allosomes is not None: # Include allosomal data for inference
+        
         allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
         n_allosome_bins = len(allosome_bins)
         allosome_length = population.allosome_lengths['X']
@@ -390,7 +391,7 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
 
         nonlocal best_objective, best_full_params
 
-        """parameters are in optimizer space"""
+        # Parameters are in optimizer space
 
         global _counter
         global _out_of_bounds_val
@@ -574,13 +575,17 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         
     def reduced_objective_function(free_parameters_opt, include_allosomes = True):
 
-        extended_parameters = local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")
+        extended_parameters = local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
+                                                                        units="opt",
+                                                                        counter=_counter, 
+                                                                        verbose_warning_log=verbose_log) # NOTE: Add verbose_warning_screen=verbose_screen if RuntimeWarnings should be printed on screen.
         
         return objective_function(extended_parameters, include_allosomes=include_allosomes) #Full parameters in optimizer space
   
     def reduced_outofbounds_fun(free_parameters_opt):
 
-        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters_opt, units="opt")) #Full parameters in optimizer space
+        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
+                                                                        units="opt")) #Full parameters in optimizer space
 
     reduced_p0 = local_parameter_handler.reduce_parameters(p0)
 
@@ -610,7 +615,9 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
     outputs = scipy.optimize.fmin_cobyla(
         reduced_objective_autosomes, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
     
-    optimized_parameters = local_parameter_handler.extend_parameters(outputs, units="opt")
+    optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
+                                                                    units="opt",
+                                                                    show_ancestry_warning=True)
     step1_full_params_opt = optimized_parameters.copy()
 
     new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
@@ -652,6 +659,9 @@ def optimize_cob_sex_biased_fixed_values(p0:list, population: Population, model_
         outputs = scipy.optimize.fmin_cobyla(
             reduced_objective_autosomes, reduced_params, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
         print('Step 2 completed.')
+        _ = local_parameter_handler.extend_parameters(free_parameters=outputs,
+                                                                    units="opt",
+                                                                    show_ancestry_warning=True) # Checks for the ancestry warning at the end of step 2.
         print(line)
 
     else: # No optimization needed
