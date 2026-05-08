@@ -1008,6 +1008,8 @@ class FixedParametersHandler:
             An array of parameter values for the free parameters of the model that are being optimized by the primary optimizer. The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params` that are not fixed by ancestry proportions or by user-defined values.
         units: str | None
             The units of the input parameters. If "phys", the input parameters are in physical units. If "opt", the input parameters are in optimization units. If None, defaults to "phys". The units of the output parameters are the same as the input parameters.
+        show_ancestry_warning: bool
+            Whether to show a warning if the parameters fixed by ancestry proportions are out of bounds or violate any constraints after being computed. For internal use only, to display the warning only at the end of optimization.
         counter: int
             The current iteration number of the optimization process, used for logging and printing purposes.
         verbose_warning_screen: int
@@ -1243,7 +1245,6 @@ class FixedParametersHandler:
                     if (verbose_warning_log > 0) and (counter % verbose_warning_log == 0):
                         logger.info(warning_origin_message + str(warning.message)) # Log RuntimeWarning
                     if (verbose_warning_screen > 0) and (counter % verbose_warning_screen == 0):
-                        print(verbose_warning_screen)
                         print(warning_origin_message + str(warning.message)) # Print RuntimeWarning to screen
             
         except (ValueError, TypeError) as e:
