@@ -7,6 +7,7 @@ import scipy
 import scipy.optimize
 from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 from typing import Callable
+import warnings
 import logging
 logger = logging.getLogger(__name__)
 
@@ -973,10 +974,15 @@ class FixedParametersHandler:
                 raise ValueError(f'{param_name} is not a rate or sex bias parameter.')
             
         if len(params_to_fix_by_ancestry) not in [0, sum(len(prop)-1 for prop in proportions.values())]:
+
+            fixed_sex_bias_params = [param_name for param_name in params_to_fix_by_ancestry
+                                    if demography.model_base_params[param_name].type in {ParamType.SEX_BIAS}]
+            sb_message = "Try fixing sex-bias parameters by ancestry." if len(fixed_sex_bias_params) == 0 else ""
+                
             raise ValueError(
-                    f'Number of parameters to fix is incorrect.'
-                    f'Each population of interest can have N-1 proportions fixed'
-                    f'Where N is the number of ancestral sources for that population'
+                    f'Number of parameters to fix is incorrect. Each population of interest can have N-1 proportions fixed, '
+                    f'where N is the number of ancestral sources for that population. Here, the number of parameters to fix is {len(params_to_fix_by_ancestry)}, '
+                    f'but the expected number is {sum(len(prop)-1 for prop in proportions.values())} based on the provided proportions. {sb_message}'
                 )
         
         # Use a dict to maintain order. Also looping over demography.model_base_params rather than params_to_fix to maintain order.
@@ -990,7 +996,8 @@ class FixedParametersHandler:
         self.reduced_constraints = [constraint for constraint in self.demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
     
-    def extend_parameters(self, free_parameters: np.ndarray, units: str | None = None):
+    def extend_parameters(self, free_parameters: np.ndarray, units: str | None = None, show_ancestry_warning: bool = False, 
+                            counter: int = 0, verbose_warning_screen: int = 0, verbose_warning_log: int = 0):
         """
         Takes in the free parameters (those seen by the optimizer) and extends them to include the 
         full parameter list by computing the parameters fixed by ancestry after adding parameters fixed by value.
@@ -1001,7 +1008,13 @@ class FixedParametersHandler:
             An array of parameter values for the free parameters of the model that are being optimized by the primary optimizer. The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params` that are not fixed by ancestry proportions or by user-defined values.
         units: str | None
             The units of the input parameters. If "phys", the input parameters are in physical units. If "opt", the input parameters are in optimization units. If None, defaults to "phys". The units of the output parameters are the same as the input parameters.
-        
+        counter: int
+            The current iteration number of the optimization process, used for logging and printing purposes.
+        verbose_warning_screen: int
+            The verbosity level for printing to the screen. If 0, no information is printed.
+        verbose_warning_log: int
+            The verbosity level for logging. If 0, no information is logged.
+            
         Returns
         -------
         np.ndarray
@@ -1015,7 +1028,11 @@ class FixedParametersHandler:
         
         try:
             return self.compute_params_fixed_by_ancestry(params=full_parameters,
-                                                        units = units) 
+                                                        units = units,
+                                                        show_ancestry_warning=show_ancestry_warning,
+                                                        counter=counter,
+                                                        verbose_warning_screen=verbose_warning_screen,
+                                                        verbose_warning_log=verbose_warning_log) 
         except ValueError as e:
             logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
             return full_parameters
@@ -1115,7 +1132,8 @@ class FixedParametersHandler:
         return diff  
 
     
-    def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions: dict[str, np.ndarray] | None = None, units: str | None = None):
+    def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions: dict[str, np.ndarray] | None = None, units: str | None = None, 
+                                        show_ancestry_warning: bool = False, counter: int = 0, verbose_warning_screen: int = 0, verbose_warning_log: int = 0):
         """
         Compute the parameters fixed by ancestry proportions.
 
@@ -1127,6 +1145,14 @@ class FixedParametersHandler:
             A dictionary mapping ancestor population names to their known ancestry proportions.
         units : str, optional
             The units of the input parameters. If "phys", the input parameters are in physical units. If "opt", the input parameters are in optimization units. If None, defaults to "phys". The units of the output parameters are the same as the input parameters.
+        show_ancestry_warning: bool
+            Whether to print a warning message when the ancestry proportions cannot be perfectly matched by any values of the parameters fixed by ancestry. Used internally to display a warning at the end of optimization if the problem is not resolved for optimal parameters.
+        counter: int
+            The current iteration number of the optimization process, used for logging and printing purposes.
+        verbose_warning_screen: int
+            The verbosity level for printing to the screen. If 0, no information is printed.
+        verbose_warning_log: int
+            The verbosity level for logging. If 0, no information is logged.
 
         Returns
         -------
@@ -1206,17 +1232,32 @@ class FixedParametersHandler:
         start_point_validated =  start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
         
         try: 
-            solved_params = scipy.optimize.fsolve(func=param_objective_func,
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                solved_params = scipy.optimize.fsolve(func=param_objective_func,
                                                 x0=start_point_validated)
+                for warning in w:
+                    warning_origin_message = (
+                        "RuntimeWarning from scipy.optimize.fsolve while solving parameters fixed by ancestry proportions: "
+                    )
+                    if (verbose_warning_log > 0) and (counter % verbose_warning_log == 0):
+                        logger.info(warning_origin_message + str(warning.message)) # Log RuntimeWarning
+                    if (verbose_warning_screen > 0) and (counter % verbose_warning_screen == 0):
+                        print(verbose_warning_screen)
+                        print(warning_origin_message + str(warning.message)) # Print RuntimeWarning to screen
+            
         except (ValueError, TypeError) as e:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
 
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
-            self.logger.warning(f"Could not solve for parameters fixed by ancestry proportions. Final error: {error}, solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(full_params=params_opt, param_values_from_proportions=solved_params))} this can happen when no sex bias parameter allows for the observed ancestry proportions.")
+            ancestry_message = f"Could not solve for parameters fixed by ancestry proportions.\nFinal error: {error}, solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(full_params=params_opt, param_values_from_proportions=solved_params))}.\nThis can happen when no sex bias parameter allows for the observed ancestry proportions."
+            self.logger.info(ancestry_message)
+            if show_ancestry_warning:
+                print("At the end of the current optimization step: " + ancestry_message)
             
         if np.isnan(solved_params).any():
-            print ("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
+            print("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
 
         params_phys = self.convert_to_physical_params(self.insert_solved_params(full_params=self.convert_to_optimizer_params(physical_params=params_phys),
                                                                                 param_values_from_proportions=solved_params))

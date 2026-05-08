@@ -1,5 +1,5 @@
 samples:
-  directory: ./TrioPhased/
+  directory: ./data/ASW_test_data/
   individual_names: [
     "NA19625","NA19700","NA19701","NA19703","NA19704","NA19707","NA19711","NA19712","NA19713","NA19818","NA19819",
     "NA19834","NA19835","NA19900","NA19901","NA19904","NA19908","NA19909","NA19913","NA19914","NA19916","NA19917",
@@ -14,32 +14,29 @@ samples:
   filename_format: "{name}_{label}_final.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
-  allosomes: [X]
   
-output_filename_format: "ASW_test_output_{label}"
-log_filename: 'ASW_one_pulse.log'
-output_directory: ./output_one_pulse/
+output_filename_format: "test_output_{label}"
+log_filename: 'test_logfile.log'
+output_directory: ./tests/drivers/test_output/
 verbose_log: 1
 verbose_screen: 30
 log_scale : True
 
 model_filename: ../models/ppp.yaml
 start_params: 
-  t: 4:8
+  t: 5
   REUR: 0.8
   RNAT: 0.1
-  REUR_sex_bias: 0.1
-  RNAT_sex_bias: 0.1
 
-repetitions: 3
-maximum_iterations: 1000
+repetitions: 1
+maximum_iterations: 2
 seed: 10
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
 exclude_tracts_below_cm: 2
 npts : 50
-#fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
 
 ad_model_autosomes : M
 ad_model_allosomes: DC
+two_steps_optimization: True
 
-
+fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT']

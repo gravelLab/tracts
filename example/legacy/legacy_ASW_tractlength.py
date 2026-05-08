@@ -47,7 +47,7 @@ for i in range(rep_pp):
         startrand, bins, Ls, data, nind, func, outofbounds_fun=bound, cutoff=cutoff)
     try:
         optmodlocal = DemographicModel(func(xopt))
-        loclik = optmod.loglik(bins, Ls, data, nind, cutoff=cutoff)
+        loclik = optmodlocal.loglik(bins, Ls, data, nind, cutoff=cutoff)
         if loclik > maxlik:
             optmod = optmodlocal
             optpars = xopt
