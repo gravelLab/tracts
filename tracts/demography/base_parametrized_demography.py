@@ -974,10 +974,15 @@ class FixedParametersHandler:
                 raise ValueError(f'{param_name} is not a rate or sex bias parameter.')
             
         if len(params_to_fix_by_ancestry) not in [0, sum(len(prop)-1 for prop in proportions.values())]:
+
+            fixed_sex_bias_params = [param_name for param_name in params_to_fix_by_ancestry
+                                    if demography.model_base_params[param_name].type in {ParamType.SEX_BIAS}]
+            sb_message = "Try fixing sex-bias parameters by ancestry." if len(fixed_sex_bias_params) == 0 else ""
+                
             raise ValueError(
-                    f'Number of parameters to fix is incorrect.'
-                    f'Each population of interest can have N-1 proportions fixed'
-                    f'Where N is the number of ancestral sources for that population'
+                    f'Number of parameters to fix is incorrect. Each population of interest can have N-1 proportions fixed, '
+                    f'where N is the number of ancestral sources for that population. Here, the number of parameters to fix is {len(params_to_fix_by_ancestry)}, '
+                    f'but the expected number is {sum(len(prop)-1 for prop in proportions.values())} based on the provided proportions. {sb_message}'
                 )
         
         # Use a dict to maintain order. Also looping over demography.model_base_params rather than params_to_fix to maintain order.

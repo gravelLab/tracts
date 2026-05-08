@@ -99,9 +99,20 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
         for k, v in male_data.items():
             male_data_mapped[dict(p_dict)[k]] = v
     
-    def objective_function(parameters):
+    local_parameter_handler = copy.deepcopy(parameter_handler) # Extract parameter_handler to modify it locally for optimization.
+
+    # ------------ Define objective function for optimization ------------
+
+    best_objective = np.inf
+    best_full_params = None
+
+    def objective_function(parameters): # parameters are in optimizer space
+
+        nonlocal best_objective, best_full_params
 
         global _counter
+        global _out_of_bounds_val
+        global _min_out_of_bounds_val
         _counter += 1
 
         def flush_result(result, note = str()): 
@@ -271,13 +282,40 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
             flush_result(result_X_females, 'Female allosomes')
             flush_result(result_X_males, 'Male allosomes')
         
-        return -result
+        obj = -result
+
+        if np.isfinite(obj) and obj < best_objective:
+            best_objective = obj
+            best_full_params = parameters.copy()
+            
+        return obj
+
+    # ------------ Define reduced objective function and out-of-bounds function for optimization ------------
+
+    def reduced_objective_function(free_parameters_opt):
+
+        extended_parameters = local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
+                                                                        units="opt",
+                                                                        counter=_counter, 
+                                                                        verbose_warning_log=verbose_log) # NOTE: Add verbose_warning_screen=verbose_screen if RuntimeWarnings should be printed on screen.
+        
+        return objective_function(extended_parameters) #Full parameters in optimizer space
+  
+    def reduced_outofbounds_fun(free_parameters_opt):
+
+        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
+                                                                        units="opt")) #Full parameters in optimizer space
+
+    reduced_p0 = local_parameter_handler.reduce_parameters(p0) # Initial parameters
+
+    # ------------ Run single-step optimization ------------
 
     if ad_model_allosomes is not None:
         title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes and with the {ad_model_allosomes} model for allosomes."
     else:
         title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
-    subtitle_message = "Optimizing model likelihood.\n---------------------------\nIter.\t Log-likelihood\t Model parameters\t Transmission\n---------------------------------------------------------------------\n"
+    subtitle_message = f"Optimizing model likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
+    subsubtitle_message = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
     
     line = "-" * len(title_message)
     print('\n' + line)
@@ -285,16 +323,31 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
     print(line)
 
     if (verbose_log > 0) and (_counter % verbose_log == 0):
-        logger.info(subtitle_message)
+        for l in [subtitle_message, line, subsubtitle_message, line]:
+            logger.info(l)
     if (verbose_screen > 0) and (_counter % verbose_screen == 0):
-        print(subtitle_message)
-    
-    outputs = scipy.optimize.fmin_cobyla(
-        objective_function, p0, outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
-    
-    likelihood = -objective_function(outputs)
+        for l in [subtitle_message, line, subsubtitle_message, line]:
+            print(l)
 
-    return outputs, likelihood
+    reduced_objective_to_optimize = lambda x: reduced_objective_function(x)
+
+    outputs = scipy.optimize.fmin_cobyla(
+        reduced_objective_to_optimize, reduced_p0, reduced_outofbounds_fun, rhobeg=.01, rhoend=.0001, maxfun=maxiter)
+    
+    optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
+                                                                    units="opt",
+                                                                    show_ancestry_warning=True)
+
+    # ------------ Return optimal parameters corresponding to best likelihood ------------
+
+    if best_full_params is None:
+        try:
+            fallback_likelihood = -objective_function(optimized_parameters)
+            return optimized_parameters, fallback_likelihood
+        except Exception:
+            return optimized_parameters, -1e32
+
+    return best_full_params, -best_objective 
 
 
 def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
@@ -358,7 +411,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         autosome_data_mapped[dict(p_dict)[k]] = v
     
     if ad_model_allosomes is not None: # Include allosomal data for inference
-        
+
         allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
         n_allosome_bins = len(allosome_bins)
         allosome_length = population.allosome_lengths['X']
@@ -375,6 +428,8 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         for k, v in male_data.items():
             male_data_mapped[dict(p_dict)[k]] = v
 
+    # ------------ Fix free sex-biased parameters for the first optimization step ------------
+
     local_parameter_handler = copy.deepcopy(parameter_handler)
 
     free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
@@ -387,11 +442,11 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     best_objective = np.inf
     best_full_params = None
 
-    def objective_function(model_base_parameters, include_allosomes = True):
+    # ----------- Define objective function for optimization ------------
+
+    def objective_function(model_base_parameters, include_allosomes = True): # parameters are in optimizer space
 
         nonlocal best_objective, best_full_params
-
-        # Parameters are in optimizer space
 
         global _counter
         global _out_of_bounds_val
@@ -572,7 +627,9 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             best_objective = obj
             best_full_params = model_base_parameters.copy()
         return obj
-        
+
+    # ------------ Define reduced objective function and out-of-bounds function for optimization ------------
+
     def reduced_objective_function(free_parameters_opt, include_allosomes = True):
 
         extended_parameters = local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
@@ -587,7 +644,9 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
                                                                         units="opt")) #Full parameters in optimizer space
 
-    reduced_p0 = local_parameter_handler.reduce_parameters(p0)
+    reduced_p0 = local_parameter_handler.reduce_parameters(p0) # Initial parameters
+
+    # ------------ Run first optimization step on autosomal data ------------
 
     if ad_model_allosomes is not None:
         title_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes and with the {ad_model_allosomes} model for allosomes."
@@ -609,7 +668,6 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         if verbose_screen>0:
             print(l)
             
-
     reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes = False)
     
     outputs = scipy.optimize.fmin_cobyla(
@@ -619,6 +677,8 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                                     units="opt",
                                                                     show_ancestry_warning=True)
     step1_full_params_opt = optimized_parameters.copy()
+
+    # ------------ Run second optimization step on autosomal and allosomal data ------------
 
     new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
     new_fixed_values = optimized_parameters[local_parameter_handler.free_parameters_indices]
@@ -671,6 +731,8 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             logger.info(l)
         outputs = reduced_params
     
+    # ------------ Return optimal parameters corresponding to best likelihood ------------
+
     if len(reduced_params) == 0 and ad_model_allosomes is not None:
         full_params_opt = optimized_parameters.copy()
         likelihood = -objective_function(full_params_opt, include_allosomes=True)

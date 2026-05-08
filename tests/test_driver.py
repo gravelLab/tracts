@@ -2,6 +2,7 @@ import os
 import pytest
 from tracts.driver import run_tracts
 from pathlib import Path
+import numpy as np
 
 def _run_tracts_test(driver_file: str, script_dir: Path, output_dir: Path, log_name: str, expected_files: list[str]):
     """
@@ -101,6 +102,89 @@ def test_run_tracts():
 
     for driver_file in driver_files_allosomes:
         _run_tracts_test(driver_file, script_dir, output_dir, log_name, expected_files_with_allosomes)
+
+
+def _compare_driver_results(driver_files: list[str], script_dir: Path, output_dir: Path, log_name: str, tolerance: float = 0.01):
+    """
+    Helper method to compare results from two driver files.
+    """
+    results = {}
+
+    # Run both driver files and collect results
+    for driver_file in driver_files:
+        run_tracts(driver_file, script_dir=script_dir)
+        
+        # Collect output files
+        results[driver_file] = {}
+        
+        # Read optimal parameters
+        params_file = output_dir / "test_output_optimal_parameters.txt"
+        with open(params_file, "r") as f:
+            results[driver_file]["params"] = f.read()
+        
+        # Read migration matrices
+        male_mig_file = output_dir / "test_output_male_migration_matrix"
+        female_mig_file = output_dir / "test_output_female_migration_matrix"
+        with open(male_mig_file, "r") as f:
+            results[driver_file]["male_mig"] = np.loadtxt(f)
+        with open(female_mig_file, "r") as f:
+            results[driver_file]["female_mig"] = np.loadtxt(f)
+        
+        # Read tract distribution
+        tract_file = output_dir / "test_output_autosome_predicted_tract_distribution"
+        with open(tract_file, "r") as f:
+            results[driver_file]["tract_dist"] = np.loadtxt(f)
+        
+        # Clean up
+        if (output_dir / log_name).exists():
+            os.remove(output_dir / log_name)
+        for entry in os.listdir(output_dir):
+            os.remove(os.path.join(output_dir, entry))
+        os.rmdir(output_dir)
+
+    # Compare male migration matrices
+    male_mig_diff = np.abs(results[driver_files[0]]["male_mig"] - results[driver_files[1]]["male_mig"])
+    male_mig_rel_diff = male_mig_diff / (np.abs(results[driver_files[0]]["male_mig"]) + 1e-10)
+    assert np.max(male_mig_rel_diff) < tolerance, (
+        f"Male migration matrices differ by more than {tolerance*100}%. "
+        f"Max relative difference: {np.max(male_mig_rel_diff)*100:.2f}%"
+    )
+
+    # Compare female migration matrices
+    female_mig_diff = np.abs(results[driver_files[0]]["female_mig"] - results[driver_files[1]]["female_mig"])
+    female_mig_rel_diff = female_mig_diff / (np.abs(results[driver_files[0]]["female_mig"]) + 1e-10)
+    assert np.max(female_mig_rel_diff) < tolerance, (
+        f"Female migration matrices differ by more than {tolerance*100}%. "
+        f"Max relative difference: {np.max(female_mig_rel_diff)*100:.2f}%"
+    )
+
+    # Compare tract distributions
+    tract_diff = np.abs(results[driver_files[0]]["tract_dist"] - results[driver_files[1]]["tract_dist"])
+    tract_rel_diff = tract_diff / (np.abs(results[driver_files[0]]["tract_dist"]) + 1e-10)
+    assert np.max(tract_rel_diff) < tolerance, (
+        f"Tract distributions differ by more than {tolerance*100}%. "
+        f"Max relative difference: {np.max(tract_rel_diff)*100:.2f}%"
+    )
+
+
+def test_compare_only_autosomal_one_step_vs_two_steps():
+    """
+    Test that one_step and two_steps optimizations produce very similar results when only autosomes are present in the sample.
+    Optimizations are expected to be equivalent in this context: the two-steps optimization is expected to stop after the first step,
+    optimizing only over autosomal data. The test compares optimal parameters, migration matrices, and tract distributions.
+    Performs the comparison with and without parameters fixed by ancestry.
+    """
+    script_dir = Path(__file__).resolve().parent / "drivers"
+    output_dir = Path(__file__).resolve().parent / "drivers" / "test_output"
+    log_name = "test_logfile.log"
+
+    # No parameters fixed by ancestry
+    driver_files = ["test_one_step_only_autosomes.yaml", "test_two_steps_only_autosomes.yaml"]
+    _compare_driver_results(driver_files, script_dir, output_dir, log_name)
+
+    # Parameters fixed by ancestry
+    driver_files_fix = ["test_one_step_only_autosomes_fix.yaml", "test_two_steps_only_autosomes_fix.yaml"]
+    _compare_driver_results(driver_files_fix, script_dir, output_dir, log_name)
 
         
 
