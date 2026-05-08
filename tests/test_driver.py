@@ -117,10 +117,11 @@ def _compare_driver_results(driver_files: list[str], script_dir: Path, output_di
         # Collect output files
         results[driver_file] = {}
         
-        # Read optimal parameters
+        # Read optimal parameters: second column only, ignoring header
         params_file = output_dir / "test_output_optimal_parameters.txt"
-        with open(params_file, "r") as f:
-            results[driver_file]["params"] = f.read()
+        results[driver_file]["params"] = np.atleast_1d(
+            np.loadtxt(params_file, skiprows=1, usecols=1)
+        )
         
         # Read migration matrices
         male_mig_file = output_dir / "test_output_male_migration_matrix"
@@ -141,6 +142,14 @@ def _compare_driver_results(driver_files: list[str], script_dir: Path, output_di
         for entry in os.listdir(output_dir):
             os.remove(os.path.join(output_dir, entry))
         os.rmdir(output_dir)
+
+    # Compare optimal parameters
+    params_diff = np.abs(results[driver_files[0]]["params"] - results[driver_files[1]]["params"])
+    params_rel_diff = params_diff / (np.abs(results[driver_files[0]]["params"]) + 1e-10)
+    assert np.max(params_rel_diff) < tolerance, (
+        f"Optimal parameters differ by more than {tolerance*100}%. "
+        f"Max relative difference: {np.max(params_rel_diff)*100:.2f}%"
+    )
 
     # Compare male migration matrices
     male_mig_diff = np.abs(results[driver_files[0]]["male_mig"] - results[driver_files[1]]["male_mig"])
@@ -171,7 +180,7 @@ def test_compare_only_autosomal_one_step_vs_two_steps():
     """
     Test that one_step and two_steps optimizations produce very similar results when only autosomes are present in the sample.
     Optimizations are expected to be equivalent in this context: the two-steps optimization is expected to stop after the first step,
-    optimizing only over autosomal data. The test compares migration matrices and tract distributions.
+    optimizing only over autosomal data. The test compares migration matrices, optimal parameters and tract distributions.
     Performs the comparison with and without parameters fixed by ancestry.
     """
     script_dir = Path(__file__).resolve().parent / "drivers"
