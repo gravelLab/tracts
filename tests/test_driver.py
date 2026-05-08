@@ -171,7 +171,7 @@ def test_compare_only_autosomal_one_step_vs_two_steps():
     """
     Test that one_step and two_steps optimizations produce very similar results when only autosomes are present in the sample.
     Optimizations are expected to be equivalent in this context: the two-steps optimization is expected to stop after the first step,
-    optimizing only over autosomal data. The test compares optimal parameters, migration matrices, and tract distributions.
+    optimizing only over autosomal data. The test compares migration matrices and tract distributions.
     Performs the comparison with and without parameters fixed by ancestry.
     """
     script_dir = Path(__file__).resolve().parent / "drivers"
