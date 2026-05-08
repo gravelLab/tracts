@@ -144,8 +144,14 @@ def _compare_driver_results(driver_files: list[str], script_dir: Path, output_di
         os.rmdir(output_dir)
 
     # Compare optimal parameters
-    params_diff = np.abs(results[driver_files[0]]["params"] - results[driver_files[1]]["params"])
-    params_rel_diff = params_diff / (np.abs(results[driver_files[0]]["params"]) + 1e-10)
+    params_0 = results[driver_files[0]]["params"]
+    params_1 = results[driver_files[1]]["params"]
+    assert params_0.shape == params_1.shape, (
+        "Optimal parameter arrays have different shapes: "
+        f"{params_0.shape} vs {params_1.shape}"
+    )
+    params_diff = np.abs(params_0 - params_1)
+    params_rel_diff = params_diff / (np.abs(params_0) + 1e-10)
     assert np.max(params_rel_diff) < tolerance, (
         f"Optimal parameters differ by more than {tolerance*100}%. "
         f"Max relative difference: {np.max(params_rel_diff)*100:.2f}%"
