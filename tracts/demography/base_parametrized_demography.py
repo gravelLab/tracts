@@ -104,7 +104,7 @@ class FounderEvent(BaseFounderEvent):
                         remainder_population=remainder_population,
                         end_time=end_time)
 
-    def execute(self, parametrized_demography: BaseParametrizedDemography, params):
+    def execute(self, parametrized_demography: BaseParametrizedDemography, params: list[float], rate_tol: float = 1e-4):
         """
         Executes the founder event by modifying the migration matrix of the demography according to the parameters of the founder event. 
 
@@ -114,6 +114,8 @@ class FounderEvent(BaseFounderEvent):
             The demography object that the founder event is being executed on. The migration matrix of the demography will be modified according to the parameters of the founder event.
         params: list[float]
             The list of parameters for the founder event.
+        rate_tol: float
+            The tolerance to check whether the migration rates sum to more than 1. This is used to allow for some numerical imprecision in the migration rates. If the migration rates sum to more than 1 by more than this tolerance, a warning is logged.
 
         Returns
         -------
@@ -142,8 +144,10 @@ class FounderEvent(BaseFounderEvent):
                 migration_matrix[start_time - 1, parametrized_demography.population_indices[source_population]] = rate * frac_part_start
                 remaining_rate -= rate
 
-            if remaining_rate < 0:
-                self.logger.warning(f"Founding migration rates add up to more than 1 at params {params}, matrix {migration_matrix}.")
+            if remaining_rate < -rate_tol: # Allow for some numerical imprecision
+                self.logger.warning(f"Founding migration rates add up to more than 1 at params {params}. Remaining rate is {remaining_rate}.")
+            elif remaining_rate < 0:
+                remaining_rate = 0.
 
             migration_matrix[start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
             migration_matrix[start_time - 1, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate * frac_part_start

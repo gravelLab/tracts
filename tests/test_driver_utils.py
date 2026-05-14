@@ -174,6 +174,83 @@ class TestParseStartParams:
         assert len(result) == 2
         assert len(result[0]) == 2
 
+    def test_parse_start_params_retries_after_negative_violation_score(self):
+        """
+        Test that infeasible candidates are rejected and resampled until feasible.
+        """
+        mock_model = Mock()
+        mock_model.model_base_params = {
+            'param1': Mock(index=0, bounds=[0.1, 1.0])
+        }
+        mock_model.params_fixed_by_ancestry = []
+        mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.side_effect = [-1, 1]
+
+        start_bounds = Mock(param1="0.5:0.9")
+
+        result = parse_start_params(
+            start_param_bounds=start_bounds,
+            repetitions=1,
+            seed=42,
+            model=mock_model
+        )
+
+        assert len(result) == 1
+        assert mock_model.get_violation_score.call_count == 2
+        assert result[0][0] != 0.5
+
+    def test_parse_start_params_skips_value_error_candidates(self):
+        """
+        Test that candidates raising ValueError during feasibility checks are resampled.
+        """
+        mock_model = Mock()
+        mock_model.model_base_params = {
+            'param1': Mock(index=0, bounds=[0.1, 1.0])
+        }
+        mock_model.params_fixed_by_ancestry = []
+        mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.side_effect = [ValueError("bad candidate"), 1]
+
+        start_bounds = Mock(param1="0.5:0.9")
+
+        result = parse_start_params(
+            start_param_bounds=start_bounds,
+            repetitions=1,
+            seed=42,
+            model=mock_model
+        )
+
+        assert len(result) == 1
+        assert mock_model.get_violation_score.call_count == 2
+        assert result[0][0] != 0.5
+
+    def test_parse_start_params_raises_when_all_candidates_are_infeasible(self):
+        """
+        Test that parse_start_params fails after exhausting the attempt limit.
+        """
+        mock_model = Mock()
+        mock_model.model_base_params = {
+            'param1': Mock(index=0, bounds=[0.1, 1.0])
+        }
+        mock_model.params_fixed_by_ancestry = []
+        mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.return_value = -1
+
+        start_bounds = Mock(param1=0.5)
+
+        with pytest.raises(
+            ValueError,
+            match=r"Could not generate 1 feasible starting parameter sets after 1000 attempts"
+        ):
+            parse_start_params(
+                start_param_bounds=start_bounds,
+                repetitions=1,
+                seed=42,
+                model=mock_model
+            )
+
+        assert mock_model.get_violation_score.call_count == 1000
+
     def test_parse_start_params_range_values(self):
         """
         Test parsing start params with range values.
