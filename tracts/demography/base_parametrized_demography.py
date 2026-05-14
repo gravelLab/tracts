@@ -25,6 +25,8 @@ class BaseFounderEvent(ABC):
         The population that contributes the remaining proportion to the new population after the source populations have contributed according to their specified proportions. This population can be one of the source populations or a different population.
     end_time: str | None
         The name of the parameter defining the end time of the founder event. If None, the founder event is a pulse event. If not None, the founder event is a continuous event that starts at found_time and ends at end_time. In a continuous founder event, the migration rates are constant between ``found_time`` and ``end_time``, and the total migration rate is 1 at ``found_time`` and 0 at ``end_time``. In a pulse founder event, the migration rates are applied only at ``found_time``.
+    logger: logging.Logger
+        The logger.
     """
 
     def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None):
@@ -57,6 +59,7 @@ class BaseFounderEvent(ABC):
         self.end_time = end_time
         self.source_populations = source_populations
         self.remainder_population = remainder_population
+        self.logger = logger
 
     @abstractmethod
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
@@ -76,6 +79,8 @@ class FounderEvent(BaseFounderEvent):
         The population that contributes the remaining proportion to the new population after the source populations have contributed according to their specified proportions.
     end_time: str | None
         The name of the parameter defining the end time of the founder event. If None, the founder event is a pulse event. If not None, the founder event is a continuous event that starts at ``found_time`` and ends at ``end_time``. 
+    logger: logging.Logger
+        The logger.
     """
 
     def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None):
@@ -121,7 +126,7 @@ class FounderEvent(BaseFounderEvent):
         start_time = math.ceil(true_start_time) # A discretized value to create a matrix that can include the event.  
         if true_start_time < 1:
             start_time_msg = f"Founder event time must be at least 1 generation ago. Current start time is {true_start_time}."
-            logger.warning(start_time_msg + "If this happens at start of simulation, it may be a problem with parameter scaling.")
+            self.logger.warning(start_time_msg + "If this happens at start of simulation, it may be a problem with parameter scaling.")
             raise ValueError(start_time_msg)
 
         frac_part_start = start_time - true_start_time
@@ -138,7 +143,7 @@ class FounderEvent(BaseFounderEvent):
                 remaining_rate -= rate
 
             if remaining_rate < 0:
-                logger.warning(f"Founding migration rates add up to more than 1 at params {params}, matrix {migration_matrix}.")
+                self.logger.warning(f"Founding migration rates add up to more than 1 at params {params}, matrix {migration_matrix}.")
 
             migration_matrix[start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
             migration_matrix[start_time - 1, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate * frac_part_start
@@ -180,6 +185,8 @@ class BaseMigrationEvent(ABC):
         The name of the parameter defining the migration rate of the migration event. In a pulse migration event, this is the fraction of the admixed population that is replaced with migrants from the source population. In a continuous migration event, this is the fraction of the admixed population that is replaced with migrants from the source population per generation.
     source_population: str
         The population that contributes migrants to the admixed population in the migration event.
+    logger: logging.Logger
+        The logger.
     """
     
     def __init__(self, rate_parameter: str, source_population: str):
@@ -195,6 +202,7 @@ class BaseMigrationEvent(ABC):
         """
         self.rate_parameter = rate_parameter
         self.source_population = source_population
+        self.logger = logger
 
     @abstractmethod
     def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: np.ndarray, params):
@@ -894,7 +902,7 @@ class FixedParametersHandler:
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
             if param_type == ParamType.TIME:
                 if converted_params[index] > 15:
-                    print(f'Time parameter {param_name} is too large after conversion to physical units: {converted_params[index]}. Check scaling functions.')
+                    self.logger.warning(f'Time parameter {param_name} is too large after conversion to physical units. In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}. Check scaling functions.')
 
         return converted_params
 
@@ -1036,7 +1044,7 @@ class FixedParametersHandler:
                                                         verbose_warning_screen=verbose_warning_screen,
                                                         verbose_warning_log=verbose_warning_log) 
         except ValueError as e:
-            logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
+            self.logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
             return full_parameters
 
     def indices_to_labels(self, indices: list[int]):
@@ -1243,7 +1251,7 @@ class FixedParametersHandler:
                         "RuntimeWarning from scipy.optimize.fsolve while solving parameters fixed by ancestry proportions: "
                     )
                     if (verbose_warning_log > 0) and (counter % verbose_warning_log == 0):
-                        logger.info(warning_origin_message + str(warning.message)) # Log RuntimeWarning
+                        self.logger.info(warning_origin_message + str(warning.message)) # Log RuntimeWarning
                     if (verbose_warning_screen > 0) and (counter % verbose_warning_screen == 0):
                         print(warning_origin_message + str(warning.message)) # Print RuntimeWarning to screen
             

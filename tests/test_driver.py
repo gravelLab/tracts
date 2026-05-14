@@ -1,8 +1,65 @@
 import os
 import pytest
+import shutil
 from tracts.driver import run_tracts
 from pathlib import Path
 import numpy as np
+
+# ------------ Helper functions for test setup and checks ----------
+
+def _copy_tests_to_tmp(tmp_path: Path) -> Path:
+
+    source_tests = Path(__file__).resolve().parent
+    tmp_tests = tmp_path / "tests"
+    tmp_tests.mkdir(parents=True, exist_ok=True)
+
+    required_subdirs = ("drivers", "models", "data")
+    ignore = shutil.ignore_patterns("test_output", "__pycache__")
+
+    for subdir in required_subdirs:
+        source_subdir = source_tests / subdir
+        if source_subdir.exists():
+            shutil.copytree(
+                source_subdir,
+                tmp_tests / subdir,
+                ignore=ignore,
+            )
+
+    return tmp_tests / "drivers"
+
+
+def _prepare_driver(driver_path: Path, output_dir: Path) -> str:
+
+    text = driver_path.read_text()
+
+    lines = text.splitlines()
+    new_lines = []
+    found_output_directory = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        if stripped.startswith("output_directory:"):
+            indent = line[: len(line) - len(line.lstrip())]
+            new_lines.append(f"{indent}output_directory: '{output_dir}'")
+            found_output_directory = True
+        else:
+            new_lines.append(line)
+
+    if not found_output_directory:
+        new_lines.append(f"output_directory: '{output_dir}'")
+
+    driver_path.write_text("\n".join(new_lines) + "\n")
+
+    return driver_path.name
+
+
+def _clean_output_dir(output_dir: Path):
+
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+
+# ------------ Test functions ----------
 
 def _run_tracts_test(driver_file: str, script_dir: Path, output_dir: Path, log_name: str, expected_files: list[str]):
     """
@@ -48,18 +105,17 @@ def _run_tracts_test(driver_file: str, script_dir: Path, output_dir: Path, log_n
         assert file_path.exists(), f"Expected file '{expected_file}' not found in output directory."
 
     # Clean up output directory
-    for entry in os.listdir(output_dir):
-        os.remove(os.path.join(output_dir, entry))
-    os.rmdir(output_dir)
+    _clean_output_dir(output_dir)
 
 
-def test_run_tracts():
+
+def test_run_tracts(tmp_path):
     """
     Test that run_tracts creates all outputs and log file in specified directory, for a set of driver files covering all possible
     configurations regarding optimization.
     """
 
-    script_dir = Path(__file__).resolve().parent / "drivers"
+    script_dir =  _copy_tests_to_tmp(tmp_path)
     driver_files_autosomes = sorted(
         [f.name for f in script_dir.iterdir() if "autosomes" in f.name]
     )
@@ -67,7 +123,7 @@ def test_run_tracts():
         [f.name for f in script_dir.iterdir() if "allosomes" in f.name]
     )
 
-    output_dir = Path(__file__).resolve().parent / "drivers" / "test_output"
+    output_dir = tmp_path / "test_output"
     log_name = "test_logfile.log"
 
     expected_files_with_allosomes = [
@@ -98,13 +154,15 @@ def test_run_tracts():
     ]
 
     for driver_file in driver_files_autosomes:
-        _run_tracts_test(driver_file, script_dir, output_dir, log_name, expected_files_without_allosomes)
+        prepared_driver = _prepare_driver(script_dir / driver_file, output_dir)
+        _run_tracts_test(prepared_driver, script_dir, output_dir, log_name, expected_files_without_allosomes)
 
     for driver_file in driver_files_allosomes:
-        _run_tracts_test(driver_file, script_dir, output_dir, log_name, expected_files_with_allosomes)
+        prepared_driver = _prepare_driver(script_dir / driver_file, output_dir)
+        _run_tracts_test(prepared_driver, script_dir, output_dir, log_name, expected_files_with_allosomes)
 
 
-def _compare_driver_results(driver_files: list[str], script_dir: Path, output_dir: Path, log_name: str, tolerance: float = 0.01):
+def _compare_driver_results(driver_files: list[str], script_dir: Path, output_dir: Path, tolerance: float = 0.01):
     """
     Helper method to compare results from two driver files.
     """
@@ -137,11 +195,7 @@ def _compare_driver_results(driver_files: list[str], script_dir: Path, output_di
             results[driver_file]["tract_dist"] = np.loadtxt(f)
         
         # Clean up
-        if (output_dir / log_name).exists():
-            os.remove(output_dir / log_name)
-        for entry in os.listdir(output_dir):
-            os.remove(os.path.join(output_dir, entry))
-        os.rmdir(output_dir)
+        _clean_output_dir(output_dir)
 
     # Compare optimal parameters
     params_0 = results[driver_files[0]]["params"]
@@ -182,26 +236,26 @@ def _compare_driver_results(driver_files: list[str], script_dir: Path, output_di
     )
 
 
-def test_compare_only_autosomal_one_step_vs_two_steps():
+def test_compare_only_autosomal_one_step_vs_two_steps(tmp_path):
     """
     Test that one_step and two_steps optimizations produce very similar results when only autosomes are present in the sample.
     Optimizations are expected to be equivalent in this context: the two-steps optimization is expected to stop after the first step,
     optimizing only over autosomal data. The test compares migration matrices, optimal parameters and tract distributions.
     Performs the comparison with and without parameters fixed by ancestry.
     """
-    script_dir = Path(__file__).resolve().parent / "drivers"
-    output_dir = Path(__file__).resolve().parent / "drivers" / "test_output"
-    log_name = "test_logfile.log"
+    script_dir =  _copy_tests_to_tmp(tmp_path)
+    output_dir = tmp_path / "test_output"
 
     # No parameters fixed by ancestry
-    driver_files = ["test_one_step_only_autosomes.yaml", "test_two_steps_only_autosomes.yaml"]
-    _compare_driver_results(driver_files, script_dir, output_dir, log_name)
+    driver_files = [
+        _prepare_driver(script_dir / "test_one_step_only_autosomes.yaml", output_dir),
+        _prepare_driver(script_dir / "test_two_steps_only_autosomes.yaml", output_dir),
+    ]
+    _compare_driver_results(driver_files, script_dir, output_dir)
 
     # Parameters fixed by ancestry
-    driver_files_fix = ["test_one_step_only_autosomes_fix.yaml", "test_two_steps_only_autosomes_fix.yaml"]
-    _compare_driver_results(driver_files_fix, script_dir, output_dir, log_name)
-
-        
-
-
-
+    driver_files_fix = [
+        _prepare_driver(script_dir / "test_one_step_only_autosomes_fix.yaml", output_dir),
+        _prepare_driver(script_dir / "test_two_steps_only_autosomes_fix.yaml", output_dir),
+    ]
+    _compare_driver_results(driver_files_fix, script_dir, output_dir)

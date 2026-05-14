@@ -9,7 +9,7 @@ from tracts.util import time_to_physical_function, rate_to_physical_function, se
 from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, output_simulation_data_sex_biased
-from tracts.logs import setup_logger, set_log_file
+from tracts.logs import setup_logger, set_log_file, close_log_file
 logger = logging.getLogger(__name__)
 
 def run_tracts(driver_filename: str, script_dir: str):
@@ -58,244 +58,247 @@ def run_tracts(driver_filename: str, script_dir: str):
 
     set_log_file(log_filename=log_full_path,
                 memory_handler=memory_handler)
-    
-    logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
-    output_message = f"Results will be written to: {output_dir}."
-    logger_message = f"Using log file: {log_full_path}."
-    tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.'
 
-    # ------ Print initial information -------
-    print('------------------------------------------------------------------------------------------------\n')
-    print('Running tracts 2.0 with driver file:', driver_filename,'\n')
-    print('Reading data, demographic model and driver specifications...\n')
-    print('------------------------------------------------------------------------------------------------\n')   
-    for message in (output_message, logger_message, tracts_below_cm_message):
-        print(message)
-        logger.info(message)
-    
-    # ----- Extract specifications from the driver file and do necessary checks -------
-    # Autosomal admixture model is correctly specified
-    ad_model_autosomes = driver_spec.ad_model_autosomes
-    if not driver_spec.ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
-        print('The model for autosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), M (for Monoecious), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_autosomes = DC by default.')
-        ad_model_autosomes = 'DC'
+    try:
+        logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
+        output_message = f"Results will be written to: {output_dir}."
+        logger_message = f"Using log file: {log_full_path}."
+        tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.'
 
-    
-    # Check whether allosomes are present in the sample
-    allosome_labels = driver_spec.samples.allosomes
-    allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
-
-    # Allosomal admixture model is correctly specified
-    if hasattr(driver_spec, 'ad_model_allosomes') and allosome_label is not None:
-        ad_model_allosomes = driver_spec.ad_model_allosomes
-        if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
-            print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
-            ad_model_allosomes = 'DC'
-    elif allosome_label is not None:
-        print('Model for allosomal admixture not specified. Setting DC by default.')
-        ad_model_allosomes = 'DC'
-    else:
-        print('No allosomes specified in the driver file. Modelling only autosomal admixture.')
-        ad_model_allosomes = None # This will trigger the code to not model allosomal admixture.
-
-    # ------ Load the population -------
-    pop = load_population(driver_path=driver_path,
-                        driver_spec=driver_spec,
-                        script_dir=script_dir,
-                        allosome_labels = allosome_labels) 
-    pop.unknown_labels = driver_spec.unknown_labels_for_smoothing
-    pop.smooth_unknowns(allosome_labels=allosome_labels)
-    _bins, _data = pop.get_global_tractlengths(npts=driver_spec.npts, # Get the population labels and validate that these correspond to to model population labels.
-                                               exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm) 
-    
-    # ------ Load the model -------
-    model = load_model_from_driver(driver_spec=driver_spec,
-                                script_dir=script_dir,
-                                driver_path=driver_path,
-                                allosome_label=allosome_label)
-    ancestor_labels = model.population_indices.keys()
-    data_labels =  _data.keys()
-       
-    for label in data_labels:
-        if label not in ancestor_labels and label not in pop.unknown_labels:
-            raise ValueError(f"Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
-            "unknown labels: {pop.unknown_labels}")
-
-    # ------ Calculate ancestry proportions and set up fixed parameters if specified in the driver -------
-    ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
-    
-    print("Ancestries:", [ancestry for ancestry in ancestor_labels] )
-    print("Data autosome proportions:", ancestry_proportions )
-    if len(allosome_labels)>=1:
-        allosome_proportions = pop.calculate_allosome_proportions(population_labels=ancestor_labels,
-                                                                allosome_label=allosome_label)
-        print("Data allosome proportions:", allosome_proportions )
-
-    if len(driver_spec.fix_parameters_from_ancestry_proportions) > 0: # Set up fixed parameters if specified in the driver
+        # ------ Print initial information -------
+        print('------------------------------------------------------------------------------------------------\n')
+        print('Running tracts 2.0 with driver file:', driver_filename,'\n')
+        print('Reading data, demographic model and driver specifications...\n')
+        print('------------------------------------------------------------------------------------------------\n')   
+        for message in (output_message, logger_message, tracts_below_cm_message):
+            print(message)
+            logger.info(message)
         
-        if allosome_label:
-            model.parameter_handler.set_up_fixed_parameters(demography=model,
-                                                            params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
-                                                            proportions={
-                                                            f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
-                                                            f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
-                                                            } # Here, the option params_to_fix_by_value can be added in future development
-                                                            )
+        # ----- Extract specifications from the driver file and do necessary checks -------
+        # Autosomal admixture model is correctly specified
+        ad_model_autosomes = driver_spec.ad_model_autosomes
+        if not driver_spec.ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
+            print('The model for autosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), M (for Monoecious), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_autosomes = DC by default.')
+            ad_model_autosomes = 'DC'
+
+        
+        # Check whether allosomes are present in the sample
+        allosome_labels = driver_spec.samples.allosomes
+        allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
+
+        # Allosomal admixture model is correctly specified
+        if hasattr(driver_spec, 'ad_model_allosomes') and allosome_label is not None:
+            ad_model_allosomes = driver_spec.ad_model_allosomes
+            if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
+                print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
+                ad_model_allosomes = 'DC'
+        elif allosome_label is not None:
+            print('Model for allosomal admixture not specified. Setting DC by default.')
+            ad_model_allosomes = 'DC'
         else:
-            model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
-                                        proportions= {model.parametrized_populations[0]:ancestry_proportions}) # Here, the option params_to_fix_by_value can be added in future development
-    else: # No parameters to fix 
-        model.set_up_fixed_parameters([],{})
-    print("Model parameters :",[param_name for param_name in model.model_base_params.keys()]) # Print model parameters
+            print('No allosomes specified in the driver file. Modelling only autosomal admixture.')
+            ad_model_allosomes = None # This will trigger the code to not model allosomal admixture.
 
-    # ------ Optimizer setup -------
-    func = get_time_scaled_model_func(model) # Time parameters need to be rescaled for some optimizers, so we create a wrapper function that applies the necessary rescaling before passing parameters to the model.
-    bound = get_time_scaled_model_bounds(model) # The same rescaling needs to be applied to the bounds function.
-    
-    # ------ Set up conversion to physical and optimizer units ------ 
-    to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
-                                ParamType.RATE: rate_to_physical_function, 
-                                ParamType.SEX_BIAS: sex_bias_to_physical_function} 
-    to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
-                                    ParamType.RATE: rate_to_optimizer_function, 
-                                    ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
-    model.parameter_handler.to_physical_params_functions = to_physical_params_functions
-    model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
-    
-    # ------ Compute starting parameters in physical units ------
-    physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
-                                            repetitions=driver_spec.repetitions, 
-                                            seed=driver_spec.seed, 
-                                            model=model)
-    # ------ Convert starting parameters to optimizer units ------
-    optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]   
+        # ------ Load the population -------
+        pop = load_population(driver_path=driver_path,
+                            driver_spec=driver_spec,
+                            script_dir=script_dir,
+                            allosome_labels = allosome_labels) 
+        pop.unknown_labels = driver_spec.unknown_labels_for_smoothing
+        pop.smooth_unknowns(allosome_labels=allosome_labels)
+        _bins, _data = pop.get_global_tractlengths(npts=driver_spec.npts, # Get the population labels and validate that these correspond to to model population labels.
+                                                   exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm) 
+        
+        # ------ Load the model -------
+        model = load_model_from_driver(driver_spec=driver_spec,
+                                    script_dir=script_dir,
+                                    driver_path=driver_path,
+                                    allosome_label=allosome_label)
+        ancestor_labels = model.population_indices.keys()
+        data_labels =  _data.keys()
+           
+        for label in data_labels:
+            if label not in ancestor_labels and label not in pop.unknown_labels:
+                raise ValueError(f"Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
+                "unknown labels: {pop.unknown_labels}")
 
-    # ------ Message about starting parameters setup ------ 
-    if len(physical_start_params) > 1: # Multiple runs with different starting parameters
-        mult_params_message = "Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs."
-        logger.info(mult_params_message)
-        print("\n"+mult_params_message+"\n")
+        # ------ Calculate ancestry proportions and set up fixed parameters if specified in the driver -------
+        ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
+        
+        print("Ancestries:", [ancestry for ancestry in ancestor_labels] )
+        print("Data autosome proportions:", ancestry_proportions )
+        if len(allosome_labels)>=1:
+            allosome_proportions = pop.calculate_allosome_proportions(population_labels=ancestor_labels,
+                                                                    allosome_label=allosome_label)
+            print("Data allosome proportions:", allosome_proportions )
 
-    else: # Single run with one set of starting parameters
-        single_params_message = "A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization."
-        logger.info(single_params_message)
-        print("\n"+single_params_message+"\n")
+        if len(driver_spec.fix_parameters_from_ancestry_proportions) > 0: # Set up fixed parameters if specified in the driver
+            
+            if allosome_label:
+                model.parameter_handler.set_up_fixed_parameters(demography=model,
+                                                                params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
+                                                                proportions={
+                                                                f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
+                                                                f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
+                                                                } # Here, the option params_to_fix_by_value can be added in future development
+                                                                )
+            else:
+                model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
+                                            proportions= {model.parametrized_populations[0]:ancestry_proportions}) # Here, the option params_to_fix_by_value can be added in future development
+        else: # No parameters to fix 
+            model.set_up_fixed_parameters([],{})
+        print("Model parameters :",[param_name for param_name in model.model_base_params.keys()]) # Print model parameters
 
-    # ------ Print starting parameters in physical units ------
-    header = f"{'Run':>3} | {'Starting parameters':<45}"
-    line = "-" * len(header) 
+        # ------ Optimizer setup -------
+        func = get_time_scaled_model_func(model) # Time parameters need to be rescaled for some optimizers, so we create a wrapper function that applies the necessary rescaling before passing parameters to the model.
+        bound = get_time_scaled_model_bounds(model) # The same rescaling needs to be applied to the bounds function.
+        
+        # ------ Set up conversion to physical and optimizer units ------ 
+        to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
+                                    ParamType.RATE: rate_to_physical_function, 
+                                    ParamType.SEX_BIAS: sex_bias_to_physical_function} 
+        to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
+                                        ParamType.RATE: rate_to_optimizer_function, 
+                                        ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
+        model.parameter_handler.to_physical_params_functions = to_physical_params_functions
+        model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+        
+        # ------ Compute starting parameters in physical units ------
+        physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
+                                                repetitions=driver_spec.repetitions, 
+                                                seed=driver_spec.seed, 
+                                                model=model)
+        # ------ Convert starting parameters to optimizer units ------
+        optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]   
 
-    for l in (header, line):
-        print(l)
-        logger.info(l)
+        # ------ Message about starting parameters setup ------ 
+        if len(physical_start_params) > 1: # Multiple runs with different starting parameters
+            mult_params_message = "Multiple starting parameters were generated. These will be converted to optimizer units and used for multiple optimization runs."
+            logger.info(mult_params_message)
+            print("\n"+mult_params_message+"\n")
 
-    # ------ Check that starting parameters are correctly converted to optimizer units and within bounds ------
-    for i, (phys, opt) in enumerate(zip(physical_start_params, optimizer_start_params)):
-        assert np.isclose(phys, model.parameter_handler.convert_to_physical_params(opt)).all()
-        if bound(opt)<0:
-            print("Warning, starting parameters are out of bounds.")
-        phys_str = ", ".join(f"{x:.4g}" for x in phys)
-        start_param_message = f"{1+i:>3} | [{phys_str:<43}]"
-        print(start_param_message)
-        logger.info(start_param_message)
-    print(line)
+        else: # Single run with one set of starting parameters
+            single_params_message = "A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization."
+            logger.info(single_params_message)
+            print("\n"+single_params_message+"\n")
 
-    # ------ Get starting ancestry proportions for the starting parameters ------ 
-    # Check that the starting parameters produce reasonable ancestry proportions before optimization.
-    # Only logged for now.
-    first_props = model.proportions_from_matrices(func(optimizer_start_params[0]))
-    tract_types = list(first_props.keys())
-    start_ancestry_props_message = "Starting ancestry proportions for the starting parameters"
-    header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in tract_types)
-    line = "-" * len(header)
-    #print("\n" + start_ancestry_props_message)
-    logger.info(start_ancestry_props_message)
-    for l in (line, header, line):
-        #print(l)
-        logger.info(l)
+        # ------ Print starting parameters in physical units ------
+        header = f"{'Run':>3} | {'Starting parameters':<45}"
+        line = "-" * len(header) 
 
-    for i, opt in enumerate(optimizer_start_params):
-        try: 
-            props = model.proportions_from_matrices(func(opt))
+        for l in (header, line):
+            print(l)
+            logger.info(l)
 
-        except ValueError:
-            print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
+        # ------ Check that starting parameters are correctly converted to optimizer units and within bounds ------
+        for i, (phys, opt) in enumerate(zip(physical_start_params, optimizer_start_params)):
+            assert np.isclose(phys, model.parameter_handler.convert_to_physical_params(opt)).all()
+            if bound(opt)<0:
+                print("Warning, starting parameters are out of bounds.")
+            phys_str = ", ".join(f"{x:.4g}" for x in phys)
+            start_param_message = f"{1+i:>3} | [{phys_str:<43}]"
+            print(start_param_message)
+            logger.info(start_param_message)
+        print(line)
 
-        row_values = []
-        for k in tract_types:
-            arr = props[k]
-            arr_str = ", ".join(f"{x:.4g}" for x in arr)
-            row_values.append(f"[{arr_str:<33}]")
-
-        anc_line = f"{1+i:>3} | " + " | ".join(row_values)
-        logger.info(anc_line)
-    
-
-    # ------ Run the model with (multiple) starting parameters ------
-    params_found, likelihoods = run_model_multi_init(model_func=func,
-                                                    bound_func=bound,
-                                                    population=pop, 
-                                                    start_params_list=optimizer_start_params,
-                                                    population_dict=model.population_indices.items(),
-                                                    parameter_handler=model.parameter_handler,
-                                                    max_iter=driver_spec.maximum_iterations,
-                                                    exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
-                                                    ad_model_autosomes = ad_model_autosomes, 
-                                                    ad_model_allosomes=ad_model_allosomes,
-                                                    npts=driver_spec.npts, 
-                                                    verbose_log=driver_spec.verbose_log,
-                                                    verbose_screen=driver_spec.verbose_screen, 
-                                                    two_steps_optimization=driver_spec.two_steps_optimization)
-
-    # ------ Process and print results ------
-    formatted_likelihoods = [float(x) for x in likelihoods] # One likelihood per optimization run. If multiple runs were done, these will be printed in a table with the corresponding parameters. The best likelihood and parameters across runs will be selected as the final result.
-    physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param) for f_param in params_found] # One set of parameters per optimization run, converted to physical units. If multiple runs were done, these will be printed in a table with the corresponding likelihoods. 
-    
-    if len(formatted_likelihoods) > 1: # Print optimal parameters and likelihoods for multiple runs with different starting parameters.
-
-        print("\n---------------------------------------------------------------------------")
-        results_message = "Results from multiple optimization runs with different starting parameters:"
-        header = f"{'Run':>3} | {'LogLik':>12} | Found parameters"
+        # ------ Get starting ancestry proportions for the starting parameters ------ 
+        # Check that the starting parameters produce reasonable ancestry proportions before optimization.
+        # Only logged for now.
+        first_props = model.proportions_from_matrices(func(optimizer_start_params[0]))
+        tract_types = list(first_props.keys())
+        start_ancestry_props_message = "Starting ancestry proportions for the starting parameters"
+        header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in tract_types)
         line = "-" * len(header)
-        for l in (results_message, line, header, line):
+        #print("\n" + start_ancestry_props_message)
+        logger.info(start_ancestry_props_message)
+        for l in (line, header, line):
+            #print(l)
+            logger.info(l)
+
+        for i, opt in enumerate(optimizer_start_params):
+            try: 
+                props = model.proportions_from_matrices(func(opt))
+
+            except ValueError:
+                print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
+
+            row_values = []
+            for k in tract_types:
+                arr = props[k]
+                arr_str = ", ".join(f"{x:.4g}" for x in arr)
+                row_values.append(f"[{arr_str:<33}]")
+
+            anc_line = f"{1+i:>3} | " + " | ".join(row_values)
+            logger.info(anc_line)
+        
+
+        # ------ Run the model with (multiple) starting parameters ------
+        params_found, likelihoods = run_model_multi_init(model_func=func,
+                                                        bound_func=bound,
+                                                        population=pop, 
+                                                        start_params_list=optimizer_start_params,
+                                                        population_dict=model.population_indices.items(),
+                                                        parameter_handler=model.parameter_handler,
+                                                        max_iter=driver_spec.maximum_iterations,
+                                                        exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                                        ad_model_autosomes = ad_model_autosomes, 
+                                                        ad_model_allosomes=ad_model_allosomes,
+                                                        npts=driver_spec.npts, 
+                                                        verbose_log=driver_spec.verbose_log,
+                                                        verbose_screen=driver_spec.verbose_screen, 
+                                                        two_steps_optimization=driver_spec.two_steps_optimization)
+
+        # ------ Process and print results ------
+        formatted_likelihoods = [float(x) for x in likelihoods] # One likelihood per optimization run. If multiple runs were done, these will be printed in a table with the corresponding parameters. The best likelihood and parameters across runs will be selected as the final result.
+        physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param) for f_param in params_found] # One set of parameters per optimization run, converted to physical units. If multiple runs were done, these will be printed in a table with the corresponding likelihoods. 
+        
+        if len(formatted_likelihoods) > 1: # Print optimal parameters and likelihoods for multiple runs with different starting parameters.
+
+            print("\n---------------------------------------------------------------------------")
+            results_message = "Results from multiple optimization runs with different starting parameters:"
+            header = f"{'Run':>3} | {'LogLik':>12} | Found parameters"
+            line = "-" * len(header)
+            for l in (results_message, line, header, line):
+                print(l)
+                logger.info(l)  
+            
+            for i, (params, ll) in enumerate(zip(physical_found_params, formatted_likelihoods)):
+                params_str = ", ".join(f"{p:.4g}" for p in params)
+                param_line = f"{1+i:>3} | {float(ll):>12.6g} | [{params_str}]"
+                print(param_line)
+                logger.info(param_line)
+            print(line)
+        
+        # Choose optimal run across multiple runs with different starting parameters, if applicable. This will be the run with the highest likelihood (lowest negative log-likelihood).
+        optimal_params, optimal_likelihood = max(zip(physical_found_params, formatted_likelihoods), key=lambda x: x[1])
+        
+        # Print final optimal parameters and likelihood.
+        final_message = "Final parameters and corresponding likelihood:"
+        param_names = list(model.model_base_params.keys())
+        header = f"{'LogLik':>12} | " + " ".join(f"{name:>12}" for name in param_names)
+        line = "-" * len(header)
+        print("\n" + final_message)
+        for l in (line, header, line):
             print(l)
             logger.info(l)  
         
-        for i, (params, ll) in enumerate(zip(physical_found_params, formatted_likelihoods)):
-            params_str = ", ".join(f"{p:.4g}" for p in params)
-            param_line = f"{1+i:>3} | {float(ll):>12.6g} | [{params_str}]"
-            print(param_line)
-            logger.info(param_line)
+        values_str = " ".join(f"{x:>12.4g}" for x in optimal_params)
+        loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
+        logger.info(loglik_message)
+        print(loglik_message)
         print(line)
-    
-    # Choose optimal run across multiple runs with different starting parameters, if applicable. This will be the run with the highest likelihood (lowest negative log-likelihood).
-    optimal_params, optimal_likelihood = max(zip(physical_found_params, formatted_likelihoods), key=lambda x: x[1])
-    
-    # Print final optimal parameters and likelihood.
-    final_message = "Final parameters and corresponding likelihood:"
-    param_names = list(model.model_base_params.keys())
-    header = f"{'LogLik':>12} | " + " ".join(f"{name:>12}" for name in param_names)
-    line = "-" * len(header)
-    print("\n" + final_message)
-    for l in (line, header, line):
-        print(l)
-        logger.info(l)  
-    
-    values_str = " ".join(f"{x:>12.4g}" for x in optimal_params)
-    loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
-    logger.info(loglik_message)
-    print(loglik_message)
-    print(line)
 
-    bound = model.get_violation_score(optimal_params, verbose = True)
+        bound = model.get_violation_score(optimal_params, verbose = True)
 
-    # ------ Produce output -------
-    output_simulation_data_sex_biased(sample_population=pop,
-                                    optimal_params=optimal_params,
-                                    model=model,
-                                    driver_spec=driver_spec,
-                                    ad_model_autosomes=ad_model_autosomes,
-                                    ad_model_allosomes=ad_model_allosomes)
+        # ------ Produce output -------
+        output_simulation_data_sex_biased(sample_population=pop,
+                                        optimal_params=optimal_params,
+                                        model=model,
+                                        driver_spec=driver_spec,
+                                        ad_model_autosomes=ad_model_autosomes,
+                                        ad_model_allosomes=ad_model_allosomes)
+    finally:
+        close_log_file(log_filename=log_full_path)
 
 
 # ----- Runner functions -----
