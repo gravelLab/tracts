@@ -189,7 +189,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         for l in (header, line):
             print(l)
             logger.info(l)
-
+        
         # ------ Check that starting parameters are correctly converted to optimizer units and within bounds ------
         for i, (phys, opt) in enumerate(zip(physical_start_params, optimizer_start_params)):
             assert np.isclose(phys, model.parameter_handler.convert_to_physical_params(opt)).all()
@@ -200,7 +200,7 @@ def run_tracts(driver_filename: str, script_dir: str):
             print(start_param_message)
             logger.info(start_param_message)
         print(line)
-
+        
         # ------ Get starting ancestry proportions for the starting parameters ------ 
         # Check that the starting parameters produce reasonable ancestry proportions before optimization.
         # Only logged for now.

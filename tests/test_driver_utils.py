@@ -160,6 +160,7 @@ class TestParseStartParams:
         }
         mock_model.params_fixed_by_ancestry = []
         mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.return_value = 1
 
         start_bounds = Mock(param1=0.5, param2=0.7)
 
@@ -183,6 +184,7 @@ class TestParseStartParams:
         }
         mock_model.params_fixed_by_ancestry = []
         mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.return_value = 1
 
         start_bounds = Mock(param1="0.5:0.9")
 
