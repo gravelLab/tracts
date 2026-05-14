@@ -527,7 +527,7 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
         if len(model.params_fixed_by_ancestry) > 0:
             try:
                 candidate = model.parameter_handler.compute_params_fixed_by_ancestry(candidate)
-            except ValueError:
+            except (ValueError, AssertionError):
                 continue
 
         if is_feasible(candidate):
