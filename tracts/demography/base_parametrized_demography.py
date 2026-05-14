@@ -894,7 +894,7 @@ class FixedParametersHandler:
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
             if param_type == ParamType.TIME:
                 if converted_params[index] > 15:
-                    print(f'Time parameter {param_name} is too large after conversion to physical units: {converted_params[index]}. Check scaling functions.')
+                    logger.warning(f'Time parameter {param_name} is too large after conversion to physical units. In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}. Check scaling functions.')
 
         return converted_params
 
