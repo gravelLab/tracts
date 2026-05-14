@@ -146,6 +146,8 @@ class FounderEvent(BaseFounderEvent):
 
             if remaining_rate < -rate_tol: # Allow for some numerical imprecision
                 self.logger.warning(f"Founding migration rates add up to more than 1 at params {params}. Remaining rate is {remaining_rate}.")
+            elif remaining_rate < 0:
+                remaining_rate = 0.
 
             migration_matrix[start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
             migration_matrix[start_time - 1, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate * frac_part_start
