@@ -11,12 +11,19 @@ def _copy_tests_to_tmp(tmp_path: Path) -> Path:
 
     source_tests = Path(__file__).resolve().parent
     tmp_tests = tmp_path / "tests"
+    tmp_tests.mkdir(parents=True, exist_ok=True)
 
-    shutil.copytree(
-        source_tests,
-        tmp_tests,
-        ignore=shutil.ignore_patterns("test_output", "__pycache__"),
-    )
+    required_subdirs = ("drivers", "models", "data")
+    ignore = shutil.ignore_patterns("test_output", "__pycache__")
+
+    for subdir in required_subdirs:
+        source_subdir = source_tests / subdir
+        if source_subdir.exists():
+            shutil.copytree(
+                source_subdir,
+                tmp_tests / subdir,
+                ignore=ignore,
+            )
 
     return tmp_tests / "drivers"
 
