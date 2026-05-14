@@ -423,12 +423,9 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
         model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
     return model
 
-def parse_start_params(start_param_bounds,
-                    repetitions: int=1, 
-                    seed: float=None,
-                    model: ParametrizedDemography = None):
+def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None, model: ParametrizedDemography = None):
     """
-    Produces a 1-dimensional array of starting parameters for optimization in physical units, for every parameter in base_model_parameters.
+    Produces starting parameters for optimization in physical units. Only produces starting parameters that are compatible with well-defined migration matrices.
     
     Parameters
     ----------
@@ -444,36 +441,104 @@ def parse_start_params(start_param_bounds,
     Returns
     -------
     list[np.ndarray]: A list of arrays of starting parameters in physical units, where each array corresponds to a set of starting parameters for one repetition of the optimization. The parameters are ordered according to their order in model.model_base_parameters.
+    
+    Notes
+    -----
+    Starting-parameter specifications are parsed once per parameter and stored as either
+    ``("fixed", value)`` or ``("range", (min, max))``. For each candidate vector,
+    independent Uniform(0,1) draws are generated and then transformed per parameter:
+    fixed parameters are assigned directly, while ranged parameters are mapped to
+    Uniform(min, max) via an affine transform. Parameters fixed by ancestry are not
+    sampled from user input and are initialized from the configured ancestry-fixed
+    behavior.
 
+    Feasibility is checked by evaluating ``model.get_violation_score(candidate)``.
+    Candidates are accepted only when the returned score is non-negative. Any
+    ``ValueError`` raised during validation is treated as infeasible, and candidate
+    generation continues until the requested number of feasible starts is collected
+    or the attempt limit is reached.    
     """ 
     
     num_params = len(model.model_base_params)
     rng = np.random.default_rng(seed=seed)
-    start_params = rng.random((repetitions, num_params))
+
+    # Parse and validate start-parameter specifications once to avoid repeated parsing while resampling.
+    parsed_specs = {}
     for param_name, param_info in model.model_base_params.items():
+
         if param_name in model.params_fixed_by_ancestry:
-            start_params[:, param_info.index] = param_info.bounds[0] # TODO: This will be replaced, set to arbitrary feasible value.
+            parsed_specs[param_name] = ("fixed", param_info.bounds[0]) #NOTE: Currently defaulting to the lower bound for parameters fixed by ancestry, but this could be changed to a different value in the future.
             continue
-        try: 
-            getattr(start_param_bounds, param_name)
-        except:
+
+        if not hasattr(start_param_bounds, param_name):
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
-        
-        if isinstance(getattr(start_param_bounds, param_name), numbers.Number):
-            start_params[:, param_info.index] = getattr(start_param_bounds, param_name)
+
+        user_value = getattr(start_param_bounds, param_name)
+        if isinstance(user_value, numbers.Number):
+            parsed_specs[param_name] = ("fixed", float(user_value)) # Initial value set as a single number and not as a range.
         else:
             try:
-                bounds = [float(bound) for bound in getattr(start_param_bounds, param_name).split(':')] 
-                # Intervals are specified as "min:max" to avoid confusion with negative values.
+                bounds = [float(bound) for bound in user_value.split(':')]  # Intervals are specified as "min:max" to avoid confusion with negative values.
                 assert len(bounds) == 2
-                start_params[:, param_info.index] *= bounds[1] - bounds[0]
-                start_params[:, param_info.index] += bounds[0]
+                parsed_specs[param_name] = ("range", (bounds[0], bounds[1]))
             except Exception as e:
                 raise ValueError("Initial values must be specified as min:max or a single value.") from e
-        
-    if len(model.params_fixed_by_ancestry) > 0:
-        start_params = [model.parameter_handler.compute_params_fixed_by_ancestry(start_param_set)
-         for start_param_set in start_params]
+
+    def draw_candidate() -> np.ndarray:
+        """
+        Draw a single candidate vector of starting parameters. Each parameter is sampled independently based on the parsed specification:
+        "fixed": use the provided fixed value, "range": sample uniformly from the interval [min, max].
+        """
+        candidate = rng.random(num_params)  # Base random draws: independent Uniform(0,1) for each parameter.
+        for param_name, param_info in model.model_base_params.items():
+            mode, spec = parsed_specs[param_name]
+            if mode == "fixed":
+                candidate[param_info.index] = spec
+            else:
+                low, high = spec
+                candidate[param_info.index] = candidate[param_info.index] * (high - low) + low # Affine transformation to Uniform(min, max)
+        return candidate
+
+    def is_feasible(start_param_set: np.ndarray) -> bool:
+        """
+        Return whether a proposed starting parameter vector is feasible. A parameter set is
+        considered feasible when the model reports a non-negative violation score. Any ValueError
+        raised during validation is treated as infeasible.
+        """
+        # Suppress warning logs during feasibility checks; only accepted starts are returned.
+        demography_logger = logging.getLogger("tracts.demography.base_parametrized_demography")
+        original_level = demography_logger.level
+        demography_logger.setLevel(logging.ERROR)
+        try:
+            return model.get_violation_score(start_param_set) >= 0
+        except ValueError:
+            return False
+        finally:
+            demography_logger.setLevel(original_level)
+
+    start_params = []
+    max_attempts = max(1000, 100*repetitions)
+    attempts = 0
+
+    while len(start_params) < repetitions and attempts < max_attempts:
+        attempts += 1
+        candidate = draw_candidate()
+
+        if len(model.params_fixed_by_ancestry) > 0:
+            try:
+                candidate = model.parameter_handler.compute_params_fixed_by_ancestry(candidate)
+            except (ValueError, AssertionError):
+                continue
+
+        if is_feasible(candidate):
+            start_params.append(candidate)
+
+    if len(start_params) < repetitions:
+        raise ValueError(
+            f"Could not generate {repetitions} feasible starting parameter sets after {attempts} attempts. "
+            "Try widening valid start ranges or tightening cross-parameter constraints in the model."
+        )
+
     return start_params
 
 
