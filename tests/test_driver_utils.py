@@ -186,7 +186,7 @@ class TestParseStartParams:
         mock_model.parameter_handler = Mock()
         mock_model.get_violation_score.side_effect = [-1, 1]
 
-        start_bounds = Mock(param1=0.5)
+        start_bounds = Mock(param1="0.5:0.9")
 
         result = parse_start_params(
             start_param_bounds=start_bounds,
@@ -197,6 +197,7 @@ class TestParseStartParams:
 
         assert len(result) == 1
         assert mock_model.get_violation_score.call_count == 2
+        assert result[0][0] != 0.5
 
     def test_parse_start_params_skips_value_error_candidates(self):
         """
@@ -210,7 +211,7 @@ class TestParseStartParams:
         mock_model.parameter_handler = Mock()
         mock_model.get_violation_score.side_effect = [ValueError("bad candidate"), 1]
 
-        start_bounds = Mock(param1=0.5)
+        start_bounds = Mock(param1="0.5:0.9")
 
         result = parse_start_params(
             start_param_bounds=start_bounds,
@@ -221,6 +222,7 @@ class TestParseStartParams:
 
         assert len(result) == 1
         assert mock_model.get_violation_score.call_count == 2
+        assert result[0][0] != 0.5
 
     def test_parse_start_params_raises_when_all_candidates_are_infeasible(self):
         """
