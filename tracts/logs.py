@@ -89,6 +89,38 @@ def set_log_file(log_filename: str | Path, memory_handler):
 
     return file_handler
 
+def close_log_file(log_filename: str | Path | None = None):
+    """
+    This function closes the log file handler for the specified log file. If no log file is specified, it will close all file handlers for the logger.
+
+    Parameters
+    ----------
+    log_filename: str | Path | None
+        The name of the log file to close. If None, all file handlers will be closed.
+    """
+
+    logger = logging.getLogger(LOGGER_NAME)
+    target_log = Path(log_filename).resolve() if log_filename is not None else None
+
+    for handler in logger.handlers[:]:
+        
+        if isinstance(handler, logging.FileHandler) and target_log is not None:
+            handler_log = Path(handler.baseFilename).resolve()
+            if handler_log != target_log:
+                continue
+
+        try:
+            if isinstance(handler, logging.handlers.MemoryHandler):
+                handler.flush()
+                if handler.target is not None:
+                    handler.target.flush()
+            else:
+                handler.flush()
+        finally:
+            handler.close()
+            logger.removeHandler(handler)
+
+
 def get_current_func_info():
     frame = inspect.currentframe().f_back  # One level up: the caller
     file_name = frame.f_code.co_filename

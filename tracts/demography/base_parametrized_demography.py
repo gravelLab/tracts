@@ -902,7 +902,7 @@ class FixedParametersHandler:
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
             if param_type == ParamType.TIME:
                 if converted_params[index] > 15:
-                    logger.warning(f'Time parameter {param_name} is too large after conversion to physical units. In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}. Check scaling functions.')
+                    self.logger.warning(f'Time parameter {param_name} is too large after conversion to physical units. In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}. Check scaling functions.')
 
         return converted_params
 
@@ -1044,7 +1044,7 @@ class FixedParametersHandler:
                                                         verbose_warning_screen=verbose_warning_screen,
                                                         verbose_warning_log=verbose_warning_log) 
         except ValueError as e:
-            logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
+            self.logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
             return full_parameters
 
     def indices_to_labels(self, indices: list[int]):
@@ -1251,7 +1251,7 @@ class FixedParametersHandler:
                         "RuntimeWarning from scipy.optimize.fsolve while solving parameters fixed by ancestry proportions: "
                     )
                     if (verbose_warning_log > 0) and (counter % verbose_warning_log == 0):
-                        logger.info(warning_origin_message + str(warning.message)) # Log RuntimeWarning
+                        self.logger.info(warning_origin_message + str(warning.message)) # Log RuntimeWarning
                     if (verbose_warning_screen > 0) and (counter % verbose_warning_screen == 0):
                         print(warning_origin_message + str(warning.message)) # Print RuntimeWarning to screen
             
