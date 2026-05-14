@@ -89,36 +89,41 @@ def set_log_file(log_filename: str | Path, memory_handler):
 
     return file_handler
 
-def close_log_file(log_filename: str | Path | None = None):
+def close_log_file(log_filename: str | Path):
     """
-    This function closes the log file handler for the specified log file. If no log file is specified, it will close all file handlers for the logger.
+    Closes the log file handler associated with the given log filename. This is important to ensure
+    that all log records are flushed to the file and that file handles are not left open,
+    which can lead to issues on some operating systems.
 
     Parameters
     ----------
-    log_filename: str | Path | None
-        The name of the log file to close. If None, all file handlers will be closed.
+    log_filename: str | Path
+        The name of the log file whose handler should be closed.
     """
 
     logger = logging.getLogger(LOGGER_NAME)
-    target_log = Path(log_filename).resolve() if log_filename is not None else None
+    log_path = Path(log_filename).resolve()
 
-    for handler in logger.handlers[:]:
-        
-        if isinstance(handler, logging.FileHandler) and target_log is not None:
-            handler_log = Path(handler.baseFilename).resolve()
-            if handler_log != target_log:
-                continue
+    file_handlers_to_close = [
+        h for h in logger.handlers
+        if isinstance(h, logging.FileHandler)
+        and Path(h.baseFilename).resolve() == log_path
+    ]
 
-        try:
-            if isinstance(handler, logging.handlers.MemoryHandler):
+    for file_handler in file_handlers_to_close:
+        # Flush memory handlers that target this file handler
+        for handler in logger.handlers[:]:
+            if (
+                isinstance(handler, logging.handlers.MemoryHandler)
+                and handler.target is file_handler
+            ):
                 handler.flush()
-                if handler.target is not None:
-                    handler.target.flush()
-            else:
-                handler.flush()
-        finally:
-            handler.close()
-            logger.removeHandler(handler)
+                logger.removeHandler(handler)
+                handler.close()
+
+        file_handler.flush()
+        logger.removeHandler(file_handler)
+        file_handler.close()
 
 
 def get_current_func_info():
