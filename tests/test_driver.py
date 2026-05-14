@@ -22,7 +22,7 @@ def _copy_tests_to_tmp(tmp_path: Path) -> Path:
 
 
 def _prepare_driver(driver_path: Path, output_dir: Path) -> str:
-    
+
     text = driver_path.read_text()
 
     lines = text.splitlines()
@@ -34,13 +34,13 @@ def _prepare_driver(driver_path: Path, output_dir: Path) -> str:
 
         if stripped.startswith("output_directory:"):
             indent = line[: len(line) - len(line.lstrip())]
-            new_lines.append(f'{indent}output_directory: "{output_dir}"')
+            new_lines.append(f"{indent}output_directory: '{output_dir}'")
             found_output_directory = True
         else:
             new_lines.append(line)
 
     if not found_output_directory:
-        new_lines.append(f'output_directory: "{output_dir}"')
+        new_lines.append(f"output_directory: '{output_dir}'")
 
     driver_path.write_text("\n".join(new_lines) + "\n")
 

@@ -121,7 +121,7 @@ class FounderEvent(BaseFounderEvent):
         start_time = math.ceil(true_start_time) # A discretized value to create a matrix that can include the event.  
         if true_start_time < 1:
             start_time_msg = f"Founder event time must be at least 1 generation ago. Current start time is {true_start_time}."
-            logger.warning(start_time_msg + "If this happens at start of simulation, it may be a problem with parameter scaling.")
+            self.logger.warning(start_time_msg + "If this happens at start of simulation, it may be a problem with parameter scaling.")
             raise ValueError(start_time_msg)
 
         frac_part_start = start_time - true_start_time
@@ -138,7 +138,7 @@ class FounderEvent(BaseFounderEvent):
                 remaining_rate -= rate
 
             if remaining_rate < 0:
-                logger.warning(f"Founding migration rates add up to more than 1 at params {params}, matrix {migration_matrix}.")
+                self.logger.warning(f"Founding migration rates add up to more than 1 at params {params}, matrix {migration_matrix}.")
 
             migration_matrix[start_time, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate
             migration_matrix[start_time - 1, parametrized_demography.population_indices[self.remainder_population]] = remaining_rate * frac_part_start
