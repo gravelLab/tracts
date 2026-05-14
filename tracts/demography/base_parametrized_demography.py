@@ -25,6 +25,8 @@ class BaseFounderEvent(ABC):
         The population that contributes the remaining proportion to the new population after the source populations have contributed according to their specified proportions. This population can be one of the source populations or a different population.
     end_time: str | None
         The name of the parameter defining the end time of the founder event. If None, the founder event is a pulse event. If not None, the founder event is a continuous event that starts at found_time and ends at end_time. In a continuous founder event, the migration rates are constant between ``found_time`` and ``end_time``, and the total migration rate is 1 at ``found_time`` and 0 at ``end_time``. In a pulse founder event, the migration rates are applied only at ``found_time``.
+    logger: logging.Logger
+        The logger.
     """
 
     def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None):
@@ -57,6 +59,7 @@ class BaseFounderEvent(ABC):
         self.end_time = end_time
         self.source_populations = source_populations
         self.remainder_population = remainder_population
+        self.logger = logger
 
     @abstractmethod
     def execute(self, parametrized_demography: BaseParametrizedDemography, params):
@@ -76,6 +79,8 @@ class FounderEvent(BaseFounderEvent):
         The population that contributes the remaining proportion to the new population after the source populations have contributed according to their specified proportions.
     end_time: str | None
         The name of the parameter defining the end time of the founder event. If None, the founder event is a pulse event. If not None, the founder event is a continuous event that starts at ``found_time`` and ends at ``end_time``. 
+    logger: logging.Logger
+        The logger.
     """
 
     def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None):
@@ -180,6 +185,8 @@ class BaseMigrationEvent(ABC):
         The name of the parameter defining the migration rate of the migration event. In a pulse migration event, this is the fraction of the admixed population that is replaced with migrants from the source population. In a continuous migration event, this is the fraction of the admixed population that is replaced with migrants from the source population per generation.
     source_population: str
         The population that contributes migrants to the admixed population in the migration event.
+    logger: logging.Logger
+        The logger.
     """
     
     def __init__(self, rate_parameter: str, source_population: str):
@@ -195,6 +202,7 @@ class BaseMigrationEvent(ABC):
         """
         self.rate_parameter = rate_parameter
         self.source_population = source_population
+        self.logger = logger
 
     @abstractmethod
     def execute(self, parametrized_demography: BaseParametrizedDemography, migration_matrix: np.ndarray, params):
