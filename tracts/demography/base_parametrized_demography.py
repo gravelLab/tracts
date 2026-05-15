@@ -831,6 +831,10 @@ class FixedParametersHandler:
         A boolean that controls whether time admissibility warnings and state tracking are active.
     _time_param_admissibility_state: dict[str, bool]
         A dict mapping time parameter names to booleans indicating whether each time parameter is currently within admissible bounds. This is used to track transitions between admissible and non-admissible states for time parameters in order to emit warnings appropriately.
+    _shared_time_param_admissibility_state: dict[tuple[str, str, float], bool]
+        Process-global state shared across handler instances. Keys are ``(model_key, param_name, max_time)`` and values track the latest admissibility status; used to preserve transition tracking when handlers are deep-copied during optimization.
+    _shared_time_param_non_admissible_warned: set[tuple[str, str, float]]
+        Process-global latch indicating that the non-admissible warning has already been emitted for a given ``(model_key, param_name, max_time)`` key; used to avoid repeated warning spam across copied handlers.
     """
 
     _shared_time_param_admissibility_state: dict[tuple[str, str, float], bool] = {} # Shared across handler instances so warnings are not re-emitted when handlers are deep-copied during optimization.

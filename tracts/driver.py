@@ -269,14 +269,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         if len(formatted_likelihoods) > 1: # Print optimal parameters and likelihoods for multiple runs with different starting parameters.
 
             results_message = "\nResults from multiple optimization runs with different starting parameters:"
-            found_n_params = len(physical_found_params[0]) if len(physical_found_params) > 0 else 0
-            if len(start_param_names) == found_n_params:
-                found_param_names = start_param_names
-            else:
-                raise ValueError(
-                    "Mismatch between starting parameter names and optimized parameter length: "
-                    f"expected {len(start_param_names)} parameters but optimization returned {found_n_params}."
-                )
+            found_param_names = start_param_names
             found_param_col_widths = [max(len(name), 12) for name in found_param_names]
             header = f"{'Run':>3} | {'LogLik':>12} | " + " | ".join(
                 f"{name:>{w}}" for name, w in zip(found_param_names, found_param_col_widths)
