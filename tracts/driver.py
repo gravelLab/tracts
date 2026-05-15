@@ -188,13 +188,8 @@ def run_tracts(driver_filename: str, script_dir: str):
         # ------ Print starting parameters in physical units ------
         n_start_params = len(physical_start_params[0]) if len(physical_start_params) > 0 else 0
         model_param_names = list(model.model_base_params.keys())
-        if len(model_param_names) == n_start_params:
-            start_param_names = model_param_names
-        else:
-            raise ValueError(
-                "Mismatch between model parameter count and generated starting parameter length: "
-                f"model has {len(model_param_names)} parameters but starting parameters have {n_start_params}."
-            )
+        assert len(model_param_names) == n_start_params
+        start_param_names = model_param_names
 
         param_col_widths = [max(len(name), 12) for name in start_param_names]
         header = f"{'Run':>3} | " + " | ".join(
