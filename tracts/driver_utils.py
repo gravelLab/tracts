@@ -1,6 +1,7 @@
 import numbers
 import os
 import sys
+import inspect
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Callable, Optional
@@ -463,8 +464,11 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
     num_params = len(model.model_base_params)
     rng = np.random.default_rng(seed=seed)
 
-    # ------- Support Pydantic models, plain mappings, and simple objects/mocks for testing purposes -------
+    # ------- Support Pydantic models, plain mappings, and attribute-style config objects -------
     start_param_values = None
+    use_attribute_lookup = False
+    instance_start_param_values = {}
+    missing_attr = object()
 
     if isinstance(start_param_bounds, Mapping):
         start_param_values = dict(start_param_bounds)
@@ -476,10 +480,24 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
                 start_param_values = dict(dumped_values)
 
     if start_param_values is None:
-        start_param_values = vars(start_param_bounds)
+        # Keep compatibility with objects that expose values via class attributes, properties, __slots__, or other descriptors (not just __dict__).
+        use_attribute_lookup = True
+        try:
+            instance_start_param_values = vars(start_param_bounds)
+        except TypeError:
+            instance_start_param_values = {}
 
     def has_start_param(param_name: str) -> bool:
+        if use_attribute_lookup:
+            if param_name in instance_start_param_values:
+                return True
+            return inspect.getattr_static(start_param_bounds, param_name, missing_attr) is not missing_attr
         return param_name in start_param_values
+
+    def get_start_param(param_name: str):
+        if use_attribute_lookup:
+            return getattr(start_param_bounds, param_name)
+        return start_param_values[param_name]
 
     # ------- Parse and validate start-parameter specifications once to avoid repeated parsing while resampling -------
 
@@ -490,7 +508,7 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
                 parsed_specs[param_name] = ("fixed", float(param_info.bounds[0]))
                 continue
 
-            user_value = start_param_values[param_name]
+            user_value = get_start_param(param_name)
             if isinstance(user_value, numbers.Number):
                 parsed_specs[param_name] = ("fixed", float(user_value))
             else:
@@ -505,7 +523,7 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
         if not has_start_param(param_name):
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
 
-        user_value = start_param_values[param_name]
+        user_value = get_start_param(param_name)
 
         if isinstance(user_value, numbers.Number):
             parsed_specs[param_name] = ("fixed", float(user_value)) # Initial value set as a single number and not as a range.
