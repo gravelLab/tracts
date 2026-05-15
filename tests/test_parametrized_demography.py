@@ -489,6 +489,87 @@ def test_non_integer_founding_time():
     assert np.isclose(final_proportions_non_int.sum(), 1.0)
 
 
+def test_non_integer_founding_time_continuous_founder_with_pulse():
+    """
+    Checks that non-integer founding times are handled correctly.
+
+    This test:
+    1. Creates a model with a founding event,
+    2. Tests it with both integer and non-integer founding times,
+    3. Verifies that the non-integer model has non-zero rates at both the nearest integers to the founding time,
+    4. Verifies that the final proportions match those of the integer model.
+    """
+    # Create a model
+    model = ParametrizedDemography(name="TestModel")
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1", "source_pop2": "founder_rate2"},
+        remainder_population=None,
+        found_time="found_time",
+        end_time = "end_time",
+        pulse_pops = ["source_pop1"]
+    )
+    model.finalize()
+    small = 1e-9
+    t = 10
+
+    ### verify continuity 
+    # Define parameters for integer founding time (10)
+    founder_rate_1 = 0.1
+    founder_rate_2 = 0.2
+    relative_weight_1 = founder_rate_1/(founder_rate_1+founder_rate_2)
+    params_int = [founder_rate_1, founder_rate_2, t-small, 5]  # [founder_rate1, founder_rate2, found_time, end_time]
+    
+  
+    # Define parameters for non-integer founding time (10.5)
+    params_non_int = [founder_rate_1, founder_rate_2, t+small, 5]  # [founder_rate1, found_time, end_time]
+    
+    # Get migration matrices for both parameter sets
+    migration_matrices_int = model.get_migration_matrices(params_int)
+    migration_matrices_non_int = model.get_migration_matrices(params_non_int)
+
+    # Get the matrices for the target population
+    matrix_int = migration_matrices_int["target_pop"]
+    matrix_non_int = migration_matrices_non_int["target_pop"]
+    
+    # Verify matrix dimensions
+    assert matrix_non_int.shape[0] == t+2  # ceil(found_time) + 1
+    assert matrix_non_int.shape[1] == 2  # two source populations
+    
+    # Verify that the non-integer model has non-zero rates at both the nearest integers to the founding time
+    # At time 10 (floor(10.5))
+    assert matrix_non_int[t, 0]>0  # source_pop1 proportion at floor(founding time)
+    assert matrix_non_int[t, 1]>0  # source_pop2 proportion at floor(founding time)
+    # At time 11 (ceil(10.5))
+    assert matrix_non_int[t+1, 0]>0  # source_pop1 proportion at ceil(founding time)
+    assert matrix_non_int[t+1, 1]>0  # source_pop2 proportion at ceil(founding time)
+    
+    assert np.isclose(matrix_non_int[t+1,:].sum(), 1) # founding generation should sum up to one. 
+    assert np.isclose(matrix_non_int[t+1,0],relative_weight_1) 
+    assert np.isclose(matrix_non_int[t+1,1],1-relative_weight_1)
+
+    assert np.isclose(matrix_int[t,:].sum(), 1) # founding generation should sum up to one. 
+
+    assert np.sum(np.linalg.norm(matrix_non_int[4:(t+1),:]- matrix_int[4:(t+1),:])**2)<0.0001
+
+    # Verify that the final proportions match
+    final_proportions_int = model.proportions_from_matrix(matrix_int)
+    final_proportions_non_int = model.proportions_from_matrix(matrix_non_int)
+    
+    assert np.isclose(final_proportions_int[0], final_proportions_non_int[0])  # source_pop1 proportion for integer model
+    assert np.isclose(final_proportions_int[1], final_proportions_non_int[1])  # source_pop2 proportion for integer model
+    
+    # Verify that the sum of proportions is 1 for each model
+    assert np.isclose(final_proportions_int.sum(), 1.0)
+    assert np.isclose(final_proportions_non_int.sum(), 1.0)
+
+
+    # Verify no migration from source 1 after onset
+
+    assert np.isclose(matrix_int[0:t-1,0].sum(),  0)
+
+
+
 def test_non_integer_founding_time_continuous_founder():
     """
     Checks that non-integer founding times are handled correctly.
