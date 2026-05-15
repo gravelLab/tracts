@@ -162,6 +162,9 @@ def run_tracts(driver_filename: str, script_dir: str):
                                         ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
         model.parameter_handler.to_physical_params_functions = to_physical_params_functions
         model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+
+        # Show time-admissibility warnings only during optimization and final reporting.
+        model.parameter_handler.enable_time_param_logging = False
         
         # ------ Compute starting parameters in physical units ------
         physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
@@ -245,7 +248,8 @@ def run_tracts(driver_filename: str, script_dir: str):
 
             anc_line = f"{1+i:>3} | " + " | ".join(row_values)
             logger.info(anc_line)
-        
+
+        model.parameter_handler.enable_time_param_logging = True
 
         # ------ Run the model with (multiple) starting parameters ------
         params_found, likelihoods = run_model_multi_init(model_func=func,

@@ -818,8 +818,14 @@ class FixedParametersHandler:
         A dict mapping parameter types to functions that convert parameters from optimization units to physical units.
     to_optimizer_params_functions: dict[str, Callable]
         A dict mapping parameter types to functions that convert parameters from physical units to optimization units.
+    enable_time_param_logging: bool
+        A boolean that controls whether time admissibility warnings and state tracking are active.
+    _time_param_admissibility_state: dict[str, bool]
+        A dict mapping time parameter names to booleans indicating whether each time parameter is currently within admissible bounds. This is used to track transitions between admissible and non-admissible states for time parameters in order to emit warnings appropriately.
     """
 
+    _shared_time_param_admissibility_state: dict[tuple[str, str, float], bool] = {} # Shared across handler instances so warnings are not re-emitted when handlers are deep-copied during optimization.
+    _shared_time_param_non_admissible_warned: set[tuple[str, str, float]] = set()
 
     def __init__(self, logger: logging.Logger):
         self.logger = logger
@@ -831,8 +837,20 @@ class FixedParametersHandler:
         self.demography = None
         self.to_physical_params_functions = {}
         self.to_optimizer_params_functions = {}
-        # Tracks whether each time parameter is currently within admissible bounds.
-        self._time_param_admissibility_state: dict[str, bool] = {}
+        self.enable_time_param_logging = True  # Controls whether time admissibility warnings/state tracking are active.
+        self._time_param_admissibility_state: dict[str, bool] = {} # Tracks whether each time parameter is currently within admissible bounds.
+
+    def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, str, float]:
+        """
+        Build a stable key for warning state that survives handler deep copies.
+        """
+        if self.demography is None:
+            model_key = "unknown_demography"
+        elif self.demography.name:
+            model_key = self.demography.name
+        else:
+            model_key = "|".join(self.demography.model_base_params.keys())
+        return model_key, param_name, float(max_time)
 
     @property
     def has_been_fixed(self):
@@ -882,8 +900,7 @@ class FixedParametersHandler:
         return np.array([index for index, param_name in enumerate(self.demography.model_base_params) if
                                         param_name in param_list], dtype=int)
 
-    def convert_to_physical_params(self, optimizer_params: list[float], max_time: float = 15,
-                                   report_non_admissible: bool = False):
+    def convert_to_physical_params(self, optimizer_params: list[float], max_time: float = 15, report_non_admissible: bool = False):
         """
         Converts optimizer parameters from optimization units to physical units.
         
@@ -900,7 +917,14 @@ class FixedParametersHandler:
         -------
         np.ndarray
             An array of parameter values for the free parameters of the model in physical units, in the same order as in ``optimizer_params``.
+
+        Notes
+        -----
+        The function includes logging to warn the user when time parameters are outside of the admissible range, which may indicate that the optimization is exploring unsuitable parameter values.
+        The logging is designed to minimize redundancy by only emitting warnings on transitions between admissible and non-admissible states for each time parameter, and by sharing warning state
+        across handler instances to avoid repeated warnings when handlers are deep-copied during optimization.
         """
+        
         optimizer_params = np.asarray(optimizer_params) 
         assert np.asarray(optimizer_params).ndim == 1
         converted_params = optimizer_params.copy()
@@ -911,24 +935,36 @@ class FixedParametersHandler:
 
             if param_type in self.to_physical_params_functions.keys():
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
+            
             if param_type == ParamType.TIME:
+                if not self.enable_time_param_logging and not report_non_admissible:
+                    continue
+
                 is_admissible = converted_params[index] <= max_time
-                previous_state = self._time_param_admissibility_state.get(param_name)
+                state_key = self._get_time_param_state_key(param_name=param_name,
+                                                           max_time=max_time)
+                local_previous_state = self._time_param_admissibility_state.get(param_name)
+                shared_previous_state = self._shared_time_param_admissibility_state.get(state_key)
+                previous_state = local_previous_state if local_previous_state is not None else shared_previous_state
+                already_warned_non_admissible = state_key in self._shared_time_param_non_admissible_warned
 
                 # Log only on status transitions admissible <-> non-admissible.
                 if previous_state is None:
-                    if not is_admissible:
+                    if (not is_admissible) and (not already_warned_non_admissible):
                         self.logger.warning(
                             f'Time parameter {param_name} is greater than the maximum allowed value {max_time}.')
                         self.logger.info(
                             f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                        self._shared_time_param_non_admissible_warned.add(state_key)
                 elif previous_state and not is_admissible:
-                    self.logger.warning(
-                        f'Time parameter {param_name} became non-admissible (>{max_time}).')
-                    self.logger.info(
-                        f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                    if not already_warned_non_admissible:
+                        self.logger.warning(
+                            f'Time parameter {param_name} became non-admissible (>{max_time}).')
+                        self.logger.info(
+                            f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                        self._shared_time_param_non_admissible_warned.add(state_key)
                 elif (not previous_state) and is_admissible:
-                    self.logger.info(
+                    self.logger.warning(
                         f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
 
                 # Optional reminder for end-of-optimization-step reporting.
@@ -939,6 +975,7 @@ class FixedParametersHandler:
                         f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
 
                 self._time_param_admissibility_state[param_name] = is_admissible
+                self._shared_time_param_admissibility_state[state_key] = is_admissible
 
         return converted_params
 

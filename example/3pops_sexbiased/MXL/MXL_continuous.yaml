@@ -20,14 +20,14 @@ samples:
   
 output_filename_format: "MXL_test_output_{label}"
 output_directory: ./output_continuous_pulse/
-log_filename: 'ASW_continuous_pulse.log'
+log_filename: 'MXL_continuous_pulse.log'
 verbose_log: 1
 verbose_screen: 30
 log_scale : True
 
 model_filename: ../models/ccc.yaml
 start_params: 
-  t1: 12:14
+  t1: 12:16
   REUR: 0.2
   RAFR: 0.02
   RNAT: 0.2
