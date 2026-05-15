@@ -168,7 +168,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                                             rate_param=f"{rate_param}{sex_type.suffix}",
                                             start_param=start_param, end_param=end_param)
 
-    def add_founder_event(self, dest_population: str, source_populations: dict[str, str], remainder_population: str, found_time: str, end_time: str | None = None):
+    def add_founder_event(self, dest_population: str, source_populations: dict[str, str], remainder_population: str, found_time: str, end_time: str | None = None, pulse_pops : list[str] =[]):
         """
         Adds a founder event. A parametrized demography must have exactly one founder event.
         
@@ -183,7 +183,11 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         found_time : str
             The name of the parameter defining the time of the founder event.
         end_time : str | None
-            The name of the parameter defining the end time of the founder event, if applicable. If None, the founder event is assumed to be instantaneous.
+            The name of the parameter defining the end time of the founder event, if applicable. 
+            If None, the founder event is assumed to be instantaneous.
+        pulse_pops : list(str) 
+            If we have a continuous founder event, this allows for a number of populations population to 
+            only be present at founding 
         """
         self.parametrized_populations.append(dest_population)
 
@@ -203,7 +207,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                                     source_populations={population: f"{rate_param}{sex_type.suffix}" for population, rate_param in source_populations.items()},
                                     remainder_population=remainder_population,
                                     found_time=found_time,
-                                    end_time=end_time)
+                                    end_time=end_time, pulse_pops = pulse_pops)
         
     def proportions_from_matrices(self, migration_matrices: dict[str, numpy.ndarray]):
         """
@@ -282,16 +286,23 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                     source_populations = {pop:param for pop,param in zip(population['ancestors'], population['proportions'])}
                     remainder_population = None
                     end_time =  population['end_time']
+                    if "pulse_pops" in population.keys():   
+                        pulse_pops = population['pulse_pops']
+                    else:
+                        pulse_pops = []
                 else:
                     source_populations, remainder_population = ParametrizedDemographySexBiased.parse_proportions(ancestor_names=population['ancestors'],
                                                                                                                 proportions=population['proportions'])
                     end_time = None
+                    pulse_pops = []
                 
+
                 demography.add_founder_event(dest_population=population['name'],
                                             source_populations=source_populations,
                                             remainder_population=remainder_population,
                                             found_time=population['start_time'],
-                                            end_time=end_time)
+                                            end_time=end_time,
+                                            pulse_pops=pulse_pops)
         if 'pulses' in demes_data:
             for pulse in demes_data['pulses']:
                 if 'dest' in pulse and pulse['dest'] in demography.parametrized_populations:

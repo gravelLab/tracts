@@ -298,7 +298,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         self.events[dest_population].append(continuous_migration_event)
 
     def add_founder_event(self, dest_population: str, source_populations: dict[str, str], 
-                          remainder_population: str, found_time: str, end_time: str = None) -> None:
+                          remainder_population: str, found_time: str, end_time: str = None, pulse_pops: list[str] =[]) -> None:
         """
         Adds a founder event. A parametrized demography must have exactly one founder event.
 
@@ -329,14 +329,20 @@ class ParametrizedDemography(BaseParametrizedDemography):
         if end_time is None:
             self.add_population(population_name=remainder_population)
         else:
+            
             self.add_parameter(param_name=end_time,
                                param_type=ParamType.TIME)
-        
+
+        if len(pulse_pops)>=1:
+            assert (end_time is not None), "pulse_pops can only be used in a continuous founder event"
+
+
         self.founder_events[dest_population] = FounderEvent(
             found_time=found_time,
             source_populations=source_populations,
             remainder_population=remainder_population,
-            end_time = end_time
+            end_time = end_time,
+            pulse_pops = pulse_pops
             )
         
         self.events[dest_population]=[]
@@ -377,20 +383,29 @@ class ParametrizedDemography(BaseParametrizedDemography):
                 demography.parametrized_populations.append(population['name'])
                 
                 if 'end_time' in population.keys(): # Continuous founding
+                    end_time =  population['end_time']
+                    if "pulse_pops" in population.keys():   
+                        pulse_pops = population['pulse_pops']
+                    else:
+                        pulse_pops = []
+                    
                     source_populations = {pop:label for pop,label in zip(population['ancestors'], population['proportions'])}               
                     demography.add_founder_event(dest_population=population['name'],
                                                 source_populations=source_populations,
                                                 remainder_population=None,
                                                 found_time=population['start_time'],
-                                                end_time=population['end_time'])
+                                                end_time=end_time,
+                                                pulse_pops=pulse_pops)
                 else:    
+                    
                     source_populations, remainder_population = ParametrizedDemography.parse_proportions(ancestor_names=population['ancestors'],
                                                                                                         proportions=population['proportions'])
                     demography.add_founder_event(dest_population=population['name'],
                                                 source_populations=source_populations,
                                                 remainder_population=remainder_population,
                                                 found_time=population['start_time'],
-                                                end_time=None)
+                                                end_time=None,
+                                                pulse_pops=[])
         if 'pulses' in demes_data:
             for pulse in demes_data['pulses']:
                 if 'dest' in pulse and pulse['dest'] in demography.parametrized_populations:

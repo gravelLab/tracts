@@ -468,8 +468,12 @@ class PhTMonoecious(PhaseTypeDistribution):
             The equilibrium distribution of the Monoecious Phase-type model.
         """
         transposed_transition_matrix = self.full_transition_matrix.transpose()
-        transition_matrix_eigs = np.linalg.eig(transposed_transition_matrix)
-
+        try:
+            transition_matrix_eigs = np.linalg.eig(transposed_transition_matrix)
+        except:
+            raise Exception('Equilibrium distribution could not be calculated.' +
+            f'The transition matrix likely has infinite or NAN eigenvalue. transition matrix: {self.full_transition_matrix}'+
+            f'migration matrix: {self.migration_matrix}')
         try:
             result_vector = [eigenvector for eigenvalue, eigenvector in
                              zip(transition_matrix_eigs[0], np.transpose(transition_matrix_eigs[1])) if

@@ -29,7 +29,7 @@ class BaseFounderEvent(ABC):
         The logger.
     """
 
-    def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None):
+    def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None, pulse_pops: list[str] =[]):
         """
         Initializes the founder event. The founder event is defined by the time of the event, the source populations and their contribution proportions, the remainder population, and the end time of the event (if it is a continuous event).
 
@@ -57,6 +57,8 @@ class BaseFounderEvent(ABC):
         
         self.found_time = found_time
         self.end_time = end_time
+        self.pulse_pops = pulse_pops
+        #breakpoint()
         self.source_populations = source_populations
         self.remainder_population = remainder_population
         self.logger = logger
@@ -83,7 +85,7 @@ class FounderEvent(BaseFounderEvent):
         The logger.
     """
 
-    def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None):
+    def __init__(self, found_time: str, source_populations: dict[str, str], remainder_population: str, end_time: str | None = None, pulse_pops:list[str]=[]):
         """
         Initializes the founder event. 
 
@@ -98,11 +100,11 @@ class FounderEvent(BaseFounderEvent):
         end_time: str | None
             The name of the parameter defining the end time of the founder event. If None, the founder event is a pulse event. If not None, the founder event is a continuous event that starts at ``found_time`` and ends at ``end_time``.
         """
-
+        #breakpoint()
         super().__init__(found_time=found_time,
                         source_populations=source_populations,
                         remainder_population=remainder_population,
-                        end_time=end_time)
+                        end_time=end_time, pulse_pops=pulse_pops)
 
     def execute(self, parametrized_demography: BaseParametrizedDemography, params: list[float], rate_tol: float = 1e-4):
         """
@@ -167,14 +169,21 @@ class FounderEvent(BaseFounderEvent):
             for source_population, rate_param in self.source_populations.items():
                 rate = parametrized_demography.get_param_value(param_name=rate_param,
                                                                 params=params)
-                migration_matrix[integer_end_time - 1, parametrized_demography.population_indices[source_population]] += rate * (integer_end_time - float_end_time)
+                
         
-                for t in range(integer_end_time, start_time-1):
-                    migration_matrix[t, parametrized_demography.population_indices[source_population]] += rate
+                if source_population not in self.pulse_pops:
+                    
+                    migration_matrix[integer_end_time - 1, parametrized_demography.population_indices[source_population]] += rate * (integer_end_time - float_end_time)
+                    for t in range(integer_end_time, start_time-1):
+                        migration_matrix[t, parametrized_demography.population_indices[source_population]] += rate
+                else:
+                    migration_matrix[start_time-2, parametrized_demography.population_indices[source_population]] += frac_part_start*rate #to ensure continuity of the matrix
 
                 migration_matrix[start_time, parametrized_demography.population_indices[source_population]] += rate / total_rate # First generation must sum to 1
                 # The second generation does not need to sum to one. However, we want a continuously varying matrix. If true start time is 7.00001, or 6.999, we want the 7th generation to be an almost full replacement.
                 migration_matrix[start_time-1, parametrized_demography.population_indices[source_population]] += frac_part_start*(rate / total_rate)  + rate*(1- frac_part_start)
+
+
 
         return migration_matrix
 
