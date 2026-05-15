@@ -1,6 +1,7 @@
 import numbers
 import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Callable, Optional
 import numpy as np
@@ -462,18 +463,50 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
     num_params = len(model.model_base_params)
     rng = np.random.default_rng(seed=seed)
 
-    # Parse and validate start-parameter specifications once to avoid repeated parsing while resampling.
+    # ------- Support Pydantic models, plain mappings, and simple objects/mocks for testing purposes -------
+    start_param_values = None
+
+    if isinstance(start_param_bounds, Mapping):
+        start_param_values = dict(start_param_bounds)
+    else:
+        model_dump = getattr(start_param_bounds, "model_dump", None)
+        if callable(model_dump):
+            dumped_values = model_dump()
+            if isinstance(dumped_values, Mapping):
+                start_param_values = dict(dumped_values)
+
+    if start_param_values is None:
+        start_param_values = vars(start_param_bounds)
+
+    def has_start_param(param_name: str) -> bool:
+        return param_name in start_param_values
+
+    # ------- Parse and validate start-parameter specifications once to avoid repeated parsing while resampling -------
+
     parsed_specs = {}
     for param_name, param_info in model.model_base_params.items():
+        if param_name in model.params_fixed_by_ancestry: # Ancestry-fixed parameters do not need to be present in start_param_bounds and default to model lower bound.
+            if not has_start_param(param_name):
+                parsed_specs[param_name] = ("fixed", float(param_info.bounds[0]))
+                continue
 
-        if param_name in model.params_fixed_by_ancestry:
-            parsed_specs[param_name] = ("fixed", param_info.bounds[0]) #NOTE: Currently defaulting to the lower bound for parameters fixed by ancestry, but this could be changed to a different value in the future.
+            user_value = start_param_values[param_name]
+            if isinstance(user_value, numbers.Number):
+                parsed_specs[param_name] = ("fixed", float(user_value))
+            else:
+                try:
+                    bounds = [float(bound) for bound in user_value.split(':')]
+                    assert len(bounds) == 2
+                    parsed_specs[param_name] = ("fixed", bounds[0])
+                except Exception as e:
+                    raise ValueError("Initial values must be specified as min:max or a single value.") from e
             continue
 
-        if not hasattr(start_param_bounds, param_name):
+        if not has_start_param(param_name):
             raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
 
-        user_value = getattr(start_param_bounds, param_name)
+        user_value = start_param_values[param_name]
+
         if isinstance(user_value, numbers.Number):
             parsed_specs[param_name] = ("fixed", float(user_value)) # Initial value set as a single number and not as a range.
         else:
@@ -484,7 +517,9 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
             except Exception as e:
                 raise ValueError("Initial values must be specified as min:max or a single value.") from e
 
-    def draw_candidate() -> np.ndarray:
+    # ------- Helper functions to sample starting parameters and check feasibility -------
+
+    def _draw_candidate() -> np.ndarray:
         """
         Draw a single candidate vector of starting parameters. Each parameter is sampled independently based on the parsed specification:
         "fixed": use the provided fixed value, "range": sample uniformly from the interval [min, max].
@@ -499,7 +534,7 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
                 candidate[param_info.index] = candidate[param_info.index] * (high - low) + low # Affine transformation to Uniform(min, max)
         return candidate
 
-    def is_feasible(start_param_set: np.ndarray) -> bool:
+    def _is_feasible(start_param_set: np.ndarray) -> bool:
         """
         Return whether a proposed starting parameter vector is feasible. A parameter set is
         considered feasible when the model reports a non-negative violation score. Any ValueError
@@ -522,7 +557,7 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
 
     while len(start_params) < repetitions and attempts < max_attempts:
         attempts += 1
-        candidate = draw_candidate()
+        candidate = _draw_candidate()
 
         if len(model.params_fixed_by_ancestry) > 0:
             try:
@@ -530,7 +565,7 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
             except (ValueError, AssertionError):
                 continue
 
-        if is_feasible(candidate):
+        if _is_feasible(candidate):
             start_params.append(candidate)
 
     if len(start_params) < repetitions:

@@ -162,6 +162,9 @@ def run_tracts(driver_filename: str, script_dir: str):
                                         ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
         model.parameter_handler.to_physical_params_functions = to_physical_params_functions
         model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+
+        # Show time-admissibility warnings only during optimization and final reporting.
+        model.parameter_handler.enable_time_param_logging = False
         
         # ------ Compute starting parameters in physical units ------
         physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
@@ -183,8 +186,16 @@ def run_tracts(driver_filename: str, script_dir: str):
             print("\n"+single_params_message+"\n")
 
         # ------ Print starting parameters in physical units ------
-        header = f"{'Run':>3} | {'Starting parameters':<45}"
-        line = "-" * len(header) 
+        n_start_params = len(physical_start_params[0]) if len(physical_start_params) > 0 else 0
+        model_param_names = list(model.model_base_params.keys())
+        assert len(model_param_names) == n_start_params
+        start_param_names = model_param_names
+
+        param_col_widths = [max(len(name), 12) for name in start_param_names]
+        header = f"{'Run':>3} | " + " | ".join(
+            f"{name:>{w}}" for name, w in zip(start_param_names, param_col_widths)
+        )
+        line = "-" * len(header)
 
         for l in (header, line):
             print(l)
@@ -195,8 +206,10 @@ def run_tracts(driver_filename: str, script_dir: str):
             assert np.isclose(phys, model.parameter_handler.convert_to_physical_params(opt)).all()
             if bound(opt)<0:
                 print("Warning, starting parameters are out of bounds.")
-            phys_str = ", ".join(f"{x:.4g}" for x in phys)
-            start_param_message = f"{1+i:>3} | [{phys_str:<43}]"
+            values_str = " | ".join(
+                f"{x:>{w}.4g}" for x, w in zip(phys, param_col_widths)
+            )
+            start_param_message = f"{1+i:>3} | {values_str}"
             print(start_param_message)
             logger.info(start_param_message)
         print(line)
@@ -230,7 +243,8 @@ def run_tracts(driver_filename: str, script_dir: str):
 
             anc_line = f"{1+i:>3} | " + " | ".join(row_values)
             logger.info(anc_line)
-        
+
+        model.parameter_handler.enable_time_param_logging = True
 
         # ------ Run the model with (multiple) starting parameters ------
         params_found, likelihoods = run_model_multi_init(model_func=func,
@@ -250,21 +264,33 @@ def run_tracts(driver_filename: str, script_dir: str):
 
         # ------ Process and print results ------
         formatted_likelihoods = [float(x) for x in likelihoods] # One likelihood per optimization run. If multiple runs were done, these will be printed in a table with the corresponding parameters. The best likelihood and parameters across runs will be selected as the final result.
-        physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param) for f_param in params_found] # One set of parameters per optimization run, converted to physical units. If multiple runs were done, these will be printed in a table with the corresponding likelihoods. 
+        physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param, report_non_admissible=True) for f_param in params_found] # One set of parameters per optimization run, converted to physical units. If multiple runs were done, these will be printed in a table with the corresponding likelihoods. 
         
         if len(formatted_likelihoods) > 1: # Print optimal parameters and likelihoods for multiple runs with different starting parameters.
 
-            print("\n---------------------------------------------------------------------------")
-            results_message = "Results from multiple optimization runs with different starting parameters:"
-            header = f"{'Run':>3} | {'LogLik':>12} | Found parameters"
+            results_message = "\nResults from multiple optimization runs with different starting parameters:"
+            found_n_params = len(physical_found_params[0]) if len(physical_found_params) > 0 else 0
+            if len(start_param_names) == found_n_params:
+                found_param_names = start_param_names
+            else:
+                raise ValueError(
+                    "Mismatch between starting parameter names and optimized parameter length: "
+                    f"expected {len(start_param_names)} parameters but optimization returned {found_n_params}."
+                )
+            found_param_col_widths = [max(len(name), 12) for name in found_param_names]
+            header = f"{'Run':>3} | {'LogLik':>12} | " + " | ".join(
+                f"{name:>{w}}" for name, w in zip(found_param_names, found_param_col_widths)
+            )
             line = "-" * len(header)
             for l in (results_message, line, header, line):
                 print(l)
                 logger.info(l)  
             
             for i, (params, ll) in enumerate(zip(physical_found_params, formatted_likelihoods)):
-                params_str = ", ".join(f"{p:.4g}" for p in params)
-                param_line = f"{1+i:>3} | {float(ll):>12.6g} | [{params_str}]"
+                params_str = " | ".join(
+                    f"{p:>{w}.4g}" for p, w in zip(params, found_param_col_widths)
+                )
+                param_line = f"{1+i:>3} | {float(ll):>12.6g} | {params_str}"
                 print(param_line)
                 logger.info(param_line)
             print(line)
@@ -275,14 +301,19 @@ def run_tracts(driver_filename: str, script_dir: str):
         # Print final optimal parameters and likelihood.
         final_message = "Final parameters and corresponding likelihood:"
         param_names = list(model.model_base_params.keys())
-        header = f"{'LogLik':>12} | " + " ".join(f"{name:>12}" for name in param_names)
+        param_col_widths = [max(len(name), 12) for name in param_names]
+        header = f"{'LogLik':>12} | " + " | ".join(
+            f"{name:>{w}}" for name, w in zip(param_names, param_col_widths)
+        )
         line = "-" * len(header)
         print("\n" + final_message)
         for l in (line, header, line):
             print(l)
             logger.info(l)  
         
-        values_str = " ".join(f"{x:>12.4g}" for x in optimal_params)
+        values_str = " | ".join(
+            f"{x:>{w}.4g}" for x, w in zip(optimal_params, param_col_widths)
+        )
         loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
         logger.info(loglik_message)
         print(loglik_message)
