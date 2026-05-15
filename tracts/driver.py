@@ -188,7 +188,10 @@ def run_tracts(driver_filename: str, script_dir: str):
         if len(model_param_names) == n_start_params:
             start_param_names = model_param_names
         else:
-            start_param_names = [f"param_{j+1}" for j in range(n_start_params)]
+            raise ValueError(
+                "Mismatch between model parameter count and generated starting parameter length: "
+                f"model has {len(model_param_names)} parameters but starting parameters have {n_start_params}."
+            )
 
         param_col_widths = [max(len(name), 12) for name in start_param_names]
         header = f"{'Run':>3} | " + " | ".join(
@@ -262,7 +265,7 @@ def run_tracts(driver_filename: str, script_dir: str):
 
         # ------ Process and print results ------
         formatted_likelihoods = [float(x) for x in likelihoods] # One likelihood per optimization run. If multiple runs were done, these will be printed in a table with the corresponding parameters. The best likelihood and parameters across runs will be selected as the final result.
-        physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param) for f_param in params_found] # One set of parameters per optimization run, converted to physical units. If multiple runs were done, these will be printed in a table with the corresponding likelihoods. 
+        physical_found_params = [model.parameter_handler.convert_to_physical_params(f_param, report_non_admissible=True) for f_param in params_found] # One set of parameters per optimization run, converted to physical units. If multiple runs were done, these will be printed in a table with the corresponding likelihoods. 
         
         if len(formatted_likelihoods) > 1: # Print optimal parameters and likelihoods for multiple runs with different starting parameters.
 
@@ -271,7 +274,10 @@ def run_tracts(driver_filename: str, script_dir: str):
             if len(start_param_names) == found_n_params:
                 found_param_names = start_param_names
             else:
-                found_param_names = [f"param_{j+1}" for j in range(found_n_params)]
+                raise ValueError(
+                    "Mismatch between starting parameter names and optimized parameter length: "
+                    f"expected {len(start_param_names)} parameters but optimization returned {found_n_params}."
+                )
             found_param_col_widths = [max(len(name), 12) for name in found_param_names]
             header = f"{'Run':>3} | {'LogLik':>12} | " + " | ".join(
                 f"{name:>{w}}" for name, w in zip(found_param_names, found_param_col_widths)

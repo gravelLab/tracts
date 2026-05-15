@@ -461,15 +461,22 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
     
     num_params = len(model.model_base_params)
     rng = np.random.default_rng(seed=seed)
+    start_param_values = vars(start_param_bounds)
+
+    def has_start_param(param_name: str) -> bool:
+        return param_name in start_param_values
 
     # Parse and validate start-parameter specifications once to avoid repeated parsing while resampling.
     parsed_specs = {}
     for param_name, param_info in model.model_base_params.items():
-        if not hasattr(start_param_bounds, param_name):
-            raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
-
-        user_value = getattr(start_param_bounds, param_name)
         if param_name in model.params_fixed_by_ancestry:
+            # Backward-compatible behavior: ancestry-fixed parameters do not need
+            # to be present in start_param_bounds and default to model lower bound.
+            if not has_start_param(param_name):
+                parsed_specs[param_name] = ("fixed", float(param_info.bounds[0]))
+                continue
+
+            user_value = start_param_values[param_name]
             if isinstance(user_value, numbers.Number):
                 parsed_specs[param_name] = ("fixed", float(user_value))
             else:
@@ -480,6 +487,11 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
                 except Exception as e:
                     raise ValueError("Initial values must be specified as min:max or a single value.") from e
             continue
+
+        if not has_start_param(param_name):
+            raise KeyError(f"Initial values were not specified for parameter '{param_name}'.")
+
+        user_value = start_param_values[param_name]
 
         if isinstance(user_value, numbers.Number):
             parsed_specs[param_name] = ("fixed", float(user_value)) # Initial value set as a single number and not as a range.

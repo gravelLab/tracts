@@ -305,6 +305,34 @@ class TestParseStartParams:
             assert start_params[1] == pytest.approx(0.4)
             assert 0.5 <= start_params[2] <= 0.7
 
+    def test_parse_start_params_ancestry_fixed_param_can_be_missing(self):
+        """
+        Test that ancestry-fixed parameters can be omitted and default to model lower bound.
+        """
+        mock_model = Mock()
+        mock_model.model_base_params = {
+            'param1': Mock(index=0, bounds=[0.05, 1.0]),
+            'param2': Mock(index=1, bounds=[0.1, 1.0]),
+        }
+        mock_model.params_fixed_by_ancestry = {'param1': ''}
+        mock_model.parameter_handler = Mock()
+        mock_model.parameter_handler.compute_params_fixed_by_ancestry.side_effect = lambda candidate: candidate
+        mock_model.get_violation_score.return_value = 1
+
+        start_bounds = Mock(param2="0.4:0.9")
+
+        result = parse_start_params(
+            start_param_bounds=start_bounds,
+            repetitions=2,
+            seed=42,
+            model=mock_model
+        )
+
+        assert len(result) == 2
+        for start_params in result:
+            assert start_params[0] == pytest.approx(0.05)
+            assert 0.4 <= start_params[1] <= 0.9
+
     def test_parse_start_params_missing_parameter_raises_error(self):
         """
         Test that missing parameter raises KeyError.

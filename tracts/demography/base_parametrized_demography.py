@@ -831,6 +831,8 @@ class FixedParametersHandler:
         self.demography = None
         self.to_physical_params_functions = {}
         self.to_optimizer_params_functions = {}
+        # Tracks whether each time parameter is currently within admissible bounds.
+        self._time_param_admissibility_state: dict[str, bool] = {}
 
     @property
     def has_been_fixed(self):
@@ -880,7 +882,8 @@ class FixedParametersHandler:
         return np.array([index for index, param_name in enumerate(self.demography.model_base_params) if
                                         param_name in param_list], dtype=int)
 
-    def convert_to_physical_params(self, optimizer_params: list[float]):
+    def convert_to_physical_params(self, optimizer_params: list[float], max_time: float = 15,
+                                   report_non_admissible: bool = False):
         """
         Converts optimizer parameters from optimization units to physical units.
         
@@ -888,6 +891,10 @@ class FixedParametersHandler:
         ----------
         optimizer_params: list[float]
             A list of parameter values for the free parameters of the model in optimization units. The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
+        max_time: float
+            Upper admissible value for time parameters in physical units.
+        report_non_admissible: bool
+            If True, emits an explicit reminder when a time parameter remains non-admissible at the moment this function is called.
         
         Returns
         -------
@@ -905,8 +912,33 @@ class FixedParametersHandler:
             if param_type in self.to_physical_params_functions.keys():
                 converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
             if param_type == ParamType.TIME:
-                if converted_params[index] > 16:
-                    self.logger.warning(f'Time parameter {param_name} is too large after conversion to physical units. In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}. Check scaling functions.')
+                is_admissible = converted_params[index] <= max_time
+                previous_state = self._time_param_admissibility_state.get(param_name)
+
+                # Log only on status transitions admissible <-> non-admissible.
+                if previous_state is None:
+                    if not is_admissible:
+                        self.logger.warning(
+                            f'Time parameter {param_name} is greater than the maximum allowed value {max_time}.')
+                        self.logger.info(
+                            f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                elif previous_state and not is_admissible:
+                    self.logger.warning(
+                        f'Time parameter {param_name} became non-admissible (>{max_time}).')
+                    self.logger.info(
+                        f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                elif (not previous_state) and is_admissible:
+                    self.logger.info(
+                        f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
+
+                # Optional reminder for end-of-optimization-step reporting.
+                if report_non_admissible and (not is_admissible) and previous_state is False:
+                    self.logger.warning(
+                        f'End-of-step status: time parameter {param_name} remains non-admissible (>{max_time}).')
+                    self.logger.info(
+                        f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+
+                self._time_param_admissibility_state[param_name] = is_admissible
 
         return converted_params
 
