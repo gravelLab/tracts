@@ -33,9 +33,9 @@ start_params:
   RNAT: 0.2
   t2: 6:8
   
-  REUR_sex_bias: -0.8 # more males
-  RNAT_sex_bias: 0.8 # more females
-  RAFR_sex_bias: -0.1
+  REUR_sex_bias: -0.8:0.8 
+  RNAT_sex_bias: -0.8:0.8
+  RAFR_sex_bias: -0.5:0.5
 repetitions: 3
 seed: 100
 maximum_iterations: 1000

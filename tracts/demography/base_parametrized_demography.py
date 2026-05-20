@@ -831,14 +831,15 @@ class FixedParametersHandler:
         A boolean that controls whether time admissibility warnings and state tracking are active.
     _time_param_admissibility_state: dict[str, bool]
         A dict mapping time parameter names to booleans indicating whether each time parameter is currently within admissible bounds. This is used to track transitions between admissible and non-admissible states for time parameters in order to emit warnings appropriately.
-    _shared_time_param_admissibility_state: dict[tuple[str, str, float], bool]
-        Process-global state shared across handler instances. Keys are ``(model_key, param_name, max_time)`` and values track the latest admissibility status; used to preserve transition tracking when handlers are deep-copied during optimization.
-    _shared_time_param_non_admissible_warned: set[tuple[str, str, float]]
-        Process-global latch indicating that the non-admissible warning has already been emitted for a given ``(model_key, param_name, max_time)`` key; used to avoid repeated warning spam across copied handlers.
+    _shared_time_param_admissibility_state: dict[tuple[str, float], bool]
+        Process-global state shared across handler instances. Keys are ``(param_name, max_time)`` and values track the latest admissibility status; used to preserve transition tracking when handlers are deep-copied during optimization.
+    _shared_time_param_non_admissible_warned: set[tuple[str, float]]
+        Process-global latch indicating that the non-admissible warning has already been emitted for a given ``(param_name, max_time)`` key; used to avoid repeated warning spam across copied handlers and across model variants.
     """
 
-    _shared_time_param_admissibility_state: dict[tuple[str, str, float], bool] = {} # Shared across handler instances so warnings are not re-emitted when handlers are deep-copied during optimization.
-    _shared_time_param_non_admissible_warned: set[tuple[str, str, float]] = set()
+    _shared_time_param_admissibility_state: dict[tuple[str, float], bool] = {} # Shared across handler instances so warnings are not re-emitted when handlers are deep-copied during optimization.
+    _shared_time_param_non_admissible_warned: set[tuple[str, float]] = set()
+    _shared_time_param_back_admissible_warned: set[tuple[str, float]] = set()
 
     def __init__(self, logger: logging.Logger):
         self.logger = logger
@@ -853,17 +854,20 @@ class FixedParametersHandler:
         self.enable_time_param_logging = True  # Controls whether time admissibility warnings/state tracking are active.
         self._time_param_admissibility_state: dict[str, bool] = {} # Tracks whether each time parameter is currently within admissible bounds.
 
-    def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, str, float]:
+    def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, float]:
         """
-        Build a stable key for warning state that survives handler deep copies.
+        Build a stable key for warning state that survives handler deep copies and
+        deduplicates across model variants (e.g., autosomal/allosomal), but avoids
+        collisions between unrelated models by using a hash of the model's parameter schema.
         """
+        import hashlib
         if self.demography is None:
-            model_key = "unknown_demography"
-        elif self.demography.name:
-            model_key = self.demography.name
+            model_sig = "unknown_demography"
         else:
-            model_key = "|".join(self.demography.model_base_params.keys())
-        return model_key, param_name, float(max_time)
+            # Use parameter names and types for a stable signature
+            param_schema = tuple((k, getattr(v, 'type', None)) for k, v in self.demography.model_base_params.items())
+            model_sig = hashlib.sha256(repr(param_schema).encode('utf-8')).hexdigest()
+        return model_sig, param_name, float(max_time)
 
     @property
     def has_been_fixed(self):
@@ -906,6 +910,7 @@ class FixedParametersHandler:
             A list of parameter names for which to get the indices.
         
         Returns
+        
         -------
         np.ndarray
             An array of indices corresponding to the positions of the parameters in ``param_list`` as they appear in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
@@ -969,6 +974,8 @@ class FixedParametersHandler:
                         self.logger.info(
                             f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
                         self._shared_time_param_non_admissible_warned.add(state_key)
+                        # Clear back-admissible latch so the warning can fire again once the param recovers.
+                        self._shared_time_param_back_admissible_warned.discard(state_key)
                 elif previous_state and not is_admissible:
                     if not already_warned_non_admissible:
                         self.logger.warning(
@@ -976,9 +983,16 @@ class FixedParametersHandler:
                         self.logger.info(
                             f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
                         self._shared_time_param_non_admissible_warned.add(state_key)
+                    # Clear back-admissible latch so the warning can fire again once the param recovers.
+                    self._shared_time_param_back_admissible_warned.discard(state_key)
                 elif (not previous_state) and is_admissible:
-                    self.logger.warning(
-                        f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
+                    already_warned_back_admissible = state_key in self._shared_time_param_back_admissible_warned
+                    if not already_warned_back_admissible:
+                        self.logger.warning(
+                            f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
+                        self._shared_time_param_back_admissible_warned.add(state_key)
+                    # Clear the non-admissible latch so a future non-admissible transition can warn again.
+                    self._shared_time_param_non_admissible_warned.discard(state_key)
 
                 # Optional reminder for end-of-optimization-step reporting.
                 if report_non_admissible and (not is_admissible) and previous_state is False:
@@ -1346,7 +1360,7 @@ class FixedParametersHandler:
 
         error = np.linalg.norm(param_objective_func(solved_params))
         if not np.isclose(error, 0):
-            ancestry_message = f"Could not solve for parameters fixed by ancestry proportions.\nFinal error: {error}, solved_params (physical) = {self.convert_to_physical_params(self.insert_solved_params(full_params=params_opt, param_values_from_proportions=solved_params))}.\nThis can happen when no sex bias parameter allows for the observed ancestry proportions."
+            ancestry_message = f"Could not solve for parameters fixed by ancestry proportions. Final error: {round(error,3)}. This can happen when no sex bias parameter allows for the observed ancestry proportions."
             self.logger.info(ancestry_message)
             if show_ancestry_warning:
                 print("At the end of the current optimization step: " + ancestry_message)

@@ -15,6 +15,8 @@ from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parametrized_demography_sex_biased import SexType
+from tracts.demography.base_parametrized_demography import FixedParametersHandler
+from tracts.demography.parameter import ParamType
 import ruamel.yaml as yaml
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List
@@ -22,7 +24,9 @@ from pydantic_core import PydanticUndefined
 import logging
 logger = logging.getLogger(__name__)
 
-# ---------- Driver file setup ----------
+
+# --------------- Locate driver file ---------------
+
 
 def locate_file_path(filename: str, 
                     script_dir: str | Path | None,
@@ -82,7 +86,7 @@ def locate_file_path(filename: str,
 
     return None
 
-# ---------- Models ----------
+# --------------- Models ---------------
 
 class SamplesConfig(BaseModel):
     """
@@ -174,6 +178,8 @@ class InferenceConfig(BaseModel):
         Whether to use log scale to plot the tract length distribution. Defaults to True.
     two_steps_optimization: bool
         Whether to perform a two-step optimization process, where the first step optimizes only the non-sex-bias parameters on autosomal data and the second step optimizes sex-bias parameters using both autosomal and allosomal data. Defaults to True.
+    use_autosomes_for_sex_bias: bool
+        Whether step 2 should include autosomal data in addition to allosomal data. Defaults to False.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -196,8 +202,11 @@ class InferenceConfig(BaseModel):
     verbose_screen: int = 30
     log_scale: bool = True
     two_steps_optimization: bool = True
+    use_autosomes_for_sex_bias: bool = False
 
-# ---------- Driver file setup ----------
+
+# --------------- Driver file setup ---------------
+
 
 filepath_error_additional_message = (
     '\nPlease ensure that the file path is either absolute,'
@@ -241,7 +250,9 @@ def load_driver_file(driver_path: str) -> InferenceConfig:
 
     return InferenceConfig.model_validate(driver_spec)
 
-# ---------- Loader ----------
+
+# --------------- Loader ---------------
+
 
 def parse_individual_filenames(
     individual_names: List[str],
@@ -425,7 +436,8 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
         model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
     return model
 
-def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None, model: ParametrizedDemography = None):
+def parse_start_params(start_param_bounds, model: ParametrizedDemography, repetitions: int=1, seed: float | None = None,
+                       sample_param_names: set[str] | None = None, fixed_param_values: dict[str, float] | None = None):
     """
     Produces starting parameters for optimization in physical units. Only produces starting parameters that are compatible with well-defined migration matrices.
     
@@ -433,13 +445,20 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
     ----------
     start_param_bounds
         An object containing attributes corresponding to each parameter in model.model_base_parameters, where the value of each attribute is either a single number (if the starting value for that parameter should be fixed) or a string of the form "min:max" specifying the range from which to sample starting values for that parameter. The parameters specified in start_param_bounds must match those in model.model_base_parameters, and an error will be raised if any parameters are missing or if any extra parameters are included.
-    repetitions: int
-        The number of sets of starting parameters to produce. Defaults to 1.
-    seed: float
-        The random seed to use for sampling starting parameters. Defaults to None.
     model: ParametrizedDemography
         The demographic model for which to produce starting parameters. 
-
+    repetitions: int
+        The number of sets of starting parameters to produce. Defaults to 1.
+    seed: float | None
+        The random seed to use for sampling starting parameters. Defaults to None.
+    sample_param_names: set[str] | None
+        Optional subset of parameter names to sample from ``start_param_bounds``.
+        If provided, all other non-ancestry-fixed parameters must be supplied in
+        ``fixed_param_values``.
+    fixed_param_values: dict[str, float] | None
+        Optional parameter values to hold fixed while sampling the remaining
+        parameters.
+    
     Returns
     -------
     list[np.ndarray]: A list of arrays of starting parameters in physical units, where each array corresponds to a set of starting parameters for one repetition of the optimization. The parameters are ordered according to their order in model.model_base_parameters.
@@ -463,6 +482,8 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
     
     num_params = len(model.model_base_params)
     rng = np.random.default_rng(seed=seed)
+    sampled_param_names = set(sample_param_names) if sample_param_names is not None else None
+    fixed_param_values = {} if fixed_param_values is None else dict(fixed_param_values)
 
     # ------- Support Pydantic models, plain mappings, and attribute-style config objects -------
     start_param_values = None
@@ -503,6 +524,15 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
 
     parsed_specs = {}
     for param_name, param_info in model.model_base_params.items():
+        if param_name in fixed_param_values:
+            parsed_specs[param_name] = ("fixed", float(fixed_param_values[param_name]))
+            continue
+
+        if sampled_param_names is not None and param_name not in sampled_param_names and param_name not in model.params_fixed_by_ancestry:
+            raise KeyError(
+                f"Parameter '{param_name}' must be provided in fixed_param_values when sampling only a subset of parameters."
+            )
+
         if param_name in model.params_fixed_by_ancestry: # Ancestry-fixed parameters do not need to be present in start_param_bounds and default to model lower bound.
             if not has_start_param(param_name):
                 parsed_specs[param_name] = ("fixed", float(param_info.bounds[0]))
@@ -587,10 +617,40 @@ def parse_start_params(start_param_bounds, repetitions: int=1, seed: float=None,
             start_params.append(candidate)
 
     if len(start_params) < repetitions:
-        raise ValueError(
-            f"Could not generate {repetitions} feasible starting parameter sets after {attempts} attempts. "
-            "Try widening valid start ranges or tightening cross-parameter constraints in the model."
-        )
+        raise ValueError(f"Could not generate {repetitions} feasible starting parameter sets after {attempts} attempts. Try widening valid start ranges.")
+        
+    return start_params
+
+
+def collapse_identical_start_params(start_params: list[np.ndarray], step_label: str) -> list[np.ndarray]:
+    """
+    Collapse repeated identical starting-parameter sets to a single repetition.
+
+    This is used when all generated starting parameters for a step are the same,
+    for example because the inputs were specified as single fixed values or
+    because ancestry-fixed parameters made every draw collapse to the same point.
+
+    Parameters
+    ----------
+    start_params: list[np.ndarray]
+        Candidate starting-parameter sets for one optimization step.
+    step_label: str
+        Human-readable label used in the warning message (for example,
+        ``"step 1"`` or ``"step 2"``).
+
+    Returns
+    -------
+    list[np.ndarray]
+        The original list if it contains zero or one entry, or a single-entry
+        list containing the unique start if every entry is identical.
+    """
+    if len(start_params) <= 1:
+        return start_params
+
+    first = np.asarray(start_params[0], dtype=float)
+    if all(np.allclose(np.asarray(candidate, dtype=float), first) for candidate in start_params[1:]):
+        logger.warning(f"All generated starting parameters for {step_label} are identical: running a single optimization instead of multiple repetitions.")
+        return [np.array(first, copy=True)]
 
     return start_params
 
@@ -643,8 +703,8 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 
 
+# --------------- Output production ---------------
 
-# ----- Output production -----
 
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray, 
@@ -1099,3 +1159,390 @@ def output_simulation_data_sex_biased(sample_population: Population,
     logger.info('Results saved to : ' + str(output_dir))
 
 
+
+# --------------- Helper function to summarize optimization results and choose best likelihood ---------------
+
+
+def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[float], parameter_handler: FixedParametersHandler,
+                            param_names: list[str], step_label: str | None = None) -> tuple[np.ndarray, float]:
+    """
+    Print per-run optimization results and select the best run.
+
+    Parameters
+    ----------
+    params_found: list[np.ndarray]
+        A list of arrays of parameters found by the optimization runs, where each array corresponds to one run and is in optimizer parameter space.
+    likelihoods: list[float] 
+        A list of likelihoods corresponding to each set of parameters found by the optimization runs.
+    parameter_handler: FixedParametersHandler
+        The parameter handler for the model.
+    param_names: list[str]
+        A list of parameter names corresponding to the parameters in the model, used for printing results.
+    step_label: str | None
+        A label for the optimization step, used for printing results.
+
+    Returns
+    -------
+    np.ndarray
+        An array of the optimal parameters in physical parameter space, corresponding to the highest likelihood among the runs.
+    float
+        The optimal likelihood as a float.
+    """
+    formatted_likelihoods = [float(x) for x in likelihoods]
+    
+    prev_time_param_logging = parameter_handler.enable_time_param_logging # Keep time-transition warnings tied to optimization iterations, not to post-run summary conversions.
+    parameter_handler.enable_time_param_logging = False
+    try:
+        physical_found_params = [
+            parameter_handler.convert_to_physical_params(found, report_non_admissible=False)
+            for found in params_found
+        ]
+    finally:
+        parameter_handler.enable_time_param_logging = prev_time_param_logging
+
+    if len(formatted_likelihoods) > 1:
+        step_prefix = f"{step_label}: " if step_label else ""
+        results_message = f"\n{step_prefix}Results from multiple optimization runs with different starting parameters:"
+        found_param_col_widths = [max(len(name), 12) for name in param_names]
+        header = f"{'Run':>3} | {'LogLik':>12} | " + " | ".join(
+            f"{name:>{w}}" for name, w in zip(param_names, found_param_col_widths)
+        )
+        line = "-" * len(header)
+        for message_line in (results_message, line, header, line):
+            print(message_line)
+            logger.info(message_line)
+
+        for i, (params, ll) in enumerate(zip(physical_found_params, formatted_likelihoods)):
+            params_str = " | ".join(
+                f"{p:>{w}.4g}" for p, w in zip(params, found_param_col_widths)
+            )
+            param_line = f"{1+i:>3} | {float(ll):>12.6g} | {params_str}"
+            print(param_line)
+            logger.info(param_line)
+        print(line)
+
+    optimal_params, optimal_likelihood = max(
+        zip(physical_found_params, formatted_likelihoods),
+        key=lambda x: x[1],
+    )
+    return optimal_params, float(optimal_likelihood)
+
+
+def _print_step_header_block(parameter_handler: FixedParametersHandler, start_params_list: list[np.ndarray] | None = None,
+                            bound_func: Callable[[np.ndarray], float] | None = None, title_message: str | None = None, display_param_indices: list[int] | None = None) -> None:
+    """
+    Print starting-parameter information before optimization runs begin.
+
+    This helper is for internal use only. It prints a starting-parameter table that is
+    logged and shown once before optimization runs begin.
+
+    Parameters
+    ----------
+    parameter_handler: FixedParametersHandler
+        Used to derive parameter labels and convert optimizer-space values for display.
+    start_params_list: list[np.ndarray] | None
+        Starting parameters in optimizer units. If provided together with
+        ``bound_func``, a starting-parameters table is printed.
+    bound_func: Callable[[np.ndarray], float] | None
+        Function returning a violation score in optimizer space. Used to flag
+        out-of-bounds starting values when printing the table.
+    title_message: str | None
+        Optional title shown above the starting-parameters table.
+    display_param_indices: list[int] | None
+        Indices of parameters to display in the table. If None, defaults to
+        current free-parameter indices from ``parameter_handler``.
+    """
+    if start_params_list is None or bound_func is None:
+        return
+
+    if display_param_indices is None:
+        if hasattr(parameter_handler, "free_parameters_indices"):
+            display_param_indices = list(parameter_handler.free_parameters_indices)
+        else:
+            display_param_indices = list(range(len(parameter_handler.convert_to_physical_params(start_params_list[0], report_non_admissible=False))))
+
+    physical_params_list = [
+        parameter_handler.convert_to_physical_params(params, report_non_admissible=False)[display_param_indices]
+        for params in start_params_list
+    ]
+    if hasattr(parameter_handler, "indices_to_labels"):
+        param_names = list(parameter_handler.indices_to_labels(display_param_indices))
+    else:
+        param_names = [str(index) for index in display_param_indices]
+    param_col_widths = [max(len(name), 12) for name in param_names]
+
+    if title_message is None:
+        title_message = "Starting parameters"
+
+    print(title_message)
+    logger.info(title_message)
+
+    table_header = f"{'Run':>3} | " + " | ".join(
+        f"{name:>{w}}" for name, w in zip(param_names, param_col_widths)
+    )
+    table_line = "-" * len(table_header)
+
+    for l in (table_line, table_header, table_line):
+        print(l)
+        logger.info(l)
+
+    for i, (phys, opt) in enumerate(zip(physical_params_list, start_params_list)):
+        assert np.isclose(
+            phys,
+            parameter_handler.convert_to_physical_params(opt)[display_param_indices]
+        ).all()
+        if bound_func(opt) < 0:
+            warning_message = "Warning, starting parameters are out of bounds."
+            print(warning_message)
+            logger.info(warning_message)
+        values_str = " | ".join(
+            f"{x:>{w}.4g}" for x, w in zip(phys, param_col_widths)
+        )
+        start_param_message = f"{1+i:>3} | {values_str}"
+        print(start_param_message)
+        logger.info(start_param_message)
+
+    print(table_line)
+    logger.info(table_line)
+
+
+def _normalize_multi_init_result(result):
+    """
+    Normalize outputs from multi-initialization optimization runs.
+
+    This helper accepts legacy 2-item return values as well as the current
+    3-item return shape and always returns a 3-tuple:
+    ``(params_found, likelihoods, full_likelihoods)``.
+
+    Parameters
+    ----------
+    result
+        Tuple returned by ``run_model_multi_init``. Supported forms are: ``(params_found, likelihoods)`` or ``(params_found, likelihoods, full_likelihoods)``.
+
+    Returns
+    -------
+    tuple
+        A 3-item tuple ``(params_found, likelihoods, full_likelihoods)``. If ``result`` has only two items, ``full_likelihoods`` is filled with
+        ``None`` values matching the number of runs.
+
+    Raises
+    ------
+    ValueError
+        If ``result`` does not contain exactly 2 or 3 items.
+    """
+    if len(result) == 3:
+        return result
+    if len(result) == 2:
+        params_found, likelihoods = result
+        return params_found, likelihoods, [None] * len(params_found)
+    raise ValueError("run_model_multi_init must return either 2 or 3 values.")
+
+
+def _get_display_param_indices(parameter_handler: FixedParametersHandler,
+                               model,
+                               two_steps_optimization: bool,
+                               steps: list[int | str] | None = None) -> list[int]:
+    """
+    Compute which parameter columns should be shown in starting-parameter tables.
+
+    The selected indices depend on whether optimization is single-step or
+    two-step and, for two-step mode, which step is active.
+
+    Parameters
+    ----------
+    parameter_handler: FixedParametersHandler
+        Parameter handler containing free/fixed parameter metadata.
+    model
+        Demography model used as a fallback source for parameter metadata when ``parameter_handler.demography`` is unavailable.
+    two_steps_optimization: bool
+        Whether optimization runs in two-step mode.
+    steps: list[int | str] | None
+        Active step selection (e.g. ``[1]``, ``[2]``, ``[1, 2]``,
+        ``["step1"]``, ``["step2"]``).
+
+    Returns
+    -------
+    list[int]
+        Parameter indices to display in the table for the active optimization  context.
+    """
+    if not two_steps_optimization:
+        if hasattr(parameter_handler, "free_parameters_indices"):
+            return list(parameter_handler.free_parameters_indices)
+        return list(range(len(model.model_base_params)))
+
+    step_2_only = bool(steps) and all(step in (2, "step2") for step in steps)
+    model_base_params = (
+        parameter_handler.demography.model_base_params
+        if hasattr(parameter_handler, "demography")
+        else model.model_base_params
+    )
+    user_params_fixed_by_value = getattr(parameter_handler, "user_params_fixed_by_value", {})
+    params_fixed_by_ancestry = getattr(parameter_handler, "params_fixed_by_ancestry", {})
+
+    if step_2_only:
+        return list(range(len(model_base_params)))
+
+    return [
+        idx for idx, (name, info) in enumerate(model_base_params.items())
+        if (
+            info.type != ParamType.SEX_BIAS
+            and name not in user_params_fixed_by_value
+            and name not in params_fixed_by_ancestry
+        )
+    ]
+
+
+def _print_run_intro(parameter_handler: FixedParametersHandler,
+                     model,
+                     start_params_list: list[np.ndarray],
+                     bound_func: Callable[[np.ndarray], float],
+                     title_message: str,
+                     two_steps_optimization: bool,
+                     autosomes_in_step_2: bool,
+                     steps: list[int | str] | None = None) -> None:
+    """
+    Print the optimization subtitle and starting-parameter table for a run.
+
+    This helper centralizes the pre-run console/log output shown before each optimization phase. Time-parameter transition logging is temporarily
+    disabled while printing the starting-parameter table to avoid emitting admissibility transition warnings during display-only conversions.
+
+    Parameters
+    ----------
+    parameter_handler: FixedParametersHandler
+        Parameter handler used for subtitle generation and parameter conversion.
+    model
+        Model object used as fallback metadata source when needed.
+    start_params_list: list[np.ndarray]
+        Starting parameters (in optimizer units) for all runs in the phase.
+    bound_func: Callable[[np.ndarray], float]
+        Bound/violation function used to flag out-of-bounds starts in the
+        table.
+    title_message: str
+        Title printed above the starting-parameter table.
+    two_steps_optimization: bool
+        Whether optimization is single-step or two-step.
+    autosomes_in_step_2: bool
+        In two-step mode, whether step 2 uses autosomal data in addition to
+        allosomal data.
+    steps: list[int | str] | None
+        Active step selection used to compute subtitle and displayed columns.
+    """
+    if hasattr(parameter_handler, "demography"):
+        subtitle_message = _get_optimization_subtitle(
+            parameter_handler=parameter_handler,
+            two_steps_optimization=two_steps_optimization,
+            autosomes_in_step_2=autosomes_in_step_2,
+            steps=steps,
+        )
+    else:
+        all_params = model.model_base_params
+        if not two_steps_optimization:
+            free_params = list(all_params.keys())
+            subtitle_message = f"Optimizing model likelihood over parameters {str(free_params)}."
+        else:
+            normalized_steps = set(steps or [1, 2])
+            if 2 in normalized_steps and 1 not in normalized_steps:
+                free_params = [
+                    name for name, info in all_params.items()
+                    if info.type == ParamType.SEX_BIAS
+                ]
+                step_2_data = "autosomal + allosomal" if autosomes_in_step_2 else "allosomal"
+                subtitle_message = f"Step 2 : Optimizing {step_2_data} likelihood over parameters : {str(free_params)}."
+            else:
+                free_params = [
+                    name for name, info in all_params.items()
+                    if info.type != ParamType.SEX_BIAS
+                ]
+                subtitle_message = f"Step 1 : Optimizing autosomal likelihood over parameters {str(free_params)}."
+
+    for line in ["-" * len(subtitle_message), subtitle_message, "-" * len(subtitle_message)]:
+        print(line)
+        logger.info(line)
+
+    display_param_indices = _get_display_param_indices(
+        parameter_handler=parameter_handler,
+        model=model,
+        two_steps_optimization=two_steps_optimization,
+        steps=steps,
+    )
+
+    prev_time_param_logging = parameter_handler.enable_time_param_logging
+    parameter_handler.enable_time_param_logging = False
+    try:
+        _print_step_header_block(
+            parameter_handler=parameter_handler,
+            start_params_list=start_params_list,
+            bound_func=bound_func,
+            title_message=title_message,
+            display_param_indices=display_param_indices,
+        )
+    finally:
+        parameter_handler.enable_time_param_logging = prev_time_param_logging
+
+
+def _get_optimization_subtitle(parameter_handler: FixedParametersHandler,
+                              two_steps_optimization: bool,
+                              autosomes_in_step_2: bool,
+                              steps: list[int | str] | None = None) -> str:
+    """
+    Build the user-readable optimization subtitle for the active run phase. This helper determines which parameter set is being optimized in the
+    current context and returns the corresponding subtitle string used in console/log headers.
+
+    Behavior
+    --------
+    - Single-step mode: reports all currently free parameters.
+    - Two-step mode, step 2 only: reports sex-bias parameters only.
+    - Two-step mode, otherwise: reports non-sex-bias parameters (step 1 view).
+    - In two-step mode, parameters fixed by value or ancestry are excluded
+      from the displayed list.
+
+    Parameters
+    ----------
+    parameter_handler: FixedParametersHandler
+        Provides parameter metadata and fixed-parameter information.
+    two_steps_optimization: bool
+        Whether optimization is configured to run in two-step mode.
+    autosomes_in_step_2: bool
+        If True, the step-2 subtitle references autosomal + allosomal data;
+        otherwise it references allosomal data only.
+    steps: list[int | str] | None
+        Optional explicit step selection. Accepted labels are ``1``/``"step1"`` and ``2``/``"step2"``. If None, both steps are assumed.
+
+    Returns
+    -------
+    str
+        Subtitle describing the active optimization step and parameter subset.
+    """
+    if not two_steps_optimization:
+        free_params = list(parameter_handler.indices_to_labels(parameter_handler.free_parameters_indices))
+        return f"Optimizing model likelihood over parameters {str(free_params)}."
+
+    normalized_steps = set()
+    if steps is None:
+        normalized_steps = {1, 2}
+    else:
+        for s in steps:
+            if s in [1, "step1"]:
+                normalized_steps.add(1)
+            elif s in [2, "step2"]:
+                normalized_steps.add(2)
+
+    all_params = parameter_handler.demography.model_base_params
+
+    if 2 in normalized_steps and 1 not in normalized_steps:
+        free_params = [
+            name for name, info in all_params.items()
+            if info.type == ParamType.SEX_BIAS
+            and name not in parameter_handler.user_params_fixed_by_value
+            and name not in parameter_handler.params_fixed_by_ancestry
+        ]
+        step_2_data = "autosomal + allosomal" if autosomes_in_step_2 else "allosomal"
+        return f"Step 2 : Optimizing {step_2_data} likelihood over parameters : {str(free_params)}."
+
+    free_params = [
+        name for name, info in all_params.items()
+        if info.type != ParamType.SEX_BIAS
+        and name not in parameter_handler.user_params_fixed_by_value
+        and name not in parameter_handler.params_fixed_by_ancestry
+    ]
+    return f"Step 1 : Optimizing autosomal likelihood over parameters {str(free_params)}."
