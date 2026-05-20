@@ -1164,7 +1164,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
 
 def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[float], parameter_handler: FixedParametersHandler,
-                            param_names: list[str], step_label: str | None = None) -> tuple[list[np.ndarray], list[float], np.ndarray, float]:
+                            param_names: list[str], step_label: str | None = None) -> tuple[np.ndarray, float]:
     """
     Print per-run optimization results and select the best run.
 

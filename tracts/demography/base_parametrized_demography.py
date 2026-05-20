@@ -856,10 +856,18 @@ class FixedParametersHandler:
 
     def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, float]:
         """
-        Build a stable key for warning state that survives handler deep copies
-        and deduplicates across model variants (e.g., autosomal/allosomal).
+        Build a stable key for warning state that survives handler deep copies and
+        deduplicates across model variants (e.g., autosomal/allosomal), but avoids
+        collisions between unrelated models by using a hash of the model's parameter schema.
         """
-        return param_name, float(max_time)
+        import hashlib
+        if self.demography is None:
+            model_sig = "unknown_demography"
+        else:
+            # Use parameter names and types for a stable signature
+            param_schema = tuple((k, getattr(v, 'type', None)) for k, v in self.demography.model_base_params.items())
+            model_sig = hashlib.sha256(repr(param_schema).encode('utf-8')).hexdigest()
+        return model_sig, param_name, float(max_time)
 
     @property
     def has_been_fixed(self):
@@ -902,6 +910,7 @@ class FixedParametersHandler:
             A list of parameter names for which to get the indices.
         
         Returns
+        
         -------
         np.ndarray
             An array of indices corresponding to the positions of the parameters in ``param_list`` as they appear in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.

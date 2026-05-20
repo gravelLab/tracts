@@ -501,18 +501,6 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     if len(start_params_list) == 0:
         raise ValueError("start_params_list cannot be empty. Provide at least one starting-parameter set.")
 
-    if print_subtitle:
-        subtitle_message = _get_optimization_subtitle(
-            parameter_handler=parameter_handler,
-            two_steps_optimization=two_steps_optimization,
-            autosomes_in_step_2=autosomes_in_step_2,
-            steps=steps,
-        )
-
-        for l in ["-" * len(subtitle_message), subtitle_message, "-" * len(subtitle_message)]:
-            print(l)
-            logger.info(l)
-
     if print_start_params_table:
         _print_run_intro(
             parameter_handler=parameter_handler,
