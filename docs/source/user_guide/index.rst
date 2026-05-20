@@ -197,6 +197,7 @@ Parameters and optimization
 - ``fix_parameters_from_ancestry_proportions``: These parameters are analytically computed from the ancestry proportions, and the optimization is restricted to the remaining parameters.
 - ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 - ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
+- ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to False, which means that only allosomes are used to optimize sex-bias parameters.
 
 .. admonition:: Using ``fix_parameters_from_ancestry_proportions``
    :class: tip
@@ -243,7 +244,7 @@ Once the :ref:`driver file<driver-file>` is ready, the inference can be run usin
 The software displays the initial parameters to be optimized, along with the ancestry proportions estimated from the sample. It then performs a two-stage optimization:
 
 - First, the parameters unrelated to sex bias are optimized using only autosomal tracts. In this stage, the ``ad_model_autosomes`` admixture model specified in the :ref:`driver file<driver-file>` is considered.
-- Next, these non–sex-bias parameters are fixed, and only the sex-bias parameters are optimized using both autosomal and allosomal tracts. In this stage, the ``ad_model_allosomes`` admixture model specified in the :ref:`driver file<driver-file>` is considered.
+- Next, these non–sex-bias parameters are fixed, and only the sex-bias parameters are optimized using (autosomal and) allosomal tracts. In this stage, the ``ad_model_allosomes`` admixture model specified in the :ref:`driver file<driver-file>` is considered.
 
 
 Outputs

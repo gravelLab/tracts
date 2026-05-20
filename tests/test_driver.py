@@ -1,9 +1,15 @@
 import os
 import pytest
 import shutil
-from tracts.driver import run_tracts
+from collections import OrderedDict
+from types import SimpleNamespace
 from pathlib import Path
 import numpy as np
+
+import tracts.driver as driver_module
+from tracts.driver import run_tracts
+from tracts.demography.parameter import ParamType
+from tracts.driver_utils import _print_run_intro as real_print_run_intro
 
 # ------------ Helper functions for test setup and checks ----------
 
@@ -58,6 +64,226 @@ def _clean_output_dir(output_dir: Path):
 
     if output_dir.exists():
         shutil.rmtree(output_dir)
+
+
+def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosomes_in_step_2: bool):
+    """
+    Return a minimal driver-spec SimpleNamespace that covers the two-step and allosome flags.
+    The specific values are not important, but they should be plausible and consistent with the expected types.
+    """
+    return SimpleNamespace(
+        log_filename="test_logfile.log",
+        output_directory=str(tmp_path / "test_output"),
+        exclude_tracts_below_cm=0,
+        npts=5,
+        ad_model_autosomes="DC",
+        ad_model_allosomes="DC",
+        samples=SimpleNamespace(allosomes=["X"]),
+        unknown_labels_for_smoothing=[],
+        model_filename="test_model.yaml",
+        start_params=SimpleNamespace(),
+        repetitions=2,
+        seed=1,
+        maximum_iterations=2,
+        verbose_log=0,
+        verbose_screen=0,
+        fix_parameters_from_ancestry_proportions=[],
+        output_filename_format="test_output_{label}",
+        two_steps_optimization=two_steps_optimization,
+        autosomes_in_step_2=autosomes_in_step_2,
+        use_autosomes_for_sex_bias=autosomes_in_step_2,
+        log_scale=False,
+    )
+
+
+def _make_mock_model():
+    """
+    Return a minimal model SimpleNamespace with four parameters:
+      - t        (TIME,     index 0)
+      - rate_eur (RATE,     index 1)
+      - sb_eur   (SEX_BIAS, index 2)
+      - sb_afr   (SEX_BIAS, index 3)
+
+    Indices 0–1 are non-sex-bias (replaced by Step 1 best in two-step runs).
+    Indices 2–3 are sex-bias (kept run-specific in Step 2).
+    """
+    model = SimpleNamespace()
+    model.model_base_params = OrderedDict([
+        ("t", SimpleNamespace(index=0, type=ParamType.TIME)),
+        ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE)),
+        ("sb_eur", SimpleNamespace(index=2, type=ParamType.SEX_BIAS)),
+        ("sb_afr", SimpleNamespace(index=3, type=ParamType.SEX_BIAS)),
+    ])
+    model.population_indices = OrderedDict([("A", 0), ("B", 1)])
+    model.parametrized_populations = ["pop"]
+    model.parameter_handler = SimpleNamespace(
+        to_physical_params_functions={},
+        to_optimizer_params_functions={},
+        enable_time_param_logging=True,
+        convert_to_optimizer_params=lambda params: np.array(params, dtype=float),
+        convert_to_physical_params=lambda params, report_non_admissible=False: np.array(params, dtype=float),
+        set_up_fixed_parameters=lambda *args, **kwargs: None,
+        release_fixed_parameters=lambda *args, **kwargs: None,
+        add_fixed_parameters=lambda *args, **kwargs: None,
+    )
+    model.proportions_from_matrices = lambda matrices: {"A": np.array([1.0])}
+    model.get_violation_score = lambda params, verbose=False: 1.0
+    model.get_migration_matrices = lambda params: {"female": np.zeros((1, 1)), "male": np.zeros((1, 1))}
+    model.set_up_fixed_parameters = lambda *args, **kwargs: None
+    return model
+
+
+def _make_mock_population():
+    """
+    Return a minimal population SimpleNamespace with stub data sufficient for driver book-keeping.
+    The specific values are not important, but they should be plausible and consistent with the expected types.
+    """
+    population = SimpleNamespace()
+    population.get_global_tractlengths = lambda npts, exclude_tracts_below_cM: (
+        np.linspace(0, 1, 6),
+        {"A": [0, 0, 0, 0, 0], "B": [0, 0, 0, 0, 0]},
+    )
+    population.calculate_ancestry_proportions = lambda ancestor_labels: np.array([0.6, 0.4])
+    population.calculate_allosome_proportions = lambda population_labels, allosome_label: np.array([0.6, 0.4])
+    population.smooth_unknowns = lambda allosome_labels: None
+    population.unknown_labels = []
+    population.Ls = [1.0]
+    population.indivs = [object()]
+    population.nind = 1
+    population.num_males = 1
+    population.num_females = 1
+    population.allosome_lengths = {"X": 1.0}
+    return population
+
+
+def _install_driver_run_mocks(monkeypatch, tmp_path: Path, two_steps_optimization: bool, autosomes_in_step_2: bool):
+    """
+    Patch all I/O and optimizer calls in ``tracts.driver`` so that ``run_tracts`` can be
+    exercised without touching the file system or running a real optimization. ``fake_run_model_multi_init`` 
+    records every call into ``recorded_runs`` and returns deterministic dummy results:
+      - Step 1 best is [11, 22, 101, 201] / [12, 23, 102, 202] with likelihoods [2.0, 1.0]
+        (best → run 0: [11, 22, 101, 201]).
+      - Step 2 returns plausible values that are not checked here.
+    ``recording_print_run_intro`` wraps the real implementation and appends
+    every ``title_message`` to ``recorded_titles`` so tests can inspect table headers.
+    Returns (driver_spec, model, population, recorded_titles, recorded_runs,
+    recorded_parse_calls, recorded_collapse_calls)
+    """
+    driver_spec = _make_mock_driver_spec(tmp_path, two_steps_optimization, autosomes_in_step_2)
+    model = _make_mock_model()
+    population = _make_mock_population()
+    recorded_titles = []
+    recorded_runs = []
+    recorded_parse_calls = []
+    recorded_collapse_calls = []
+
+    def recording_print_run_intro(*args, **kwargs):
+        if "title_message" in kwargs:
+            recorded_titles.append(kwargs["title_message"])
+        else:
+            recorded_titles.append(args[4])
+        return real_print_run_intro(*args, **kwargs)
+
+    def fake_run_model_multi_init(*, start_params_list, steps=None, autosomes_in_step_2=None, **kwargs):
+        normalized_start_params = [np.array(params, dtype=float) for params in start_params_list]
+        recorded_runs.append(
+            {
+                "steps": steps,
+                "autosomes_in_step_2": autosomes_in_step_2,
+                "start_params_list": normalized_start_params,
+            }
+        )
+
+        if steps == [1]:
+            return (
+                [
+                    np.array([11.0, 22.0, 101.0, 201.0]),
+                    np.array([12.0, 23.0, 102.0, 202.0]),
+                ],
+                [2.0, 1.0],
+            )
+
+        if steps == [2]:
+            return (
+                [
+                    np.array([11.0, 22.0, 301.0, 401.0]),
+                    np.array([11.0, 22.0, 302.0, 402.0]),
+                ],
+                [5.0, 4.0],
+            )
+
+        return ([np.array([1.0, 2.0, 3.0, 4.0])], [1.0])
+
+    def fake_parse_start_params(*, sample_param_names=None, fixed_param_values=None, **kwargs):
+        sample_param_names = set(sample_param_names) if sample_param_names is not None else None
+        fixed_param_values = {} if fixed_param_values is None else dict(fixed_param_values)
+
+        recorded_parse_calls.append(
+            {
+                "sample_param_names": sample_param_names,
+                "fixed_param_values": fixed_param_values,
+            }
+        )
+
+        if sample_param_names == {"t", "rate_eur"}:
+            return [
+                np.array([1.0, 2.0, 0.0, 0.0]),
+                np.array([10.0, 20.0, 0.0, 0.0]),
+            ]
+
+        if sample_param_names == {"sb_eur", "sb_afr"}:
+            return [
+                np.array([fixed_param_values["t"], fixed_param_values["rate_eur"], 3.0, 4.0]),
+                np.array([fixed_param_values["t"], fixed_param_values["rate_eur"], 30.0, 40.0]),
+            ]
+
+        return [
+            np.array([1.0, 2.0, 3.0, 4.0]),
+            np.array([10.0, 20.0, 30.0, 40.0]),
+        ]
+
+    def fake_collapse_identical_start_params(start_params, step_label):
+        recorded_collapse_calls.append(
+            {
+                "step_label": step_label,
+                "start_params": [np.array(params, dtype=float) for params in start_params],
+            }
+        )
+        return start_params
+
+    monkeypatch.setattr(driver_module, "locate_file_path", lambda filename, script_dir: Path("/tmp/test_driver.yaml"))
+    monkeypatch.setattr(driver_module, "load_driver_file", lambda driver_path: driver_spec)
+    monkeypatch.setattr(driver_module, "load_population", lambda **kwargs: population)
+    monkeypatch.setattr(driver_module, "load_model_from_driver", lambda **kwargs: model)
+    monkeypatch.setattr(driver_module, "parse_start_params", fake_parse_start_params)
+    monkeypatch.setattr(driver_module, "collapse_identical_start_params", fake_collapse_identical_start_params)
+    monkeypatch.setattr(driver_module, "get_time_scaled_model_func", lambda model: (lambda params: params))
+    monkeypatch.setattr(driver_module, "get_time_scaled_model_bounds", lambda model: (lambda params: 1.0))
+    monkeypatch.setattr(driver_module, "run_model_multi_init", fake_run_model_multi_init)
+    monkeypatch.setattr(driver_module, "output_simulation_data_sex_biased", lambda **kwargs: None)
+    monkeypatch.setattr(driver_module, "setup_logger", lambda: (driver_module.logger, SimpleNamespace()))
+    monkeypatch.setattr(driver_module, "set_log_file", lambda **kwargs: None)
+    monkeypatch.setattr(driver_module, "close_log_file", lambda **kwargs: None)
+    monkeypatch.setattr(driver_module, "_print_run_intro", recording_print_run_intro)
+
+    return (
+        driver_spec,
+        model,
+        population,
+        recorded_titles,
+        recorded_runs,
+        recorded_parse_calls,
+        recorded_collapse_calls,
+    )
+
+
+def _assert_arrays_list_equal(actual, expected):
+    """
+    Assert two lists of numpy arrays are element-wise equal (via ``assert_allclose``).
+    """
+    assert len(actual) == len(expected)
+    for actual_item, expected_item in zip(actual, expected):
+        np.testing.assert_allclose(actual_item, expected_item)
 
 # ------------ Test functions ----------
 
@@ -259,3 +485,71 @@ def test_compare_only_autosomal_one_step_vs_two_steps(tmp_path):
         _prepare_driver(script_dir / "test_two_steps_only_autosomes_fix.yaml", output_dir),
     ]
     _compare_driver_results(driver_files_fix, script_dir, output_dir)
+
+
+def test_run_tracts_two_steps_reuses_step1_values_for_step2_start_params(tmp_path, monkeypatch, capsys):
+    """
+    Verify that two-step runs print separate Step 1 and Step 2 starting-parameter tables and that Step 2
+    starts from Step 1's best non-sex-bias parameters while preserving run-specific sex-bias starts.
+    """
+    _, _, _, recorded_titles, recorded_runs, recorded_parse_calls, recorded_collapse_calls = _install_driver_run_mocks(
+        monkeypatch,
+        tmp_path,
+        two_steps_optimization=True,
+        autosomes_in_step_2=True,
+    )
+
+    run_tracts("driver.yaml", script_dir=tmp_path)
+    captured = capsys.readouterr()
+
+    assert "Starting parameters for step 1 optimization" in captured.out
+    assert "non-sex-bias parameters are fixed to the best step 1 estimates" in captured.out
+    assert recorded_titles == [
+        "Starting parameters for step 1 optimization",
+        "Starting parameters for step 2 optimization (non-sex-bias parameters are fixed to the best step 1 estimates)."
+        ]
+
+    assert [call["steps"] for call in recorded_runs] == [[1], [2]]
+    assert recorded_parse_calls == [
+        {
+            "sample_param_names": {"t", "rate_eur"},
+            "fixed_param_values": {"sb_eur": 0.0, "sb_afr": 0.0},
+        },
+        {
+            "sample_param_names": {"sb_eur", "sb_afr"},
+            "fixed_param_values": {"t": 11.0, "rate_eur": 22.0},
+        },
+    ]
+    assert [call["step_label"] for call in recorded_collapse_calls] == ["step 1", "step 2"]
+    _assert_arrays_list_equal(
+        recorded_runs[0]["start_params_list"],
+        [
+            np.array([1.0, 2.0, 0.0, 0.0]),
+            np.array([10.0, 20.0, 0.0, 0.0]),
+        ],
+    )
+    _assert_arrays_list_equal(
+        recorded_runs[1]["start_params_list"],
+        [
+            np.array([11.0, 22.0, 3.0, 4.0]),
+            np.array([11.0, 22.0, 30.0, 40.0]),
+        ],
+    )
+
+
+def test_run_tracts_forwards_autosomes_in_step_2_flag(tmp_path, monkeypatch):
+    """
+    Verify that the driver forwards autosomes_in_step_2 to the Step 2 optimization call.
+    """
+    _, _, _, _, recorded_runs, _, _ = _install_driver_run_mocks(
+        monkeypatch,
+        tmp_path,
+        two_steps_optimization=True,
+        autosomes_in_step_2=False,
+    )
+
+    run_tracts("driver.yaml", script_dir=tmp_path)
+
+    assert recorded_runs[0]["steps"] == [1]
+    assert recorded_runs[1]["steps"] == [2]
+    assert recorded_runs[1]["autosomes_in_step_2"] is False
