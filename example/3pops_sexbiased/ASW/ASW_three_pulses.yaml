@@ -26,15 +26,15 @@ log_scale : True
 model_filename: ../models/ppx_xxp_pxx.yaml
 start_params: 
   t1: 9:12
-  REUR: 0.8
-  RAFR: 0.8
+  REUR: 0.7:0.9
+  RAFR: 0.7:0.9
   REUR2: 0.01:0.2
   t2: 5:8
   t3: 1:4
-  REUR_sex_bias: 0.1:0.3
-  REUR2_sex_bias: 0.1:0.3
-  RAFR_sex_bias: 0.1:0.3
-repetitions: 3
+  REUR_sex_bias: -0.3:0.3
+  REUR2_sex_bias: -0.3:0.3
+  RAFR_sex_bias: -0.3:0.3
+repetitions: 10
 seed: 100
 maximum_iterations: 1000
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
