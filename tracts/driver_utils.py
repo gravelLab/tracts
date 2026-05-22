@@ -23,6 +23,7 @@ from typing import List
 from pydantic_core import PydanticUndefined
 import logging
 logger = logging.getLogger(__name__)
+from datetime import datetime
 
 
 # --------------- Locate driver file ---------------
@@ -734,7 +735,10 @@ def output_simulation_data_sex_biased(sample_population: Population,
     """
     
     # ------ Create output directory if it doesn't exist ------
-    output_dir = Path.cwd() if not driver_spec.output_directory else Path(driver_spec.output_directory)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
+    output_dir = Path.cwd() if not formatted_output_directory  else Path(formatted_output_directory)
     if not os.path.exists(output_dir): 
         os.makedirs(output_dir)
 

@@ -10,6 +10,8 @@ from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _get_optimization_subtitle
 from tracts.logs import setup_logger, set_log_file, close_log_file
+from datetime import datetime
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +49,10 @@ def run_tracts(driver_filename: str, script_dir: str):
         output_dir = Path.cwd()
         driver_spec.output_directory = str(output_dir)
     else:
-        output_dir = Path(driver_spec.output_directory)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
+        output_dir = Path(formatted_output_directory)
     
 
     if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
