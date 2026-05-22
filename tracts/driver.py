@@ -435,7 +435,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                                         model=model,
                                         driver_spec=driver_spec,
                                         ad_model_autosomes=ad_model_autosomes,
-                                        ad_model_allosomes=ad_model_allosomes)
+                                        ad_model_allosomes=ad_model_allosomes,
+                                        optimal_likelihood=optimal_likelihood)
     finally:
         close_log_file(log_filename=log_full_path)
 

@@ -709,6 +709,7 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray, 
+                                    optimal_likelihood:float,
                                     model: ParametrizedDemographySexBiased,
                                     driver_spec: InferenceConfig,
                                     ad_model_autosomes: str='DC', 
@@ -736,6 +737,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     
     # ------ Create output directory if it doesn't exist ------
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
 
     formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
     output_dir = Path.cwd() if not formatted_output_directory  else Path(formatted_output_directory)
@@ -943,6 +945,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     param_names = list(model.model_base_params.keys())
     params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
     with open(params_file_path, "w") as f:
+        f.write(f"likelihood {optimal_likelihood:>12.6g}\n")
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
             f.write(f"{name}\t{value}\n")
