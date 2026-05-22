@@ -1,6 +1,6 @@
-model_name: One_Pulse
+model_name: Continuous_pulse_AFR
 description: 
-  Represents a population X founded with a continuous event.
+  Represents a population X founded with a discrete event (AFR) and continuous event (EUR, NAT).
 time_units: generations
 demes:
   - name: EUR
