@@ -1131,6 +1131,7 @@ class FixedParametersHandler:
             An array of parameter values for all the free parameters of the model, including those fixed by ancestry proportions and by user-defined values, in the same order as in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         """
 
+
         units = units if units is not None else "phys"      
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
         full_parameters[self.free_parameters_indices] = free_parameters
@@ -1143,8 +1144,9 @@ class FixedParametersHandler:
                                                         counter=counter,
                                                         verbose_warning_screen=verbose_warning_screen,
                                                         verbose_warning_log=verbose_warning_log) 
-        except ValueError as e:
+        except (ValueError,IndexError) as e:
             self.logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
+            self.logger.warning(f"Error:{e}")
             return full_parameters
 
     def indices_to_labels(self, indices: list[int]):
@@ -1286,7 +1288,8 @@ class FixedParametersHandler:
 
         self.logger.debug(f'Params before fixed-ancestry solving: {params_phys}.')
         assert (len(params_phys) == len(self.demography.model_base_params)), f"Length of input parameters {len(params_phys)} does not match number of model parameters {len(self.demography.model_base_params)}."
-     
+        
+
         migration_matrices = self.demography.get_migration_matrices(params=params_phys)
         try:
             calculated_proportions = self.demography.proportions_from_matrices(migration_matrices=migration_matrices)  
