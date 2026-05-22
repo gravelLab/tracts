@@ -945,7 +945,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     param_names = list(model.model_base_params.keys())
     params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
     with open(params_file_path, "w") as f:
-        
+
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
             f.write(f"{name}\t{value}\n")
