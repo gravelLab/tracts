@@ -709,6 +709,7 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray, 
+                                    optimal_likelihood:float,
                                     model: ParametrizedDemographySexBiased,
                                     driver_spec: InferenceConfig,
                                     ad_model_autosomes: str='DC', 
@@ -736,6 +737,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     
     # ------ Create output directory if it doesn't exist ------
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
 
     formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
     output_dir = Path.cwd() if not formatted_output_directory  else Path(formatted_output_directory)
@@ -943,9 +945,11 @@ def output_simulation_data_sex_biased(sample_population: Population,
     param_names = list(model.model_base_params.keys())
     params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
     with open(params_file_path, "w") as f:
+        
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
             f.write(f"{name}\t{value}\n")
+        f.write(f"likelihood {optimal_likelihood:>12.6g}\n")
 
     # ------ Produce and display plots -------
     pop_names = list(model.population_indices.keys())
@@ -1120,7 +1124,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         observed_dict=autosome_data,
         predicted_dict=autosome_predicted,
         scale_factor=nind,
-        title="Autosomal tract length distributions",
+        title=f"Autosomal tract length distributions,  ll:{optimal_likelihood:>12.6g}",
         ylabel="Count",
         output_path=os.path.join(
             output_dir,
@@ -1136,7 +1140,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
             observed_dict=male_data,
             predicted_dict=male_predicted,
             scale_factor=num_males,
-            title="Male X-chromosome tract length distributions",
+            title=f"Male X-chromosome tract length distributions ,  ll:{optimal_likelihood:>12.6g}",
             ylabel="Count",
             output_path=os.path.join(
                 output_dir,
@@ -1150,13 +1154,14 @@ def output_simulation_data_sex_biased(sample_population: Population,
             observed_dict=female_data,
             predicted_dict=female_predicted,
             scale_factor=num_females,
-            title="Female X-chromosome tract length distributions",
+            title=f"Female X-chromosome tract length distributions,  ll:{optimal_likelihood:>12.6g}",
             ylabel="Count",
             output_path=os.path.join(
                 output_dir,
             output_filename_format.format(label="female_allosomes_all_populations.png")
             ),
         )
+
     
     # Final message
     print('Results saved to : ' + str(output_dir))
