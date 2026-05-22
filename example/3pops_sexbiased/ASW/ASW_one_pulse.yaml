@@ -1,5 +1,7 @@
 samples:
-  directory: ./TrioPhased/
+  #directory: ./TrioPhased/
+  directory: ../../data/1000G_ancestry_deconvolution/ASW/PopPhased/bed_files/
+  
   individual_names: [
     "NA19625","NA19700","NA19701","NA19703","NA19704","NA19707","NA19711","NA19712","NA19713","NA19818","NA19819",
     "NA19834","NA19835","NA19900","NA19901","NA19904","NA19908","NA19909","NA19913","NA19914","NA19916","NA19917",
@@ -28,7 +30,7 @@ start_params:
   t: 4:8
   REUR: 0.8
   RNAT: 0.1
-  REUR_sex_bias: 0.1
+  REUR_sex_bias: -0.2
   RNAT_sex_bias: 0.1
 
 repetitions: 3

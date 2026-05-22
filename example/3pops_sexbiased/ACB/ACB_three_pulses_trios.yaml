@@ -1,6 +1,6 @@
 samples:
     
-  directory: ../../data/ACB/TrioPhased/bed_files/ACB/TrioPhased/
+  directory: ../../data/1000G_ancestry_deconvolution/ACB/PopPhased/bed_files/
   individual_names: [
     "HG01879","HG01880","HG01882","HG01883","HG01885","HG01886","HG01889","HG01890","HG01894",
     "HG01896","HG01912","HG01914","HG01915","HG01956","HG01958","HG01985","HG01986","HG01988","HG01989",
@@ -23,9 +23,9 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
 
-output_filename_format: "ASW_test_output_trios_{label}"
-output_directory: ./output_three_pulses_trios/
-log_filename: 'ASW_three_pulses_trios.log'
+output_filename_format: "ASW_output_{label}"
+output_directory: ./output_three_pulses/
+log_filename: 'ASW_three_pulses.log'
 verbose_log: 1
 verbose_screen: 30
 log_scale : True

@@ -30,9 +30,9 @@ start_params:
   REUR2: 0.02:0.2
   t2: 8.1
   t3: 4.1
-  REUR_sex_bias: 0.0
-  REUR2_sex_bias: 0.0
-  RAFR_sex_bias: 0.0
+  REUR_sex_bias: -.2:.2
+  REUR2_sex_bias: -.2:.2
+  RAFR_sex_bias: -.2:.2
 repetitions: 3
 seed: 100
 maximum_iterations: 1000
