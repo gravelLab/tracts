@@ -1,0 +1,14 @@
+model_name: Continuous_pulse_AFR
+description: 
+  Represents a population X founded with a discrete event (AFR, NAT) and continuous event (EUR).
+time_units: generations
+demes:
+  - name: EUR
+  - name: NAT
+  - name: AFR
+  - name: X
+    ancestors: [EUR, NAT, AFR]
+    proportions: [REUR, RNAT,RAFR ]
+    start_time: t1
+    end_time: t2
+    pulse_pops: [AFR, NAT]
