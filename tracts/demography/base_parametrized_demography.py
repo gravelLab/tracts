@@ -1373,7 +1373,6 @@ class FixedParametersHandler:
                         print(warning_origin_message + str(warning.message)) # Print RuntimeWarning to screen
             
         except (ValueError, TypeError) as e:
-            breakpoint()
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
 
         error = np.linalg.norm(param_objective_func(solved_params))

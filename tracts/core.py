@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 _counter = 0
 _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
+_ignore_oob_above = -1e-14
 
 # ------ Optimizers ------
 
@@ -129,7 +130,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
 
         if outofbounds_fun is not None:
             oob = outofbounds_fun(parameters)
-            if oob < 0:
+            if oob < _ignore_oob_above:
                 out = oob * _out_of_bounds_val - _min_out_of_bounds_val
                 flush_result(out, f'OOB (oob={oob})')
                 return out
@@ -559,7 +560,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         if outofbounds_fun is not None:
             # outofbounds can return either True or a negative value to signify out-of-boundedness.
             oob = outofbounds_fun(model_base_parameters)
-            if oob < 0:
+            if oob < _ignore_oob_above:
                 out = oob * _out_of_bounds_val-_min_out_of_bounds_val
                 flush_result(out, f'OOB (oob={oob})')
                 return out 
