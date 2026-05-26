@@ -552,11 +552,8 @@ class BaseParametrizedDemography(ABC):
             violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
             if violation_score < 0:
                 return violation_score
-<<<<<<< HEAD
+
             if len(self.params_fixed_by_ancestry) > 0:
-=======
-            if len(model.params_fixed_by_ancestry) > 0:
->>>>>>> 589a6580905bce3f50543453b922457ee7eaf487
                 params = self.parameter_handler.compute_params_fixed_by_ancestry(params=params)
         self.logger.debug(f'Running bounds check.')
         bound_score =  self.check_bounds(params)   
