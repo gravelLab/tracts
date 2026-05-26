@@ -533,14 +533,16 @@ class BaseParametrizedDemography(ABC):
         Parameters
         ----------
         params: list[float]
-            The list of parameter values for the free parameters of the model. The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
+            The list of parameter values for the free parameters of the model. 
+            The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         verbose: bool
             If True, logs the bound score, constraint score, and migration matrix violation scores when a violation is detected.
         
         Returns
         -------
         float
-            A violation score, which is negative if the resulting migration matrix would be or is invalid and non-negative otherwise. The violation score is the largest negative value from the bound violations, constraint violations, and migration matrix violations.
+            A violation score, which is negative if the resulting migration matrix would be or is invalid and non-negative otherwise. 
+            The violation score is the largest negative value from the bound violations, constraint violations, and migration matrix violations.
         """
         if self.parameter_handler.has_been_fixed:
             if len(params) != len(self.model_base_params):
@@ -550,7 +552,8 @@ class BaseParametrizedDemography(ABC):
             violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
             if violation_score < 0:
                 return violation_score
-            params = self.parameter_handler.compute_params_fixed_by_ancestry(params=params)
+            if len(self.params_fixed_by_ancestry) > 0:
+                params = self.parameter_handler.compute_params_fixed_by_ancestry(params=params)
         self.logger.debug(f'Running bounds check.')
         bound_score =  self.check_bounds(params)   
         constraint_score = self.check_constraints(params)
@@ -649,17 +652,21 @@ class BaseParametrizedDemography(ABC):
 
     def check_bounds(self, params: list[float]):
         """
-        Checks the bounds on parameters. Bounds should be absolute restrictions on possible parameter values, whereas constraints should be restrictions on parameter values relative to each other.
+        Checks the bounds on parameters. Bounds should be absolute restrictions on possible parameter values, 
+        whereas constraints should be restrictions on parameter values relative to each other.
 
         Parameters
         ----------
         params: list[float]
-            The list of parameter values for the free parameters of the model. The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
+            The list of parameter values for the free parameters of the model. 
+            The order of the values corresponds to the order of the parameters 
+            in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         
         Returns
         -------
         float
-            A violation score, which is negative if any of the bounds are violated and non-negative otherwise. The violation score is the largest negative value from all the bounds.
+            A violation score, which is negative if any of the bounds are violated and non-negative otherwise. 
+            The violation score is the largest negative value from all the bounds.
         """
 
         violation_score = 0
@@ -1136,18 +1143,18 @@ class FixedParametersHandler:
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
         full_parameters[self.free_parameters_indices] = free_parameters
         full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
-        
-        try:
-            return self.compute_params_fixed_by_ancestry(params=full_parameters,
+        if len(self.params_fixed_by_ancestry) > 0:
+            try:
+                return self.compute_params_fixed_by_ancestry(params=full_parameters,
                                                         units = units,
                                                         show_ancestry_warning=show_ancestry_warning,
                                                         counter=counter,
                                                         verbose_warning_screen=verbose_warning_screen,
                                                         verbose_warning_log=verbose_warning_log) 
-        except (ValueError,IndexError) as e:
-            self.logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
-            self.logger.warning(f"Error:{e}")
-            return full_parameters
+            except (ValueError,IndexError) as e:
+                self.logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
+                self.logger.warning(f"Error:{e}")
+        return full_parameters
 
     def indices_to_labels(self, indices: list[int]):
         """
@@ -1299,7 +1306,7 @@ class FixedParametersHandler:
                     params_phys = self.convert_to_optimizer_params(physical_params=params_phys)
                 return params_phys
         except ValueError: # Catches cases where the parameters produce invalid matrices
-            pass
+            pass # TODO:The logic of passing is not clear to me here.  
 
 
         def param_objective_func(params_to_solve: np.ndarray, large: float = 1e12): 
@@ -1324,10 +1331,11 @@ class FixedParametersHandler:
             params_to_solve[np.isnan(params_to_solve)] = 0
             new_params_phys = self.convert_to_physical_params(optimizer_params=self.insert_solved_params(full_params=params_opt,
                                                                                         param_values_from_proportions=params_to_solve)) 
-            try: value = self.full_params_objective_func(parameters=new_params_phys,
+            try: 
+                value = self.full_params_objective_func(parameters=new_params_phys,
                                                         units = "phys") 
             except ValueError as e:
-                self.logger.warning(f"Problem computing migration matrices with opt parameters {params_opt}, physical parameters {params_phys}.")
+                self.logger.warning(f"Problem computing migration matrices with optimizer parameters {params_opt}, physical parameters {params_phys}.")
                 return large
             
             bound = self.demography.check_bounds(params=start_params_phys_full) 
@@ -1340,10 +1348,12 @@ class FixedParametersHandler:
         start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1 # An arbitrary starting point in physical units.
         start_params_phys_full = self.insert_solved_params(full_params=params_phys,
                                                             param_values_from_proportions=start_point)
-        assert(self.demography.check_bounds(params=start_params_phys_full) >=0), "Starting point for fixed parameter optimisation is not feasible." #TODO: Come up with a way of catching and repairing unfeasible starting points.
+        assert(self.demography.check_bounds(params=start_params_phys_full) >=0), "Starting point for fixed parameter optimisation is not feasible." 
+        #TODO: Come up with a way of catching and repairing unfeasible starting points.
         start_point_optimizer_full = self.convert_to_optimizer_params(physical_params=start_params_phys_full)
         start_point_validated =  start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
         
+
         try: 
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
@@ -1359,6 +1369,7 @@ class FixedParametersHandler:
                         print(warning_origin_message + str(warning.message)) # Print RuntimeWarning to screen
             
         except (ValueError, TypeError) as e:
+            breakpoint()
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
 
         error = np.linalg.norm(param_objective_func(solved_params))
