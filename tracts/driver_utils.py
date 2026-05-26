@@ -614,6 +614,15 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
             except (ValueError, AssertionError):
                 continue
 
+            # Re-apply only values that were explicitly supplied via fixed_param_values.
+            # Ancestry-fixed params absent from fixed_param_values also appear in parsed_specs
+            # as ("fixed", lower_bound) due to the default fallback; restoring those here would
+            # overwrite the correctly ancestry-solved value with the lower bound.
+            for anc_param_name in model.params_fixed_by_ancestry:
+                if anc_param_name in fixed_param_values:
+                    anc_param_info = model.model_base_params[anc_param_name]
+                    candidate[anc_param_info.index] = fixed_param_values[anc_param_name]
+
         if _is_feasible(candidate):
             start_params.append(candidate)
 
