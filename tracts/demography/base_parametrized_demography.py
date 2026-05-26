@@ -552,7 +552,11 @@ class BaseParametrizedDemography(ABC):
             violation_score = min(self.check_bounds(full_params), self.check_constraints(full_params))
             if violation_score < 0:
                 return violation_score
+<<<<<<< HEAD
             if len(self.params_fixed_by_ancestry) > 0:
+=======
+            if len(model.params_fixed_by_ancestry) > 0:
+>>>>>>> 589a6580905bce3f50543453b922457ee7eaf487
                 params = self.parameter_handler.compute_params_fixed_by_ancestry(params=params)
         self.logger.debug(f'Running bounds check.')
         bound_score =  self.check_bounds(params)   
@@ -1143,6 +1147,7 @@ class FixedParametersHandler:
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
         full_parameters[self.free_parameters_indices] = free_parameters
         full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
+
         if len(self.params_fixed_by_ancestry) > 0:
             try:
                 return self.compute_params_fixed_by_ancestry(params=full_parameters,
@@ -1154,7 +1159,9 @@ class FixedParametersHandler:
             except (ValueError,IndexError) as e:
                 self.logger.warning(f"Could not extend parameters at {full_parameters}, defaulting to zeros for unknown params.")
                 self.logger.warning(f"Error:{e}")
+
         return full_parameters
+
 
     def indices_to_labels(self, indices: list[int]):
         """
