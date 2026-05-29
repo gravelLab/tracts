@@ -1353,7 +1353,7 @@ class FixedParametersHandler:
             if not np.all(np.isfinite(value)):
                 return np.full(len(params_to_solve), large)
 
-            bound = self.demography.check_bounds(params=start_params_phys_full) 
+            bound = self.demography.check_bounds(params=new_params_phys)
             if bound < 0: 
                 return value + (1-bound)*large
             else:

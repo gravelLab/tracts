@@ -421,7 +421,18 @@ def run_tracts(driver_filename: str, script_dir: str):
                 else:
                     # No free sex-bias parameters: run step 2 silently (only to compute the
                     # full-data likelihood at the step-1 optimal params) then skip to final table.
-                    _skip_msg = "All sex-bias parameters are fixed by ancestry proportions. Step 2 has no free parameters to optimize and will be skipped."
+                    _fixed_by_ancestry = [n for n in sex_bias_param_names if n in set(model.parameter_handler.params_fixed_by_ancestry)]
+                    _fixed_by_value = [n for n in sex_bias_param_names if n in set(model.parameter_handler.user_params_fixed_by_value.keys())]
+                    _fix_parts = []
+                    if _fixed_by_ancestry:
+                        _fix_parts.append(f"{', '.join(_fixed_by_ancestry)} by ancestry proportions")
+                    if _fixed_by_value:
+                        _fix_parts.append(f"{', '.join(_fixed_by_value)} by user-provided values")
+                    _skip_msg = (
+                        "All sex-bias parameters are fixed"
+                        + (f" ({'; '.join(_fix_parts)})" if _fix_parts else "")
+                        + ". Step 2 has no free parameters to optimize and will be skipped."
+                    )
                     print(_skip_msg)
                     logger.info(_skip_msg)
                     _silent_start = [model.parameter_handler.convert_to_optimizer_params(optimal_params_step_1)]
@@ -505,7 +516,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         _capture_handler = _WarnCapture()
         _dem_logger_check.addHandler(_capture_handler)
         try:
-            bound = model.get_violation_score(optimal_params, verbose=True)
+            _ = model.get_violation_score(optimal_params, verbose=True)
         finally:
             _dem_logger_check.removeHandler(_capture_handler)
 
