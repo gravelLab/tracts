@@ -596,7 +596,7 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
         try:
             _tol = 1e-10  # Tolerance for floating-point rounding at the boundary of feasibility
             return model.get_violation_score(start_param_set) >= -_tol
-        except (ValueError, Exception):
+        except ValueError:
             return False
         finally:
             demography_logger.setLevel(original_level)
@@ -1001,7 +1001,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         output_path: str,
         xlabel: str="Tract Length (M)",
         alpha_ci: float=0.05,
-        subtitle: str = None):
+        subtitle: str | None = None):
 
         fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
 
