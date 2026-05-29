@@ -147,7 +147,10 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
             female_matrix = matrix_list[0]
 
         if ad_model_autosomes == 'M':
-            model = PhTMonoecious(migration_matrix=0.5 * (female_matrix + male_matrix), rho=1)
+            try:
+                model = PhTMonoecious(migration_matrix=0.5 * (female_matrix + male_matrix), rho=1)
+            except (np.linalg.LinAlgError, ValueError):
+                return -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty
             result_autosomes = model.loglik(
                 bins=autosome_bins,
                 Ls=population.Ls,
@@ -567,19 +570,34 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         else:
             eprint("No bound function defined")
 
-        matrices = model_func(model_base_parameters)
-        matrix_list = [matrix for matrix in matrices.values()]
-        if include_allosomes:
-            [male_matrix, female_matrix] = matrix_list
-        else:
-            male_matrix = matrix_list[0]  # Unbiased migration
-            female_matrix = matrix_list[0]  # Unbiased migration
+        try:
+            matrices = model_func(model_base_parameters)
+            matrix_list = [matrix for matrix in matrices.values()]
+            if include_allosomes:
+                [male_matrix, female_matrix] = matrix_list
+            else:
+                # For autosome-only step: use the average of all matrices (correct for
+                # sex-biased models where matrix_list = [male_matrix, female_matrix]).
+                # Averaging prevents degenerate cases where one sex matrix has a zero row
+                # (e.g. RNAT_male≈0 at the sex-bias boundary) that would cause ETL=0 → NaN.
+                avg_matrix = np.mean(matrix_list, axis=0)
+                male_matrix = avg_matrix
+                female_matrix = avg_matrix
+        except (np.linalg.LinAlgError, ValueError, FloatingPointError):
+            out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty, consistent with OOB
+            flush_result(out, 'Singular matrix (infeasible params)')
+            return out
 
         if include_autosomes: # Model for autosomes
             
             if ad_model_autosomes == 'M':
-                model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
-                                    rho=1)
+                try:
+                    model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
+                                        rho=1)
+                except (np.linalg.LinAlgError, ValueError):
+                    out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty
+                    flush_result(out, 'Singular matrix (infeasible params)')
+                    return out
                 result_autosomes = model.loglik(bins=autosome_bins,
                                                 Ls=population.Ls,
                                                 data=[mat for mat in autosome_data_mapped],

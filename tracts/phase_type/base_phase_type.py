@@ -313,7 +313,12 @@ class PhaseTypeDistribution(ABC):
 
         ET = -np.dot(alpha, S0_inv)
         Z = ET + L  # Normalization factor
-        ETL = L * ET / Z
+        # ET can be NaN when alpha contains NaN (from a zero-sum alpha normalization
+        # in PhT_parameters_DF/DC during optimization). Z is then NaN too, making
+        # ETL a NaN/NaN operation. The result propagates to the scale computation
+        # upstream and is treated as an invalid trial point by the optimizer.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            ETL = L * ET / Z
         return bins, CDF_values, S0_inv, ET, ETL, Z
 
     def populate_CDF_values(self, bins: npt.ArrayLike, CDF_values: npt.ArrayLike, prop_isolated: float, 
