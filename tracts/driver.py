@@ -517,6 +517,8 @@ def run_tracts(driver_filename: str, script_dir: str):
         _dem_logger_check.addHandler(_capture_handler)
         try:
             _ = model.get_violation_score(optimal_params, verbose=True)
+        except Exception as e:
+            logger.warning(f"Could not compute post-optimization diagnostics: {e}")
         finally:
             _dem_logger_check.removeHandler(_capture_handler)
 
