@@ -1335,13 +1335,24 @@ class FixedParametersHandler:
             params_to_solve[np.isnan(params_to_solve)] = 0
             new_params_phys = self.convert_to_physical_params(optimizer_params=self.insert_solved_params(full_params=params_opt,
                                                                                         param_values_from_proportions=params_to_solve)) 
+            # Suppress the "Founding migration rates add up to more than 1" warning during fsolve's
+            # internal exploration. fsolve probes infeasible (sum>1) regions while searching for the
+            # root; those are expected and should not flood the output.
+            _dem_logger = logging.getLogger("tracts.demography.base_parametrized_demography")
+            _saved_level = _dem_logger.level
+            _dem_logger.setLevel(logging.ERROR)
             try: 
                 value = self.full_params_objective_func(parameters=new_params_phys,
                                                         units = "phys") 
             except ValueError as e:
                 self.logger.warning(f"Problem computing migration matrices with optimizer parameters {params_opt}, physical parameters {params_phys}.")
-                return large
+                return np.full(len(params_to_solve), large)
+            finally:
+                _dem_logger.setLevel(_saved_level)
             
+            if not np.all(np.isfinite(value)):
+                return np.full(len(params_to_solve), large)
+
             bound = self.demography.check_bounds(params=start_params_phys_full) 
             if bound < 0: 
                 return value + (1-bound)*large
@@ -1349,13 +1360,27 @@ class FixedParametersHandler:
                 return value
                 
 
-        start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1 # An arbitrary starting point in physical units.
+        # Use the current parameter values as starting point for fsolve so that the solver starts from a
+        # feasible region close to the candidate (avoids converging to extreme boundary values).
+        # Fall back to 0.1 if the current values are themselves infeasible.
+        start_point = np.array(params_phys)[self.params_fixed_by_ancestry_indices]
         start_params_phys_full = self.insert_solved_params(full_params=params_phys,
                                                             param_values_from_proportions=start_point)
-        assert(self.demography.check_bounds(params=start_params_phys_full) >=0), "Starting point for fixed parameter optimisation is not feasible." 
-        #TODO: Come up with a way of catching and repairing unfeasible starting points.
+        if self.demography.check_bounds(params=start_params_phys_full) < 0:
+            start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1
+            start_params_phys_full = self.insert_solved_params(full_params=params_phys,
+                                                                param_values_from_proportions=start_point)
+        assert(self.demography.check_bounds(params=start_params_phys_full) >= 0), "Starting point for fixed parameter optimisation is not feasible."
         start_point_optimizer_full = self.convert_to_optimizer_params(physical_params=start_params_phys_full)
         start_point_validated =  start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
+
+        # Fall back to 0.1 if optimizer starting point is non-finite (e.g. logit(0) = -inf for a RATE param at the boundary)
+        if not np.all(np.isfinite(start_point_validated)):
+            start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1
+            start_params_phys_full = self.insert_solved_params(full_params=params_phys,
+                                                                param_values_from_proportions=start_point)
+            start_point_optimizer_full = self.convert_to_optimizer_params(physical_params=start_params_phys_full)
+            start_point_validated = start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
         
 
         try: 

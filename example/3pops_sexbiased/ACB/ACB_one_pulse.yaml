@@ -37,7 +37,7 @@ start_params:
   REUR_sex_bias: -0.3:0.3
   RNAT_sex_bias: -0.3:0.3
 
-repetitions: 10
+repetitions: 5
 maximum_iterations: 1000
 seed: 10
 unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
