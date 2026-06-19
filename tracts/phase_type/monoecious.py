@@ -132,7 +132,14 @@ class PhTMonoecious(PhaseTypeDistribution):
         # The list comprehension extracts these values row-wise into the final array.
         # A final normalization ensures each row sums to 1, though this may be redundant if done later.
         def _normalize_sum_to_1(array):
-            return array / array.sum()
+            # During optimization, the COBYLA/fsolve solvers probe infeasible regions of
+            # parameter space where migration matrices can be degenerate (e.g. all-zero
+            # rows), causing array.sum() == 0. The resulting NaN propagates naturally
+            # through the likelihood computation and is handled by the optimizer as an
+            # invalid trial point. Suppressing the warning avoids flooding stderr with
+            # expected intermediate failures.
+            with np.errstate(invalid='ignore', divide='ignore'):
+                return array / array.sum()
 
         self.alpha_list = [_normalize_sum_to_1(alpha[state_filter]) for alpha, state_filter in
                            zip(np.dot(self.equilibrium_distribution * (1 - state_filters),
@@ -254,7 +261,11 @@ class PhTMonoecious(PhaseTypeDistribution):
                                                                       bins=bins,
                                                                       L=L)
             
-            scale = 2 * self.t0_proportions[population_number] * L / ETL if freq else 1
+            # ETL can be zero for degenerate parameter values explored during
+            # optimization; the resulting NaN propagates to the return value and
+            # is treated as an invalid trial point by the optimizer.
+            with np.errstate(invalid='ignore', divide='ignore'):
+                scale = 2 * self.t0_proportions[population_number] * L / ETL if freq else 1
             if not np.all(np.isreal(density_per_bin)):
                 print(f'Density is complex.\n{density_per_bin}')
             return newbins, scale * density_per_bin, ETL
@@ -270,7 +281,11 @@ class PhTMonoecious(PhaseTypeDistribution):
         
         if not np.all(np.isreal(normalized_CDF)) or np.any(normalized_CDF < -1e-3):
             raise Exception('CDF not positive and real : ', normalized_CDF)
-        scale = 2 * self.t0_proportions[population_number] * L / ETL
+        # ETL (expected tract length) can be zero for degenerate parameter values
+        # explored during optimization. The NaN/inf scale propagates to the returned
+        # histogram and is treated as an invalid likelihood by the optimizer.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            scale = 2 * self.t0_proportions[population_number] * L / ETL
         return bins, np.real(np.diff(normalized_CDF) * scale), ETL
 
     def tract_length_histogram_multi_windowed(self, population_number: int, bins: npt.ArrayLike,
@@ -358,8 +373,11 @@ class PhTMonoecious(PhaseTypeDistribution):
         prob_mig_1 = self.prop_at_1[population_number]
         prob_ad_1 = 1 - np.sum(self.prop_at_1)
         norm_1 = prob_mig_1 + prob_ad_1
-        prob_mig_1 = prob_mig_1 / norm_1
-        prob_ad_1 = prob_ad_1 / norm_1
+        # norm_1 can be zero when row-1 migration rates sum to 1 with none going
+        # to this population, a parameter region the optimizer may explore.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            prob_mig_1 = prob_mig_1 / norm_1
+            prob_ad_1 = prob_ad_1 / norm_1
         prop_isolated = prob_mig_1
         prop_connected = prob_ad_1
         
@@ -423,8 +441,11 @@ class PhTMonoecious(PhaseTypeDistribution):
         prob_mig_1 = self.prop_at_1[pop_number]
         prob_ad_1 = 1 - np.sum(self.prop_at_1)
         norm_1 = prob_mig_1 + prob_ad_1
-        prob_mig_1 = prob_mig_1 / norm_1
-        prob_ad_1 = prob_ad_1 / norm_1
+        # norm_1 can be zero when row-1 migration rates sum to 1 with none going
+        # to this population, a parameter region the optimizer may explore.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            prob_mig_1 = prob_mig_1 / norm_1
+            prob_ad_1 = prob_ad_1 / norm_1
         prop_isolated = prob_mig_1
         prop_connected = prob_ad_1
         return self.populate_CDF_values(bins=bins, 
@@ -501,8 +522,13 @@ class PhTMonoecious(PhaseTypeDistribution):
         float
             The scaling factor to transform the CDF values into counts.
         """
-        return -2 * self.t0_proportions[population_number] / np.dot(self.alpha_list[population_number],
-                                                                    self.inverse_S0_list[population_number])
+        # The dot product can be zero when alpha_list contains NaN (from a degenerate
+        # alpha normalization above) or when inverse_S0 is zero for infeasible parameter
+        # values during optimization. The resulting NaN/inf scaling factor is propagated
+        # and recognized as an invalid trial point by the optimizer.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            return -2 * self.t0_proportions[population_number] / np.dot(self.alpha_list[population_number],
+                                                                        self.inverse_S0_list[population_number])
 
     def _get_TpopTau(self, t, pop, Tau):
         """

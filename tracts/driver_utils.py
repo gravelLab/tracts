@@ -594,7 +594,8 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
         original_level = demography_logger.level
         demography_logger.setLevel(logging.ERROR)
         try:
-            return model.get_violation_score(start_param_set) >= 0
+            _tol = 1e-10  # Tolerance for floating-point rounding at the boundary of feasibility
+            return model.get_violation_score(start_param_set) >= -_tol
         except ValueError:
             return False
         finally:
@@ -609,10 +610,22 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
         candidate = _draw_candidate()
 
         if len(model.params_fixed_by_ancestry) > 0:
+            demography_logger = logging.getLogger("tracts.demography.base_parametrized_demography")
+            original_level = demography_logger.level
+            demography_logger.setLevel(logging.ERROR)
             try:
                 candidate = model.parameter_handler.compute_params_fixed_by_ancestry(candidate)
             except (ValueError, AssertionError):
+                demography_logger.setLevel(original_level)
                 continue
+            finally:
+                demography_logger.setLevel(original_level)
+            # Re-apply any values from fixed_param_values that compute_params_fixed_by_ancestry
+            # may have overridden (e.g. sex-bias params held at 0 during step-1 of a two-step
+            # optimisation are still in params_fixed_by_ancestry on the shared model object).
+            for param_name, value in fixed_param_values.items():
+                if param_name in model.params_fixed_by_ancestry:
+                    candidate[model.model_base_params[param_name].index] = value
 
             # Re-apply only values that were explicitly supplied via fixed_param_values.
             # Ancestry-fixed params absent from fixed_param_values also appear in parsed_specs
@@ -996,7 +1009,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
         ylabel: str,
         output_path: str,
         xlabel: str="Tract Length (M)",
-        alpha_ci: float=0.05):
+        alpha_ci: float=0.05,
+        subtitle: str | None = None):
 
         fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
 
@@ -1068,8 +1082,14 @@ def output_simulation_data_sex_biased(sample_population: Population,
                 )
             )
 
-        # Main styling
-        ax.set_title(title, fontsize=14, fontweight="bold")
+        # Main styling — both anchored to axes x=0.5 so they share the same centre
+        ax.text(0.5, 1.08, title, transform=ax.transAxes,
+                ha='center', va='bottom', clip_on=False,
+                fontsize=14, fontweight='bold', fontfamily='Cantarell')
+        if subtitle is not None:
+            ax.text(0.5, 1.01, subtitle, transform=ax.transAxes,
+                    ha='center', va='bottom', clip_on=False,
+                    fontsize=10, color='0.4')
         ax.set_xlabel(xlabel, fontsize=12)
         ax.set_ylabel(ylabel, fontsize=12)
         if log_scale:
@@ -1134,12 +1154,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
         observed_dict=autosome_data,
         predicted_dict=autosome_predicted,
         scale_factor=nind,
-        title=f"Autosomal tract length distributions,  ll:{optimal_likelihood:>12.6g}",
+        title="Autosomal tract length distributions",
         ylabel="Count",
         output_path=os.path.join(
             output_dir,
             output_filename_format.format(label="autosomes_all_populations.png")
         ),
+        subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
     )
 
     if ad_model_allosomes is not None:
@@ -1150,12 +1171,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
             observed_dict=male_data,
             predicted_dict=male_predicted,
             scale_factor=num_males,
-            title=f"Male X-chromosome tract length distributions ,  ll:{optimal_likelihood:>12.6g}",
+            title="Male X-chromosome tract length distributions",
             ylabel="Count",
             output_path=os.path.join(
                 output_dir,
                 output_filename_format.format(label="male_allosomes_all_populations.png")
             ),
+            subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
         )
 
         # --- Produce plot for allosomes in female individuals ---
@@ -1164,12 +1186,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
             observed_dict=female_data,
             predicted_dict=female_predicted,
             scale_factor=num_females,
-            title=f"Female X-chromosome tract length distributions,  ll:{optimal_likelihood:>12.6g}",
+            title="Female X-chromosome tract length distributions",
             ylabel="Count",
             output_path=os.path.join(
                 output_dir,
-            output_filename_format.format(label="female_allosomes_all_populations.png")
+                output_filename_format.format(label="female_allosomes_all_populations.png")
             ),
+            subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
         )
 
     
@@ -1183,7 +1206,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
 
 def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[float], parameter_handler: FixedParametersHandler,
-                            param_names: list[str], step_label: str | None = None) -> tuple[np.ndarray, float]:
+                            param_names: list[str], step_label: str | None = None,
+                            likelihood_tolerance: float = 0.5) -> tuple[np.ndarray, float]:
     """
     Print per-run optimization results and select the best run.
 
@@ -1199,6 +1223,9 @@ def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[fl
         A list of parameter names corresponding to the parameters in the model, used for printing results.
     step_label: str | None
         A label for the optimization step, used for printing results.
+    likelihood_tolerance: float
+        Absolute tolerance used to decide whether a run reached a likelihood
+        value close to the best one.
 
     Returns
     -------
@@ -1208,6 +1235,7 @@ def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[fl
         The optimal likelihood as a float.
     """
     formatted_likelihoods = [float(x) for x in likelihoods]
+    step_prefix = f"In {step_label}: " if step_label else ""
     
     prev_time_param_logging = parameter_handler.enable_time_param_logging # Keep time-transition warnings tied to optimization iterations, not to post-run summary conversions.
     parameter_handler.enable_time_param_logging = False
@@ -1220,7 +1248,6 @@ def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[fl
         parameter_handler.enable_time_param_logging = prev_time_param_logging
 
     if len(formatted_likelihoods) > 1:
-        step_prefix = f"{step_label}: " if step_label else ""
         results_message = f"\n{step_prefix}Results from multiple optimization runs with different starting parameters:"
         found_param_col_widths = [max(len(name), 12) for name in param_names]
         header = f"{'Run':>3} | {'LogLik':>12} | " + " | ".join(
@@ -1244,6 +1271,19 @@ def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[fl
         zip(physical_found_params, formatted_likelihoods),
         key=lambda x: x[1],
     )
+
+    if len(formatted_likelihoods) > 1:
+        close_to_best_count = sum(
+            np.isclose(ll, optimal_likelihood, atol=likelihood_tolerance, rtol=0.0)
+            for ll in formatted_likelihoods
+        )
+        if close_to_best_count == 1:
+            warning_message = (
+                f"{step_prefix}final likelihoods close to the optimum were found only once among "
+                f"{len(formatted_likelihoods)} runs (tolerance={likelihood_tolerance:g})."
+            )
+            logger.warning(warning_message)
+
     return optimal_params, float(optimal_likelihood)
 
 
@@ -1310,8 +1350,15 @@ def _print_step_header_block(parameter_handler: FixedParametersHandler, start_pa
             phys,
             parameter_handler.convert_to_physical_params(opt)[display_param_indices]
         ).all()
-        if bound_func(opt) < 0:
-            warning_message = "Warning, starting parameters are out of bounds."
+        demography_logger = logging.getLogger("tracts.demography.base_parametrized_demography")
+        _prev_level = demography_logger.level
+        demography_logger.setLevel(logging.ERROR)
+        try:
+            out_of_bounds = bound_func(opt) < 0
+        finally:
+            demography_logger.setLevel(_prev_level)
+        if out_of_bounds:
+            warning_message = "Warning: starting parameters are out of bounds."
             print(warning_message)
             logger.info(warning_message)
         values_str = " | ".join(
