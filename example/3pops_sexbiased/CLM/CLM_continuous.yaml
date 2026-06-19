@@ -18,8 +18,8 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
   
-output_filename_format: "MXL_test_output_{label}"
-output_directory: ./output_continuous_pulse/
+output_filename_format: "CLM_output_{label}"
+output_directory: "./output_continuous_pulse/{date}/"
 log_filename: 'CLM_continuous_pulse.log'
 verbose_log: 1
 verbose_screen: 30
@@ -31,7 +31,7 @@ start_params:
   REUR: 0.01:0.08
   RAFR: 0.01:0.08
   RNAT: 0.01:0.08
-  t2: 3:6
+  t2: 3:9
   
   REUR_sex_bias:  -0.99:0 # more males
   RNAT_sex_bias: 0:0.99 # more females

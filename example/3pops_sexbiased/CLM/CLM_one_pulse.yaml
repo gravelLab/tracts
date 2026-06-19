@@ -18,9 +18,9 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
   
-output_filename_format: "CLM_test_output_{label}"
+output_filename_format: "CLM_output_{label}"
 log_filename: 'CLM_one_pulse.log'
-output_directory: ./output_one_pulse/
+output_directory: "./output_one_pulse/{date}/"
 verbose_log: 1
 verbose_screen: 30
 log_scale : True
