@@ -1,3 +1,5 @@
+import io
+import contextlib
 import logging
 from pathlib import Path
 from typing import Callable
@@ -332,11 +334,16 @@ def run_tracts(driver_filename: str, script_dir: str):
                 logger.info("No allosomal data provided. Skipping Step 2 and using Step 1 results.")
                 optimal_params, optimal_likelihood = optimal_params_step_1, _optimal_likelihood_step_1
             else:
-                end_step_1_message = "Selecting best parameters from step 1 and proceeding to step 2 optimization.\n"
-                print(end_step_1_message)
-                logger.info(end_step_1_message)
-
                 # ------ Step 2: optimize sex-bias parameters on (autosomal and) allosomal data ------
+
+                # Detect whether there are any sex-bias parameters that are free (not fixed by ancestry
+                # or by value). When all sex-bias params are fixed, step 2 has no free variables: skip
+                # all the verbose setup/results output and go straight to the final table.
+                _all_fixed_in_step_2 = (
+                    set(model.parameter_handler.params_fixed_by_ancestry)
+                    | set(model.parameter_handler.user_params_fixed_by_value.keys())
+                )
+                _has_free_sex_bias = any(name not in _all_fixed_in_step_2 for name in sex_bias_param_names)
 
                 # Draw fresh sex-bias starts for step 2, while keeping the best step 1 non-sex-bias values fixed.
                 step_2_fixed_param_values = {
@@ -344,66 +351,133 @@ def run_tracts(driver_filename: str, script_dir: str):
                     for name, value in zip(model_param_names, optimal_params_step_1)
                     if name not in sex_bias_param_names
                 }
-                step_2_physical_start_params = parse_start_params(
-                    start_param_bounds=driver_spec.start_params,
-                    repetitions=driver_spec.repetitions,
-                    seed=driver_spec.seed,
-                    model=model,
-                    sample_param_names=set(sex_bias_param_names),
-                    fixed_param_values=step_2_fixed_param_values,
-                )
-                step_2_physical_start_params = collapse_identical_start_params(step_2_physical_start_params, "step 2")
-                step_2_start_params = [
-                    model.parameter_handler.convert_to_optimizer_params(params)
-                    for params in step_2_physical_start_params
-                ]
 
-                step_2_start_params_title = (
-                    "Starting parameters for step 2 optimization "
-                    "(non-sex-bias parameters are fixed to the best step 1 estimates)."
-                )
-                
-                _print_run_intro(model.parameter_handler, model, step_2_start_params, bound, step_2_start_params_title, True, driver_spec.use_autosomes_for_sex_bias, [2])
+                if _has_free_sex_bias:
+                    end_step_1_message = "Selecting best parameters from step 1 and proceeding to step 2 optimization.\n"
+                    print(end_step_1_message)
+                    logger.info(end_step_1_message)
 
-                params_found_step_2, likelihoods_step_2, full_likelihoods_step_2 = _normalize_multi_init_result(run_model_multi_init(model_func=func,
-                                                                            bound_func=bound,
-                                                                            population=pop, 
-                                                                            start_params_list=step_2_start_params,
-                                                                            population_dict=model.population_indices.items(),
-                                                                            parameter_handler=model.parameter_handler,
-                                                                            max_iter=driver_spec.maximum_iterations,
-                                                                            exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
-                                                                            ad_model_autosomes = ad_model_autosomes, 
-                                                                            ad_model_allosomes=ad_model_allosomes,
-                                                                            npts=driver_spec.npts, 
-                                                                            verbose_log=driver_spec.verbose_log,
-                                                                            verbose_screen=driver_spec.verbose_screen, 
-                                                                            two_steps_optimization=True,
-                                                                            autosomes_in_step_2=driver_spec.use_autosomes_for_sex_bias,
-                                                                            steps=[2],
-                                                                            start_params_title=step_2_start_params_title,
-                                                                            print_start_params_table=False,
-                                                                            print_subtitle=False))
-                
-                #  Process and print results
-                optimal_params, optimal_likelihood = _summarize_step_results(params_found=params_found_step_2,
-                                                                            likelihoods=likelihoods_step_2,
-                                                                            parameter_handler=model.parameter_handler,
-                                                                            param_names=start_param_names,
-                                                                            step_label="Step 2")
+                    step_2_physical_start_params = parse_start_params(
+                        start_param_bounds=driver_spec.start_params,
+                        repetitions=driver_spec.repetitions,
+                        seed=driver_spec.seed,
+                        model=model,
+                        sample_param_names=set(sex_bias_param_names),
+                        fixed_param_values=step_2_fixed_param_values,
+                    )
+                    step_2_physical_start_params = collapse_identical_start_params(step_2_physical_start_params, "step 2")
+                    step_2_start_params = [
+                        model.parameter_handler.convert_to_optimizer_params(params)
+                        for params in step_2_physical_start_params
+                    ]
 
-                end_step_2_message = "Selecting best parameters from step 2."
-                print(end_step_2_message)
-                logger.info(end_step_2_message)
+                    step_2_start_params_title = (
+                        "Starting parameters for step 2 optimization "
+                        "(non-sex-bias parameters are fixed to the best step 1 estimates)."
+                    )
 
-                if not driver_spec.use_autosomes_for_sex_bias:
-                    best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
-                    full_data_likelihood = full_likelihoods_step_2[best_run_index]
-                    if full_data_likelihood is not None:
-                        optimal_likelihood = float(full_data_likelihood)
-                        full_lik_message = "Step 2 used allosomal data only. Final likelihood is evaluated on autosomal + allosomal data at the selected optimal parameters."
-                        print(full_lik_message)
-                        logger.info(full_lik_message)
+                    _print_run_intro(model.parameter_handler, model, step_2_start_params, bound, step_2_start_params_title, True, driver_spec.use_autosomes_for_sex_bias, [2])
+
+                    params_found_step_2, likelihoods_step_2, full_likelihoods_step_2 = _normalize_multi_init_result(run_model_multi_init(model_func=func,
+                                                                                bound_func=bound,
+                                                                                population=pop,
+                                                                                start_params_list=step_2_start_params,
+                                                                                population_dict=model.population_indices.items(),
+                                                                                parameter_handler=model.parameter_handler,
+                                                                                max_iter=driver_spec.maximum_iterations,
+                                                                                exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                                                                ad_model_autosomes=ad_model_autosomes,
+                                                                                ad_model_allosomes=ad_model_allosomes,
+                                                                                npts=driver_spec.npts,
+                                                                                verbose_log=driver_spec.verbose_log,
+                                                                                verbose_screen=driver_spec.verbose_screen,
+                                                                                two_steps_optimization=True,
+                                                                                autosomes_in_step_2=driver_spec.use_autosomes_for_sex_bias,
+                                                                                steps=[2],
+                                                                                start_params_title=step_2_start_params_title,
+                                                                                print_start_params_table=False,
+                                                                                print_subtitle=False))
+
+                    #  Process and print results
+                    optimal_params, optimal_likelihood = _summarize_step_results(params_found=params_found_step_2,
+                                                                                likelihoods=likelihoods_step_2,
+                                                                                parameter_handler=model.parameter_handler,
+                                                                                param_names=start_param_names,
+                                                                                step_label="Step 2")
+
+                    end_step_2_message = "Selecting best parameters from step 2."
+                    print(end_step_2_message)
+                    logger.info(end_step_2_message)
+
+                    if not driver_spec.use_autosomes_for_sex_bias:
+                        best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
+                        full_data_likelihood = full_likelihoods_step_2[best_run_index]
+                        if full_data_likelihood is not None:
+                            optimal_likelihood = float(full_data_likelihood)
+                            full_lik_message = "Step 2 used allosomal data only. Final likelihood is evaluated on autosomal + allosomal data at the selected optimal parameters."
+                            print(full_lik_message)
+                            logger.info(full_lik_message)
+
+                else:
+                    # No free sex-bias parameters: run step 2 silently (only to compute the
+                    # full-data likelihood at the step-1 optimal params) then skip to final table.
+                    _fixed_by_ancestry = [n for n in sex_bias_param_names if n in set(model.parameter_handler.params_fixed_by_ancestry)]
+                    _fixed_by_value = [n for n in sex_bias_param_names if n in set(model.parameter_handler.user_params_fixed_by_value.keys())]
+                    _fix_parts = []
+                    if _fixed_by_ancestry:
+                        _fix_parts.append(f"{', '.join(_fixed_by_ancestry)} by ancestry proportions")
+                    if _fixed_by_value:
+                        _fix_parts.append(f"{', '.join(_fixed_by_value)} by user-provided values")
+                    _skip_msg = (
+                        "All sex-bias parameters are fixed"
+                        + (f" ({'; '.join(_fix_parts)})" if _fix_parts else "")
+                        + ". Step 2 has no free parameters to optimize and will be skipped."
+                    )
+                    print(_skip_msg)
+                    logger.info(_skip_msg)
+                    _silent_start = [model.parameter_handler.convert_to_optimizer_params(optimal_params_step_1)]
+                    _tracts_logger = logging.getLogger("tracts")
+                    _saved_tracts_level = _tracts_logger.level
+                    _tracts_logger.setLevel(logging.CRITICAL)
+                    try:
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            params_found_step_2, likelihoods_step_2, full_likelihoods_step_2 = _normalize_multi_init_result(
+                                run_model_multi_init(
+                                    model_func=func,
+                                    bound_func=bound,
+                                    population=pop,
+                                    start_params_list=_silent_start,
+                                    population_dict=model.population_indices.items(),
+                                    parameter_handler=model.parameter_handler,
+                                    max_iter=driver_spec.maximum_iterations,
+                                    exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                    ad_model_autosomes=ad_model_autosomes,
+                                    ad_model_allosomes=ad_model_allosomes,
+                                    npts=driver_spec.npts,
+                                    verbose_log=0,
+                                    verbose_screen=0,
+                                    two_steps_optimization=True,
+                                    autosomes_in_step_2=driver_spec.use_autosomes_for_sex_bias,
+                                    steps=[2],
+                                    print_start_params_table=False,
+                                    print_subtitle=False,
+                                )
+                            )
+                    finally:
+                        _tracts_logger.setLevel(_saved_tracts_level)
+
+                    optimal_params, optimal_likelihood = _summarize_step_results(
+                        params_found=params_found_step_2,
+                        likelihoods=likelihoods_step_2,
+                        parameter_handler=model.parameter_handler,
+                        param_names=start_param_names,
+                        step_label="Step 2",
+                    )
+                    if not driver_spec.use_autosomes_for_sex_bias:
+                        best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
+                        full_data_likelihood = full_likelihoods_step_2[best_run_index]
+                        if full_data_likelihood is not None:
+                            optimal_likelihood = float(full_data_likelihood)
 
         # Print final optimal parameters and likelihood.
         final_data = "autosomal + allosomal" if ad_model_allosomes is not None else "autosomal"
@@ -426,8 +500,55 @@ def run_tracts(driver_filename: str, script_dir: str):
         logger.info(loglik_message)
         print(loglik_message)
         print(line)
+        
+        # Check for "founding migration rates > 1" in the final parameters.
+        # get_violation_score calls get_migration_matrices internally, which logs the warning.
+        # we capture it here so it can be shown as a user-visible printed message.
+        class _WarnCapture(logging.Handler):
+            def __init__(self):
+                super().__init__()
+                self.records: list[str] = []
+            def emit(self, record):
+                if record.levelno >= logging.WARNING:
+                    self.records.append(record.getMessage())
 
-        bound = model.get_violation_score(optimal_params, verbose = True)
+        _dem_logger_check = logging.getLogger("tracts.demography.base_parametrized_demography")
+        _capture_handler = _WarnCapture()
+        _dem_logger_check.addHandler(_capture_handler)
+        try:
+            _ = model.get_violation_score(optimal_params, verbose=True)
+        except Exception as e:
+            logger.warning(f"Could not compute post-optimization diagnostics: {e}")
+        finally:
+            _dem_logger_check.removeHandler(_capture_handler)
+
+        if any("Founding migration rates add up to more than 1" in msg for msg in _capture_handler.records):
+            founding_rate_msg = (
+                "Warning: the final optimal parameters have founding migration rates that add up "
+                "to more than 1. This means that no valid combination of migration rates exists "
+                "for these parameter values, and the model result may be unreliable."
+            )
+            print(founding_rate_msg)
+            logger.warning(founding_rate_msg)
+
+        # Print ancestry proportions predicted by the model
+        predicted_props = model.proportions_from_matrices(func(model.parameter_handler.convert_to_optimizer_params(optimal_params)))
+        predicted_autosome_props = {k: v for k, v in predicted_props.items() if "autosomal" in k.lower()}
+        predicted_allosome_props = {k: v for k, v in predicted_props.items() if "autosomal" not in k.lower()}
+
+        if predicted_autosome_props:
+            autosome_key = sorted(predicted_autosome_props.keys())[0]
+            autosome_values = np.asarray(predicted_autosome_props[autosome_key])
+            predicted_autosome_message = f"Predicted autosome proportions: {np.array2string(autosome_values, separator=' ')}"
+            print(predicted_autosome_message)
+            logger.info(predicted_autosome_message)
+
+        if predicted_allosome_props:
+            allosome_key = sorted(predicted_allosome_props.keys())[0]
+            allosome_values = np.asarray(predicted_allosome_props[allosome_key])
+            predicted_allosome_message = f"Predicted allosome proportions: {np.array2string(allosome_values, separator=' ')}"
+            print(predicted_allosome_message)
+            logger.info(predicted_allosome_message)
 
         # ------ Produce output -------
         output_simulation_data_sex_biased(sample_population=pop,

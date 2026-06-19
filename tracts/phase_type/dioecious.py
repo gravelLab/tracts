@@ -495,40 +495,51 @@ class PhTDioecious(PhaseTypeDistribution):
         # --------- Phase-type distribution returned as a density function ---------
 
         if density:
-            
+            # ETL_m and ETL_f can be zero when alpha_list contains NaN (degenerate
+            # parameter values explored during optimization). The NaN scale propagates
+            # to the return value and is treated as an invalid trial point by the optimizer.
             if return_only is None and not self.X_chr_male: # For autosomes or X chromosome in females, both haploids copies are combined.
-                scale_m = self.t0_proportions_m[population_number] * L / ETL_m  if freq else 0.5
-                scale_f = self.t0_proportions_f[population_number] * L / ETL_f  if freq else 0.5
+                with np.errstate(invalid='ignore', divide='ignore'):
+                    scale_m = self.t0_proportions_m[population_number] * L / ETL_m  if freq else 0.5
+                    scale_f = self.t0_proportions_f[population_number] * L / ETL_f  if freq else 0.5
                 return newbins, scale_m * density_per_bin_f + scale_f * density_per_bin_m, 0.5 * (ETL_m + ETL_f)
             
             elif return_only == 0 and not self.X_chr_male: # If return_only == 0, only paternally inherited tracts are considered.
-                scale_m = self.t0_proportions_m[population_number] * L / ETL_m if freq else 1
+                with np.errstate(invalid='ignore', divide='ignore'):
+                    scale_m = self.t0_proportions_m[population_number] * L / ETL_m if freq else 1
                 return newbins, scale_m * density_per_bin_m, ETL_m
             
             else: # If return_only == 1 or X_chr_male is True (i.e. X chromosome in male individuals), only maternally inherited tracts are considered.
-                scale_f = self.t0_proportions_f[population_number] * L / ETL_f if freq else 1
+                with np.errstate(invalid='ignore', divide='ignore'):
+                    scale_f = self.t0_proportions_f[population_number] * L / ETL_f if freq else 1
                 return newbins, scale_f * density_per_bin_f, ETL_f
         
         # --------- Phase-type distribution returned as a histogram ---------
         
+        # ETL_m and ETL_f can be zero when alpha_list contains NaN (degenerate
+        # parameter values explored during optimization). The NaN scale propagates
+        # to the returned histogram and is treated as an invalid trial point by the optimizer.
         if return_only is None and not self.X_chr_male: # For autosomes or X chromosome in females, both haploids copies are combined.
             normalized_CDF = 0.5 * (normalized_CDF_f + normalized_CDF_m)
-            scale_m = self.t0_proportions_m[population_number] * L / ETL_m
-            scale_f = self.t0_proportions_f[population_number] * L / ETL_f
+            with np.errstate(invalid='ignore', divide='ignore'):
+                scale_m = self.t0_proportions_m[population_number] * L / ETL_m
+                scale_f = self.t0_proportions_f[population_number] * L / ETL_f
             E = (ETL_f + ETL_m) / 2
         
         elif return_only == 0 and not self.X_chr_male: # If return_only == 0, only paternally inherited tracts are considered.
             normalized_CDF = normalized_CDF_m
             normalized_CDF_f = np.zeros(len(normalized_CDF_m))
             scale_f = 0
-            scale_m = self.t0_proportions_m[population_number] * L / ETL_m
+            with np.errstate(invalid='ignore', divide='ignore'):
+                scale_m = self.t0_proportions_m[population_number] * L / ETL_m
             E = ETL_m
         
         else: # If return_only == 1 or X_chr_male is True (i.e. X chromosome in male individuals), only maternally inherited tracts are considered.
             normalized_CDF = normalized_CDF_f
             normalized_CDF_m = np.zeros(len(normalized_CDF_f))
             scale_m = 0
-            scale_f = self.t0_proportions_f[population_number] * L / ETL_f
+            with np.errstate(invalid='ignore', divide='ignore'):
+                scale_f = self.t0_proportions_f[population_number] * L / ETL_f
             E = ETL_f
         
         # Check that CDF values are real and positive before computing the histogram. This is for numerical stability, since the difference of two close CDF values is computed in the histogram calculation.
@@ -608,10 +619,14 @@ class PhTDioecious(PhaseTypeDistribution):
         prob_ad_f_2, prob_ad_m_2 = 1 - np.sum(self.f_prop_at_2), 1 - np.sum(self.m_prop_at_2)
         norm_f_1, norm_m_1 = prob_mig_f_1 + prob_ad_f_1, prob_mig_m_1 + prob_ad_m_1
         norm_f_2, norm_m_2 = prob_mig_f_2 + prob_ad_f_2, prob_mig_m_2 + prob_ad_m_2
-        prob_mig_f_1, prob_mig_m_1 = prob_mig_f_1 / norm_f_1, prob_mig_m_1 / norm_m_1
-        prob_ad_f_1, prob_ad_m_1 = prob_ad_f_1 / norm_f_1, prob_ad_m_1 / norm_m_1
-        prob_mig_f_2, prob_mig_m_2 = prob_mig_f_2 / norm_f_2, prob_mig_m_2 / norm_m_2
-        prob_ad_f_2, prob_ad_m_2 = prob_ad_f_2 / norm_f_2, prob_ad_m_2 / norm_m_2
+        # norm_f/m can be zero when founding rates sum to more than 1, a scenario
+        # the optimizer can explore. The NaN probabilities propagate to the returned
+        # scale and are treated as an invalid trial point by the optimizer.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            prob_mig_f_1, prob_mig_m_1 = prob_mig_f_1 / norm_f_1, prob_mig_m_1 / norm_m_1
+            prob_ad_f_1, prob_ad_m_1 = prob_ad_f_1 / norm_f_1, prob_ad_m_1 / norm_m_1
+            prob_mig_f_2, prob_mig_m_2 = prob_mig_f_2 / norm_f_2, prob_mig_m_2 / norm_m_2
+            prob_ad_f_2, prob_ad_m_2 = prob_ad_f_2 / norm_f_2, prob_ad_m_2 / norm_m_2
         if s1 == 0:
             if self.X_chr:
                 prop_isolated = prob_mig_m_1 + prob_mig_f_2 * prob_ad_m_1
@@ -1189,7 +1204,12 @@ class PhTDioecious(PhaseTypeDistribution):
                                                                                 0] == tract_pop])).flatten() if np.isin(
                 tract_pop, source_pops) and len(eq_dist[states[:, 0] != tract_pop]) > 0 else np.array([]) for tract_pop in range(NP)]
                                                                                     
-            alpha_list = [alpha / np.sum(alpha) if len(alpha) > 0 else alpha for alpha in alpha_list]
+            # During optimization the solver probes infeasible parameter regions where
+            # the alpha sub-vector for a population can be all-zero (zero-sum), causing
+            # sum = 0. The resulting NaN propagates naturally and is treated as an
+            # invalid trial point by the optimizer.
+            with np.errstate(invalid='ignore', divide='ignore'):
+                alpha_list = [alpha / np.sum(alpha) if len(alpha) > 0 else alpha for alpha in alpha_list]
             
             return S, source_pops, sub_matrices, alpha_list
 
@@ -1265,6 +1285,11 @@ class PhTDioecious(PhaseTypeDistribution):
                                                                                  0] == tract_pop])).flatten() if np.isin(
             tract_pop, source_pops) and len(eq_dist[pulses_copy[:, 0] != tract_pop]) > 0 else np.array([]) for tract_pop in range(NP)]
         
-        alpha_list = [alpha / np.sum(alpha) if len(alpha) > 0 else alpha for alpha in alpha_list]
+        # During optimization the solver probes infeasible parameter regions where
+        # the alpha sub-vector for a population can be all-zero (zero-sum), causing
+        # sum = 0. The resulting NaN propagates naturally and is treated as an
+        # invalid trial point by the optimizer.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            alpha_list = [alpha / np.sum(alpha) if len(alpha) > 0 else alpha for alpha in alpha_list]
         
         return S, source_pops, sub_matrices, alpha_list
