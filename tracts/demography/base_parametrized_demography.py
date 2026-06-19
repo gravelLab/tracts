@@ -183,8 +183,6 @@ class FounderEvent(BaseFounderEvent):
                 # The second generation does not need to sum to one. However, we want a continuously varying matrix. If true start time is 7.00001, or 6.999, we want the 7th generation to be an almost full replacement.
                 migration_matrix[start_time-1, parametrized_demography.population_indices[source_population]] += frac_part_start*(rate / total_rate)  + rate*(1- frac_part_start)
 
-
-
         return migration_matrix
 
 

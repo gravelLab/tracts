@@ -503,6 +503,12 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
     local_parameter_handler = copy.deepcopy(parameter_handler)
 
+    # Optimizer-space overrides applied after extend_parameters() in step 2 to keep
+    # ancestry-fixed non-sex-bias parameters frozen at their step-1 / p0 values.
+    # Without this, compute_params_fixed_by_ancestry() would re-solve them at every
+    # optimizer call given the current sex-bias candidate, letting them drift.
+    _ancestry_overrides: dict = {}  # maps param index -> optimizer-space value
+
     # Identify free sex-bias parameters
     free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
                                 (value.type == ParamType.SEX_BIAS) and 
@@ -732,14 +738,19 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                                         units="opt",
                                                                         counter=_counter,
                                                                         verbose_warning_log=verbose_log) # NOTE: Add verbose_warning_screen=verbose_screen if RuntimeWarnings should be printed on screen.
+        for _idx, _val in _ancestry_overrides.items():
+            extended_parameters[_idx] = _val
 
         return objective_function(model_base_parameters=extended_parameters,
                                   include_autosomes=include_autosomes,
                                   include_allosomes=include_allosomes) 
 
     def reduced_outofbounds_fun(free_parameters_opt):
-        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt, # Full parameters in optimizer space
-                                                                        units="opt"))
+        _extended_oob = local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt, # Full parameters in optimizer space
+                                                                   units="opt")
+        for _idx, _val in _ancestry_overrides.items():
+            _extended_oob[_idx] = _val
+        return outofbounds_fun(_extended_oob)
 
     table_header = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
     line_header = "-" * len(table_header.expandtabs())
@@ -793,6 +804,18 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
             local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
             local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
+
+        # Freeze ancestry-fixed non-sex-bias parameters at their step-1 / p0 values for
+        # the entirety of step 2. compute_params_fixed_by_ancestry() would otherwise
+        # re-solve them at each call to extend_parameters(), causing them to drift with
+        # the sex-bias candidate instead of remaining fixed.
+        _step2_param_names = list(local_parameter_handler.demography.model_base_params.keys())
+        for _idx, _pname in enumerate(_step2_param_names):
+            _pinfo = local_parameter_handler.demography.model_base_params[_pname]
+            if (_pinfo.type != ParamType.SEX_BIAS
+                    and _pname in local_parameter_handler.params_fixed_by_ancestry
+                    and _idx < len(optimized_parameters)):
+                _ancestry_overrides[_idx] = optimized_parameters[_idx]
 
         reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
 

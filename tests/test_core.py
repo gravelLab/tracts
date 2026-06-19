@@ -640,3 +640,121 @@ class TestSingleStepResetCounter:
         count_after_first = core_module._counter
         _call_single(reset_counter=False)
         assert core_module._counter > count_after_first
+
+
+# --------------- Regression test for _ancestry_overrides in step 2 ---------------
+
+class TestAncestryOverridesInStep2:
+    """
+    Regression tests for the _ancestry_overrides mechanism in
+    optimize_cob_sex_biased_two_steps.
+
+    During step 2, ancestry-fixed non-sex-bias parameters must remain pinned to their
+    step-1/p0 values for every optimizer iteration.  Without _ancestry_overrides, each
+    call to extend_parameters() would invoke compute_params_fixed_by_ancestry() and
+    re-solve those parameters against the current sex-bias candidate, letting them drift.
+    """
+
+    def _make_handler_with_ancestry_fixed(self):
+        """
+        Return a FixedParametersHandler where rate_eur (index 1) is declared as
+        fixed-by-ancestry.  We set the attribute directly after calling the standard
+        _make_handler() factory to avoid needing real migration-matrix machinery.
+        """
+        ph = _make_handler()  # t(0), rate_eur(1), sb_eur(2), sb_afr(3); nothing ancestry-fixed
+        ph.params_fixed_by_ancestry = {"rate_eur": ""}
+        ph.free_parameters_indices = [
+            idx
+            for idx, name in enumerate(ph.demography.model_base_params)
+            if name not in ph.current_fixed_parameters
+            and name not in ph.params_fixed_by_ancestry
+        ]
+        return ph
+
+    def test_step2_ancestry_fixed_param_pinned_in_objective(self):
+        """
+        _ancestry_overrides must keep rate_eur (an ancestry-fixed non-sex-bias param at
+        index 1) at its p0 value in every call to reduced_objective_function during step 2,
+        even though the patched compute_params_fixed_by_ancestry() would compute a
+        different value based on the current sex-bias candidate.
+
+        The test patches compute_params_fixed_by_ancestry to set
+        rate_eur = |sb_eur| * 100 (simulating drift), then checks that the full
+        parameter vector seen by outofbounds_fun — after the _ancestry_overrides
+        override — always has rate_eur == P0[1] (== 0.3), never the drifted value.
+        """
+        captured = []
+        state = {"in_fmin": False}
+
+        def drifting_ancestry(self_ph, params, **kwargs):
+            """Simulate drift: compute_params_fixed_by_ancestry sets rate_eur ∝ sb_eur."""
+            result = np.array(params, dtype=float)
+            result[1] = abs(result[2]) * 100  # e.g. sb_eur=0.07 → rate_eur=7.0 without fix
+            return result
+
+        def capturing_oob(params):
+            """
+            Collect extended params seen during the optimizer phase, then short-circuit
+            model evaluation so PhT code is never invoked.
+            """
+            if state["in_fmin"]:
+                captured.append(np.array(params))
+            return -1  # always OOB → objective returns without calling model_func
+
+        def fmin_mock(func, x0, cons, **kwargs):
+            state["in_fmin"] = True
+            try:
+                perturbed = x0.copy()
+                perturbed[0] += 0.02  # shift sb_eur to trigger ancestry drift
+                func(perturbed)
+            finally:
+                state["in_fmin"] = False
+            return x0
+
+        ph = self._make_handler_with_ancestry_fixed()
+
+        with patch.object(
+            FixedParametersHandler,
+            "compute_params_fixed_by_ancestry",
+            drifting_ancestry,
+        ):
+            with patch.object(
+                core_module.scipy.optimize, "fmin_cobyla", side_effect=fmin_mock
+            ):
+                optimize_cob_sex_biased_two_steps(
+                    p0=P0,
+                    population=_make_population(),
+                    model_func=_make_model_func(),
+                    parameter_handler=ph,
+                    outofbounds_fun=capturing_oob,
+                    verbose_log=0,
+                    verbose_screen=0,
+                    p_dict=P_DICT,
+                    exclude_tracts_below_cM=0,
+                    maxiter=2,
+                    reset_counter=True,
+                    ad_model_autosomes="DC",
+                    ad_model_allosomes="DC",
+                    autosomes_in_step_2=True,
+                    npts=N_BINS,
+                    steps=[2],
+                )
+
+        assert len(captured) > 0, (
+            "outofbounds_fun was never called during the fmin phase; "
+            "the fmin mock did not invoke the objective function."
+        )
+
+        RATE_EUR_P0 = P0[1]  # 0.3 — the value _ancestry_overrides should pin to
+        drifted_value = abs(P0[2] + 0.02) * 100  # what drifting_ancestry would produce
+        for i, params in enumerate(captured):
+            np.testing.assert_allclose(
+                params[1],
+                RATE_EUR_P0,
+                rtol=1e-9,
+                err_msg=(
+                    f"Call {i}: rate_eur should be pinned to p0 ({RATE_EUR_P0}) "
+                    f"by _ancestry_overrides, not drifted to {drifted_value:.4f} "
+                    "via compute_params_fixed_by_ancestry."
+                ),
+            )
