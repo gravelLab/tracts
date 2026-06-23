@@ -674,6 +674,8 @@ def test_two_steps_ancestry_fixed_params_included_in_step2_fixed_values(tmp_path
     to work with.
     """
     model = _make_mock_model_with_ancestry_fixed()
+    model.parameter_handler.params_fixed_by_ancestry = {"rate_afr"}
+    model.parameter_handler.user_params_fixed_by_value = {}
     driver_spec = _make_mock_driver_spec(tmp_path, two_steps_optimization=True, autosomes_in_step_2=True)
     population = _make_mock_population()
 

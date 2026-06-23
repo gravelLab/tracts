@@ -183,7 +183,8 @@ class ParametrizedDemography(BaseParametrizedDemography):
     def get_migration_matrices(self, params: list[float]) -> dict[str, np.ndarray]:
         """
         Takes in a list of params equal to the length of :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params` and returns a  :math:`P \\times G` migration matrix for each population of interest
-        where *P* is the number of incoming populations and *G* is the number of generations. If one of the parameters (time or migration) is incorrect, returns an empty matrix.
+        where *P* is the number of incoming populations and *G* is the number of generations. 
+        If one of the parameters (time or migration) is incorrect, returns an empty matrix.
 
         Parameters
         ----------
@@ -318,10 +319,21 @@ class ParametrizedDemography(BaseParametrizedDemography):
         if dest_population in self.founder_events:
             raise ValueError(f'Population {dest_population} cannot have more than one founder event.')
 
+        rate_param_list = []
+        
         for population, rate_param in source_populations.items():
             self.add_population(population_name=population)
             self.add_parameter(param_name=rate_param,
-                               param_type=ParamType.RATE)     
+                               param_type=ParamType.RATE)
+            rate_param_list.append(rate_param)     
+
+
+        # Ensure that the sum of rates is less than one
+        self.constraints.append({
+            'param_subset': tuple(rate_param_list) ,
+            'expression': lambda param_subset: 1-sum(param_subset),
+            'message': 'Parameters give more than full replacement at first generation  '
+        })
 
         self.add_parameter(param_name=found_time,
                         param_type=ParamType.TIME)

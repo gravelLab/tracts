@@ -18,6 +18,7 @@ from tracts.demography.parametrized_demography_sex_biased import SexType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.demography.parameter import ParamType
 import ruamel.yaml as yaml
+import shutil
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List
 from pydantic_core import PydanticUndefined
@@ -735,7 +736,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                     model: ParametrizedDemographySexBiased,
                                     driver_spec: InferenceConfig,
                                     ad_model_autosomes: str='DC', 
-                                    ad_model_allosomes: str='DC'):
+                                    ad_model_allosomes: str='DC',
+                                    driver_path:str|None = None
+                                    ):
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model. Also saves
     migration matrices, tract length distributions, and optimal parameters to output files.
@@ -767,6 +770,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
     if not os.path.exists(output_dir): 
         os.makedirs(output_dir)
 
+    if driver_path is not None:
+        shutil.copy2(driver_path, output_dir)
     # ------- Set up output filename format and load required parameters for output production ------
     output_filename_format = driver_spec.output_filename_format
     exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
