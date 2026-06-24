@@ -737,7 +737,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                     driver_spec: InferenceConfig,
                                     ad_model_autosomes: str='DC', 
                                     ad_model_allosomes: str='DC',
-                                    driver_path:str|None = None
+                                    driver_path: str|None = None
                                     ):
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model. Also saves
@@ -758,11 +758,12 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The model for autosomal admixture. Defaults to 'DC'.
     ad_model_allosomes: str
         The model for allosomal admixture. Defaults to 'DC'.
+    driver_path: str | None
+        The path to the driver yaml file. If None, no driver file will be copied to the output directory. Defaults to None.
     """
     
     # ------ Create output directory if it doesn't exist ------
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
 
     formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
     
@@ -772,6 +773,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     if driver_path is not None:
         shutil.copy2(driver_path, output_dir)
+
     # ------- Set up output filename format and load required parameters for output production ------
     output_filename_format = driver_spec.output_filename_format
     exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
@@ -1090,7 +1092,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         # Main styling — both anchored to axes x=0.5 so they share the same centre
         ax.text(0.5, 1.08, title, transform=ax.transAxes,
                 ha='center', va='bottom', clip_on=False,
-                fontsize=14, fontweight='bold', fontfamily='Cantarell')
+                fontsize=14, fontweight='bold', fontfamily='DejaVu Sans')
         if subtitle is not None:
             ax.text(0.5, 1.01, subtitle, transform=ax.transAxes,
                     ha='center', va='bottom', clip_on=False,
@@ -1150,6 +1152,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
         ax.add_artist(legend_pop)
 
         fig.savefig(output_path, dpi=300, bbox_inches="tight")
+        # Also save a PNG version
+        png_path = os.path.splitext(output_path)[0] + ".png"
+        fig.savefig(png_path, dpi=300, bbox_inches="tight")
         plt.close(fig)
 
 
@@ -1163,7 +1168,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         ylabel="Count",
         output_path=os.path.join(
             output_dir,
-            output_filename_format.format(label="autosomes_all_populations.png")
+            output_filename_format.format(label="autosomes_all_populations.pdf")
         ),
         subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
     )
@@ -1180,7 +1185,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
             ylabel="Count",
             output_path=os.path.join(
                 output_dir,
-                output_filename_format.format(label="male_allosomes_all_populations.png")
+                output_filename_format.format(label="male_allosomes_all_populations.pdf")
             ),
             subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
         )
@@ -1195,7 +1200,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
             ylabel="Count",
             output_path=os.path.join(
                 output_dir,
-                output_filename_format.format(label="female_allosomes_all_populations.png")
+                output_filename_format.format(label="female_allosomes_all_populations.pdf")
             ),
             subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
         )
