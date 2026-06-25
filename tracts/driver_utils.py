@@ -765,21 +765,15 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
     dict[str, float]
         For each parametrized population that has a remainder ancestry:
 
-        * ``'{remainder_pop}_rate'`` — always present; the mean founding rate
+        * ``'{dest_pop}_{remainder_pop}_rate'`` — always present; the mean founding rate
           (average of male and female for sex-biased models, direct value
           otherwise).
-        * ``'{remainder_pop}_sex_bias'`` — only present for
+        * ``'{dest_pop}_{remainder_pop}_sex_bias'`` — only present for
           :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
           models; ``nan`` when the remainder rate is 0 or 1.
 
-        Returns an empty dict when the model has no remainder population.
-
-    Raises
-    ------
-    TypeError
-        If *model* is not a :class:`~tracts.demography.parametrized_demography.ParametrizedDemography`
-        or :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
-        instance.
+        Returns an empty dict when the model has no remainder population or when
+        *model* is not a recognised demography type (e.g. a test stub).
     """
     if not isinstance(model, (ParametrizedDemographySexBiased, ParametrizedDemography)):
         return {}
@@ -814,13 +808,13 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
             r_male   = float(male_matrix[-1, remainder_col])
             r_female = float(female_matrix[-1, remainder_col])
             r_mean   = (r_male + r_female) / 2.0
-            result[f'{remainder_pop}_rate'] = r_mean
+            result[f'{population}_{remainder_pop}_rate'] = r_mean
             denom    = 2.0 * min(r_mean, 1.0 - r_mean)
             sex_bias = (r_female - r_male) / denom if abs(denom) > 1e-10 else float('nan')
-            result[f'{remainder_pop}_sex_bias'] = sex_bias
+            result[f'{population}_{remainder_pop}_sex_bias'] = sex_bias
         else:
             matrix = migration_matrices[population]
-            result[f'{remainder_pop}_rate'] = float(matrix[-1, remainder_col])
+            result[f'{population}_{remainder_pop}_rate'] = float(matrix[-1, remainder_col])
 
     return result
 

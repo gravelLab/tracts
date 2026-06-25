@@ -510,7 +510,7 @@ def run_tracts(driver_filename: str, script_dir: str):
 
         # Report derived parameters for the remainder (dependent) ancestry.
         if remainder_params:
-            dep_msg = f"Parameters {', '.join(remainder_params.keys())} correspond to the dependent ancestry and were not free in the optimisation."
+            dep_msg = f"Parameters {', '.join(remainder_params.keys())} correspond to the dependent ancestry and were not free in the optimization."
             print(dep_msg)
             logger.info(dep_msg)
 
