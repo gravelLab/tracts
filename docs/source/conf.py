@@ -37,7 +37,7 @@ sphinx_gallery_conf = {
     "examples_dirs": examples_path,      # where your scripts live
     "gallery_dirs": "auto_examples",     # generated site
     "filename_pattern": r"\.py",
-    "run_stale_examples": True
+    "run_stale_examples": False
 }
 
 templates_path = ['_templates']
