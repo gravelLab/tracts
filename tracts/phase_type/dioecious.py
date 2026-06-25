@@ -900,7 +900,7 @@ class PhTDioecious(PhaseTypeDistribution):
         return unnormalized_sex_vec_prob
 
     def S_matrix(self, states, pulses, T_ped, D_model='DF'):
-        """
+        r"""
         Compute the transition matrix of the TCMC defined by the Dioecious admixture model. Corresponds to Equation (EQ) for the Dioecious-Fine 
         model and to Equation (EQ) for the Dioecious-Coarse model.
 
