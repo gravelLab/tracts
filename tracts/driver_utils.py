@@ -729,6 +729,95 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 # --------------- Output production ---------------
 
+def _compute_remainder_params(model, migration_matrices: dict) -> dict:
+    r"""
+    Compute derived parameters for the 'remainder' (dependent) ancestry in
+    each parametrized population.
+
+    For a model with *n* free rate parameters ``R_1, ..., R_{n-1}`` and a
+    remainder ancestry whose rate is ``1 - R_1 - ... - R_{n-1}``, the
+    remainder rate is read directly from the founding row of the migration
+    matrix.  For :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
+    models, the sex bias of the remainder ancestry is additionally derived from
+    the constraint that male and female founding rates must each sum to 1:
+
+    .. math::
+
+        r_k^{\\text{male/female}} = 1 - \\sum_{i \\neq k} r_i^{\\text{male/female}}
+
+        s_k = \\frac{r_k^{\\text{female}} - r_k^{\\text{male}}}
+                     {2\\,\\min(r_k,\\,1-r_k)}
+
+    Parameters
+    ----------
+    model : ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model.  Only these two types are accepted; any other
+        type raises a :class:`TypeError`.
+    migration_matrices : dict
+        Migration matrices as returned by ``model.get_migration_matrices()``.
+        For :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
+        models the keys are ``'{population}_male'`` / ``'{population}_female'``;
+        for :class:`~tracts.demography.parametrized_demography.ParametrizedDemography`
+        models the key is the population name directly.
+
+    Returns
+    -------
+    dict[str, float]
+        For each parametrized population that has a remainder ancestry:
+
+        * ``'{dest_pop}_{remainder_pop}_rate'`` — always present; the mean founding rate
+          (average of male and female for sex-biased models, direct value
+          otherwise).
+        * ``'{dest_pop}_{remainder_pop}_sex_bias'`` — only present for
+          :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
+          models; ``nan`` when the remainder rate is 0 or 1.
+
+        Returns an empty dict when the model has no remainder population or when
+        *model* is not a recognised demography type (e.g. a test stub).
+    """
+    if not isinstance(model, (ParametrizedDemographySexBiased, ParametrizedDemography)):
+        return {}
+    is_sex_biased = isinstance(model, ParametrizedDemographySexBiased)
+
+    result = {}
+    seen = set()
+    for population in model.parametrized_populations:
+        if population in seen:
+            continue
+        seen.add(population)
+
+        if is_sex_biased:
+            event_key = f'{population}{SexType.MALE.suffix}'   # e.g. 'X_male'
+        else:
+            event_key = population                              # e.g. 'X'
+
+        founder_event = model.founder_events.get(event_key)
+        if founder_event is None or founder_event.remainder_population is None:
+            continue
+
+        remainder_pop = founder_event.remainder_population
+        if remainder_pop not in model.population_indices:
+            continue
+
+        remainder_col = model.population_indices[remainder_pop]
+
+        if is_sex_biased:
+            male_matrix  = migration_matrices[f'{population}{SexType.MALE.suffix}']
+            female_matrix = migration_matrices[f'{population}{SexType.FEMALE.suffix}']
+            # Founding row is the last row of each migration matrix.
+            r_male   = float(male_matrix[-1, remainder_col])
+            r_female = float(female_matrix[-1, remainder_col])
+            r_mean   = (r_male + r_female) / 2.0
+            result[f'{population}_{remainder_pop}_rate'] = r_mean
+            denom    = 2.0 * min(r_mean, 1.0 - r_mean)
+            sex_bias = (r_female - r_male) / denom if abs(denom) > 1e-10 else float('nan')
+            result[f'{population}_{remainder_pop}_sex_bias'] = sex_bias
+        else:
+            matrix = migration_matrices[population]
+            result[f'{population}_{remainder_pop}_rate'] = float(matrix[-1, remainder_col])
+
+    return result
+
 
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray, 
@@ -974,10 +1063,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # ------ Save optimal parameters -------
     param_names = list(model.model_base_params.keys())
     params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
+    remainder_params = _compute_remainder_params(model, matrices)
     with open(params_file_path, "w") as f:
 
         f.write("parameter\tvalue\n")
         for name, value in zip(param_names, optimal_params):
+            f.write(f"{name}\t{value}\n")
+        for name, value in remainder_params.items():
             f.write(f"{name}\t{value}\n")
         f.write(f"likelihood {optimal_likelihood:>12.6g}\n")
 

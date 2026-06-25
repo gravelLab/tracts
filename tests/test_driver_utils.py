@@ -3,6 +3,9 @@ from tracts.driver_utils import parse_chromosomes, parse_start_params, scale_sel
 from tracts.driver_utils import SamplesConfig, InferenceConfig
 from tracts.driver_utils import load_model_from_driver
 from tracts.driver_utils import load_population
+from tracts.driver_utils import _compute_remainder_params
+from tracts.demography.parametrized_demography import ParametrizedDemography
+from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from pathlib import Path
 import pytest
 from unittest.mock import Mock, patch
@@ -675,4 +678,179 @@ class TestLoadPopulation:
         
         assert result == mock_pop
         mock_pop.set_males.assert_called_once_with(male_list=["ind1"], 
-                                                   allosome_label="X")                                  
+                                                   allosome_label="X")          
+
+
+class TestComputeRemainderParams:
+    """
+    Tests for _compute_remainder_params, which extracts the founding rate (and,
+    for sex-biased models, the derived sex bias) of the remainder/dependent
+    ancestry from the final migration matrices.
+    """
+
+    # ------------------------------------------------------------------
+    # Helpers to build minimal models
+    # ------------------------------------------------------------------
+
+    def _plain_model(self, founder_rate=0.3, found_time=5):
+        """ParametrizedDemography with one source + one remainder ancestry."""
+        model = ParametrizedDemography()
+        # Parameters added: founder_rate (idx 0), found_time (idx 1)
+        model.add_founder_event(
+            "dest_pop",
+            {"source_pop": "founder_rate"},
+            "remainder_pop",
+            "found_time",
+        )
+        # parametrized_populations is only set via YAML in ParametrizedDemography;
+        # set it manually to mirror real runtime behaviour.
+        model.parametrized_populations = ["dest_pop"]
+        matrices = model.get_migration_matrices([founder_rate, found_time])
+        return model, matrices
+
+    def _sex_biased_model(self, founder_rate=0.3, sex_bias=0.5, found_time=5):
+        """ParametrizedDemographySexBiased with one source + one remainder ancestry."""
+        model = ParametrizedDemographySexBiased()
+        # Parameters added: founder_rate (idx 0), founder_rate_sex_bias (idx 1),
+        #                   found_time (idx 2).
+        # parametrized_populations is populated automatically by add_founder_event.
+        model.add_founder_event(
+            "dest_pop",
+            {"source_pop": "founder_rate"},
+            "remainder_pop",
+            "found_time",
+        )
+        matrices = model.get_migration_matrices([founder_rate, sex_bias, found_time])
+        return model, matrices
+
+    # ------------------------------------------------------------------
+    # Non-demography type
+    # ------------------------------------------------------------------
+
+    def test_unsupported_model_type_returns_empty_dict(self):
+        """Any object that is not a recognised demography type returns {}."""
+        from types import SimpleNamespace
+        result = _compute_remainder_params(SimpleNamespace(), {})
+        assert result == {}
+
+    # ------------------------------------------------------------------
+    # Plain (non-sex-biased) model
+    # ------------------------------------------------------------------
+
+    def test_plain_basic_rate(self):
+        """Remainder rate = 1 - source_rate is read from the founding row."""
+        model, matrices = self._plain_model(founder_rate=0.3, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isclose(result["dest_pop_remainder_pop_rate"], 0.7)
+
+    def test_plain_rate_zero(self):
+        """When source occupies 100 %, remainder rate = 0."""
+        model, matrices = self._plain_model(founder_rate=1.0, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isclose(result["dest_pop_remainder_pop_rate"], 0.0)
+
+    def test_plain_rate_one(self):
+        """When source contributes 0 %, remainder rate = 1."""
+        model, matrices = self._plain_model(founder_rate=0.0, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isclose(result["dest_pop_remainder_pop_rate"], 1.0)
+
+    def test_plain_no_sex_bias_key(self):
+        """Non-sex-biased models must not produce a sex_bias key."""
+        model, matrices = self._plain_model()
+        result = _compute_remainder_params(model, matrices)
+        assert not any("sex_bias" in k for k in result)
+
+    def test_plain_key_includes_dest_pop(self):
+        """Key must be '{dest_pop}_{remainder_pop}_rate', not just '{remainder_pop}_rate'."""
+        model, matrices = self._plain_model()
+        result = _compute_remainder_params(model, matrices)
+        assert "dest_pop_remainder_pop_rate" in result
+        assert "remainder_pop_rate" not in result
+
+    def test_plain_duplicate_in_parametrized_populations(self):
+        """A population listed twice is processed only once (no duplicate keys)."""
+        model, matrices = self._plain_model()
+        model.parametrized_populations = ["dest_pop", "dest_pop"]
+        result = _compute_remainder_params(model, matrices)
+        assert list(result.keys()).count("dest_pop_remainder_pop_rate") == 1
+
+    def test_plain_empty_parametrized_populations(self):
+        """Empty parametrized_populations → empty result."""
+        model, matrices = self._plain_model()
+        model.parametrized_populations = []
+        result = _compute_remainder_params(model, matrices)
+        assert result == {}
+
+    def test_plain_no_remainder_continuous_founder(self):
+        """Continuous founder event has no remainder_population → empty result."""
+        model = ParametrizedDemography()
+        # Parameters: rate1 (0), rate2 (1), found_time (2), end_time (3)
+        model.add_founder_event(
+            "dest_pop",
+            {"source_pop1": "rate1", "source_pop2": "rate2"},
+            None,
+            "found_time",
+            end_time="end_time",
+        )
+        model.parametrized_populations = ["dest_pop"]
+        matrices = model.get_migration_matrices([0.4, 0.3, 8, 5])
+        result = _compute_remainder_params(model, matrices)
+        assert result == {}
+
+    # ------------------------------------------------------------------
+    # Sex-biased model
+    # ------------------------------------------------------------------
+
+    def test_sex_biased_rate_value(self):
+        """Remainder rate = mean of male and female founding rates = 1 - source_rate."""
+        model, matrices = self._sex_biased_model(founder_rate=0.3, sex_bias=0.0, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isclose(result["dest_pop_remainder_pop_rate"], 0.7)
+
+    def test_sex_biased_sex_bias_opposite_sign(self):
+        """
+        Remainder sex bias is the negative of the source sex bias.
+
+        For source rate r and sex bias s:
+          r_male_source   = r - s * min(r, 1-r)
+          r_female_source = r + s * min(r, 1-r)
+          r_male_rem   = 1 - r_male_source
+          r_female_rem = 1 - r_female_source
+          r_mean_rem   = 1 - r
+          sex_bias_rem = (r_female_rem - r_male_rem) / (2 * min(r_mean_rem, 1 - r_mean_rem))
+                       = -2 s * min(r, 1-r) / (2 * min(1-r, r))
+                       = -s
+        """
+        model, matrices = self._sex_biased_model(founder_rate=0.3, sex_bias=0.5, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isclose(result["dest_pop_remainder_pop_sex_bias"], -0.5)
+
+    def test_sex_biased_zero_sex_bias(self):
+        """Zero source sex bias → remainder sex bias is also 0."""
+        model, matrices = self._sex_biased_model(founder_rate=0.4, sex_bias=0.0, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isclose(result["dest_pop_remainder_pop_sex_bias"], 0.0)
+
+    def test_sex_biased_nan_when_remainder_rate_zero(self):
+        """When remainder rate = 0 the sex bias denominator collapses → NaN."""
+        # source_rate = 1 → remainder_rate = 0
+        model, matrices = self._sex_biased_model(founder_rate=1.0, sex_bias=0.0, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isnan(result["dest_pop_remainder_pop_sex_bias"])
+
+    def test_sex_biased_nan_when_remainder_rate_one(self):
+        """When remainder rate = 1 the sex bias denominator collapses → NaN."""
+        # source_rate = 0 → remainder_rate = 1
+        model, matrices = self._sex_biased_model(founder_rate=0.0, sex_bias=0.0, found_time=5)
+        result = _compute_remainder_params(model, matrices)
+        assert np.isnan(result["dest_pop_remainder_pop_sex_bias"])
+
+    def test_sex_biased_keys_include_dest_pop(self):
+        """Both keys must be prefixed with the destination population name."""
+        model, matrices = self._sex_biased_model()
+        result = _compute_remainder_params(model, matrices)
+        assert "dest_pop_remainder_pop_rate" in result
+        assert "dest_pop_remainder_pop_sex_bias" in result
+        assert "remainder_pop_rate" not in result
+        assert "remainder_pop_sex_bias" not in result                        

@@ -11,7 +11,7 @@ from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_bi
 from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
 from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
-from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _get_optimization_subtitle
+from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _compute_remainder_params
 from tracts.logs import setup_logger, set_log_file, close_log_file
 from datetime import datetime
 
@@ -484,9 +484,15 @@ def run_tracts(driver_filename: str, script_dir: str):
         final_data = "autosomal + allosomal" if ad_model_allosomes is not None else "autosomal"
         final_message = f"Final parameters and corresponding likelihood computed on {final_data} data:"
         param_names = list(model.model_base_params.keys())
-        param_col_widths = [max(len(name), 12) for name in param_names]
+        # Append derived (remainder) quantities to the table
+        remainder_params = _compute_remainder_params(
+            model, model.get_migration_matrices(optimal_params)
+        )
+        all_param_names = param_names + list(remainder_params.keys())
+        all_param_values = list(optimal_params) + list(remainder_params.values())
+        param_col_widths = [max(len(name), 12) for name in all_param_names]
         header = f"{'LogLik':>12} | " + " | ".join(
-            f"{name:>{w}}" for name, w in zip(param_names, param_col_widths)
+            f"{name:>{w}}" for name, w in zip(all_param_names, param_col_widths)
         )
         line = "-" * len(header)
         print("\n" + final_message)
@@ -495,13 +501,19 @@ def run_tracts(driver_filename: str, script_dir: str):
             logger.info(l)  
         
         values_str = " | ".join(
-            f"{x:>{w}.4g}" for x, w in zip(optimal_params, param_col_widths)
+            f"{x:>{w}.4g}" for x, w in zip(all_param_values, param_col_widths)
         )
         loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
         logger.info(loglik_message)
         print(loglik_message)
         print(line)
-        
+
+        # Report derived parameters for the remainder (dependent) ancestry.
+        if remainder_params:
+            dep_msg = f"Parameters {', '.join(remainder_params.keys())} correspond to the dependent ancestry and were not free in the optimization."
+            print(dep_msg)
+            logger.info(dep_msg)
+
         # Check for "founding migration rates > 1" in the final parameters.
         # get_violation_score calls get_migration_matrices internally, which logs the warning.
         # we capture it here so it can be shown as a user-visible printed message.

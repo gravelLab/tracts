@@ -1,5 +1,4 @@
 samples:
-  #directory: ./TrioPhased/
   directory: ../../data/1000G_ancestry_deconvolution/ASW/PopPhased/bed_files/
   
   individual_names: [
