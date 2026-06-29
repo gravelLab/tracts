@@ -22,6 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install build dependencies
       run: |
+        # Workaround: remove Microsoft apt sources that can intermittently break `apt-get update` on ubuntu-latest.
         sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.list
         sudo apt-get update
     - name: Install dependencies
