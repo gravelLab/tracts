@@ -101,9 +101,33 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 .. admonition:: Sex-bias specification
    :class: tip
 
-   If allosomes are present in the sample, each migration proportion will be automatically associated with a corresponding sex-bias parameter, which specifies the proportion of female migrants. For a given migration rate ``R``, this parameter is defined as ``R_sex_bias = 2 * (F_R - 1/2)``, where ``F_R ∈ (0,1)`` denotes the proportion of female migrants in the pulse. Consequently, ``R_sex_bias = 1`` corresponds to exclusively female migration, ``R_sex_bias = -1`` to exclusively male migration, and ``R_sex_bias = 0`` to unbiased migration.
+   If allosomes are present in the sample, each migration proportion will be automatically associated with 
+   a corresponding sex-bias parameter, which specifies the proportion of female migrants.
+   
 
-   The initial value of ``R_sex_bias`` must be specified by the user when configuring the driver file. It is not explicitly included in the construction of the demographic model.
+   We take the overall migration rate from source population $i$ ``R_i`` as the average of the male and female replacement rate,
+   ``R = (R_{i,m} + R_{i,f})/2,`` with ``R_{i,f}`` the proportion of females who are migrants 
+   from source population ``i``.
+   We consider balanced a scenario where ``R_{i,m} = R_{i,f}.`` We measure departure from this scenario using the parameter
+   ``R_{i,sex_bias} = 2 * (R_{i,f}/(R_{i,m}+R_{i,f}) - 1/2).`` 
+
+
+     
+   Consequently, ``R_sex_bias = 1`` corresponds to exclusively female migration, 
+   ``R_sex_bias = -1`` to exclusively male migration, and ``R_sex_bias = 0`` to unbiased migration.
+
+   For all generations except the founder generation, the initial value of ``R_sex_bias`` 
+   must be specified by the user when configuring the driver file. 
+   In the founder generation, all individuals are migrants, leading to a dependency among the migration rates: 
+   ``\sum_i R_i = 1``, and  ``\sum_i R{i,f} = 1.`` 
+   This entails a relationship among sex bias parameters: ``\sum_i R_{i, sex_bias}  R_i= 0.`` 
+   If there are ``k`` source populations, the user only specifies ``k-1`` rates and sex biases, 
+   and the remaining  parameters are inferred from these dependencies. 
+
+
+
+
+
 
 .. _input-data:
 
