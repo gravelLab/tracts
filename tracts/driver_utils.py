@@ -762,10 +762,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     """
     
     # ------ Create output directory if it doesn't exist ------
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
-    
-    output_dir = Path.cwd() if not formatted_output_directory  else Path(formatted_output_directory)
+   
  
     if not os.path.exists(output_dir): 
         os.makedirs(output_dir)
