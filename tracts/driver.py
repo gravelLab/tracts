@@ -36,17 +36,9 @@ def run_tracts(driver_filename: str, script_dir: str):
                                    script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
 
-    # ------ Set up logging using filename from driver-------
-    logger, memory_handler = setup_logger()
-    if hasattr(driver_spec, "log_filename") and driver_spec.log_filename:
-        log_path = Path(driver_spec.log_filename)
-        if log_path.suffix == "":
-            log_path = log_path.with_suffix(".log")
-        log_filename = log_path
-    else:
-        log_filename = "tracts.log"
-        logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
-    
+ 
+ 
+ 
     if not driver_spec.output_directory:
         logger.warning("No output directory specified in driver file. Defaulting to current working directory.")
         output_dir = Path.cwd()
@@ -56,6 +48,21 @@ def run_tracts(driver_filename: str, script_dir: str):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
         output_dir = Path(formatted_output_directory)
+ 
+ 
+    # ------ Set up logging using filename from driver-------
+    logger, memory_handler = setup_logger()
+ 
+    if hasattr(driver_spec, "log_filename") and driver_spec.log_filename:
+        log_path = Path(driver_spec.log_filename)
+        if log_path.suffix == "":
+            log_path = log_path.with_suffix(".log")
+        log_filename = output_dir / log_path.name
+    else:
+        log_filename =  output_dir / "tracts.log"
+        logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
+    
+
     
 
     if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
@@ -556,6 +563,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                                         optimal_params=optimal_params,
                                         model=model,
                                         driver_spec=driver_spec,
+                                        output_dir= output_dir,
                                         ad_model_autosomes=ad_model_autosomes,
                                         ad_model_allosomes=ad_model_allosomes,
                                         optimal_likelihood=optimal_likelihood,
