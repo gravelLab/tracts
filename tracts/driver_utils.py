@@ -134,7 +134,7 @@ class ModelsConfig(BaseModel):
     model_filename: str
         The filename of the demographic model to use for the inference. 
     ad_model_autosomes: str
-        The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "M".
+        The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
     ad_model_allosomes: str
         The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".   
     """
@@ -217,9 +217,9 @@ class OutputConfig(BaseModel):
 
 class InferenceConfig(BaseModel):
     """
-    Configuration for the inference process. This determines the list of parameteres that can be processed
+    Configuration for the inference process. This determines the list of parameters that can be processed
     from the driver file, together with their types and default values. Only parameters specified in this class will be processed
-    and additional parameters in the driver file will rise an error. This is to ensure that the driver file is correctly specified
+    and additional parameters in the driver file will raise an error. This is to ensure that the driver file is correctly specified
     and to provide clear error messages for missing or misspelled parameters. See online documentation for details on how to specify parameters in the driver file.
 
     Attributes
