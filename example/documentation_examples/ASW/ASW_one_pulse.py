@@ -105,18 +105,17 @@ X chromosome admixture in males
 
 import sys
 from pathlib import Path
-
-sys.path.append('.')
-
 from tracts.driver import run_tracts
 
-script_path = Path(sys.argv[0]).resolve()
+script_path = Path(__file__).resolve()
+repo_root = script_path.parents[2]
+os.chdir(repo_root)
+driver_filename = repo_root / "example" / "documentation_examples" / "ASW" / "ASW_one_pulse.yaml"
 
-driver_filename = "ASW_one_pulse.yaml"
-
-run_tracts(driver_filename = driver_filename, script_dir = script_path)
-
-
+run_tracts(
+    driver_filename=str(driver_filename),
+    script_dir=str(script_path.parent),
+)
 
 # Don't run the code below: for documentation purposes only.
 from tracts.doc_utils import prepare_example_outputs_for_docs
