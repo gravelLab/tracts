@@ -39,6 +39,7 @@ def run_tracts(driver_filename: str, script_dir: str):
     # ------ Set up logging using filename from driver-------
     logger, memory_handler = setup_logger()
     if driver_spec.output.log_filename:
+        breakpoint()
         log_filename = Path(driver_spec.output.log_filename)
     else:
         log_filename = Path("tracts.log")
@@ -66,8 +67,6 @@ def run_tracts(driver_filename: str, script_dir: str):
     else:
         log_filename =  output_dir / "tracts.log"
         logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
-    
-
     
     if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
         os.makedirs(output_dir)
