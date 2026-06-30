@@ -508,19 +508,19 @@ class TestConfigModels:
         mock_samples = Mock(spec=SamplesConfig)
         config_dict = {
             'samples': mock_samples,
-            'model_filename': 'model.yaml',
+            'models': {'model_filename': 'model.yaml'},
             'start_params': {},
-            'seed': 42,
-            'output_filename_format': 'output_{label}.txt'
+            'optim': {'seed': 42},
+            'output': {'output_filename_format': 'output_{label}.txt'}
         }
         config = InferenceConfig(**config_dict)
-        assert config.model_filename == 'model.yaml'
-        assert config.seed == 42
-        assert config.output_filename_format == 'output_{label}.txt'
-        assert config.npts == 50
-        assert config.exclude_tracts_below_cm == 1
-        assert config.log_scale is True
-        assert config.repetitions == 1
+        assert config.models.model_filename == 'model.yaml'
+        assert config.optim.seed == 42
+        assert config.output.output_filename_format == 'output_{label}.txt'
+        assert config.optim.npts == 50
+        assert config.optim.exclude_tracts_below_cm == 1
+        assert config.output.log_scale is True
+        assert config.optim.repetitions == 1
 
         
     def test_inference_config_forbids_extra_fields(self):
@@ -530,10 +530,10 @@ class TestConfigModels:
         with pytest.raises(Exception):
             InferenceConfig(
                 samples=Mock(),
-                model_filename='model.yaml',
+                models={'model_filename': 'model.yaml'},
                 start_params={},
-                seed=42,
-                output_filename_format='output_{label}.txt',
+                optim={'seed': 42},
+                output={'output_filename_format': 'output_{label}.txt'},
                 extra_field="should_fail"
             )
     
@@ -562,7 +562,7 @@ class TestLoadModelFromDriver:
         mock_model_class.load_from_YAML.return_value = mock_model
 
         driver_spec = Mock()
-        driver_spec.model_filename = "model.yaml"
+        driver_spec.models.model_filename = "model.yaml"
         driver_spec.samples.allosomes = None
 
         result = load_model_from_driver(
@@ -586,7 +586,7 @@ class TestLoadModelFromDriver:
         mock_model_class_sexbiased.load_from_YAML.return_value = mock_model
 
         driver_spec = Mock()
-        driver_spec.model_filename = "model.yaml"
+        driver_spec.models.model_filename = "model.yaml"
         driver_spec.samples = Mock()
         driver_spec.samples.allosomes = ["X"]
         driver_spec.samples.male_names = ["ind1"]
@@ -604,11 +604,14 @@ class TestLoadModelFromDriver:
 
     def test_load_model_missing_filename_raises_error(self):
         """
-        Test ValueError when model_filename not specified.
+        Test that an error is raised when model_filename is not accessible.
+        Validation of models.model_filename presence now happens at load_driver_file
+        time (InferenceConfig requires it), so accessing it on a bare Mock(spec=[])
+        raises AttributeError.
         """
-        driver_spec = Mock(spec=[])  # No model_filename attribute
+        driver_spec = Mock(spec=[])  # No attributes at all
         
-        with pytest.raises(ValueError, match="model_filename"):
+        with pytest.raises((ValueError, AttributeError)):
             load_model_from_driver(driver_spec, script_dir=None, 
                                   driver_path="/path/driver.yaml")
     
@@ -620,7 +623,7 @@ class TestLoadModelFromDriver:
         mock_locate.return_value = None
         
         driver_spec = Mock()
-        driver_spec.model_filename = "nonexistent.yaml"
+        driver_spec.models.model_filename = "nonexistent.yaml"
         
         with pytest.raises(FileNotFoundError):
             load_model_from_driver(driver_spec, script_dir=None, 

@@ -9,25 +9,27 @@ samples:
   filename_format: "{name}_{label}.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22
-  
-output_filename_format: "two_pulse_{label}"
-log_filename: 'two_pulse.log'
-output_directory: ./output_two_pulse/
-verbose_log: 1
-verbose_screen: 30
-log_scale : True
 
-model_filename: ./models/pp_px.yaml
+models:
+  model_filename: ./models/pp_px.yaml
+  ad_model_autosomes: DC
+
 start_params: 
   R: 0.1:0.2
   tx: 10:11
   P:  0.03:0.05
   t2: 5:6
-  
-repetitions: 2
-maximum_iterations: 1000
-seed: 100
-exclude_tracts_below_cm: 2
 
-ad_model_autosomes : DC
+optim:
+  repetitions: 2
+  seed: 100
+  maximum_iterations: 1000
+  exclude_tracts_below_cm: 2
 
+output:
+  output_directory: ./output_two_pulse/
+  output_filename_format: "two_pulse_{label}"
+  log_filename: 'two_pulse.log'
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True

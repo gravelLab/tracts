@@ -10,26 +10,29 @@ samples:
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22
   allosomes: [X]
-  
-output_filename_format: "two_pulse_sex_bias_{label}"
-log_filename: 'two_pulse_sex_bias.log'
-output_directory: ./output_two_pulse_sex_bias/
-verbose_log: 1
-verbose_screen: 30
-log_scale : True
-  
-model_filename: ./models/pp_px.yaml
+
+models:
+  model_filename: ./models/pp_px.yaml
+  ad_model_autosomes: DC
+  ad_model_allosomes: DC
+
 start_params: 
   tx: 8:11
   P:  0.03:0.05
   P_sex_bias: .2
   t2: 5:6
-  
-seed: 150
-exclude_tracts_below_cm: 2
-fix_parameters_from_ancestry_proportions: [R, R_sex_bias]
-repetitions: 2
-maximum_iterations: 1000
 
-ad_model_autosomes : DC
-ad_model_allosomes : DC
+optim:
+  repetitions: 2
+  seed: 150
+  maximum_iterations: 1000
+  exclude_tracts_below_cm: 2
+  fix_parameters_from_ancestry_proportions: [R, R_sex_bias]
+
+output:
+  output_directory: ./output_two_pulse_sex_bias/
+  output_filename_format: "two_pulse_sex_bias_{label}"
+  log_filename: 'two_pulse_sex_bias.log'
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True

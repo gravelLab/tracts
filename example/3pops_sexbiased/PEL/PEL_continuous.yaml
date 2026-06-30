@@ -15,15 +15,12 @@ samples:
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
-  
-output_filename_format: "PEL_test_output_{label}"
-output_directory: ./output_continuous_pulse/
-log_filename: 'PEL_continuous_pulse.log'
-verbose_log: 1
-verbose_screen: 30
-log_scale : True
 
-model_filename: ../models/ccp.yaml
+models:
+  model_filename: ../models/ccp.yaml
+  ad_model_autosomes: M
+  ad_model_allosomes: DC
+
 start_params: 
   t1: 10:15
   REUR: 0.01:0.08
@@ -34,13 +31,20 @@ start_params:
   REUR_sex_bias:  -0.99:0 # more males
   RNAT_sex_bias: 0:0.99 # more females
   RAFR_sex_bias: -0.1:0.1
-repetitions: 5
-seed: 100
-maximum_iterations: 1000
-unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
-exclude_tracts_below_cm: 2
-npts : 50
-#fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
 
-ad_model_autosomes : M
-ad_model_allosomes : DC
+optim:
+  repetitions: 5
+  seed: 100
+  maximum_iterations: 1000
+  npts: 50
+  #fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
+  exclude_tracts_below_cm: 2
+  unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
+
+output:
+  output_directory: ./output_continuous_pulse/
+  output_filename_format: "PEL_test_output_{label}"
+  log_filename: 'PEL_continuous_pulse.log'
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True
