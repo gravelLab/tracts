@@ -5,12 +5,13 @@ from pathlib import Path
 from typing import Callable
 import numpy as np
 import os
+
 from tracts.population import Population
 from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
 from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
 from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
-from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _get_optimization_subtitle
+from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _compute_remainder_params, _save_ancestry_proportions_table
 from tracts.logs import setup_logger, set_log_file, close_log_file
 from datetime import datetime
 
@@ -37,26 +38,37 @@ def run_tracts(driver_filename: str, script_dir: str):
 
     # ------ Set up logging using filename from driver-------
     logger, memory_handler = setup_logger()
+    if driver_spec.output.log_filename:
+        log_filename = Path(driver_spec.output.log_filename)
+    else:
+        log_filename = Path("tracts.log")
+        logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
+    
+    if not driver_spec.output.output_directory:
+        logger.warning("No output directory specified in driver file. Defaulting to current working directory.")
+        output_dir = Path.cwd()
+        driver_spec.output.output_directory = str(output_dir)
+    else:
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        formatted_output_directory =  driver_spec.output.output_directory.format(date=timestamp)
+        output_dir = Path(formatted_output_directory)
+ 
+ 
+    # ------ Set up logging using filename from driver-------
+    logger, memory_handler = setup_logger()
+ 
     if hasattr(driver_spec, "log_filename") and driver_spec.log_filename:
         log_path = Path(driver_spec.log_filename)
         if log_path.suffix == "":
             log_path = log_path.with_suffix(".log")
-        log_filename = log_path
+        log_filename = output_dir / log_path.name
     else:
-        log_filename = "tracts.log"
+        log_filename =  output_dir / "tracts.log"
         logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
     
-    if not driver_spec.output_directory:
-        logger.warning("No output directory specified in driver file. Defaulting to current working directory.")
-        output_dir = Path.cwd()
-        driver_spec.output_directory = str(output_dir)
-    else:
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
-        output_dir = Path(formatted_output_directory)
-    
 
+    
     if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
         os.makedirs(output_dir)
     
@@ -71,7 +83,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
         output_message = f"Results will be written to: {output_dir}."
         logger_message = f"Using log file: {log_full_path}."
-        tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.exclude_tracts_below_cm} cM.'
+        tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.optim.exclude_tracts_below_cm} cM.'
 
         # ------ Print initial information -------
         print('------------------------------------------------------------------------------------------------\n')
@@ -83,8 +95,8 @@ def run_tracts(driver_filename: str, script_dir: str):
         
         # ----- Extract specifications from the driver file and do necessary checks -------
         # Autosomal admixture model is correctly specified
-        ad_model_autosomes = driver_spec.ad_model_autosomes
-        if not driver_spec.ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
+        ad_model_autosomes = driver_spec.models.ad_model_autosomes
+        if not driver_spec.models.ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
             print('The model for autosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), M (for Monoecious), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_autosomes = DC by default.')
             ad_model_autosomes = 'DC'
 
@@ -94,8 +106,8 @@ def run_tracts(driver_filename: str, script_dir: str):
         allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
 
         # Allosomal admixture model is correctly specified
-        if hasattr(driver_spec, 'ad_model_allosomes') and allosome_label is not None:
-            ad_model_allosomes = driver_spec.ad_model_allosomes
+        if hasattr(driver_spec.models, "ad_model_allosomes") and allosome_label is not None:
+            ad_model_allosomes = driver_spec.models.ad_model_allosomes
             if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
                 print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
                 ad_model_allosomes = 'DC'
@@ -111,10 +123,10 @@ def run_tracts(driver_filename: str, script_dir: str):
                             driver_spec=driver_spec,
                             script_dir=script_dir,
                             allosome_labels = allosome_labels) 
-        pop.unknown_labels = driver_spec.unknown_labels_for_smoothing
+        pop.unknown_labels = driver_spec.optim.unknown_labels_for_smoothing
         pop.smooth_unknowns(allosome_labels=allosome_labels)
-        _bins, _data = pop.get_global_tractlengths(npts=driver_spec.npts, # Get the population labels and validate that these correspond to to model population labels.
-                                                   exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm) 
+        _bins, _data = pop.get_global_tractlengths(npts=driver_spec.optim.npts, # Get the population labels and validate that these correspond to to model population labels.
+                                                   exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm) 
         
         # ------ Load the model -------
         model = load_model_from_driver(driver_spec=driver_spec,
@@ -133,30 +145,34 @@ def run_tracts(driver_filename: str, script_dir: str):
         ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
         
         print(f"Ancestries: {', '.join(ancestor_labels)}")
-        print("Data autosome proportions:", ancestry_proportions )
+        autosomal_ancestry_message = f"Data autosome proportions: {np.array2string(ancestry_proportions, separator=' ')}"
+        print(autosomal_ancestry_message)
+        logger.info(autosomal_ancestry_message)
         if len(allosome_labels)>=1:
             allosome_proportions = pop.calculate_allosome_proportions(population_labels=ancestor_labels,
                                                                     allosome_label=allosome_label)
-            print("Data allosome proportions:", allosome_proportions )
+            allosomal_ancestry_message = f"Data allosome proportions: {np.array2string(allosome_proportions, separator=' ')}"
+            print(allosomal_ancestry_message)
+            logger.info(allosomal_ancestry_message)
 
-        if len(driver_spec.fix_parameters_from_ancestry_proportions) > 0: # Set up fixed parameters if specified in the driver
+        if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0: # Set up fixed parameters if specified in the driver
             
             if allosome_label:
                 model.parameter_handler.set_up_fixed_parameters(demography=model,
-                                                                params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
+                                                                params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
                                                                 proportions={
                                                                 f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
                                                                 f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
                                                                 } # Here, the option params_to_fix_by_value can be added in future development
                                                                 )
             else:
-                model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.fix_parameters_from_ancestry_proportions,
+                model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
                                             proportions= {model.parametrized_populations[0]:ancestry_proportions}) # Here, the option params_to_fix_by_value can be added in future development
         else: # No parameters to fix 
             model.set_up_fixed_parameters([],{})
         print(f"Model parameters: {', '.join(model.model_base_params.keys())}") # Print model parameters
-        if len(driver_spec.fix_parameters_from_ancestry_proportions) > 0:
-            fixed_params = ", ".join(driver_spec.fix_parameters_from_ancestry_proportions)
+        if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0:
+            fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
             print(f"The following parameters have been fixed from ancestry proportions: {fixed_params}")
 
         if ad_model_allosomes is not None:
@@ -197,11 +213,11 @@ def run_tracts(driver_filename: str, script_dir: str):
         model.parameter_handler.enable_time_param_logging = False
 
         # ------ Compute starting parameters in physical units ------
-        if driver_spec.two_steps_optimization:
+        if driver_spec.optim.two_steps_optimization:
             physical_start_params = parse_start_params(
                 start_param_bounds=driver_spec.start_params,
-                repetitions=driver_spec.repetitions,
-                seed=driver_spec.seed,
+                repetitions=driver_spec.optim.repetitions,
+                seed=driver_spec.optim.seed,
                 model=model,
                 sample_param_names=set(non_sex_bias_param_names),
                 fixed_param_values={name: 0.0 for name in sex_bias_param_names},
@@ -210,8 +226,8 @@ def run_tracts(driver_filename: str, script_dir: str):
         else:
             physical_start_params = parse_start_params(
                 start_param_bounds=driver_spec.start_params,
-                repetitions=driver_spec.repetitions,
-                seed=driver_spec.seed,
+                repetitions=driver_spec.optim.repetitions,
+                seed=driver_spec.optim.seed,
                 model=model,
             )
         
@@ -234,7 +250,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         assert len(model_param_names) == n_start_params
         start_param_names = model_param_names
 
-        if driver_spec.two_steps_optimization:
+        if driver_spec.optim.two_steps_optimization:
             step_1_start_params_title = "Starting parameters for step 1 optimization"
         else:
             step_1_start_params_title = "Starting parameters for single-step optimization"
@@ -270,7 +286,7 @@ def run_tracts(driver_filename: str, script_dir: str):
 
         # ------ Run the model with (multiple) starting parameters ------
 
-        if driver_spec.two_steps_optimization is False: # Single-step optimization using optimize_cob_sex_biased_single_step
+        if driver_spec.optim.two_steps_optimization is False: # Single-step optimization using optimize_cob_sex_biased_single_step
 
             _print_run_intro(model.parameter_handler, model, optimizer_start_params, bound, step_1_start_params_title, False, True)
 
@@ -280,13 +296,13 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                             start_params_list=optimizer_start_params,
                                                             population_dict=model.population_indices.items(),
                                                             parameter_handler=model.parameter_handler,
-                                                            max_iter=driver_spec.maximum_iterations,
-                                                            exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                                            max_iter=driver_spec.optim.maximum_iterations,
+                                                            exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                             ad_model_autosomes = ad_model_autosomes, 
                                                             ad_model_allosomes=ad_model_allosomes,
-                                                            npts=driver_spec.npts, 
-                                                            verbose_log=driver_spec.verbose_log,
-                                                            verbose_screen=driver_spec.verbose_screen, 
+                                                            npts=driver_spec.optim.npts, 
+                                                            verbose_log=driver_spec.output.verbose_log,
+                                                            verbose_screen=driver_spec.output.verbose_screen, 
                                                             two_steps_optimization=False,
                                                             start_params_title=step_1_start_params_title,
                                                             print_start_params_table=False,
@@ -301,7 +317,7 @@ def run_tracts(driver_filename: str, script_dir: str):
 
             # ------ Step 1: optimize non-sex-bias parameters on autosomal data ------
 
-            _print_run_intro(model.parameter_handler, model, optimizer_start_params, bound, step_1_start_params_title, True, driver_spec.use_autosomes_for_sex_bias, [1])
+            _print_run_intro(model.parameter_handler, model, optimizer_start_params, bound, step_1_start_params_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [1])
 
             params_found_step_1, likelihoods_step_1, _full_likelihoods_step_1 = _normalize_multi_init_result(run_model_multi_init(model_func=func,
                                                             bound_func=bound,
@@ -309,15 +325,15 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                             start_params_list=optimizer_start_params,
                                                             population_dict=model.population_indices.items(),
                                                             parameter_handler=model.parameter_handler,
-                                                            max_iter=driver_spec.maximum_iterations,
-                                                            exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                                            max_iter=driver_spec.optim.maximum_iterations,
+                                                            exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                             ad_model_autosomes = ad_model_autosomes, 
                                                             ad_model_allosomes=ad_model_allosomes,
-                                                            npts=driver_spec.npts, 
-                                                            verbose_log=driver_spec.verbose_log,
-                                                            verbose_screen=driver_spec.verbose_screen, 
+                                                            npts=driver_spec.optim.npts, 
+                                                            verbose_log=driver_spec.output.verbose_log,
+                                                            verbose_screen=driver_spec.output.verbose_screen, 
                                                             two_steps_optimization=True,
-                                                            autosomes_in_step_2=driver_spec.use_autosomes_for_sex_bias, # This parameter is ignored in step 1
+                                                            autosomes_in_step_2=driver_spec.optim.use_autosomes_for_sex_bias, # This parameter is ignored in step 1
                                                             steps=[1],
                                                             start_params_title=step_1_start_params_title,
                                                             print_start_params_table=False,
@@ -359,8 +375,8 @@ def run_tracts(driver_filename: str, script_dir: str):
 
                     step_2_physical_start_params = parse_start_params(
                         start_param_bounds=driver_spec.start_params,
-                        repetitions=driver_spec.repetitions,
-                        seed=driver_spec.seed,
+                        repetitions=driver_spec.optim.repetitions,
+                        seed=driver_spec.optim.seed,
                         model=model,
                         sample_param_names=set(sex_bias_param_names),
                         fixed_param_values=step_2_fixed_param_values,
@@ -376,7 +392,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                         "(non-sex-bias parameters are fixed to the best step 1 estimates)."
                     )
 
-                    _print_run_intro(model.parameter_handler, model, step_2_start_params, bound, step_2_start_params_title, True, driver_spec.use_autosomes_for_sex_bias, [2])
+                    _print_run_intro(model.parameter_handler, model, step_2_start_params, bound, step_2_start_params_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [2])
 
                     params_found_step_2, likelihoods_step_2, full_likelihoods_step_2 = _normalize_multi_init_result(run_model_multi_init(model_func=func,
                                                                                 bound_func=bound,
@@ -384,15 +400,15 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                                                 start_params_list=step_2_start_params,
                                                                                 population_dict=model.population_indices.items(),
                                                                                 parameter_handler=model.parameter_handler,
-                                                                                max_iter=driver_spec.maximum_iterations,
-                                                                                exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                                                                max_iter=driver_spec.optim.maximum_iterations,
+                                                                                exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                                                 ad_model_autosomes=ad_model_autosomes,
                                                                                 ad_model_allosomes=ad_model_allosomes,
-                                                                                npts=driver_spec.npts,
-                                                                                verbose_log=driver_spec.verbose_log,
-                                                                                verbose_screen=driver_spec.verbose_screen,
+                                                                                npts=driver_spec.optim.npts,
+                                                                                verbose_log=driver_spec.output.verbose_log,
+                                                                                verbose_screen=driver_spec.output.verbose_screen,
                                                                                 two_steps_optimization=True,
-                                                                                autosomes_in_step_2=driver_spec.use_autosomes_for_sex_bias,
+                                                                                autosomes_in_step_2=driver_spec.optim.use_autosomes_for_sex_bias,
                                                                                 steps=[2],
                                                                                 start_params_title=step_2_start_params_title,
                                                                                 print_start_params_table=False,
@@ -409,7 +425,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                     print(end_step_2_message)
                     logger.info(end_step_2_message)
 
-                    if not driver_spec.use_autosomes_for_sex_bias:
+                    if not driver_spec.optim.use_autosomes_for_sex_bias:
                         best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
                         full_data_likelihood = full_likelihoods_step_2[best_run_index]
                         if full_data_likelihood is not None:
@@ -449,15 +465,15 @@ def run_tracts(driver_filename: str, script_dir: str):
                                     start_params_list=_silent_start,
                                     population_dict=model.population_indices.items(),
                                     parameter_handler=model.parameter_handler,
-                                    max_iter=driver_spec.maximum_iterations,
-                                    exclude_tracts_below_cM=driver_spec.exclude_tracts_below_cm,
+                                    max_iter=driver_spec.optim.maximum_iterations,
+                                    exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                     ad_model_autosomes=ad_model_autosomes,
                                     ad_model_allosomes=ad_model_allosomes,
-                                    npts=driver_spec.npts,
+                                    npts=driver_spec.optim.npts,
                                     verbose_log=0,
                                     verbose_screen=0,
                                     two_steps_optimization=True,
-                                    autosomes_in_step_2=driver_spec.use_autosomes_for_sex_bias,
+                                    autosomes_in_step_2=driver_spec.optim.use_autosomes_for_sex_bias,
                                     steps=[2],
                                     print_start_params_table=False,
                                     print_subtitle=False,
@@ -473,7 +489,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                         param_names=start_param_names,
                         step_label="Step 2",
                     )
-                    if not driver_spec.use_autosomes_for_sex_bias:
+                    if not driver_spec.optim.use_autosomes_for_sex_bias:
                         best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
                         full_data_likelihood = full_likelihoods_step_2[best_run_index]
                         if full_data_likelihood is not None:
@@ -483,9 +499,15 @@ def run_tracts(driver_filename: str, script_dir: str):
         final_data = "autosomal + allosomal" if ad_model_allosomes is not None else "autosomal"
         final_message = f"Final parameters and corresponding likelihood computed on {final_data} data:"
         param_names = list(model.model_base_params.keys())
-        param_col_widths = [max(len(name), 12) for name in param_names]
+        # Append derived (remainder) quantities to the table
+        remainder_params = _compute_remainder_params(
+            model, model.get_migration_matrices(optimal_params)
+        )
+        all_param_names = param_names + list(remainder_params.keys())
+        all_param_values = list(optimal_params) + list(remainder_params.values())
+        param_col_widths = [max(len(name), 12) for name in all_param_names]
         header = f"{'LogLik':>12} | " + " | ".join(
-            f"{name:>{w}}" for name, w in zip(param_names, param_col_widths)
+            f"{name:>{w}}" for name, w in zip(all_param_names, param_col_widths)
         )
         line = "-" * len(header)
         print("\n" + final_message)
@@ -494,13 +516,19 @@ def run_tracts(driver_filename: str, script_dir: str):
             logger.info(l)  
         
         values_str = " | ".join(
-            f"{x:>{w}.4g}" for x, w in zip(optimal_params, param_col_widths)
+            f"{x:>{w}.4g}" for x, w in zip(all_param_values, param_col_widths)
         )
         loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
         logger.info(loglik_message)
         print(loglik_message)
         print(line)
-        
+
+        # Report derived parameters for the remainder (dependent) ancestry.
+        if remainder_params:
+            dep_msg = f"Parameters {', '.join(remainder_params.keys())} correspond to the dependent ancestry and were not free in the optimization."
+            print(dep_msg)
+            logger.info(dep_msg)
+
         # Check for "founding migration rates > 1" in the final parameters.
         # get_violation_score calls get_migration_matrices internally, which logs the warning.
         # we capture it here so it can be shown as a user-visible printed message.
@@ -536,6 +564,9 @@ def run_tracts(driver_filename: str, script_dir: str):
         predicted_autosome_props = {k: v for k, v in predicted_props.items() if "autosomal" in k.lower()}
         predicted_allosome_props = {k: v for k, v in predicted_props.items() if "autosomal" not in k.lower()}
 
+        autosome_values = None
+        allosome_values = None
+
         if predicted_autosome_props:
             autosome_key = sorted(predicted_autosome_props.keys())[0]
             autosome_values = np.asarray(predicted_autosome_props[autosome_key])
@@ -550,14 +581,30 @@ def run_tracts(driver_filename: str, script_dir: str):
             print(predicted_allosome_message)
             logger.info(predicted_allosome_message)
 
+        # ------ Save ancestry proportions table -------
+        _save_ancestry_proportions_table(
+            ancestor_labels=ancestor_labels,
+            observed_autosome_proportions=ancestry_proportions,
+            predicted_autosome_proportions=autosome_values,
+            output_dir=output_dir,
+            output_filename_format=driver_spec.output.output_filename_format,
+            observed_allosome_proportions=allosome_proportions if len(allosome_labels) >= 1 else None,
+            predicted_allosome_proportions=allosome_values,
+            allosome_label=allosome_label,
+        )
+        logger.info(f"Ancestry proportions table saved to {output_dir / driver_spec.output.output_filename_format.format(label='ancestry_proportions.txt')}")
+
         # ------ Produce output -------
         output_simulation_data_sex_biased(sample_population=pop,
                                         optimal_params=optimal_params,
                                         model=model,
                                         driver_spec=driver_spec,
+                                        output_dir=output_dir,
                                         ad_model_autosomes=ad_model_autosomes,
                                         ad_model_allosomes=ad_model_allosomes,
-                                        optimal_likelihood=optimal_likelihood)
+                                        optimal_likelihood=optimal_likelihood,
+                                        driver_path = driver_path
+                                        )
     finally:
         close_log_file(log_filename=log_full_path)
 

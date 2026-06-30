@@ -136,7 +136,7 @@ The following model is written in the file ``ccc.yaml``.
      - name: AFR
      - name: X
    ancestors: [EUR, NAT, AFR]
-   proportions: [REUR, RNAT,RAFR ]
+   proportions: [REUR, RNAT,RAFR]
    start_time: t1
    end_time: t2  
    

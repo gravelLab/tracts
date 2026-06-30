@@ -16,24 +16,26 @@ samples:
   filename_format: "{name}_anc_{label}_cM.bed"
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22
-  
-output_filename_format: "PUR_{label}"
-log_filename: 'PUR.log'
-output_directory: ./output_PUR/
-verbose_log: 1
-verbose_screen: 1
-log_scale : True 
 
-model_filename: ./models/pxp_xpx.yaml
+models:
+  model_filename: ./models/pxp_xpx.yaml
+  ad_model_autosomes: DC
+
 start_params: 
   tx: 10:11
   t2: 5:6
-  
-seed: 150
-exclude_tracts_below_cm: 2
-fix_parameters_from_ancestry_proportions: ['A', 'R']
-repetitions: 2
-maximum_iterations: 1000
 
-ad_model_autosomes : DC
+optim:
+  repetitions: 2
+  seed: 150
+  maximum_iterations: 1000
+  exclude_tracts_below_cm: 2
+  fix_parameters_from_ancestry_proportions: ['A', 'R']
 
+output:
+  output_directory: ./output_PUR/
+  output_filename_format: "PUR_{label}"
+  log_filename: 'PUR.log'
+  verbose_log: 1
+  verbose_screen: 1
+  log_scale: True

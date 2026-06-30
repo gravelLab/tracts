@@ -13,7 +13,6 @@ demes:
 
 pulses:
 
-
   - sources: [EUR]
     dest: X
     proportions: [REUR2]

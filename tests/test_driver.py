@@ -72,27 +72,33 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
     The specific values are not important, but they should be plausible and consistent with the expected types.
     """
     return SimpleNamespace(
-        log_filename="test_logfile.log",
-        output_directory=str(tmp_path / "test_output"),
-        exclude_tracts_below_cm=0,
-        npts=5,
-        ad_model_autosomes="DC",
-        ad_model_allosomes="DC",
         samples=SimpleNamespace(allosomes=["X"]),
-        unknown_labels_for_smoothing=[],
-        model_filename="test_model.yaml",
+        models=SimpleNamespace(
+            model_filename="test_model.yaml",
+            ad_model_autosomes="DC",
+            ad_model_allosomes="DC",
+        ),
         start_params=SimpleNamespace(),
-        repetitions=2,
-        seed=1,
-        maximum_iterations=2,
-        verbose_log=0,
-        verbose_screen=0,
-        fix_parameters_from_ancestry_proportions=[],
-        output_filename_format="test_output_{label}",
-        two_steps_optimization=two_steps_optimization,
-        autosomes_in_step_2=autosomes_in_step_2,
-        use_autosomes_for_sex_bias=autosomes_in_step_2,
-        log_scale=False,
+        optim=SimpleNamespace(
+            seed=1,
+            repetitions=2,
+            maximum_iterations=2,
+            npts=5,
+            exclude_tracts_below_cm=0,
+            fix_parameters_from_ancestry_proportions=[],
+            unknown_labels_for_smoothing=[],
+            two_steps_optimization=two_steps_optimization,
+            autosomes_in_step_2=autosomes_in_step_2,
+            use_autosomes_for_sex_bias=autosomes_in_step_2,
+        ),
+        output=SimpleNamespace(
+            output_filename_format="test_output_{label}",
+            log_filename="test_logfile.log",
+            output_directory=str(tmp_path / "test_output"),
+            verbose_log=0,
+            verbose_screen=0,
+            log_scale=False,
+        ),
     )
 
 
@@ -555,3 +561,212 @@ def test_run_tracts_forwards_autosomes_in_step_2_flag(tmp_path, monkeypatch):
     assert recorded_runs[0]["steps"] == [1]
     assert recorded_runs[1]["steps"] == [2]
     assert recorded_runs[1]["autosomes_in_step_2"] is False
+
+
+# ------------ Helper and tests for ancestry-fixed parameters in two-step optimisation ----------
+
+def _make_mock_model_with_ancestry_fixed():
+    """
+    Like _make_mock_model but with an ancestry-fixed rate parameter (``rate_afr``) at index 2.
+    Parameters:
+      - t        (TIME,     index 0)
+      - rate_eur (RATE,     index 1)
+      - rate_afr (RATE,     index 2) ← fixed by ancestry; never directly optimised
+      - sb_eur   (SEX_BIAS, index 3)
+      - sb_afr   (SEX_BIAS, index 4)
+    """
+    model = SimpleNamespace()
+    model.model_base_params = OrderedDict([
+        ("t",        SimpleNamespace(index=0, type=ParamType.TIME)),
+        ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE)),
+        ("rate_afr", SimpleNamespace(index=2, type=ParamType.RATE)),
+        ("sb_eur",   SimpleNamespace(index=3, type=ParamType.SEX_BIAS)),
+        ("sb_afr",   SimpleNamespace(index=4, type=ParamType.SEX_BIAS)),
+    ])
+    model.params_fixed_by_ancestry = {"rate_afr"}
+    model.population_indices = OrderedDict([("A", 0), ("B", 1)])
+    model.parametrized_populations = ["pop"]
+    model.parameter_handler = SimpleNamespace(
+        to_physical_params_functions={},
+        to_optimizer_params_functions={},
+        enable_time_param_logging=True,
+        convert_to_optimizer_params=lambda params: np.array(params, dtype=float),
+        convert_to_physical_params=lambda params, report_non_admissible=False: np.array(params, dtype=float),
+        set_up_fixed_parameters=lambda *args, **kwargs: None,
+        release_fixed_parameters=lambda *args, **kwargs: None,
+        add_fixed_parameters=lambda *args, **kwargs: None,
+    )
+    model.proportions_from_matrices = lambda matrices: {"A": np.array([1.0])}
+    model.get_violation_score = lambda params, verbose=False: 1.0
+    model.get_migration_matrices = lambda params: {"female": np.zeros((1, 1)), "male": np.zeros((1, 1))}
+    model.set_up_fixed_parameters = lambda *args, **kwargs: None
+    return model
+
+
+def test_parse_start_params_preserves_fixed_values_for_ancestry_fixed_params():
+    """
+    Regression test for the bug where ``parse_start_params`` called
+    ``compute_params_fixed_by_ancestry`` unconditionally and let it overwrite values that
+    were explicitly provided in ``fixed_param_values``.
+
+    In the two-step optimisation workflow, ``driver.py`` passes the step-1 optimal values
+    for ancestry-fixed non-sex-bias parameters through ``fixed_param_values`` when building
+    step-2 starting parameters.  Before the fix, those values were silently discarded:
+    ``compute_params_fixed_by_ancestry`` was called unconditionally after the candidate was
+    drawn and would re-solve ancestry-fixed parameters given the freshly sampled sex-bias
+    starting values, producing different (wrong) values.
+    """
+    from tracts.driver_utils import parse_start_params as real_parse_start_params
+
+    # Minimal 3-param model: t (TIME, 0), rate_afr (RATE, 1, ancestry-fixed), sb (SEX_BIAS, 2)
+    mock_model = SimpleNamespace()
+    mock_model.model_base_params = OrderedDict([
+        ("t",        SimpleNamespace(index=0, type=ParamType.TIME,     bounds=(0.0, 1.0))),
+        ("rate_afr", SimpleNamespace(index=1, type=ParamType.RATE,     bounds=(0.0, 1.0))),
+        ("sb",       SimpleNamespace(index=2, type=ParamType.SEX_BIAS, bounds=(-1.0, 1.0))),
+    ])
+    mock_model.params_fixed_by_ancestry = {"rate_afr"}
+    mock_model.get_violation_score = lambda params, verbose=False: 1.0  # always feasible
+
+    STEP1_OPTIMAL    = 0.7   # the step-1 best value carried in fixed_param_values
+    WRONG_RECOMPUTED = 0.1   # what ancestry would compute given new sex-bias starts
+
+    def fake_compute_ancestry(candidate):
+        """Simulate ancestry re-solving rate_afr to a value different from the step-1 optimal."""
+        result = candidate.copy()
+        result[1] = WRONG_RECOMPUTED
+        return result
+
+    mock_model.parameter_handler = SimpleNamespace(
+        compute_params_fixed_by_ancestry=fake_compute_ancestry,
+    )
+
+    candidates = real_parse_start_params(
+        start_param_bounds=SimpleNamespace(sb="0.0:0.5"),
+        repetitions=3,
+        seed=42,
+        model=mock_model,
+        sample_param_names={"sb"},
+        fixed_param_values={
+            "t": 0.5,
+            "rate_afr": STEP1_OPTIMAL,  # step-1 best; must survive compute_params_fixed_by_ancestry
+        },
+    )
+
+    assert len(candidates) == 3
+    for candidate in candidates:
+        np.testing.assert_allclose(
+            candidate[1], STEP1_OPTIMAL,
+            rtol=1e-10,
+            err_msg=(
+                f"rate_afr should be fixed at the step-1 optimal value ({STEP1_OPTIMAL}), "
+                f"not the ancestry-recomputed value ({WRONG_RECOMPUTED}). "
+                "compute_params_fixed_by_ancestry must not overwrite values "
+                "explicitly provided in fixed_param_values."
+            ),
+        )
+        np.testing.assert_allclose(
+            candidate[0], 0.5, rtol=1e-10,
+            err_msg="t should remain fixed at 0.5",
+        )
+
+
+def test_two_steps_ancestry_fixed_params_included_in_step2_fixed_values(tmp_path, monkeypatch):
+    """
+    Regression test ensuring that ``driver.py`` includes ancestry-fixed non-sex-bias
+    parameters in the ``fixed_param_values`` dict that is forwarded to ``parse_start_params``
+    for step 2.  Those values must be the step-1 optimal values so that the downstream
+    ``parse_start_params`` fix (and the ``core.py`` step-2 freeze) have the correct input
+    to work with.
+    """
+    model = _make_mock_model_with_ancestry_fixed()
+    model.parameter_handler.params_fixed_by_ancestry = {"rate_afr"}
+    model.parameter_handler.user_params_fixed_by_value = {}
+    driver_spec = _make_mock_driver_spec(tmp_path, two_steps_optimization=True, autosomes_in_step_2=True)
+    population = _make_mock_population()
+
+    recorded_parse_calls = []
+
+    def fake_parse_start_params(*, sample_param_names=None, fixed_param_values=None, **kwargs):
+        sample_param_names = set(sample_param_names) if sample_param_names is not None else None
+        fixed_param_values = {} if fixed_param_values is None else dict(fixed_param_values)
+        recorded_parse_calls.append({
+            "sample_param_names": sample_param_names,
+            "fixed_param_values": fixed_param_values,
+        })
+        if sample_param_names == {"t", "rate_eur", "rate_afr"}:
+            # Step 1: sample all non-sex-bias params (including ancestry-fixed rate_afr)
+            return [
+                np.array([1.0,  2.0,  3.0,  0.0,  0.0]),
+                np.array([10.0, 20.0, 30.0, 0.0,  0.0]),
+            ]
+        if sample_param_names == {"sb_eur", "sb_afr"}:
+            # Step 2: sex-bias params sampled; non-sex-bias come from fixed_param_values
+            rate_afr_used = fixed_param_values.get("rate_afr", float("nan"))
+            return [
+                np.array([fixed_param_values["t"], fixed_param_values["rate_eur"], rate_afr_used, 3.0,  4.0]),
+                np.array([fixed_param_values["t"], fixed_param_values["rate_eur"], rate_afr_used, 30.0, 40.0]),
+            ]
+        return [np.array([1.0, 2.0, 3.0, 4.0, 5.0])]
+
+    def fake_run_model_multi_init(*, start_params_list, steps=None, **kwargs):
+        if steps == [1]:
+            # Best result (highest likelihood): run 0 → rate_afr = 33.0
+            return (
+                [np.array([11.0, 22.0, 33.0, 101.0, 201.0]),
+                 np.array([12.0, 23.0, 34.0, 102.0, 202.0])],
+                [2.0, 1.0],
+            )
+        if steps == [2]:
+            return (
+                [np.array([11.0, 22.0, 33.0, 301.0, 401.0]),
+                 np.array([11.0, 22.0, 33.0, 302.0, 402.0])],
+                [5.0, 4.0],
+            )
+        return ([np.array([1.0, 2.0, 3.0, 4.0, 5.0])], [1.0])
+
+    monkeypatch.setattr(driver_module, "locate_file_path",    lambda filename, script_dir: Path("/tmp/test_driver.yaml"))
+    monkeypatch.setattr(driver_module, "load_driver_file",    lambda driver_path: driver_spec)
+    monkeypatch.setattr(driver_module, "load_population",     lambda **kwargs: population)
+    monkeypatch.setattr(driver_module, "load_model_from_driver", lambda **kwargs: model)
+    monkeypatch.setattr(driver_module, "parse_start_params",  fake_parse_start_params)
+    monkeypatch.setattr(driver_module, "collapse_identical_start_params", lambda sp, label: sp)
+    monkeypatch.setattr(driver_module, "get_time_scaled_model_func",   lambda m: (lambda params: params))
+    monkeypatch.setattr(driver_module, "get_time_scaled_model_bounds", lambda m: (lambda params: 1.0))
+    monkeypatch.setattr(driver_module, "run_model_multi_init", fake_run_model_multi_init)
+    monkeypatch.setattr(driver_module, "output_simulation_data_sex_biased", lambda **kwargs: None)
+    monkeypatch.setattr(driver_module, "setup_logger",   lambda: (driver_module.logger, SimpleNamespace()))
+    monkeypatch.setattr(driver_module, "set_log_file",   lambda **kwargs: None)
+    monkeypatch.setattr(driver_module, "close_log_file", lambda **kwargs: None)
+    monkeypatch.setattr(driver_module, "_print_run_intro", lambda *args, **kwargs: None)
+
+    run_tracts("driver.yaml", script_dir=tmp_path)
+
+    # Exactly two parse_start_params calls: one for step 1, one for step 2.
+    assert len(recorded_parse_calls) == 2, (
+        f"Expected two parse_start_params calls; got {len(recorded_parse_calls)}."
+    )
+
+    step_2_fixed = recorded_parse_calls[1]["fixed_param_values"]
+
+    # The ancestry-fixed non-sex-bias parameter must be forwarded with its step-1 optimal value.
+    assert "rate_afr" in step_2_fixed, (
+        "rate_afr (ancestry-fixed non-sex-bias parameter) must appear in fixed_param_values "
+        "for the step-2 parse_start_params call so it can be frozen at its step-1 optimal value."
+    )
+    np.testing.assert_allclose(
+        step_2_fixed["rate_afr"], 33.0,
+        rtol=1e-10,
+        err_msg=(
+            "rate_afr in step-2 fixed_param_values must equal the step-1 optimal value (33.0). "
+            "The driver must extract it from optimal_params_step_1, not recompute or default it."
+        ),
+    )
+
+    # Sanity-check: other non-sex-bias params are also correctly forwarded.
+    np.testing.assert_allclose(step_2_fixed["t"],        11.0, rtol=1e-10)
+    np.testing.assert_allclose(step_2_fixed["rate_eur"], 22.0, rtol=1e-10)
+
+    # Sex-bias params must NOT appear in step-2 fixed_param_values (they are being optimised).
+    assert "sb_eur" not in step_2_fixed, "sb_eur must not appear in step-2 fixed_param_values."
+    assert "sb_afr" not in step_2_fixed, "sb_afr must not appear in step-2 fixed_param_values."

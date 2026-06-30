@@ -134,11 +134,33 @@ class PhTDioecious(PhaseTypeDistribution):
         migration_matrix_f[migration_matrix_f < 1e-3] = 0
         migration_matrix_m[migration_matrix_m < 1e-3] = 0
 
+        # Check for migration contributions in (0,1)
+        mig_per_row_f = np.sum(migration_matrix_f, axis=1)    
+        mig_per_row_m = np.sum(migration_matrix_m, axis=1)
+        if np.any(migration_matrix_f < 0) or np.any(mig_per_row_f > 1 + 1e-2):
+            print("Offending migration matrix", migration_matrix_f)
+            raise Exception('Contributions from source populations must be non-negative and sum up to a value in [0,1].')
+        if np.any(migration_matrix_m < 0) or np.any(mig_per_row_m > 1 + 1e-2):
+            print("Offending migration matrix", migration_matrix_m)
+            raise Exception('Contributions from source populations must be non-negative and sum up to a value in [0,1].')
+
         if not np.isclose(np.sum(np.abs(migration_matrix_f[-1, :])), 1, atol=1e-2) or not np.isclose(np.sum(np.abs(migration_matrix_m[-1, :])), 1, atol = 1e-2):
             print('migration_matrix_f : \n', migration_matrix_f, 'with sum ', np.sum(np.abs(migration_matrix_f[-1, :])))
             print('migration_matrix_m : \n', migration_matrix_m, 'with sum ', np.sum(np.abs(migration_matrix_m[-1, :])))
             raise Exception(
                 'Contributions from source populations at the last generation in the past must sum up to 1.')
+
+        full_replacements_f = np.where(np.isclose(mig_per_row_f, 1, atol=1e-2))[0]
+        last_full_replacement_f = np.min(full_replacements_f)
+        migration_matrix_f[last_full_replacement_f + 1:, :] = 0 # Remove generations after the last full replacement.
+
+        full_replacements_m = np.where(np.isclose(mig_per_row_m, 1, atol=1e-2))[0]
+        last_full_replacement_m = np.min(full_replacements_m)
+        migration_matrix_m[last_full_replacement_m + 1:, :] = 0 # Remove generations after the last full replacement.
+        
+        last_full_replacement = max(last_full_replacement_f, last_full_replacement_m)
+        migration_matrix_f = migration_matrix_f[:last_full_replacement + 1, :]
+        migration_matrix_m = migration_matrix_m[:last_full_replacement + 1, :]
 
         self.migration_matrix_f_unchanged = migration_matrix_f.copy() # Defined only for testing purposes
         self.migration_matrix_m_unchanged = migration_matrix_m.copy()
@@ -900,7 +922,7 @@ class PhTDioecious(PhaseTypeDistribution):
         return unnormalized_sex_vec_prob
 
     def S_matrix(self, states, pulses, T_ped, D_model='DF'):
-        """
+        r"""
         Compute the transition matrix of the TCMC defined by the Dioecious admixture model. Corresponds to Equation (EQ) for the Dioecious-Fine 
         model and to Equation (EQ) for the Dioecious-Coarse model.
 

@@ -37,7 +37,7 @@ sphinx_gallery_conf = {
     "examples_dirs": examples_path,      # where your scripts live
     "gallery_dirs": "auto_examples",     # generated site
     "filename_pattern": r"\.py",
-    "run_stale_examples": True
+    "run_stale_examples": False
 }
 
 templates_path = ['_templates']
@@ -102,5 +102,24 @@ def skip_abstract_methods(app, what, name, obj, skip, options):
 
 def setup(app):
     app.connect("autodoc-skip-member", skip_abstract_methods)
+
+
+# -- Download data for online documentation examples
+
+from pathlib import Path
+import subprocess
+
+repo_root = Path(__file__).resolve().parents[2]
+script = repo_root / "example" / "data" / "data_download.sh"
+data_dir = repo_root / "example" / "data"
+
+# run only if data are missing
+bed_dir = data_dir / "1000G_ancestry_deconvolution"
+if not bed_dir.exists() or not any(bed_dir.iterdir()):
+    subprocess.run(
+        ["bash", str(script)],
+        check=True,
+        cwd=str(data_dir),
+    )
 
 

@@ -1,5 +1,5 @@
 samples:
-  directory: ./TrioPhased/
+  directory: ../../data/1000G_ancestry_deconvolution/ASW/PopPhased/bed_files/
   individual_names: [
     "NA19625","NA19700","NA19701","NA19703","NA19704","NA19707","NA19711","NA19712","NA19713","NA19818","NA19819",
     "NA19834","NA19835","NA19900","NA19901","NA19904","NA19908","NA19909","NA19913","NA19914","NA19916","NA19917",
@@ -16,14 +16,11 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
 
-output_filename_format: "ASW_test_output_{label}"
-output_directory: ./output_three_pulses/
-log_filename: 'ASW_three_pulses.log'
-verbose_log: 1
-verbose_screen: 30
-log_scale : True
+models:
+  model_filename: ../models/ppx_xxp_pxx.yaml
+  ad_model_autosomes: M
+  ad_model_allosomes: DC
 
-model_filename: ../models/ppx_xxp_pxx.yaml
 start_params: 
   #t1: 9:12
   #REUR: 0.7:0.9
@@ -44,13 +41,20 @@ start_params:
   REUR_sex_bias: -.2:.2
   REUR2_sex_bias: -.2:.2
   RAFR_sex_bias: -.2:.2
-repetitions: 10
-seed: 100
-maximum_iterations: 1000
-unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
-exclude_tracts_below_cm: 2
-npts : 50
-#fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
 
-ad_model_autosomes: M
-ad_model_allosomes: DC
+optim:
+  repetitions: 10
+  seed: 100
+  maximum_iterations: 1000
+  npts: 50
+  #fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
+  exclude_tracts_below_cm: 2
+  unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
+
+output:
+  output_directory: ./output_three_pulses/
+  output_filename_format: "ASW_test_output_{label}"
+  log_filename: 'ASW_three_pulses.log'
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True
