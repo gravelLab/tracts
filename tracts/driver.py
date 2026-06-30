@@ -39,7 +39,6 @@ def run_tracts(driver_filename: str, script_dir: str):
     # ------ Set up logging using filename from driver-------
     logger, memory_handler = setup_logger()
     if driver_spec.output.log_filename:
-        breakpoint()
         log_filename = Path(driver_spec.output.log_filename)
     else:
         log_filename = Path("tracts.log")
