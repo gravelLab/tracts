@@ -33,7 +33,7 @@ optim:
 output:
   output_directory: ./tests/drivers/test_output/
   output_filename_format: "test_output_{label}"
-  log_filename: 'test_logfile.log'
+  log_filename: "test_logfile.log"
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

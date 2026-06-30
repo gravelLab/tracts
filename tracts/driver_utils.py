@@ -996,6 +996,11 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The path to the driver yaml file. If None, no driver file will be copied to the output directory. Defaults to None.
     """
     
+    # ------ Create output directory if it doesn't exist ------
+ 
+    if not os.path.exists(output_dir): 
+        os.makedirs(output_dir)
+
     if driver_path is not None:
         shutil.copy2(driver_path, output_dir)
 
@@ -1018,6 +1023,17 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # Autosomal data
     autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts,
                                                                             exclude_tracts_below_cM=exclude_tracts_below_cM)
+    
+    pop_names = list(model.population_indices.keys())
+
+    ancestry_per_individual = {ind:ind.ancestryProps(pop_names, cutoff=0) for ind in sample_population.indivs}
+    
+    with open(output_dir / output_filename_format.format(label='ancestry_per_individual'), 'w') as fbins:
+        fbins.write("individual\t" + "\t".join(pop_names)+"\n")
+        for ind, proportions in ancestry_per_individual.items():
+            fbins.write(ind.name + "\t" + "\t".join(map(str,proportions))+"\n")
+    
+    
     Ls = sample_population.Ls
     nind = sample_population.nind
 
@@ -1210,7 +1226,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         f.write(f"likelihood {optimal_likelihood:>12.6g}\n")
 
     # ------ Produce and display plots -------
-    pop_names = list(model.population_indices.keys())
+    
     n_pops = len(pop_names)
 
     # Colorblind-friendly palette
@@ -1231,6 +1247,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
         cmap = plt.get_cmap("tab20")
         colors = [cmap(i) for i in range(n_pops)]
     pop_colors = {pop: colors[i] for i, pop in enumerate(pop_names)}
+
+    
+    fig, ax = plot_admixture(ancestry_per_individual, pop_names, colors, ax=None)
+    admixture_file_path = output_dir / output_filename_format.format(label="admixture_plot.pdf")
+    
+    fig.savefig(admixture_file_path, dpi=300, bbox_inches="tight")
+
 
     def _bin_centers(bins):
         return 0.5 * (bins[:-1] + bins[1:])
@@ -1446,6 +1469,57 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # Final message
     print('Results saved to : ' + str(output_dir))
     logger.info('Results saved to : ' + str(output_dir))
+
+
+
+def plot_admixture(ancestry_per_individual, labels, colors, ax=None):
+    """
+    Stacked bar chart of ancestry proportions in ADMIXTURE style. AI-generated with review
+
+    Parameters
+    ----------
+    ancestry_per_individual : dict
+        {individual: [prop_1, ..., prop_n]}
+    labels : list[str]
+        Population name for each proportion column.
+    colors : list[str]
+        Hex colour for each population.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created if None.
+
+    Returns
+    -------
+    fig, ax
+    """
+    individuals = list(ancestry_per_individual.keys())
+    props = np.array([ancestry_per_individual[ind] for ind in individuals])  # shape (n_ind, n_pop)
+    sort_pop = int(np.argmax(props.mean(axis=0)))
+    order = np.argsort(props[:, sort_pop])[::-1]
+    individuals = [individuals[i] for i in order]
+    props = props[order]
+    ind_names = [ind.name for ind in individuals]
+    
+    x = np.arange(len(individuals))
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(max(6, len(individuals) * 0.15), 3))
+    else:
+        fig = ax.get_figure()
+
+    bottoms = np.zeros(len(individuals))
+    for i, (label, color) in enumerate(zip(labels, colors)):
+        ax.bar(x, props[:, i], bottom=bottoms, color=color, width=1.0, label=label)
+        bottoms += props[:, i]
+
+    ax.set_xlim(-0.5, len(individuals) - 0.5)
+    ax.set_ylim(0, 1)
+    ax.set_xticks(x)
+    ax.set_xticklabels(ind_names, rotation=90, fontsize=6)
+    ax.set_ylabel("Ancestry proportion")
+    ax.legend(loc="upper right", bbox_to_anchor=(1.12, 1), frameon=False)
+    fig.tight_layout()
+    return fig, ax
+
 
 
 

@@ -119,4 +119,4 @@ run_tracts(
 
 # Don't run the code below: for documentation purposes only.
 from tracts.doc_utils import prepare_example_outputs_for_docs
-prepare_example_outputs_for_docs("output_continuous_pulse")
+prepare_example_outputs_for_docs("output_ccp")
