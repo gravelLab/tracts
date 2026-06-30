@@ -72,27 +72,33 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
     The specific values are not important, but they should be plausible and consistent with the expected types.
     """
     return SimpleNamespace(
-        log_filename="test_logfile.log",
-        output_directory=str(tmp_path / "test_output"),
-        exclude_tracts_below_cm=0,
-        npts=5,
-        ad_model_autosomes="DC",
-        ad_model_allosomes="DC",
         samples=SimpleNamespace(allosomes=["X"]),
-        unknown_labels_for_smoothing=[],
-        model_filename="test_model.yaml",
+        models=SimpleNamespace(
+            model_filename="test_model.yaml",
+            ad_model_autosomes="DC",
+            ad_model_allosomes="DC",
+        ),
         start_params=SimpleNamespace(),
-        repetitions=2,
-        seed=1,
-        maximum_iterations=2,
-        verbose_log=0,
-        verbose_screen=0,
-        fix_parameters_from_ancestry_proportions=[],
-        output_filename_format="test_output_{label}",
-        two_steps_optimization=two_steps_optimization,
-        autosomes_in_step_2=autosomes_in_step_2,
-        use_autosomes_for_sex_bias=autosomes_in_step_2,
-        log_scale=False,
+        optim=SimpleNamespace(
+            seed=1,
+            repetitions=2,
+            maximum_iterations=2,
+            npts=5,
+            exclude_tracts_below_cm=0,
+            fix_parameters_from_ancestry_proportions=[],
+            unknown_labels_for_smoothing=[],
+            two_steps_optimization=two_steps_optimization,
+            autosomes_in_step_2=autosomes_in_step_2,
+            use_autosomes_for_sex_bias=autosomes_in_step_2,
+        ),
+        output=SimpleNamespace(
+            output_filename_format="test_output_{label}",
+            log_filename="test_logfile.log",
+            output_directory=str(tmp_path / "test_output"),
+            verbose_log=0,
+            verbose_screen=0,
+            log_scale=False,
+        ),
     )
 
 

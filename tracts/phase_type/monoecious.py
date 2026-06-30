@@ -79,10 +79,13 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         # Check for migration contributions in (0,1)
         mig_per_row = np.sum(self.migration_matrix, axis=1)    
-        if np.any(self.migration_matrix < 0) or np.any(mig_per_row > 1 + 1e-4):
+        if np.any(self.migration_matrix < 0) or np.any(mig_per_row > 1 + 1e-2):
             print("Offending migration matrix", self.migration_matrix)
             raise Exception('Contributions from source populations must be non-negative and sum up to a value in [0,1].')
 
+        full_replacements = np.where(np.isclose(mig_per_row, 1, atol=1e-2))[0]
+        last_full_replacement = np.min(full_replacements)
+        self.migration_matrix = self.migration_matrix[:last_full_replacement + 1, :]  # Remove generations after the last full replacement.
 
         # ------ Compute transition matrix and initial state of the Phase-Type distribution ------
              

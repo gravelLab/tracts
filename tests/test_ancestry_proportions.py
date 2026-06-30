@@ -24,7 +24,7 @@ def test_ancestry_proportions(driver_filename = "./drivers/driver_test.yaml", sc
     allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None
 
     pop = load_population(driver_path, driver_spec, script_dir=script_path, allosome_labels = allosome_labels) 
-    pop.unknown_labels = driver_spec.unknown_labels_for_smoothing
+    pop.unknown_labels = driver_spec.optim.unknown_labels_for_smoothing
     
     pop.smooth_unknowns(allosome_labels = allosome_labels)
     model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_path, 

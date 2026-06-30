@@ -10,21 +10,24 @@ samples:
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
 
-output_filename_format: "one_pulse_{label}"
-log_filename: 'one_pulse.log'
-output_directory: ./output_one_pulse/
-verbose_log: 1
-verbose_screen: 30
-log_scale : True
+models:
+  model_filename: ./models/pp.yaml
+  ad_model_autosomes: DC
 
-model_filename: ./models/pp.yaml
 start_params: 
   R: 0.1:0.2
   tx: 5:8
 
-repetitions: 2
-maximum_iterations: 1000
-seed: 100
-exclude_tracts_below_cm: 2
+optim:
+  repetitions: 2
+  seed: 100
+  maximum_iterations: 1000
+  exclude_tracts_below_cm: 2
 
-ad_model_autosomes : DC
+output:
+  output_directory: ./output_one_pulse/
+  output_filename_format: "one_pulse_{label}"
+  log_filename: 'one_pulse.log'
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True
