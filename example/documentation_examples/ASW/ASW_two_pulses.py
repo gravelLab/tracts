@@ -10,7 +10,7 @@ To implement this example, we use the following driver file:
 .. code-block:: yaml
 
    samples:
-     directory: ../../data/1000G_ancestry_deconvolution/ASW/PopPhased/bed_files/
+     directory: ./ASW_TrioPhased
      individual_names: [
       "NA19625","NA19700","NA19701","NA19703","NA19704","NA19707","NA19711","NA19712","NA19713","NA19818","NA19819",
       "NA19834","NA19835","NA19900","NA19901","NA19904","NA19908","NA19909","NA19913","NA19914","NA19916","NA19917",
