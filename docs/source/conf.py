@@ -114,10 +114,12 @@ script = repo_root / "example" / "data" / "data_download.sh"
 data_dir = repo_root / "example" / "data"
 
 # run only if data are missing
-if not data_dir.exists() or not any(data_dir.iterdir()):
+bed_dir = data_dir / "1000G_ancestry_deconvolution"
+if not bed_dir.exists() or not any(bed_dir.iterdir()):
     subprocess.run(
         ["bash", str(script)],
         check=True,
+        cwd=str(data_dir),
     )
 
 

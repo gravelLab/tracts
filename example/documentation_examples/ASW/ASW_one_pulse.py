@@ -104,15 +104,12 @@ X chromosome admixture in males
 """
 
 import sys
-import os
 from pathlib import Path
 from tracts.driver import run_tracts
 
 # Read files automatically for online documentation
 sys.path.append('.')
 script_dir = Path.cwd()
-repo_root = script_dir.parents[2]
-os.chdir(repo_root)
 driver_filename = script_dir / "ASW_one_pulse.yaml"
 
 run_tracts(
