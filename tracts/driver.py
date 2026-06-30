@@ -94,7 +94,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
 
         # Allosomal admixture model is correctly specified
-        if hasattr(driver_spec, 'models.ad_model_allosomes') and allosome_label is not None:
+        if hasattr(driver_spec.models, "ad_model_allosomes") and allosome_label is not None:
             ad_model_allosomes = driver_spec.models.ad_model_allosomes
             if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
                 print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
