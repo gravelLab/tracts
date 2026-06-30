@@ -156,7 +156,7 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 3. Configure driver
 -------------------
 
-Finally, the user must provide a driver YAML file controlling the inference. The driver file specifies the optimization parameters and the admixture models to be used. It is composed of several groups of parameters:
+Finally, the user must provide a driver YAML file controlling the inference. It is composed of several groups of parameters:
 
 Sample configuration
 ^^^^^^^^^^^^^^^^^^^^
@@ -180,17 +180,22 @@ Sample configuration
 - ``chromosomes``: The autosomes present in data, if any.
 - ``allosomes``: The allosomes present in data, if any.
 
-Model reference
-^^^^^^^^^^^^^^^
+Models
+^^^^^^
 
 .. code-block:: yaml
 
-   model_filename: ../models/ppp.yaml
+   models:
+     model_filename: ../models/ppp.yaml
+     ad_model_autosomes: DC
+     ad_model_allosomes: H-DC
 
-- ``model_filename``: The path to the :ref:`YAML file <demographic-models>`  specifying the demographic model.
+- ``model_filename``: The path to the :ref:`YAML file <demographic-models>` specifying the demographic model.
+- ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
+- ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 
-Parameters and optimization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Starting parameters
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: yaml
 
@@ -200,53 +205,61 @@ Parameters and optimization
      R_sex_bias: 0
      t2: 5.5
 
-   seed: 100 
-   repetitions: 3
-   maximum_iterations: 1000
-   exclude_tracts_below_cm: 2 
-   npts : 50
-   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"]  
-   fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias']
-
-   ad_model_autosomes : DC
-   ad_model_allosomes: H-DC
-
 - ``start_params``: Initial values for the parameters defined in the :ref:`demographic model <demographic-models>`. The user can set a single value or an interval ``min:max``, from which an initial value is randomly selected.
+
+Optimization
+^^^^^^^^^^^^
+
+.. code-block:: yaml
+
+   optim:
+     seed: 100
+     repetitions: 3
+     maximum_iterations: 1000
+     exclude_tracts_below_cm: 2
+     npts: 50
+     unknown_labels_for_smoothing: ["UNK", "centromere", "miscall"]
+     fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias']
+     two_steps_optimization: True
+     use_autosomes_for_sex_bias: False
+
 - ``seed``: The random seed.
 - ``repetitions``: Number of independent optimization runs performed from different initial values, randomly chosen within the bounds set by the user. Since the optimizer may converge to different local optima, the algorithm repeats the optimization ``repetitions`` times and automatically retains the run with the highest likelihood.
 - ``maximum_iterations``: The maximum number of iterations during likelihood optimization.
 - ``exclude_tracts_below_cm``: The minimum tract length (in cM) required for a tract to be included in the optimization.
 - ``npts``: The number of bins controlling the resolution of the tract length histogram.
-- ``unknown_labels_for_smoothing``: Segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints. 
+- ``unknown_labels_for_smoothing``: Segments with these labels will be smoothed over, that is, will be filled with neighbouring ancestries up to their midpoints.
 - ``fix_parameters_from_ancestry_proportions``: These parameters are analytically computed from the ancestry proportions, and the optimization is restricted to the remaining parameters.
-- ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
-- ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
-- ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to False, which means that only allosomes are used to optimize sex-bias parameters.
+- ``two_steps_optimization``: Whether to perform a two-step optimization, where non-sex-bias parameters are optimized first using autosomes, and then sex-bias parameters are optimized with the non-sex-bias parameters fixed. Defaults to ``True``.
+- ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to ``False``, which means that only allosomes are used to optimize sex-bias parameters.
 
 .. admonition:: Using ``fix_parameters_from_ancestry_proportions``
    :class: tip
 
-   This option fixes a specified subset of parameters to values computed from the observed ancestry proportions in the sample. These parameters are then excluded from the optimization, reducing the dimension of the parameter space and improving convergence speed. However, it also constrains the optimization problem, which may make it more difficult for the optimizer to reach a good optimum; in practice, this often results in a lower likelihood compared to leaving all parameters free. When using this option, we recommended to set ``repetitions > 1``.  
-    
-		
+   This option fixes a specified subset of parameters to values computed from the observed ancestry proportions in the sample. These parameters are then excluded from the optimization, reducing the dimension of the parameter space and improving convergence speed. However, it also constrains the optimization problem, which may make it more difficult for the optimizer to reach a good optimum; in practice, this often results in a lower likelihood compared to leaving all parameters free. When using this option, we recommended to set ``repetitions > 1``.
+
+
 Output
 ^^^^^^
 
 .. code-block:: yaml
 
-   output_directory: ./output_files/
-   output_filename_format: "filename_{label}"
-   log_filename: 'my_example.log'
-   verbose_log: 1
-   verbose_screen: 1
-   log_scale: True
+   output:
+     output_directory: ./output_files/
+     output_filename_format: "filename_{label}"
+     log_filename: 'my_example.log'
+     verbose_log: 1
+     verbose_screen: 1
+     log_scale: True
+     plot_migration_matrices: True
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
 - ``output_filename_format``: The file name format for the output files.
-- ``log_scale``: Whether the tract lenght distributions are depicted in log-scaled counts. Default is ``True``.
-- ``log_filename`` : The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
-- ``verbose_log`` : Controls the level of detail reported in the log file during execution. If greater than zero, logs optimization status every ``verbose`` steps.
-- ``verbose_screen`` : Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every ``verbose`` steps.
+- ``log_filename``: The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
+- ``verbose_log``: Controls the level of detail reported in the log file during execution. If greater than zero, logs optimization status every ``verbose`` steps.
+- ``verbose_screen``: Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every ``verbose`` steps.
+- ``log_scale``: Whether the tract length distributions are depicted in log-scaled counts. Default is ``True``.
+- ``plot_migration_matrices``: Whether to include plots of the inferred migration matrices in the output. Default is ``True``.
 
 .. _run-tracts:
 

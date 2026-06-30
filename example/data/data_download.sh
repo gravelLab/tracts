@@ -104,4 +104,4 @@ echo "======================================="
 
 echo
 echo "Example files:"
-find "${OUTDIR}" -type f | head -20
+find "${OUTDIR}" -type f | head -20 || true
