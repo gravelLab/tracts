@@ -104,3 +104,20 @@ def setup(app):
     app.connect("autodoc-skip-member", skip_abstract_methods)
 
 
+# -- Download data for online documentation examples
+
+from pathlib import Path
+import subprocess
+
+repo_root = Path(__file__).resolve().parents[2]
+script = repo_root / "example" / "data" / "data_download.sh"
+data_dir = repo_root / "example" / "data"
+
+# run only if data are missing
+if not data_dir.exists() or not any(data_dir.iterdir()):
+    subprocess.run(
+        ["bash", str(script)],
+        check=True,
+    )
+
+
