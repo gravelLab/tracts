@@ -110,14 +110,14 @@ from tracts.driver import run_tracts
 
 # Read files automatically for online documentation
 sys.path.append('.')
-cwd = Path.cwd()
-repo_root = cwd.parents[3]
+script_dir = Path(__file__).parent
+repo_root = script_dir.parents[2]
 os.chdir(repo_root)
-driver_filename = repo_root / "example" / "documentation_examples" / "MXL" / "MXL_continuous.yaml"
+driver_filename = script_dir / "MXL_continuous.yaml"
 
 run_tracts(
     driver_filename=str(driver_filename),
-    script_dir=str(cwd),
+    script_dir=str(script_dir),
 )
 
 # Don't run the code below: for documentation purposes only.
