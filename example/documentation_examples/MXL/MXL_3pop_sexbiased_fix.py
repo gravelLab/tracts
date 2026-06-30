@@ -103,22 +103,23 @@ X chromosome admixture in males
    :alt: Native American ancestry tract histogram
 
 """
-
 import sys
+import os
 from pathlib import Path
 from tracts.driver import run_tracts
 
-script_path = Path(__file__).resolve()
-repo_root = script_path.parents[2]
+# Read files automatically for online documentation
+sys.path.append('.')
+cwd = Path.cwd()
+repo_root = cwd.parents[3]
 os.chdir(repo_root)
 driver_filename = repo_root / "example" / "documentation_examples" / "MXL" / "MXL_continuous.yaml"
 
 run_tracts(
     driver_filename=str(driver_filename),
-    script_dir=str(script_path.parent),
+    script_dir=str(cwd),
 )
 
 # Don't run the code below: for documentation purposes only.
 from tracts.doc_utils import prepare_example_outputs_for_docs
 prepare_example_outputs_for_docs("output_continuous_pulse")
-
