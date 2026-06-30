@@ -1,5 +1,5 @@
 samples:
-  directory: ./MXL_TrioPhased
+  directory: ./MXL_TrioPhased/
   individual_names: [
     "NA19648","NA19649","NA19651","NA19652","NA19654","NA19655","NA19657","NA19658","NA19661","NA19663",
     "NA19664","NA19669","NA19670","NA19676","NA19678","NA19679","NA19681","NA19682","NA19684","NA19716",
