@@ -6,18 +6,18 @@ time_units: generations
 demes:
   - name: EUR
   - name: NAT
-  - name: X
+  - name: targetpop
     ancestors: [EUR, NAT]
     proportions: [REUR,1-REUR]
     start_time: t1
 
 pulses:
   - sources: [AFR]
-    dest: X
+    dest: targetpop
     proportions: [RAFR]
     time: t2
 
   - sources: [EUR]
-    dest: X
+    dest: targetpop
     proportions: [REUR2]
     time: t3

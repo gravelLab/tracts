@@ -1,5 +1,5 @@
 samples:
-  directory: ./TrioPhased/
+  directory: ../../data/1000G_ancestry_deconvolution/MXL/PopPhased/bed_files/
   individual_names: [
     "NA19648","NA19649","NA19651","NA19652","NA19654","NA19655","NA19657","NA19658","NA19661","NA19663",
     "NA19664","NA19669","NA19670","NA19676","NA19678","NA19679","NA19681","NA19682","NA19684","NA19716",
@@ -19,34 +19,34 @@ samples:
   allosomes: [X]
 
 models:
-  model_filename: ../models/ccc.yaml
+  model_filename: ../models/ccp.yaml
   ad_model_autosomes: M
   ad_model_allosomes: DC
 
 start_params: 
-  t1: 12:14
-  REUR: 0.2
-  RAFR: 0.02
-  RNAT: 0.2
-  t2: 6:8
+  t1: 10:15
+  REUR: 0.07
+  RAFR: 0.08
+  RNAT: 0.095
+  t2: 3:5
   
-  REUR_sex_bias: -0.8:0.8 
-  RNAT_sex_bias: -0.8:0.8
-  RAFR_sex_bias: -0.5:0.5
+  REUR_sex_bias: -0.99 # more males
+  RNAT_sex_bias: 0.99 # more females
+  RAFR_sex_bias: -0.1
 
 optim:
-  repetitions: 3
+  repetitions: 10
   seed: 100
-  maximum_iterations: 1000
+  maximum_iterations: 100
   npts: 50
-  #fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
   exclude_tracts_below_cm: 2
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
+  fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
 
 output:
-  output_directory: ./output_continuous_pulse/
-  output_filename_format: "MXL_test_output_{label}"
-  log_filename: 'ASW_continuous_pulse.log'
+  output_directory: "./output_ccp/{date}/"
+  output_filename_format: "MXL_output_{label}"
+  log_filename: 'MXL_continuous_pulse.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True
