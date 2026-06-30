@@ -8,6 +8,7 @@ from typing import Callable, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 from scipy.stats import poisson
 from tracts.population import Population
 from tracts.phase_type import hybrid_pedigree as HP
@@ -116,7 +117,6 @@ class SamplesConfig(BaseModel):
 
     """
     model_config = ConfigDict(extra="forbid")
-
     directory: str
     individual_names: List[str]
     male_names: List[str] | None = None
@@ -125,6 +125,23 @@ class SamplesConfig(BaseModel):
     chromosomes: str
     allosomes: List[str]=[]
 
+class ModelsConfig(BaseModel):
+    """
+    Configuration for the demographic and admixture models used in the inference.
+
+    Attributes
+    ----------
+    model_filename: str
+        The filename of the demographic model to use for the inference. 
+    ad_model_autosomes: str
+        The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "M".
+    ad_model_allosomes: str
+        The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".   
+    """
+    model_config = ConfigDict(extra="forbid")
+    model_filename: str
+    ad_model_autosomes: str = "DC"
+    ad_model_allosomes: str = "DC"
 
 class StartParamsConfig(BaseModel):
     """
@@ -132,24 +149,12 @@ class StartParamsConfig(BaseModel):
     """
     model_config = ConfigDict(extra="allow")
 
-
-class InferenceConfig(BaseModel):
+class OptimizationConfig(BaseModel):
     """
-    Configuration for the inference process. This determines the list of parameteres that can be processed
-    from the driver file, together with their types and default values. Only parameters specified in this class will be processed
-    and additional parameters in the driver file will rise an error. This is to ensure that the driver file is correctly specified
-    and to provide clear error messages for missing or misspelled parameters. See online documentation for details on how to specify parameters in the driver file.
+    Configuration for the optimization process used in the inference.
 
     Attributes
     ----------
-    unknown_labels_for_smoothing: List[str]
-        A list of population labels for which to apply smoothing to the tract length distribution. Defaults to an empty list.
-    samples: SamplesConfig
-        The configuration for the samples used in the inference.
-    model_filename: str
-        The filename of the demographic model to use for the inference. 
-    start_params: StartParamsConfig
-        The configuration for the starting parameters used in the optimization.
     repetitions: int
         The number of repetitions to perform for the optimization. Defaults to 1.
     seed: int
@@ -162,53 +167,83 @@ class InferenceConfig(BaseModel):
         The minimum tract length in centiMorgans to include in the analysis. Tracts shorter than this length will be excluded. Defaults to 1 cM.
     fix_parameters_from_ancestry_proportions: List[str]
         A list of parameter names to fix based on the ancestry proportions. See online documentation for details.
-    output_directory: str | None
-        The directory where the output files will be saved. 
-    output_filename_format: str
-        The format of the output filenames.
-    log_filename : str, Optional
-        The filename of the log file to write to. If None, no log file will be created. Defaults to "tracts.log".
-    ad_model_autosomes: str
-        The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "M".
-    ad_model_allosomes: str
-        The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
-    verbose_log: int
-        The verbosity level for logging. Defaults to 1.
-    verbose_screen: int
-        The verbosity level for screen prints. Defaults to 30.
-    log_scale: bool
-        Whether to use log scale to plot the tract length distribution. Defaults to True.
+    unknown_labels_for_smoothing: List[str]
+        A list of population labels for which to apply smoothing to the tract length distribution. Defaults to an empty list.
     two_steps_optimization: bool
         Whether to perform a two-step optimization process, where the first step optimizes only the non-sex-bias parameters on autosomal data and the second step optimizes sex-bias parameters using both autosomal and allosomal data. Defaults to True.
     use_autosomes_for_sex_bias: bool
         Whether step 2 should include autosomal data in addition to allosomal data. Defaults to False.
     """
-
     model_config = ConfigDict(extra="forbid")
-    unknown_labels_for_smoothing : List[str] = []
-    samples: SamplesConfig
-    model_filename: str
-    start_params: StartParamsConfig
     repetitions: int =1 
     seed: int
     maximum_iterations: int|None = None 
     npts: int = 50
     exclude_tracts_below_cm: float = 1
     fix_parameters_from_ancestry_proportions: List[str] = []
-    output_directory: str|None= None
-    output_filename_format: str
-    log_filename: Optional[str] = "tracts.log"
-    ad_model_autosomes: str = "DC"
-    ad_model_allosomes: str = "DC"
-    verbose_log: int = 1
-    verbose_screen: int = 30
-    log_scale: bool = True
+    unknown_labels_for_smoothing : List[str] = []
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
 
+class OutputConfig(BaseModel):
+    """
+    Configuration for the output of the inference process.
+
+    Attributes
+    ----------
+    output_directory: str | None
+        The directory where the output files will be saved. 
+    output_filename_format: str
+        The format of the output filenames.
+    log_filename : str, Optional
+        The filename of the log file to write to. If None, no log file will be created. Defaults to "tracts.log".
+    verbose_log: int
+        The verbosity level for logging. Defaults to 1.
+    verbose_screen: int
+        The verbosity level for screen prints. Defaults to 30.
+    log_scale: bool
+        Whether to use log scale to plot the tract length distribution. Defaults to True.
+    plot_migration_matrices: bool
+        Whether to plot the final mean migration matrix together with the sex-bias values per pulse.
+    """
+    model_config = ConfigDict(extra="forbid")
+    output_directory: str|None= None
+    output_filename_format: str
+    log_filename: Optional[str] = "tracts.log"
+    verbose_log: int = 1
+    verbose_screen: int = 30
+    log_scale: bool = True
+    plot_migration_matrices: bool = True
+
+class InferenceConfig(BaseModel):
+    """
+    Configuration for the inference process. This determines the list of parameteres that can be processed
+    from the driver file, together with their types and default values. Only parameters specified in this class will be processed
+    and additional parameters in the driver file will rise an error. This is to ensure that the driver file is correctly specified
+    and to provide clear error messages for missing or misspelled parameters. See online documentation for details on how to specify parameters in the driver file.
+
+    Attributes
+    ----------
+    samples: SamplesConfig
+        The configuration for the samples used in the inference.
+    models: ModelsConfig
+        The configuration for the demographic and admixture models used in the inference.
+    start_params: StartParamsConfig
+        The configuration for the starting parameters used in the optimization.
+    optim: OptimizationConfig
+        The configuration for the optimization process used in the inference.
+    output: OutputConfig
+        The configuration for the output of the inference process.
+    """
+    model_config = ConfigDict(extra="forbid")
+    samples: SamplesConfig
+    models: ModelsConfig
+    start_params: StartParamsConfig
+    optim: OptimizationConfig
+    output: OutputConfig
+
 
 # --------------- Driver file setup ---------------
-
 
 filepath_error_additional_message = (
     '\nPlease ensure that the file path is either absolute,'
@@ -405,7 +440,7 @@ def load_population(driver_path: str, driver_spec: InferenceConfig, script_dir: 
 def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path | None, driver_path: str, allosome_label: str | None=None):
     """
     Loads the demographic model based on the specifications in the driver file. The model is expected to be defined in a separate yaml file, 
-    whose path is specified in the driver file under "model_filename". See online documentation for details on how to specify the model yaml file and its contents.
+    whose path is specified in the driver file under "models.model_filename". See online documentation for details on how to specify the model yaml file and its contents.
 
     Parameters
     ----------
@@ -424,13 +459,11 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
         The loaded demographic model, which can be either a ParametrizedDemography or a ParametrizedDemographySexBiased depending on whether allosomal admixture is modelled.
     """ 
 
-    if not hasattr( driver_spec, 'model_filename') :
-        raise ValueError('You must specify the file path to your model under "model_filename".')
-    model_path = locate_file_path(filename=driver_spec.model_filename,
+    model_path = locate_file_path(filename=driver_spec.models.model_filename,
                                   script_dir=script_dir,
                                   absolute_driver_yaml_path=driver_path)
     if model_path is None:
-        raise FileNotFoundError(f'Model yaml file {driver_spec.model_filename} could not be found. {filepath_error_additional_message}')
+        raise FileNotFoundError(f'Model yaml file {driver_spec.models.model_filename} could not be found. {filepath_error_additional_message}')
     if allosome_label:
         model = ParametrizedDemographySexBiased.load_from_YAML(str(model_path.resolve()))
         model.allosome_label=allosome_label
@@ -819,11 +852,121 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
     return result
 
 
+def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list, output_path: str):
+
+    mean_matrix = (migration_matrix_f[1:,:] + migration_matrix_m[1:,:]) / 2
+    safe_mean = np.where(mean_matrix != 0, mean_matrix, np.nan)
+    sex_bias_matrix = migration_matrix_f[1:,:] / safe_mean - 1
+
+    n_rows, n_cols = mean_matrix.shape
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+
+    # Adaptive fonts
+    font_scale = max(7, min(12, 12 - 0.4 * n_cols))
+    tick_font = max(6, min(10, 10 - 0.3 * n_cols))
+    annot_font = max(5, min(9, 9 - 0.3 * max(n_rows, n_cols)))
+
+    x_ticks = np.arange(n_cols)
+    y_ticks = np.arange(n_rows)
+
+    # Colormaps
+    cmap_mean = LinearSegmentedColormap.from_list("white_green", ["white", "green"])
+    cmap_bias = LinearSegmentedColormap.from_list("blue_white_red", ["blue", "white", "red"])
+    norm_bias = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1)
+
+    # Panel 1: Mean matrix
+    im1 = ax1.imshow(mean_matrix, cmap=cmap_mean, vmin=0, vmax=1, aspect="auto")
+    ax1.set_box_aspect(mean_matrix.shape[0] / mean_matrix.shape[1])
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+            if mean_matrix[i, j] > 1e-12:
+                ax1.text(
+                    j, i,
+                    f"{mean_matrix[i, j]:.3f}",
+                    ha="center",
+                    va="center",
+                    fontsize=annot_font
+                )
+
+    ax1.set_title("Mean migration matrix", fontsize=font_scale, pad=10)
+    ax1.set_xticks(x_ticks)
+    ax1.set_xticklabels(pop_labels, fontsize=tick_font)
+    ax1.set_xlabel("Ancestral population", fontsize=font_scale)
+    ax1.set_ylabel("Generation", fontsize=font_scale)
+    ax1.set_yticks(y_ticks)
+    ax1.set_yticklabels(y_ticks + 1)
+    ax1.tick_params(axis='both', labelsize=tick_font, pad=6)
+
+    cbar1 = fig.colorbar(
+        im1,
+        ax=ax1,
+        orientation="horizontal",
+        pad=0.18,
+        fraction=0.05
+    )
+    cbar1.set_label("Migration rate", fontsize=font_scale, labelpad=8)
+    cbar1.ax.tick_params(labelsize=tick_font)
+
+    # Panel 2: Sex bias matrix
+    im2 = ax2.imshow(sex_bias_matrix, cmap=cmap_bias, norm=norm_bias, aspect="auto")
+    ax2.set_box_aspect(sex_bias_matrix.shape[0] / sex_bias_matrix.shape[1])
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+            if abs(sex_bias_matrix[i, j]) > 1e-12:
+                ax2.text(
+                    j, i,
+                    f"{sex_bias_matrix[i, j]:.3f}",
+                    ha="center",
+                    va="center",
+                    fontsize=annot_font
+                )
+
+    ax2.set_title("Sex bias in migration", fontsize=font_scale, pad=10)
+    ax2.set_xticks(x_ticks)
+    ax2.set_xticklabels(pop_labels, fontsize=tick_font)
+    ax2.set_xlabel("Ancestral population", fontsize=font_scale)
+    ax2.set_ylabel("Generation", fontsize=font_scale)
+    ax2.set_yticks(y_ticks)
+    ax2.set_yticklabels(y_ticks + 1)
+    ax2.tick_params(axis='both', labelsize=tick_font, pad=6)
+
+    cbar2 = fig.colorbar(
+        im2,
+        ax=ax2,
+        orientation="horizontal",
+        pad=0.18,
+        fraction=0.05
+    )
+
+    cbar2.set_label("Sex bias", fontsize=font_scale, labelpad=8)
+    cbar2.set_ticks([-1, 0, 1])
+    cbar2.set_ticklabels([
+        "-1 (male-only)",
+        "0 (unbiased)",
+        "+1 (female-only)"
+    ])
+    cbar2.ax.tick_params(labelsize=tick_font)
+
+    # Layout
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.15)
+
+    # Save plot
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    png_path = os.path.splitext(output_path)[0] + ".png"
+    fig.savefig(png_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray, 
                                     optimal_likelihood:float,
                                     model: ParametrizedDemographySexBiased,
                                     driver_spec: InferenceConfig,
+                                    output_dir: Path,
                                     ad_model_autosomes: str='DC', 
                                     ad_model_allosomes: str='DC',
                                     driver_path: str|None = None
@@ -843,6 +986,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The demographic model for which to output simulation data.
     driver_spec: InferenceConfig
         The driver specification containing output configuration.
+    output_dir: Path
+        The directory to which output files will be written.
     ad_model_autosomes: str
         The model for autosomal admixture. Defaults to 'DC'.
     ad_model_allosomes: str
@@ -851,23 +996,14 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The path to the driver yaml file. If None, no driver file will be copied to the output directory. Defaults to None.
     """
     
-    # ------ Create output directory if it doesn't exist ------
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    formatted_output_directory =  driver_spec.output_directory.format(date=timestamp)
-    
-    output_dir = Path.cwd() if not formatted_output_directory  else Path(formatted_output_directory)
-    if not os.path.exists(output_dir): 
-        os.makedirs(output_dir)
-
     if driver_path is not None:
         shutil.copy2(driver_path, output_dir)
 
     # ------- Set up output filename format and load required parameters for output production ------
-    output_filename_format = driver_spec.output_filename_format
-    exclude_tracts_below_cM = driver_spec.exclude_tracts_below_cm
-    npts = driver_spec.npts
-    log_scale = driver_spec.log_scale
+    output_filename_format = driver_spec.output.output_filename_format
+    exclude_tracts_below_cM = driver_spec.optim.exclude_tracts_below_cm
+    npts = driver_spec.optim.npts
+    log_scale = driver_spec.output.log_scale
 
     matrices = model.get_migration_matrices(optimal_params)
     matrix_list = [matrix for matrix in matrices.values()]
@@ -1249,6 +1385,15 @@ def output_simulation_data_sex_biased(sample_population: Population,
         fig.savefig(png_path, dpi=300, bbox_inches="tight")
         plt.close(fig)
 
+    # --- Produce migration matrices plot
+    if driver_spec.output.plot_migration_matrices:
+        _plot_migration_matrices(migration_matrix_f=female_matrix,
+                                migration_matrix_m=male_matrix,
+                                pop_labels=pop_names,
+                                output_path=os.path.join(
+                                    output_dir,
+                                    output_filename_format.format(label="migration_matrices.pdf")
+                                ))
 
     # --- Produce plot for autosomes ---
     _plot_panel(
@@ -1714,3 +1859,61 @@ def _get_optimization_subtitle(parameter_handler: FixedParametersHandler,
         and name not in parameter_handler.params_fixed_by_ancestry
     ]
     return f"Step 1 : Optimizing autosomal likelihood over parameters {str(free_params)}."
+
+
+def _save_ancestry_proportions_table(ancestor_labels, observed_autosome_proportions: np.ndarray, predicted_autosome_proportions: np.ndarray | None,
+                                    output_dir, output_filename_format: str, observed_allosome_proportions: np.ndarray | None = None,
+                                    predicted_allosome_proportions: np.ndarray | None = None, allosome_label: str | None = None) -> None:
+    """
+    Writes a fixed-width text table of observed and predicted ancestry proportions
+    (for autosomes and, optionally, allosomes) to the output directory.
+
+    Parameters
+    ----------
+    ancestor_labels:
+        Ordered iterable of source-population names (columns of the table).
+    observed_autosome_proportions:
+        Observed autosomal ancestry proportions, one value per source population.
+    predicted_autosome_proportions:
+        Predicted autosomal ancestry proportions from the optimal model parameters,
+        or ``None`` if not available.
+    output_dir:
+        Path to the directory where the file will be written.
+    output_filename_format:
+        The ``output_filename_format`` string from the driver file (must contain
+        a ``{label}`` placeholder).
+    observed_allosome_proportions:
+        Observed allosomal ancestry proportions, or ``None`` if no allosomes are
+        present in the sample.
+    predicted_allosome_proportions:
+        Predicted allosomal ancestry proportions from the optimal model parameters,
+        or ``None`` if not available.
+    allosome_label:
+        The allosome identifier (e.g. ``'X'``), used as the row label suffix.
+        Required when ``observed_allosome_proportions`` or
+        ``predicted_allosome_proportions`` is provided.
+    """
+    pop_labels = list(ancestor_labels)
+    col_w = max(max(len(lbl) for lbl in pop_labels), 12)
+    row_label_w = 30
+
+    rows = [("Observed (autosomes)", observed_autosome_proportions)]
+    if predicted_autosome_proportions is not None:
+        rows.append(("Predicted (autosomes)", predicted_autosome_proportions))
+    if observed_allosome_proportions is not None:
+        rows.append((f"Observed ({allosome_label})", observed_allosome_proportions))
+    if predicted_allosome_proportions is not None:
+        rows.append((f"Predicted ({allosome_label})", predicted_allosome_proportions))
+
+    header = f"{'':>{row_label_w}} " + " ".join(f"{lbl:>{col_w}}" for lbl in pop_labels)
+    sep = "-" * len(header)
+    lines = [sep, header, sep]
+    for row_label, values in rows:
+        lines.append(
+            f"{row_label:>{row_label_w}} " + " ".join(f"{v:>{col_w}.6f}" for v in values)
+        )
+    lines.append(sep)
+
+    out_path = Path(output_dir) / output_filename_format.format(label="ancestry_proportions.txt")
+    with open(out_path, "w") as f:
+        f.write("\n".join(lines) + "\n")

@@ -15,15 +15,12 @@ samples:
   labels: [A, B] #If this field is omitted, 'A' and 'B' will be used by default
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
-  
-output_filename_format: "ASW_test_output_{label}"
-log_filename: 'ASW_two_pulses.log'
-output_directory: ./output_two_pulses/
-verbose_log: 1
-verbose_screen: 30
-log_scale : True  
 
-model_filename: ../models/ppp_pxx.yaml
+models:
+  model_filename: ../models/ppp_pxx.yaml
+  ad_model_autosomes: M
+  ad_model_allosomes: DC
+
 start_params: 
   t1: 10:14
   REUR: 0.1
@@ -34,13 +31,19 @@ start_params:
   RNAT: 0.1
   RNAT_sex_bias: 0.1
 
-repetitions: 3
-seed: 100
-maximum_iterations: 1000
-unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
-exclude_tracts_below_cm: 2
-npts : 50
-#fix_parameters_from_ancestry_proportions: ['REUR2', 'RNAT', 'REUR2_sex_bias', 'RNAT_sex_bias']
+optim:
+  repetitions: 3
+  seed: 100
+  maximum_iterations: 1000
+  npts: 50
+  #fix_parameters_from_ancestry_proportions: ['REUR2', 'RNAT', 'REUR2_sex_bias', 'RNAT_sex_bias']
+  exclude_tracts_below_cm: 2
+  unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
-ad_model_autosomes: M
-ad_model_allosomes: DC
+output:
+  output_directory: ./output_two_pulses/
+  output_filename_format: "ASW_test_output_{label}"
+  log_filename: 'ASW_two_pulses.log'
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True
