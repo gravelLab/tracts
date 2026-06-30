@@ -45,7 +45,7 @@ optim:
 
 output:
   output_directory: ./output_one_pulse_popphased/{date}/
-  output_filename_format: "ACB_test_output_{label}"
+  output_filename_format: "ACB_output_{label}"
   log_filename: 'ACB_one_pulse.log'
   verbose_log: 1
   verbose_screen: 30
