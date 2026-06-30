@@ -24,7 +24,7 @@ samples:
   
 output_filename_format: "ACB_test_output_{label}"
 log_filename: 'ACB_one_pulse.log'
-output_directory: ./output_one_pulse_popphased/
+output_directory: ./output_one_pulse_popphased/{date}/
 verbose_log: 1
 verbose_screen: 30
 log_scale : True
