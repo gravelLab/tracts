@@ -49,26 +49,10 @@ def run_tracts(driver_filename: str, script_dir: str):
         output_dir = Path.cwd()
         driver_spec.output.output_directory = str(output_dir)
     else:
-        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         formatted_output_directory =  driver_spec.output.output_directory.format(date=timestamp)
         output_dir = Path(formatted_output_directory)
  
- 
-    # ------ Set up logging using filename from driver-------
-    logger, memory_handler = setup_logger()
- 
-    if hasattr(driver_spec, "log_filename") and driver_spec.log_filename:
-        log_path = Path(driver_spec.log_filename)
-        if log_path.suffix == "":
-            log_path = log_path.with_suffix(".log")
-        log_filename = output_dir / log_path.name
-    else:
-        log_filename =  output_dir / "tracts.log"
-        logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
-    
-
-    
     if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
         os.makedirs(output_dir)
     
