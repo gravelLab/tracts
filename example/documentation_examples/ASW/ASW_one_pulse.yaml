@@ -1,5 +1,5 @@
 samples:
-  directory: ../../data/1000G_ancestry_deconvolution/ASW/PopPhased/bed_files/
+  directory: ./ASW_TrioPhased
   
   individual_names: [
     "NA19625","NA19700","NA19701","NA19703","NA19704","NA19707","NA19711","NA19712","NA19713","NA19818","NA19819",
