@@ -92,8 +92,8 @@ class PhTMonoecious(PhaseTypeDistribution):
         self.num_populations = self.migration_matrix.shape[1] # Number of populations is given by the number of columns of the migration matrix.
         self.num_generations = len(self.migration_matrix) # Number of generations is given by the number of rows of the migration matrix.
         
-        self.survival_factors = get_survival_factors(migration_matrix) 
-        self.prop_at_1 = migration_matrix[1, :].copy()
+        self.survival_factors = get_survival_factors(self.migration_matrix) 
+        self.prop_at_1 = self.migration_matrix[1, :].copy()
         self.t0_proportions = np.sum(self.migration_matrix * np.transpose([self.survival_factors]), axis=0)
         self.transition_matrices = [0] * self.num_populations
 
