@@ -42,9 +42,9 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
 output:
-  output_directory: ./output_continuous_pulse/
-  output_filename_format: "PEL_test_output_{label}"
-  log_filename: 'PEL_continuous_pulse.log'
+  output_directory: ./output_ccp/
+  output_filename_format: "PEL_{label}"
+  log_filename: 'ccp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True
