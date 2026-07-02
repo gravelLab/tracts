@@ -1,5 +1,5 @@
 samples:
-  directory: ../../data/1000G_ancestry_deconvolution/ACB/PopPhased/bed_files/
+  directory: "../../data/1000G_ancestry_deconvolution/ACB/PopPhased/bed_files/"
   individual_names: [
     "HG01879","HG01880","HG01882","HG01883","HG01885","HG01886","HG01889","HG01890","HG01894",
     "HG01896","HG01912","HG01914","HG01915","HG01956","HG01958","HG01985","HG01986","HG01988","HG01989",

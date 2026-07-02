@@ -30,16 +30,16 @@ models:
 
 start_params: 
   t1: 5
-  t2: 4
+  t2: 3
   REUR: .2:0.6
-  RNAT: 0.1
+  RNAT: 0.01
   REUR_sex_bias: -0.3:0.3
   RNAT_sex_bias: -0.3:0.3
-  REUR2: .0:0.1
+  REUR2: .0:0.01
   REUR2_sex_bias: -0.7:.7
 
 optim:
-  repetitions: 5
+  repetitions: 10
   seed: 10
   maximum_iterations: 1000
   npts: 50
