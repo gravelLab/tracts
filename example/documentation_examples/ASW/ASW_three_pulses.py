@@ -33,18 +33,18 @@ To implement this example, we use the following driver file:
     ad_model_allosomes: DC
 
    start_params: 
-    t1: 14.1
-    REUR: 0.8
-    RAFR: 0.8
-    REUR2: 0.02:0.2
-    t2: 8.1
-    t3: 4.1
-    REUR_sex_bias: -.2:.2
-    REUR2_sex_bias: -.2:.2
-    RAFR_sex_bias: -.2:.2
+     t1: 9:12
+     REUR: 0.8
+     RAFR: 0.9
+     REUR2: 0.2
+     t2: 5:8
+     t3: 1:4
+     REUR_sex_bias: -0.2:0.2
+     REUR2_sex_bias: -0.2:0.2
+     RAFR_sex_bias: -0.2:0.2
 
    optim:
-    repetitions: 10
+    repetitions: 5
     seed: 100
     maximum_iterations: 1000
     npts: 50
