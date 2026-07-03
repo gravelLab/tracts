@@ -858,6 +858,14 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     safe_mean = np.where(mean_matrix != 0, mean_matrix, np.nan)
     sex_bias_matrix = migration_matrix_f[1:,:] / safe_mean - 1
 
+    # Add migration rate and sex-bias for the admixed population
+    admixed_rate = 1 - np.sum(mean_matrix, axis = 1) # 1 - \sum_{i}R_i
+    safe_admixed_rate = np.where(admixed_rate != 0, admixed_rate, np.nan)
+    admixed_sex_bias = -np.nansum(mean_matrix*sex_bias_matrix, axis = 1)/safe_admixed_rate # R_x R_{x,SB} = -\sum_{i \neq x}R_i R_{i,SB}
+    mean_matrix = np.concatenate([mean_matrix, admixed_rate[:, np.newaxis]], axis = 1)
+    sex_bias_matrix = np.concatenate([sex_bias_matrix, admixed_sex_bias[:, np.newaxis]], axis = 1)
+    pop_labels = pop_labels + ['Admixed']
+
     n_rows, n_cols = mean_matrix.shape
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -892,12 +900,13 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
     ax1.set_title("Mean migration matrix", fontsize=font_scale, pad=10)
     ax1.set_xticks(x_ticks)
-    ax1.set_xticklabels(pop_labels, fontsize=tick_font)
+    ax1.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2))
     ax1.set_xlabel("Ancestral population", fontsize=font_scale)
     ax1.set_ylabel("Generation", fontsize=font_scale)
     ax1.set_yticks(y_ticks)
     ax1.set_yticklabels(y_ticks + 1)
-    ax1.tick_params(axis='both', labelsize=tick_font, pad=6)
+    ax1.tick_params(axis='y', labelsize=tick_font, pad=6)
+    ax1.tick_params(axis='x', labelsize=max(4, tick_font - 2), pad=6)
 
     cbar1 = fig.colorbar(
         im1,
@@ -926,12 +935,13 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
     ax2.set_title("Sex bias in migration", fontsize=font_scale, pad=10)
     ax2.set_xticks(x_ticks)
-    ax2.set_xticklabels(pop_labels, fontsize=tick_font)
+    ax2.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2))
     ax2.set_xlabel("Ancestral population", fontsize=font_scale)
     ax2.set_ylabel("Generation", fontsize=font_scale)
     ax2.set_yticks(y_ticks)
     ax2.set_yticklabels(y_ticks + 1)
-    ax2.tick_params(axis='both', labelsize=tick_font, pad=6)
+    ax2.tick_params(axis='y', labelsize=tick_font, pad=6)
+    ax2.tick_params(axis='x', labelsize=max(4, tick_font - 2), pad=6)
 
     cbar2 = fig.colorbar(
         im2,
