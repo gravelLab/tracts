@@ -52,7 +52,7 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
 output:
-  output_directory: ./output_three_pulses/
+  output_directory: ./output_three_pulses/{date}/
   output_filename_format: "ASW_test_output_{label}"
   log_filename: 'ASW_three_pulses.log'
   verbose_log: 1
