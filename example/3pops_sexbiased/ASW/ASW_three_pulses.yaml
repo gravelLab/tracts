@@ -43,7 +43,7 @@ start_params:
   RAFR_sex_bias: -.2:.2
 
 optim:
-  repetitions: 10
+  repetitions: 3
   seed: 100
   maximum_iterations: 1000
   npts: 50
