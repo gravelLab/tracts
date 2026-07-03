@@ -399,7 +399,9 @@ def test_continuous_founder_event_parameter_creation(model_with_continuous_found
 
 def test_founder_event_population_addition(model_with_founder_event):
     """
-    Checks that founder event adds populations correctly. This includes verifying that the destination population is added to the model and that the founder event is recorded for both male and female populations with the correct source populations and rates.
+    Checks that founder event adds populations correctly. 
+    This includes verifying that the destination population is added to the model and that the founder event 
+    is recorded for both male and female populations with the correct source populations and rates.
     """
     # Verify populations were added
     assert "source_pop1" in model_with_founder_event.population_indices
@@ -424,7 +426,7 @@ def test_founder_event_sex_bias_calculation(model_with_founder_event_and_params)
     model_with_founder_event_and_params.finalize()
     
     # Test parameter evaluation
-    test_params = [0.4, 0.2, 5]  # founder_rate1, founder_rate1_sex_bias, found_time
+    test_params = [0.4, 0.2, 5.5]  # founder_rate1, founder_rate1_sex_bias, found_time
     
     # Calculate expected rates
     expected_male_rate = 0.4-0.2 * (1/2-(1/2-0.4))  # rate * (1 - sex_bias)
@@ -437,6 +439,19 @@ def test_founder_event_sex_bias_calculation(model_with_founder_event_and_params)
     # Verify rates
     assert np.isclose(male_rate, expected_male_rate)
     assert np.isclose(female_rate, expected_female_rate)
+    
+    matrices = model_with_founder_event_and_params.get_migration_matrices(test_params)
+    male_matrix = matrices['destination_pop_male']
+    female_matrix = matrices['destination_pop_female']
+    assert male_matrix[-1,0] == expected_male_rate
+    assert female_matrix[-1,0] == expected_female_rate
+    assert male_matrix[-2,0]/np.sum(male_matrix[-2,:]) == expected_male_rate
+    assert female_matrix[-2,0]/np.sum(male_matrix[-2,:]) == expected_female_rate
+
+
+
+
+
 
 def test_continuous_founder_event_sex_bias_calculation(model_with_continuous_founder_event):
     """
