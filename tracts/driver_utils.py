@@ -905,7 +905,8 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     ax1.set_ylabel("Generation", fontsize=font_scale)
     ax1.set_yticks(y_ticks)
     ax1.set_yticklabels(y_ticks + 1)
-    ax1.tick_params(axis='both', labelsize=tick_font, pad=6)
+    ax1.tick_params(axis='y', labelsize=tick_font, pad=6)
+    ax1.tick_params(axis='x', labelsize=max(4, tick_font - 2), pad=6)
 
     cbar1 = fig.colorbar(
         im1,
@@ -939,7 +940,8 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     ax2.set_ylabel("Generation", fontsize=font_scale)
     ax2.set_yticks(y_ticks)
     ax2.set_yticklabels(y_ticks + 1)
-    ax2.tick_params(axis='both', labelsize=tick_font, pad=6)
+    ax2.tick_params(axis='y', labelsize=tick_font, pad=6)
+    ax2.tick_params(axis='x', labelsize=max(4, tick_font - 2), pad=6)
 
     cbar2 = fig.colorbar(
         im2,
