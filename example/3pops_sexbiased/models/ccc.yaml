@@ -1,4 +1,4 @@
-model_name: One_Pulse
+model_name: countinuous_founding
 description: 
   Represents a population X founded with a continuous event.
 time_units: generations
@@ -6,7 +6,7 @@ demes:
   - name: EUR
   - name: NAT
   - name: AFR
-  - name: X
+  - name: targetpop
     ancestors: [EUR, NAT, AFR]
     proportions: [REUR, RNAT,RAFR ]
     start_time: t1

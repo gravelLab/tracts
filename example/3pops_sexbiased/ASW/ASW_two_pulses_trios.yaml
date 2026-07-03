@@ -39,8 +39,8 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
 output:
-  output_directory: ./output_two_pulses_trios/
-  output_filename_format: "ASW_test_output_trios_{label}"
+  output_directory: ./output_ppp_pxx_trios/
+  output_filename_format: "ASW_output_trios_{label}"
   log_filename: 'ASW_two_pulses_trios.log'
   verbose_log: 1
   verbose_screen: 30

@@ -45,7 +45,7 @@ optim:
 
 output:
   output_directory: './output_cpc/{date}'
-  output_filename_format: "PUR_test_output_{label}"
+  output_filename_format: "PUR_{label}"
   log_filename: 'PUR_cpc.log'
   verbose_log: 1
   verbose_screen: 30

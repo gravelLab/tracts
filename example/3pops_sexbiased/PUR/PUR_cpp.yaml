@@ -44,8 +44,8 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
 output:
-  output_directory: ./output_cpp/
-  output_filename_format: "PUR_test_output_{label}"
+  output_directory: "./output_cpp/{date}/"
+  output_filename_format: "PUR_{label}"
   log_filename: 'PUR_cpp.log'
   verbose_log: 1
   verbose_screen: 30

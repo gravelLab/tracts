@@ -45,7 +45,7 @@ optim:
 
 output:
   output_directory: "./output_ccc/{date}/"
-  output_filename_format: "CLM_output_{label}"
+  output_filename_format: "CLM_{label}"
   log_filename: 'CLM_ccc.log'
   verbose_log: 1
   verbose_screen: 30

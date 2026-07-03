@@ -40,9 +40,9 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
 output:
-  output_directory: "./output_one_pulse/{date}/"
-  output_filename_format: "CLM_output_{label}"
-  log_filename: 'CLM_one_pulse.log'
+  output_directory: "./output_ppp/{date}/"
+  output_filename_format: "CLM_{label}"
+  log_filename: 'CLM_ppp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

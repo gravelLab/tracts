@@ -44,9 +44,9 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
 output:
-  output_directory: "./output_continuous_pulse/{date}/"
-  output_filename_format: "CLM_output_{label}"
-  log_filename: 'CLM_continuous_pulse.log'
+  output_directory: "./output_ccp/{date}/"
+  output_filename_format: "CLM_{label}"
+  log_filename: 'CLM_ccp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True
