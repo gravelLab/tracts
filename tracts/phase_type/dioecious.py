@@ -1042,7 +1042,7 @@ class PhTDioecious(PhaseTypeDistribution):
             S_DF = Rho.dot(M).todense()
 
             if np.any(np.sum(S_DF, axis=1) == 0):
-                raise Exception('State space is not connected.')
+                raise Exception('State space is not connected. This can happen if there is a full replacement after the founding generation.')
             np.fill_diagonal(S_DF, -np.sum(S_DF, axis=1))
 
             return S_DF.astype(float)
