@@ -127,7 +127,7 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 
    .. math::
 
-      \sum_{i} R_{Ti}^{\text{sex bias}} R_{Ti} = 0.
+      \sum_{i} R_{Ti}^{\text{sex-bias}} R_{Ti} = 0.
 
    If there are :math:`P` source populations, the user only specifies :math:`P-1` rates and sex biases,
    and the remaining parameters are inferred from these dependencies.
