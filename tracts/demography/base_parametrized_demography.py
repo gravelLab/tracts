@@ -9,6 +9,8 @@ from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 from typing import Callable
 import warnings
 import logging
+from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
+
 logger = logging.getLogger(__name__)
 
 class BaseFounderEvent(ABC):
@@ -859,10 +861,26 @@ class FixedParametersHandler:
 
         #self.parameter_groups = {}              # key: tuples of parameter names that are transformed together for optimization
                                                 # items: type of the
+        
+        
+    
         self.to_physical_params_functions = {}
         self.to_optimizer_params_functions = {}
+
+        # ------ Set up conversion to physical and optimizer units ------ 
+
+
+        self.to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
+                                    ParamType.RATE: rate_to_physical_function, 
+                                    ParamType.SEX_BIAS: sex_bias_to_physical_function} 
+        self.to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
+                                        ParamType.RATE: rate_to_optimizer_function, 
+                                        ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
+
+
         self.enable_time_param_logging = True  # Controls whether time admissibility warnings/state tracking are active.
         self._time_param_admissibility_state: dict[str, bool] = {} # Tracks whether each time parameter is currently within admissible bounds.
+
 
     def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, float]:
         """
@@ -1293,7 +1311,7 @@ class FixedParametersHandler:
             assert units == "phys", "units must be 'phys' or 'opt'."
             params_phys = params.copy()
             params_opt = self.convert_to_optimizer_params(physical_params=params)
-
+        
         if not self.has_been_fixed and len(params_phys) != len(self.demography.model_base_params): #TODO: discard the second condition?
             raise Exception("The demography has not been fixed yet.")
         if known_ancestry_proportions==None:
@@ -1304,6 +1322,8 @@ class FixedParametersHandler:
         
 
         migration_matrices = self.demography.get_migration_matrices(params=params_phys)
+        
+
         try:
             calculated_proportions = self.demography.proportions_from_matrices(migration_matrices=migration_matrices)  
             if np.all([np.allclose(calculated_proportions[sample_pop][:-1], known_ancestry_proportions[sample_pop])
@@ -1407,7 +1427,6 @@ class FixedParametersHandler:
             
         if np.isnan(solved_params).any():
             print("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
-
         params_phys = self.convert_to_physical_params(self.insert_solved_params(full_params=self.convert_to_optimizer_params(physical_params=params_phys),
                                                                                 param_values_from_proportions=solved_params))
         self.logger.debug(f'Params after solving with ancestry proportions: {params_phys}.')
