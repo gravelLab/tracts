@@ -5,6 +5,7 @@ from typing import Callable
 import numpy
 import ruamel.yaml
 from tracts.demography.base_parametrized_demography import BaseParametrizedDemography
+from tracts.demography.base_parametrized_demography import ParameterGroup
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parameter import ParamType
 from enum import Enum
@@ -191,17 +192,27 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         """
         self.parametrized_populations.append(dest_population)
 
+        # founder events rate must sum to one! We transform them to optimizer parameters as a group to avoid the dependent parameter
+        rate_parameters = []
+        sex_bias_parameters = []
+
+
         for population, rate_param in source_populations.items():
             self.add_parameter(param_name=rate_param,
                                param_type=ParamType.RATE)
+            rate_parameters.append(rate_param)
             sex_bias_param=f'{rate_param}_sex_bias'
             self.add_parameter(param_name=sex_bias_param,
                                param_type=ParamType.SEX_BIAS)
+            
+            sex_bias_parameters.append(sex_bias_param)
+
             for sex_type in sex_types:
                 self.add_dependent_parameter(param_name=f"{rate_param}{sex_type.suffix}",
                                             expression=sex_type.expression(rate_param, sex_bias_param),
                                             param_type=ParamType.RATE)
-
+        self.parameters_groups.append(ParameterGroup(params = rate_parameters + sex_bias_parameters, group_type = "SexBiasFounder"))
+        
         for sex_type in sex_types:
             super().add_founder_event(dest_population=f"{dest_population}{sex_type.suffix}",
                                     source_populations={population: f"{rate_param}{sex_type.suffix}" for population, rate_param in source_populations.items()},

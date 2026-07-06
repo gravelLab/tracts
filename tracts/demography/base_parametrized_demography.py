@@ -9,7 +9,8 @@ from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 from typing import Callable
 import warnings
 import logging
-from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
+from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_founder_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function, sex_bias_founder_to_optimizer_function
+
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +286,7 @@ class BaseParametrizedDemography(ABC):
         self.fixed_params: dict[str, Parameter] = {}
         self.dependent_params: dict[str, Parameter] = {}
         self.constant_params: dict[str, Parameter] = {}
+        self.parameters_groups: list[ParameterGroup] = []
         self.population_indices: dict[str, int] = {}
         self.reduced_constraints: list[dict] = []
         self.finalized: bool = False
@@ -338,7 +340,9 @@ class BaseParametrizedDemography(ABC):
         Returns
         -------
         list[tuple[float, float]]
-            A list of tuples representing the bounds for the free parameters of the model. The order of the bounds corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
+            A list of tuples representing the bounds for the free parameters of the model. 
+            The order of the bounds corresponds to the order of the parameters in 
+            :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         """
         return [param.bounds for param in self.model_base_params.values()]
 
@@ -350,12 +354,16 @@ class BaseParametrizedDemography(ABC):
         Parameters
         ----------
         migration_matrix: np.ndarray
-            A migration matrix representing the migration events. The matrix should have dimensions :math:`(T, P)`, where :math:`T` is the number of time points and :math:`P` is the number of populations. Each entry in the matrix represents the fraction of the admixed population that is replaced by migrants from a source population at a given time point.
+            A migration matrix representing the migration events. The matrix should have dimensions :math:`(T, P)`, 
+            where :math:`T` is the number of time points and :math:`P` is the number of populations. 
+            Each entry in the matrix represents the fraction of the admixed population that is replaced by migrants 
+            from a source population at a given time point.
         
         Returns
         -------
         np.ndarray
-            An array of shape :math:`(P,)` representing the ancestry proportions resulting from the migration events represented by the migration matrix.
+            An array of shape :math:`(P,)` representing the ancestry proportions resulting from the migration events 
+            represented by the migration matrix.
         """
         current_ancestry_proportions = migration_matrix[-1, :]
         for row in migration_matrix[-2::-1, :]:
@@ -395,13 +403,29 @@ class BaseParametrizedDemography(ABC):
 
     def finalize(self):
         """
-        Finalizes the model by setting the indices for the parameters and populations. This should be called after all parameters and populations have been added to the model and before the model is used for inference.
+        Finalizes the model by setting the indices for the parameters and populations. 
+        This should be called after all parameters and populations have been added to the model and before the model is used for inference.
         """
         self.finalized = True
         for index, param_name in enumerate(self.model_base_params):
             self.model_base_params[param_name].index = index
         for index, population_name in enumerate(self.population_indices):
             self.population_indices[population_name] = index
+
+        self.grouped_parameters = []
+        self.grouped_parameters_indices = []
+        for group in self.parameters_groups:
+            self.grouped_parameters.extend(group.params)
+            indices = [self.model_base_params[param_name].index for param_name in group.params]
+            group.indices = indices
+            self.grouped_parameters_indices.extend(indices)
+        assert len(self.grouped_parameters) == len(set(self.grouped_parameters)), (
+            f"Duplicate parameter names found in grouped_parameters: "
+            f"{[name for name in set(grouped_parameters) if grouped_parameters.count(name) > 1]}"
+        )
+
+
+
 
     def add_parameter(self, param_name: str, param_type: ParamType=ParamType.UNTYPED, bounds: tuple | None = None):
         """
@@ -811,6 +835,37 @@ class BaseParametrizedDemography(ABC):
     def add_continuous_migration(self, source_population, rate_param, start_param, end_param):
         pass
 
+
+
+class ParameterGroup:
+    def __init__(self, params:list[str], group_type: str, indices: list[int]| None = None):
+        self.params = params
+        self.group_type = group_type
+        self.indices = indices
+        if group_type == "SexBiasFounder":
+            self._to_physical = sex_bias_founder_to_physical_function
+            self._to_optimizer = sex_bias_founder_to_optimizer_function
+        else: 
+            raise("group type not implemented")
+
+    def extract(self, parameters: np.ndarray) -> np.ndarray:
+        return np.array(parameters)[self.indices]
+
+    def substitute(self, parameters: np.ndarray, converted_values:np.ndarray) -> np.ndarray:
+        output = np.array(parameters)
+        output[self.indices] = converted_values
+        return output
+
+    def convert_to_physical(self, parameters:np.ndarray):
+        group_params = self.extract(parameters)
+        converted = self._to_physical(group_params)
+        return self.substitute(parameters, converted)
+
+    def convert_to_optimizer(self, parameters:np.ndarray):
+        group_params = self.extract(parameters)
+        converted = self._to_optimizer(group_params)
+        return self.substitute(parameters, converted)
+
 class FixedParametersHandler:
     """
     A class that handles the fixing of parameters based on ancestry proportions. This class is used by :class:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography` to fix parameters based on known ancestry proportions.
@@ -876,6 +931,7 @@ class FixedParametersHandler:
         self.to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
                                         ParamType.RATE: rate_to_optimizer_function, 
                                         ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
+        self.parameter_groups = {} # Parameters that get converted jointly between physical and optimizer units
 
 
         self.enable_time_param_logging = True  # Controls whether time admissibility warnings/state tracking are active.
@@ -976,62 +1032,65 @@ class FixedParametersHandler:
         converted_params = optimizer_params.copy()
 
         for index in range(len(optimizer_params)):
-            param_name = list(self.demography.model_base_params.keys())[index]
-            param_type = self.demography.model_base_params[param_name].type
+            if index not in self.demography.grouped_parameters_indices: #then apply the default transformation
+                param_name = list(self.demography.model_base_params.keys())[index]
+                param_type = self.demography.model_base_params[param_name].type
 
-            if param_type in self.to_physical_params_functions.keys():
-                converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
-            
-            if param_type == ParamType.TIME:
-                if not self.enable_time_param_logging and not report_non_admissible:
-                    continue
+                if param_type in self.to_physical_params_functions.keys():
+                    converted_params[index] = self.to_physical_params_functions[param_type](optimizer_params[index])
+                
+                if param_type == ParamType.TIME:
+                    if not self.enable_time_param_logging and not report_non_admissible:
+                        continue
 
-                is_admissible = converted_params[index] <= max_time
-                state_key = self._get_time_param_state_key(param_name=param_name,
-                                                           max_time=max_time)
-                local_previous_state = self._time_param_admissibility_state.get(param_name)
-                shared_previous_state = self._shared_time_param_admissibility_state.get(state_key)
-                previous_state = local_previous_state if local_previous_state is not None else shared_previous_state
-                already_warned_non_admissible = state_key in self._shared_time_param_non_admissible_warned
+                    is_admissible = converted_params[index] <= max_time
+                    state_key = self._get_time_param_state_key(param_name=param_name,
+                                                            max_time=max_time)
+                    local_previous_state = self._time_param_admissibility_state.get(param_name)
+                    shared_previous_state = self._shared_time_param_admissibility_state.get(state_key)
+                    previous_state = local_previous_state if local_previous_state is not None else shared_previous_state
+                    already_warned_non_admissible = state_key in self._shared_time_param_non_admissible_warned
 
-                # Log only on status transitions admissible <-> non-admissible.
-                if previous_state is None:
-                    if (not is_admissible) and (not already_warned_non_admissible):
-                        self.logger.warning(
-                            f'Time parameter {param_name} is greater than the maximum allowed value {max_time}.')
-                        self.logger.info(
-                            f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
-                        self._shared_time_param_non_admissible_warned.add(state_key)
+                    # Log only on status transitions admissible <-> non-admissible.
+                    if previous_state is None:
+                        if (not is_admissible) and (not already_warned_non_admissible):
+                            self.logger.warning(
+                                f'Time parameter {param_name} is greater than the maximum allowed value {max_time}.')
+                            self.logger.info(
+                                f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                            self._shared_time_param_non_admissible_warned.add(state_key)
+                            # Clear back-admissible latch so the warning can fire again once the param recovers.
+                            self._shared_time_param_back_admissible_warned.discard(state_key)
+                    elif previous_state and not is_admissible:
+                        if not already_warned_non_admissible:
+                            self.logger.warning(
+                                f'Time parameter {param_name} became non-admissible (>{max_time}).')
+                            self.logger.info(
+                                f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                            self._shared_time_param_non_admissible_warned.add(state_key)
                         # Clear back-admissible latch so the warning can fire again once the param recovers.
                         self._shared_time_param_back_admissible_warned.discard(state_key)
-                elif previous_state and not is_admissible:
-                    if not already_warned_non_admissible:
+                    elif (not previous_state) and is_admissible:
+                        already_warned_back_admissible = state_key in self._shared_time_param_back_admissible_warned
+                        if not already_warned_back_admissible:
+                            self.logger.warning(
+                                f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
+                            self._shared_time_param_back_admissible_warned.add(state_key)
+                        # Clear the non-admissible latch so a future non-admissible transition can warn again.
+                        self._shared_time_param_non_admissible_warned.discard(state_key)
+
+                    # Optional reminder for end-of-optimization-step reporting.
+                    if report_non_admissible and (not is_admissible) and previous_state is False:
                         self.logger.warning(
-                            f'Time parameter {param_name} became non-admissible (>{max_time}).')
+                            f'End-of-step status: time parameter {param_name} remains non-admissible (>{max_time}).')
                         self.logger.info(
                             f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
-                        self._shared_time_param_non_admissible_warned.add(state_key)
-                    # Clear back-admissible latch so the warning can fire again once the param recovers.
-                    self._shared_time_param_back_admissible_warned.discard(state_key)
-                elif (not previous_state) and is_admissible:
-                    already_warned_back_admissible = state_key in self._shared_time_param_back_admissible_warned
-                    if not already_warned_back_admissible:
-                        self.logger.warning(
-                            f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
-                        self._shared_time_param_back_admissible_warned.add(state_key)
-                    # Clear the non-admissible latch so a future non-admissible transition can warn again.
-                    self._shared_time_param_non_admissible_warned.discard(state_key)
 
-                # Optional reminder for end-of-optimization-step reporting.
-                if report_non_admissible and (not is_admissible) and previous_state is False:
-                    self.logger.warning(
-                        f'End-of-step status: time parameter {param_name} remains non-admissible (>{max_time}).')
-                    self.logger.info(
-                        f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
-
-                self._time_param_admissibility_state[param_name] = is_admissible
-                self._shared_time_param_admissibility_state[state_key] = is_admissible
-
+                    self._time_param_admissibility_state[param_name] = is_admissible
+                    self._shared_time_param_admissibility_state[state_key] = is_admissible
+        # apply group transformation
+        for group in self.demography.parameters_groups:
+            converted_params = group.convert_to_physical(converted_params)
         return converted_params
 
 
@@ -1042,7 +1101,9 @@ class FixedParametersHandler:
         Parameters
         ----------
         physical_params: list[float]
-            A list of parameter values for the free parameters of the model in physical units. The order of the values corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
+            A list of parameter values for the free parameters of the model in physical units. 
+            The order of the values corresponds to the order of the parameters in 
+            :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         
         Returns
         -------
@@ -1055,9 +1116,14 @@ class FixedParametersHandler:
         for index in range(len(physical_params)):
             param_name = list(self.demography.model_base_params.keys())[index]
             param_type = self.demography.model_base_params[param_name].type
-            if param_type in self.to_optimizer_params_functions.keys():
-                converted_params[index] = self.to_optimizer_params_functions[param_type](physical_params[index])
-
+            
+            if index not in self.demography.grouped_parameters_indices: #then apply the default transformation
+                if param_type in self.to_optimizer_params_functions.keys():
+                    converted_params[index] = self.to_optimizer_params_functions[param_type](physical_params[index])
+            
+        #apply group transformation
+        for group in self.demography.parameters_groups:
+            converted_params = group.convert_to_optimizer(converted_params)
         return converted_params
 
 
@@ -1406,6 +1472,7 @@ class FixedParametersHandler:
                 warnings.simplefilter("always")
                 solved_params = scipy.optimize.fsolve(func=param_objective_func,
                                                 x0=start_point_validated)
+
                 for warning in w:
                     warning_origin_message = (
                         "RuntimeWarning from scipy.optimize.fsolve while solving parameters fixed by ancestry proportions: "
@@ -1424,13 +1491,13 @@ class FixedParametersHandler:
             self.logger.info(ancestry_message)
             if show_ancestry_warning:
                 print("At the end of the current optimization step: " + ancestry_message)
-            
+   
         if np.isnan(solved_params).any():
             print("Could not solve for parameters fixed by ancestry proportions. Some parameters are NaN.")
         params_phys = self.convert_to_physical_params(self.insert_solved_params(full_params=self.convert_to_optimizer_params(physical_params=params_phys),
                                                                                 param_values_from_proportions=solved_params))
         self.logger.debug(f'Params after solving with ancestry proportions: {params_phys}.')
-         
+
         if units == "opt":
             return self.convert_to_optimizer_params(physical_params=params_phys)
         return params_phys

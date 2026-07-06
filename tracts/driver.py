@@ -8,7 +8,6 @@ import os
 
 from tracts.population import Population
 from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
-from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
 from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _compute_remainder_params, _save_ancestry_proportions_table

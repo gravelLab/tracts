@@ -8,6 +8,8 @@ from tracts.util import (
     time_to_optimizer_function,
     rate_to_optimizer_function,
     sex_bias_to_optimizer_function,
+    sex_bias_founder_to_physical_function,
+    sex_bias_founder_to_optimizer_function,
 )
 
 """
@@ -220,6 +222,96 @@ def test_vectorized_inputs_are_supported():
     assert time_to_physical_function(x).shape == x.shape
     assert rate_to_physical_function(x).shape == x.shape
     assert sex_bias_to_physical_function(x).shape == x.shape
+
+
+@pytest.mark.parametrize("x", [
+    np.array([-1.0, 0.0, 1.0, -2.0, 2.0, 0.5]),          # 3 pops, mixed signs
+    np.array([0.0, 0.0, 0.0, 0.0]),                        # 2 pops, all zeros
+    np.array([-5.0, 3.0, 1.0, -1.0, -3.0, 5.0]),          # 3 pops, large values
+    np.array([0.1, -0.1]),                                  # 1 pop
+    np.array([2.0, -2.0, 1.0, -1.0, 0.5, -0.5, 3.0, -3.0]),  # 4 pops
+])
+def test_sex_bias_founder_transform_inverse_roundtrip_optimizer_to_physical(x):
+    """
+    Test that converting from optimizer space to physical space and back recovers
+    the original optimizer-space parameters.
+    """
+    physical = sex_bias_founder_to_physical_function(x)
+    recovered = sex_bias_founder_to_optimizer_function(physical)
+
+    np.testing.assert_allclose(recovered, x, rtol=1e-10, atol=1e-10)
+
+
+@pytest.mark.parametrize("x", [
+    np.array([0.2, 0.3, 0.1, 0.0, 0.5, -0.5]),            # 3 pops, rates sum <1
+    np.array([0.4, 0.4, 0.0, 0.0]),                        # 2 pops, zero sex bias
+    np.array([0.05, 0.1, 0.15, 0.2, 0.8, -0.8, 0.5, -0.5]),  # 4 pops
+    np.array([0.3, 0.2]),                                   # 1 pop, no bias
+
+])
+def test_sex_bias_founder_transform_inverse_roundtrip_physical_to_optimizer(x):
+    """
+    Test that converting from physical space to optimizer space and back recovers
+    the original physical-space parameters.
+
+    Input x has first half as total rates and second half as sex biases.
+    Rates must sum to strictly less than 1 (remainder population absorbs the rest).
+    """
+    if len(x) % 2 != 0:
+        pytest.skip("Parametrize entry has odd length, skipping.")
+    n = len(x) // 2
+    rates = x[:n]
+    if np.sum(rates) >= 1:
+        pytest.skip("Rates sum to >= 1, outside domain.")
+
+    optimizer = sex_bias_founder_to_optimizer_function(x)
+    recovered = sex_bias_founder_to_physical_function(optimizer)
+
+    np.testing.assert_allclose(recovered, x, rtol=1e-10, atol=1e-10)
+
+
+def test_sex_bias_founder_rates_sum_less_than_one():
+    """
+    Test that physical-space rates (first half of output) sum to strictly less
+    than 1, leaving room for the remainder population.
+    """
+    for x in [
+        np.array([-1.0, 0.0, 1.0, -2.0, 2.0, 0.5]),
+        np.array([0.0, 0.0, 0.0, 0.0]),
+        np.array([-5.0, 3.0, 1.0, -1.0, -3.0, 5.0]),
+    ]:
+        physical = sex_bias_founder_to_physical_function(x)
+        n = len(physical) // 2
+        rates = physical[:n]
+        assert np.sum(rates) < 1
+
+
+def test_sex_bias_founder_sex_biases_in_minus_one_to_one():
+    """
+    Test that physical-space sex biases (second half of output) lie in (-1, 1).
+    """
+    for x in [
+        np.array([-1.0, 0.0, 1.0, -2.0, 2.0, 0.5]),
+        np.array([0.0, 0.0, 0.0, 0.0]),
+        np.array([-5.0, 3.0, 1.0, -1.0, -3.0, 5.0]),
+    ]:
+        physical = sex_bias_founder_to_physical_function(x)
+        n = len(physical) // 2
+        sex_biases = physical[n:]
+        assert np.all(sex_biases > -1)
+        assert np.all(sex_biases < 1)
+
+
+def test_sex_bias_founder_zero_bias_at_equal_rates():
+    """
+    Test that equal female and male optimizer rates produce zero sex bias.
+    """
+    x = np.array([1.0, -0.5, 1.0, -0.5])  # same female and male rates for 2 pops
+    physical = sex_bias_founder_to_physical_function(x)
+    n = len(physical) // 2
+    sex_biases = physical[n:]
+
+    np.testing.assert_allclose(sex_biases, 0.0, atol=1e-14)
 
 
 def test_scalar_inputs_are_supported():

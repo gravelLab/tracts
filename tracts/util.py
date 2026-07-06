@@ -58,6 +58,72 @@ def time_to_physical_function(x):
     return np.exp(x)
 
 
+def sex_bias_founder_to_physical_function(x):
+    """
+    Convert a founder event parameters from optimizer space to physical space. 
+    This transformation maps unconstrained real values to strictly positive values
+    using the exponential function, so that the ancestry of all founder populations sums to one.
+    We assume that there is exactly one remainder population
+
+    Parameters
+    ----------
+    x: float | numpy.ndarray
+        the list of parameters in optimizer space. 
+        The first half of parameters is the rates, second half is the sex biases. 
+    
+    Returns
+    -------
+    float | numpy.ndarray
+        same parameters in physical space.
+    """
+    
+    
+    # optimizer parameters will be female_rates for populations 1, 2, k, male rates for populations 1,2,k
+    # physical parameteres wil be rates for populations 1,2,k, then sex biases for each popualtino ((m_f- m_m)/(m_f + m_m)) 
+    n = len(x) // 2
+    x_female = x[:n]
+    x_male = x[n:]
+
+    # softmax with implicit remainder fixed at logit 0, so source rates sum to <1
+    r_f = np.exp(x_female) / (1 + np.sum(np.exp(x_female)))
+    r_m = np.exp(x_male) / (1 + np.sum(np.exp(x_male)))
+
+    rates = (r_f + r_m) / 2
+    sex_biases = (r_f - r_m) / (r_f + r_m)
+
+    return np.concatenate([rates, sex_biases])
+
+
+def sex_bias_founder_to_optimizer_function(x):
+    """
+    Convert founder event parameters from physical space to optimizer space.
+    This is the inverse of :func:`sex_bias_founder_to_physical_function`.
+
+    Parameters
+    ----------
+    x: numpy.ndarray
+        The list of parameters in physical space.
+        The first half of parameters is the total rates, second half is the sex biases ((r_f - r_m) / (r_f + r_m)).
+
+    Returns
+    -------
+    numpy.ndarray
+        Same parameters in optimizer space.
+        The first half is the female rates in optimizer space, second half is the male rates in optimizer space.
+    """
+    n = len(x) // 2
+    rates = x[:n]
+    sex_biases = x[n:]
+
+    r_f = rates * (1 + sex_biases)
+    r_m = rates * (1 - sex_biases)
+
+    x_female = np.log(r_f / (1 - np.sum(r_f)))
+    x_male = np.log(r_m / (1 - np.sum(r_m)))
+
+    return np.concatenate([x_female, x_male])
+
+
 def rate_to_physical_function(x):
     """
     Convert a rate parameter from optimizer space to physical space. This transformation maps unconstrained real values to the interval ``(0, 1)``
