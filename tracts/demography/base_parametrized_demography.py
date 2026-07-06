@@ -855,6 +855,10 @@ class FixedParametersHandler:
         self.reduced_constraints =[]
         self.user_params_fixed_by_value = {}
         self.demography = None
+
+
+        #self.parameter_groups = {}              # key: tuples of parameter names that are transformed together for optimization
+                                                # items: type of the
         self.to_physical_params_functions = {}
         self.to_optimizer_params_functions = {}
         self.enable_time_param_logging = True  # Controls whether time admissibility warnings/state tracking are active.
