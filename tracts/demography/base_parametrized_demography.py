@@ -1110,7 +1110,7 @@ class FixedParametersHandler:
         self.reduced_constraints = [constraint for constraint in self.demography.constraints if any(
             param_name in self.params_fixed_by_ancestry for param_name in constraint['param_subset'])]
     
-    def extend_parameters(self, free_parameters: np.ndarray, units: str | None = None, show_ancestry_warning: bool = False, 
+    def extend_parameters(self, free_parameters: np.ndarray, units: str = "phys", show_ancestry_warning: bool = False, 
                             counter: int = 0, verbose_warning_screen: int = 0, verbose_warning_log: int = 0):
         """
         Takes in the free parameters (those seen by the optimizer) and extends them to include the 
@@ -1138,7 +1138,6 @@ class FixedParametersHandler:
         """
 
 
-        units = units if units is not None else "phys"      
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
         full_parameters[self.free_parameters_indices] = free_parameters
         full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
@@ -1253,7 +1252,7 @@ class FixedParametersHandler:
         return diff  
 
     
-    def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions: dict[str, np.ndarray] | None = None, units: str | None = None, 
+    def compute_params_fixed_by_ancestry(self, params: list[float], known_ancestry_proportions: dict[str, np.ndarray] | None = None, units: str = "phys", 
                                         show_ancestry_warning: bool = False, counter: int = 0, verbose_warning_screen: int = 0, verbose_warning_log: int = 0):
         """
         Compute the parameters fixed by ancestry proportions.
@@ -1281,7 +1280,6 @@ class FixedParametersHandler:
             The computed parameters for the fixed ancestry proportion model.
         """
         
-        units = units if units is not None else "phys"
         if units == "opt":
             params_phys = self.convert_to_physical_params(optimizer_params=params)
             params_opt = params.copy()

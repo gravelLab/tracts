@@ -102,31 +102,22 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
    :class: tip
 
    If allosomes are present in the sample, each migration proportion will be automatically associated with 
-   a corresponding sex-bias parameter, which specifies the proportion of female migrants.
-   
+   a corresponding sex-bias parameter, measuring the deviation from an unbiased migration setting. For each
+   population ``i`` and each generation ``t``, we consider the proportion ``R_{ti}^{f}`` (resp. ``R_{ti}^{m}``)
+   of female (resp. male) migrants at generation ``t`` from source population ``i``. The average migration
+   rate will then be ``R_{ti} = (R_{ti}^{f} + R_{ti}^{m})/2``, which corresponds to the balanced setting where
+   ``R_{ti}^{f} = R_{ti}^{m}``. The departure from such scenario is measured by the sex-bias parameter, defined
+   as ``R_{ti}^{sex bias} = 2 * (R_{ti}^{f}/(R_{ti}^{m}+R_{ti}^{f}) - 1/2)``. Consequently, 
+   ``R_{ti}^{sex bias} = 1`` corresponds to exclusively female migration, 
+   ``R_{ti}^{sex bias} = -1`` to exclusively male migration, and ``R_{ti}^{sex bias} = 0`` to unbiased migration.
 
-   We take the overall migration rate from source population $i$ ``R_i`` as the average of the male and female replacement rate,
-   ``R = (R_{i,m} + R_{i,f})/2,`` with ``R_{i,f}`` the proportion of females who are migrants 
-   from source population ``i``.
-   We consider balanced a scenario where ``R_{i,m} = R_{i,f}.`` We measure departure from this scenario using the parameter
-   ``R_{i,sex_bias} = 2 * (R_{i,f}/(R_{i,m}+R_{i,f}) - 1/2).`` 
-
-
-     
-   Consequently, ``R_sex_bias = 1`` corresponds to exclusively female migration, 
-   ``R_sex_bias = -1`` to exclusively male migration, and ``R_sex_bias = 0`` to unbiased migration.
-
-   For all generations except the founder generation, the initial value of ``R_sex_bias`` 
+   For all generations except the founder generation, the initial value of ``R_{ti}^{sex bias}`` 
    must be specified by the user when configuring the driver file. 
    In the founder generation, all individuals are migrants, leading to a dependency among the migration rates: 
-   ``\sum_i R_i = 1``, and  ``\sum_i R{i,f} = 1.`` 
-   This entails a relationship among sex bias parameters: ``\sum_i R_{i, sex_bias}  R_i= 0.`` 
-   If there are ``k`` source populations, the user only specifies ``k-1`` rates and sex biases, 
+   ``\sum_i R_{Ti} = \sum_i R_{Ti}^{f}= \sum_i R_{Ti}^{m} = 1.`` 
+   This entails a relationship among sex bias parameters: ``\sum_{i} R_{Ti}^{sex bias} R_{Ti}= 0.`` 
+   If there are ``P`` source populations, the user only specifies ``P-1`` rates and sex biases, 
    and the remaining  parameters are inferred from these dependencies. 
-
-
-
-
 
 
 .. _input-data:
