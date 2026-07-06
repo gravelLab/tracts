@@ -1261,7 +1261,6 @@ def output_simulation_data_sex_biased(sample_population: Population,
     
     fig, ax = plot_admixture(ancestry_per_individual, pop_names, colors, ax=None)
     admixture_file_path = output_dir / output_filename_format.format(label="admixture_plot.pdf")
-    
     fig.savefig(admixture_file_path, dpi=300, bbox_inches="tight")
 
 
@@ -1484,7 +1483,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
 def plot_admixture(ancestry_per_individual, labels, colors, ax=None):
     """
-    Stacked bar chart of ancestry proportions in ADMIXTURE style. AI-generated with review
+    Stacked bar chart of ancestry proportions in ADMIXTURE style. AI-generated with review.
 
     Parameters
     ----------
