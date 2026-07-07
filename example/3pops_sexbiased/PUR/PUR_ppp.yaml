@@ -28,11 +28,11 @@ start_params:
   t: 4:14
   REUR: .2:0.4
   RNAT: .0:0.2
-  REUR_sex_bias: -0.5:0.1
-  RNAT_sex_bias: -.1:0.5
+  REUR_sex_bias: -1:1
+  RNAT_sex_bias: -1:1
 
 optim:
-  repetitions: 5
+  repetitions: 20
   seed: 5
   maximum_iterations: 1000
   npts: 50
@@ -43,7 +43,7 @@ optim:
 output:
   output_directory: "./output_ppp/{date}/"
   output_filename_format: "PUR_{label}"
-  log_filename: 'PUR_one_pulse.log'
+  log_filename: 'PUR_ppp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True
