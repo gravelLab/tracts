@@ -6,14 +6,15 @@ demes:
   - name: EUR
   - name: AFR
   - name: NAT
-  - name: X
+  - name: targetpop
     ancestors: [EUR, NAT, AFR]
     proportions: [REUR,RNAT,1-REUR-RNAT]
     start_time: t1
 
 pulses:
 
+
   - sources: [EUR]
-    dest: X
+    dest: targetpop
     proportions: [REUR2]
     time: t2

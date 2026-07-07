@@ -820,7 +820,7 @@ class Population:
         """
         return list(map(np.mean, zip(*self.get_means(ancestries))))
 
-    def calculate_ancestry_proportions(self, population_labels: list[str], cutoff:float = 0.0):
+    def calculate_ancestry_proportions(self, population_labels: list[str], cutoff:float = 0.0, per_indiv = False):
         """
         Calculates the mean ancestry proportion across individuals in the population using only autosomal data.
 
@@ -842,6 +842,7 @@ class Population:
         for ind in self.indivs:
             for i, population_label in enumerate(population_labels):
                 bypopfrac[i].append(ind.ancestryProps([population_label], cutoff = cutoff))
+        
         return np.mean(bypopfrac, axis=1).flatten()
 
     def calculate_allosome_proportions(self, population_labels: list[str], allosome_label: str, cutoff: float = 0.0):

@@ -173,15 +173,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         func = get_time_scaled_model_func(model) # Time parameters need to be rescaled for some optimizers, so we create a wrapper function that applies the necessary rescaling before passing parameters to the model.
         bound = get_time_scaled_model_bounds(model) # The same rescaling needs to be applied to the bounds function.
         
-        # ------ Set up conversion to physical and optimizer units ------ 
-        to_physical_params_functions = {ParamType.TIME: time_to_physical_function, 
-                                    ParamType.RATE: rate_to_physical_function, 
-                                    ParamType.SEX_BIAS: sex_bias_to_physical_function} 
-        to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
-                                        ParamType.RATE: rate_to_optimizer_function, 
-                                        ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
-        model.parameter_handler.to_physical_params_functions = to_physical_params_functions
-        model.parameter_handler.to_optimizer_params_functions = to_optimizer_params_functions
+
 
         model_param_names = list(model.model_base_params.keys())
         sex_bias_param_names = [
