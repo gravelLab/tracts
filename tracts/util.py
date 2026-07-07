@@ -79,7 +79,7 @@ def sex_bias_founder_to_physical_function(x):
     
     
     # optimizer parameters will be female_rates for populations 1, 2, k, male rates for populations 1,2,k
-    # physical parameteres wil be rates for populations 1,2,k, then sex biases for each popualtino ((m_f- m_m)/(m_f + m_m)) 
+    # physical parameters will be rates for populations 1,2,k, then sex biases for each population ((r_f - r_m) / (2 * min(rate, 1-rate)))
     n = len(x) // 2
     x_female = x[:n]
     x_male = x[n:]
@@ -89,7 +89,7 @@ def sex_bias_founder_to_physical_function(x):
     r_m = np.exp(x_male) / (1 + np.sum(np.exp(x_male)))
 
     rates = (r_f + r_m) / 2
-    sex_biases = (r_f - r_m) / (r_f + r_m)
+    sex_biases = (r_f - r_m) / (2 * np.minimum(rates, 1 - rates))
 
     return np.concatenate([rates, sex_biases])
 
@@ -103,7 +103,8 @@ def sex_bias_founder_to_optimizer_function(x):
     ----------
     x: numpy.ndarray
         The list of parameters in physical space.
-        The first half of parameters is the total rates, second half is the sex biases ((r_f - r_m) / (r_f + r_m)).
+        The first half of parameters is the total rates, second half is the sex biases
+        defined as (r_f - r_m) / (2 * min(rate, 1 - rate)).
 
     Returns
     -------
@@ -115,8 +116,8 @@ def sex_bias_founder_to_optimizer_function(x):
     rates = x[:n]
     sex_biases = x[n:]
 
-    r_f = rates * (1 + sex_biases)
-    r_m = rates * (1 - sex_biases)
+    r_f = rates + sex_biases * np.minimum(rates, 1 - rates)
+    r_m = rates - sex_biases * np.minimum(rates, 1 - rates)
 
     x_female = np.log(r_f / (1 - np.sum(r_f)))
     x_male = np.log(r_m / (1 - np.sum(r_m)))

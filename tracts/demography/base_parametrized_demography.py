@@ -1486,6 +1486,7 @@ class FixedParametersHandler:
             raise ValueError("Could not solve for parameters fixed by ancestry proportions.") from e
 
         error = np.linalg.norm(param_objective_func(solved_params))
+        #breakpoint()
         if not np.isclose(error, 0):
             ancestry_message = f"Could not solve for parameters fixed by ancestry proportions. Final error: {round(error,3)}. This can happen when no sex bias parameter allows for the observed ancestry proportions."
             self.logger.info(ancestry_message)

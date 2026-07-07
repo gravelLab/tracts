@@ -39,6 +39,7 @@ def _make_demography():
     dem.add_parameter("rate_eur",ParamType.RATE)
     dem.add_parameter("sb_eur",  ParamType.SEX_BIAS)
     dem.add_parameter("sb_afr",  ParamType.SEX_BIAS)
+    dem.grouped_parameters_indices = []
     return dem
 
 def _make_handler(dem=None):
