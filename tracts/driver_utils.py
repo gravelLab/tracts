@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from matplotlib.figure import Figure
 from scipy.stats import poisson
 from tracts.population import Population
 from tracts.phase_type import hybrid_pedigree as HP
@@ -868,7 +869,8 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
     n_rows, n_cols = mean_matrix.shape
 
-    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig = Figure()
+    ax1, ax2 = fig.subplots(1, 2)
 
     # Adaptive fonts
     font_scale = max(7, min(12, 12 - 0.4 * n_cols))
@@ -968,7 +970,6 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     png_path = os.path.splitext(output_path)[0] + ".png"
     fig.savefig(png_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
 
 
 def output_simulation_data_sex_biased(sample_population: Population,
@@ -1262,6 +1263,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     fig, ax = plot_admixture(ancestry_per_individual, pop_names, colors, ax=None)
     admixture_file_path = output_dir / output_filename_format.format(label="admixture_plot.pdf")
     fig.savefig(admixture_file_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 
     def _bin_centers(bins):
