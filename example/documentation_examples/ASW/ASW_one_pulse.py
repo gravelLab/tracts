@@ -103,6 +103,10 @@ X chromosome admixture in males
 
 """
 
+# sphinx_gallery_start_ignore
+sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_one_pulse/ASW_test_output_autosomes_all_populations.png'
+# sphinx_gallery_end_ignore
+
 import sys
 from pathlib import Path
 from tracts.driver import run_tracts
@@ -117,7 +121,8 @@ run_tracts(
     script_dir=str(script_dir),
 )
 
-# Don't run the code below: for documentation purposes only.
+# sphinx_gallery_start_ignore
 from tracts.doc_utils import prepare_example_outputs_for_docs
 prepare_example_outputs_for_docs("output_one_pulse")
+# sphinx_gallery_end_ignore
 
