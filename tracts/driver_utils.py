@@ -856,13 +856,15 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
 def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list, output_path: str):
 
     mean_matrix = (migration_matrix_f[1:,:] + migration_matrix_m[1:,:]) / 2
-    safe_mean = np.where(mean_matrix != 0, mean_matrix, np.nan)
-    sex_bias_matrix = migration_matrix_f[1:,:] / safe_mean - 1
+    denom_matrix = 2 * np.minimum(mean_matrix, 1 - mean_matrix)
+    safe_denom = np.where(denom_matrix > 1e-10, denom_matrix, np.nan)
+    sex_bias_matrix = (migration_matrix_f[1:,:] - migration_matrix_m[1:,:]) / safe_denom
 
     # Add migration rate and sex-bias for the admixed population
     admixed_rate = 1 - np.sum(mean_matrix, axis = 1) # 1 - \sum_{i}R_i
-    safe_admixed_rate = np.where(admixed_rate != 0, admixed_rate, np.nan)
-    admixed_sex_bias = -np.nansum(mean_matrix*sex_bias_matrix, axis = 1)/safe_admixed_rate # R_x R_{x,SB} = -\sum_{i \neq x}R_i R_{i,SB}
+    admixed_denom = 2 * np.minimum(admixed_rate, 1 - admixed_rate)
+    safe_admixed_denom = np.where(admixed_denom > 1e-10, admixed_denom, np.nan)
+    admixed_sex_bias = -np.nansum(denom_matrix * sex_bias_matrix, axis = 1) / safe_admixed_denom # (R^f_x - R^m_x) = -\sum_{i != x}(R^f_i - R^m_i)
     mean_matrix = np.concatenate([mean_matrix, admixed_rate[:, np.newaxis]], axis = 1)
     sex_bias_matrix = np.concatenate([sex_bias_matrix, admixed_sex_bias[:, np.newaxis]], axis = 1)
     pop_labels = pop_labels + ['Admixed']

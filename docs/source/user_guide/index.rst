@@ -110,7 +110,14 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 
    .. math::
 
-      R_{ti}^{\text{sex-bias}} = 2 \cdot \left(\frac{R_{ti}^{f}}{R_{ti}^{m}+R_{ti}^{f}} - \frac{1}{2}\right).
+      R_{ti}^{\text{sex-bias}} = \frac{R_{ti}^{f} - R_{ti}^{m}}{2\min(R_{ti},\, 1 - R_{ti})}.
+
+   Consequently, the sex-specific rates are recovered from the mean rate and the sex-bias parameter as
+
+   .. math::
+
+      R_{ti}^{f} = R_{ti} + R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}), \qquad
+      R_{ti}^{m} = R_{ti} - R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}).
 
    Consequently, :math:`R_{ti}^{\text{sex-bias}} = 1` corresponds to exclusively female migration,
    :math:`R_{ti}^{\text{sex-bias}} = -1` to exclusively male migration, and :math:`R_{ti}^{\text{sex-bias}} = 0` to unbiased migration.
@@ -127,7 +134,7 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 
    .. math::
 
-      \sum_{i} R_{Ti}^{\text{sex-bias}} R_{Ti} = 0.
+      \sum_{i} R_{Ti}^{\text{sex-bias}} \cdot \min(R_{Ti},\, 1 - R_{Ti}) = 0.
 
    If there are :math:`P` source populations, the user only specifies :math:`P-1` rates and sex biases,
    and the remaining parameters are inferred from these dependencies.
