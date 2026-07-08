@@ -112,7 +112,6 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 
       R_{ti}^{\text{sex-bias}} = \frac{R_{ti}^{f} - R_{ti}^{m}}{2\min(R_{ti},\, 1 - R_{ti})}.
 
-   |
 
    Consequently, the sex-specific rates are recovered from the mean rate and the sex-bias parameter as:
 
@@ -123,7 +122,6 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
       R_{ti}^{m} &= R_{ti} - R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}).
       \end{align}
 
-   |
 
    Consequently, :math:`R_{ti}^{\text{sex-bias}} = 1` corresponds to exclusively female migration,
    :math:`R_{ti}^{\text{sex-bias}} = -1` to exclusively male migration, and :math:`R_{ti}^{\text{sex-bias}} = 0` to 

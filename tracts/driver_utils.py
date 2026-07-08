@@ -187,7 +187,7 @@ class OptimizationConfig(BaseModel):
     unknown_labels_for_smoothing : List[str] = []
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
-    N_cores: int = 1
+    N_cores: int = Field(default=1, ge=1)
 
 class OutputConfig(BaseModel):
     """

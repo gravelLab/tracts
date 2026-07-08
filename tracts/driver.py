@@ -638,8 +638,6 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
         For internal use only. An optional title to display above the starting parameters table. If None, a default title will be generated based on the steps being run. Default is None.     
     print_start_params_table: bool, optional
         For internal use only. Whether to print the starting parameters table. Default is True.
-    print_subtitle: bool, optional
-        For internal use only. Whether to print a subtitle message describing the optimization run. Default is True.
     N_cores: int, optional
         The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
         are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1.
