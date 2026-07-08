@@ -174,6 +174,8 @@ class OptimizationConfig(BaseModel):
         Whether to perform a two-step optimization process, where the first step optimizes only the non-sex-bias parameters on autosomal data and the second step optimizes sex-bias parameters using both autosomal and allosomal data. Defaults to True.
     use_autosomes_for_sex_bias: bool
         Whether step 2 should include autosomal data in addition to allosomal data. Defaults to False.
+    N_cores: int
+        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used. Ignored if the hybrid-pedigree refinements are not used. Defaults to 1.
     """
     model_config = ConfigDict(extra="forbid")
     repetitions: int =1 
@@ -185,6 +187,7 @@ class OptimizationConfig(BaseModel):
     unknown_labels_for_smoothing : List[str] = []
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
+    N_cores: int = 1
 
 class OutputConfig(BaseModel):
     """
@@ -1022,6 +1025,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     exclude_tracts_below_cM = driver_spec.optim.exclude_tracts_below_cm
     npts = driver_spec.optim.npts
     log_scale = driver_spec.output.log_scale
+    N_cores = driver_spec.optim.N_cores
 
     matrices = model.get_migration_matrices(optimal_params)
     matrix_list = [matrix for matrix in matrices.values()]
@@ -1073,7 +1077,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_m=1,
                                                                             X_chr=False,
                                                                             X_chr_male=False,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=autosome_bins,
                                                                             chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
@@ -1086,7 +1090,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_m=1,
                                                                             X_chr=False,
                                                                             X_chr_male=False,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=autosome_bins,
                                                                             chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
@@ -1154,7 +1158,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                                 rho_m=1,
                                                                                 X_chr=True,
                                                                                 X_chr_male=False,
-                                                                                N_cores=5,
+                                                                                N_cores=N_cores,
                                                                                 population_number=pop_num,
                                                                                 bins=allosome_bins,
                                                                                 chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1166,7 +1170,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_m=1,
                                                                             X_chr=True,
                                                                             X_chr_male=True,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=allosome_bins,
                                                                             chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1179,7 +1183,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                                 rho_m=1,
                                                                                 X_chr=True,
                                                                                 X_chr_male=False,
-                                                                                N_cores=5,
+                                                                                N_cores=N_cores,
                                                                                 population_number=pop_num,
                                                                                 bins=allosome_bins,
                                                                                 chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1190,7 +1194,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_f=1, rho_m=1,
                                                                             X_chr=True,
                                                                             X_chr_male=True,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=allosome_bins,
                                                                             chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
