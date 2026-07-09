@@ -106,14 +106,26 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
    population :math:`i` and each generation :math:`t`, we consider the proportion :math:`R_{ti}^{f}` (resp. :math:`R_{ti}^{m}`)
    of female (resp. male) migrants at generation :math:`t` from source population :math:`i`. The average migration
    rate will then be :math:`R_{ti} = (R_{ti}^{f} + R_{ti}^{m})/2`, which corresponds to the balanced setting where
-   :math:`R_{ti}^{f} = R_{ti}^{m}`. The departure from such scenario is measured by the sex-bias parameter, defined as
+   :math:`R_{ti}^{f} = R_{ti}^{m}`. The departure from such scenario is measured by the sex-bias parameter, defined as:
 
    .. math::
 
-      R_{ti}^{\text{sex-bias}} = 2 \cdot \left(\frac{R_{ti}^{f}}{R_{ti}^{m}+R_{ti}^{f}} - \frac{1}{2}\right).
+      R_{ti}^{\text{sex-bias}} = \frac{R_{ti}^{f} - R_{ti}^{m}}{2\min(R_{ti},\, 1 - R_{ti})}.
+
+
+
+   Consequently, the sex-specific rates are recovered from the mean rate and the sex-bias parameter as:
+
+   .. math::
+
+      R_{ti}^{f} &= R_{ti} + R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}),\\
+      R_{ti}^{m} &= R_{ti} - R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}).
+
+
 
    Consequently, :math:`R_{ti}^{\text{sex-bias}} = 1` corresponds to exclusively female migration,
-   :math:`R_{ti}^{\text{sex-bias}} = -1` to exclusively male migration, and :math:`R_{ti}^{\text{sex-bias}} = 0` to unbiased migration.
+   :math:`R_{ti}^{\text{sex-bias}} = -1` to exclusively male migration, and :math:`R_{ti}^{\text{sex-bias}} = 0` to 
+   unbiased migration.
 
    For all generations except the founder generation, the initial value of :math:`R_{ti}^{\text{sex-bias}}`
    must be specified by the user when configuring the driver file.
@@ -127,7 +139,7 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 
    .. math::
 
-      \sum_{i} R_{Ti}^{\text{sex-bias}} R_{Ti} = 0.
+      \sum_{i} R_{Ti}^{\text{sex-bias}} \cdot \min(R_{Ti},\, 1 - R_{Ti}) = 0.
 
    If there are :math:`P` source populations, the user only specifies :math:`P-1` rates and sex biases,
    and the remaining parameters are inferred from these dependencies.
@@ -226,6 +238,7 @@ Optimization
      fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias']
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
+     N_cores: 5
 
 - ``seed``: The random seed.
 - ``repetitions``: Number of independent optimization runs performed from different initial values, randomly chosen within the bounds set by the user. Since the optimizer may converge to different local optima, the algorithm repeats the optimization ``repetitions`` times and automatically retains the run with the highest likelihood.
@@ -236,6 +249,7 @@ Optimization
 - ``fix_parameters_from_ancestry_proportions``: These parameters are analytically computed from the ancestry proportions, and the optimization is restricted to the remaining parameters.
 - ``two_steps_optimization``: Whether to perform a two-step optimization, where non-sex-bias parameters are optimized first using autosomes, and then sex-bias parameters are optimized with the non-sex-bias parameters fixed. Defaults to ``True``.
 - ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to ``False``, which means that only allosomes are used to optimize sex-bias parameters.
+- ``N_cores``: The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used to model autosomal or allosomal admixture. Ignored if the hybrid-pedigree refinements are not used. Default is 1.
 
 .. admonition:: Using ``fix_parameters_from_ancestry_proportions``
    :class: tip

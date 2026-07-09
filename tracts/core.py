@@ -22,7 +22,7 @@ _ignore_oob_above = -1e-14
 def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
                             verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
                             maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
-                            ad_model_allosomes:str='DC', npts:int=50, print_step_header:bool=True) -> tuple[np.ndarray, float]:
+                            ad_model_allosomes:str='DC', npts:int=50, print_step_header:bool=True, N_cores:int=1) -> tuple[np.ndarray, float]:
     """
     Optimizes the log-likelihood over all parameters defined by the demographic model, given a specified pair of admixture models for autosomes and allosomes.
     The optimization is carried out jointly in a single step, estimating all parameters simultaneously using both autosomal and allosomal data.
@@ -63,6 +63,9 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
         optimization. If False, only the iteration table header is printed. For internal use only;
         set automatically by :func:`~tracts.driver.run_model_multi_init` to suppress repeated
         headers across multiple runs within the same step. Default is True.
+    N_cores: int, optional
+        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
+        are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1. 
 
     Returns
     -------
@@ -167,7 +170,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                         Dioecious_model = 'DC',
                                         X_chr = False,
                                         X_chr_male = False,
-                                        N_cores = 5,
+                                        N_cores = N_cores,
                                         bins=autosome_bins,
                                         Ls=population.Ls,
                                         data=[mat for mat in autosome_data_mapped],
@@ -182,7 +185,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                         Dioecious_model = 'DF',
                                         X_chr = False,
                                         X_chr_male = False,
-                                        N_cores = 5,
+                                        N_cores = N_cores,
                                         bins=autosome_bins,
                                         Ls=population.Ls,
                                         data=[mat for mat in autosome_data_mapped],
@@ -209,7 +212,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                                 Dioecious_model = 'DC',
                                                 X_chr = True,
                                                 X_chr_male = False,
-                                                N_cores = 5,
+                                                N_cores = N_cores,
                                                 bins=allosome_bins,
                                                 Ls=[allosome_length],
                                                 data=[mat for mat in female_data_mapped],
@@ -222,7 +225,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                             Dioecious_model = 'DC',
                                             X_chr = True,
                                             X_chr_male = True,
-                                            N_cores = 5,
+                                            N_cores = N_cores,
                                             bins=allosome_bins,
                                             Ls=[allosome_length],
                                             data=[mat for mat in male_data_mapped],
@@ -237,7 +240,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                                 Dioecious_model = 'DF',
                                                 X_chr = True,
                                                 X_chr_male = False,
-                                                N_cores = 5,
+                                                N_cores = N_cores,
                                                 bins=allosome_bins,
                                                 Ls=[allosome_length],
                                                 data=[mat for mat in female_data_mapped],
@@ -250,7 +253,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                             Dioecious_model = 'DF',
                                             X_chr = True,
                                             X_chr_male = True,
-                                            N_cores = 5,
+                                            N_cores = N_cores,
                                             bins=allosome_bins,
                                             Ls=[allosome_length],
                                             data=[mat for mat in male_data_mapped],
@@ -358,8 +361,9 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
 def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
-                                    ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', autosomes_in_step_2:bool=True, steps: list[int | str] | None = None, npts:int=50, print_step_header:bool=True,
-                                    return_full_likelihood: bool = False) -> tuple[np.ndarray, float] | tuple[np.ndarray, float, float | None]:
+                                    ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', autosomes_in_step_2:bool=True,
+                                    steps: list[int | str] | None = None, npts:int=50, print_step_header:bool=True,
+                                    return_full_likelihood: bool = False, N_cores:int=1) -> tuple[np.ndarray, float] | tuple[np.ndarray, float, float | None]:
     """
     Optimizes the log-likelihood over all parameters defined by the demographic model, for a specified admixture model applied to both autosomes and allosomes.
     The procedure supports exactly three modes.
@@ -418,6 +422,9 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         step. If False, only the iteration table header is printed. For internal use only; set
         automatically by :func:`~tracts.driver.run_model_multi_init` to suppress repeated headers
         across multiple runs within the same step. Default is True.
+    N_cores: int, optional
+        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
+        are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1. 
 
     Returns
     -------
@@ -617,7 +624,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                             Dioecious_model = 'DC',
                                             X_chr = False,
                                             X_chr_male = False,
-                                            N_cores = 5,
+                                            N_cores = N_cores,
                                             bins=autosome_bins,
                                             Ls=population.Ls,
                                             data=[mat for mat in autosome_data_mapped],
@@ -631,7 +638,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                             Dioecious_model = 'DF',
                                             X_chr = False,
                                             X_chr_male = False,
-                                            N_cores = 5,
+                                            N_cores = N_cores,
                                             bins=autosome_bins,
                                             Ls=population.Ls,
                                             data=[mat for mat in autosome_data_mapped],
@@ -659,7 +666,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                 Dioecious_model = 'DC',
                                                 X_chr = True,
                                                 X_chr_male = False,
-                                                N_cores = 5,
+                                                N_cores = N_cores,
                                                 bins=allosome_bins,
                                                 Ls=[allosome_length],
                                                 data=[mat for mat in female_data_mapped],
@@ -673,7 +680,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                               Dioecious_model = 'DC',
                                               X_chr = True,
                                               X_chr_male = True,
-                                              N_cores = 5,
+                                              N_cores = N_cores,
                                               bins=allosome_bins,
                                               Ls=[allosome_length],
                                               data=[mat for mat in male_data_mapped],
@@ -688,7 +695,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                 Dioecious_model = 'DF',
                                                 X_chr = True,
                                                 X_chr_male = False,
-                                                N_cores = 5,
+                                                N_cores = N_cores,
                                                 bins=allosome_bins,
                                                 Ls=[allosome_length],
                                                 data=[mat for mat in female_data_mapped],
@@ -703,7 +710,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                             Dioecious_model = 'DF',
                                             X_chr = True,
                                             X_chr_male = True,
-                                            N_cores = 5,
+                                            N_cores = N_cores,
                                             bins=allosome_bins,
                                             Ls=[allosome_length],
                                             data=[mat for mat in male_data_mapped],
