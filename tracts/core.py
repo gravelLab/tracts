@@ -116,7 +116,7 @@ def _compute_objective(
         Whether to include the allosomal log-likelihood in the objective.
     rho_f : float, default 1
         The female-specific recombination rate.
-    rho_f : float, default 1
+    rho_m : float, default 1
         The male-specific recombination rate.
     TP : int, default 2
         The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
@@ -142,9 +142,11 @@ def _compute_objective(
             param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(parameters, report_non_admissible=False)]))
         finally:
             local_parameter_handler.enable_time_param_logging = prev_time_param_logging
-        if (verbose_log > 0) and (_counter % verbose_log == 0):
+        _did_log = (verbose_log > 0) and (_counter % verbose_log == 0)
+        _did_screen = (verbose_screen > 0) and (_counter % verbose_screen == 0)
+        if _did_log:
             logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, result, param_str, note)
-        if (verbose_screen > 0) and (_counter % verbose_screen == 0):
+        if _did_screen:
             eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
 
     if outofbounds_fun is not None:
@@ -152,6 +154,9 @@ def _compute_objective(
         if oob < _ignore_oob_above:
             out = oob * _out_of_bounds_val - _min_out_of_bounds_val
             flush_result(out, f'OOB (oob={oob})')
+            if np.isfinite(out) and out < best_state['objective']:
+                best_state['objective'] = out
+                best_state['params'] = parameters.copy()
             return out
     else:
         eprint("No bound function defined")
@@ -168,6 +173,9 @@ def _compute_objective(
     except (np.linalg.LinAlgError, ValueError, FloatingPointError):
         out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty, consistent with OOB
         flush_result(out, 'Singular matrix (infeasible params)')
+        if np.isfinite(out) and out < best_state['objective']:
+            best_state['objective'] = out
+            best_state['params'] = parameters.copy()
         return out
 
     # ----------------- Compute model likelihood for autosomes -----------------
@@ -464,6 +472,22 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                         rhoend=.0001,
                                         maxfun=maxiter)
     
+    # Final flush: always show the last result at the end of the optimization run
+    if _best_state['params'] is not None:
+        _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
+        _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
+        if _needs_log or _needs_screen:
+            _prev_tpl = local_parameter_handler.enable_time_param_logging
+            local_parameter_handler.enable_time_param_logging = False
+            try:
+                _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
+            finally:
+                local_parameter_handler.enable_time_param_logging = _prev_tpl
+            if _needs_log:
+                logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, -_best_state['objective'], _final_param_str, 'Total')
+            if _needs_screen:
+                eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, 'Total'))
+
     optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                     units="opt",
                                                                     show_ancestry_warning=True)
@@ -761,6 +785,21 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                             rhoend=.0001,
                                             maxfun=maxiter)
     
+        # Final flush: always show the last result at the end of step 1
+        if _best_state['params'] is not None:
+            _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
+            _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
+            if _needs_log or _needs_screen:
+                _prev_tpl = local_parameter_handler.enable_time_param_logging
+                local_parameter_handler.enable_time_param_logging = False
+                try:
+                    _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
+                finally:
+                    local_parameter_handler.enable_time_param_logging = _prev_tpl
+                if _needs_log:
+                    logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, -_best_state['objective'], _final_param_str, 'Autosomes')
+                if _needs_screen:
+                    eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, 'Autosomes'))
         optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                         units="opt",
                                                                         show_ancestry_warning=True)
@@ -828,10 +867,27 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                 rhoend=.0001,
                                                 maxfun=maxiter)
             
+            # Final flush: always show the last result at the end of step 2
+            if _best_state['params'] is not None:
+                _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
+                _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
+                if _needs_log or _needs_screen:
+                    _prev_tpl = local_parameter_handler.enable_time_param_logging
+                    local_parameter_handler.enable_time_param_logging = False
+                    try:
+                        _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
+                    finally:
+                        local_parameter_handler.enable_time_param_logging = _prev_tpl
+                    if _needs_log:
+                        _note = 'Total' if autosomes_in_step_2 else 'Allosomes'
+                        logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, -_best_state['objective'], _final_param_str, _note)
+                    if _needs_screen:
+                        _note = 'Total' if autosomes_in_step_2 else 'Allosomes'
+                        eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, _note))
+
             step2_full_params_opt = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                                units="opt",
                                                                                show_ancestry_warning=True) # Checks for the ancestry warning at the end of step 2.
-    
             final_message = f"Optimization completed."
             line = "-" * len(final_message)
             for l in [final_message, line]:
