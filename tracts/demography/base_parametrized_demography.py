@@ -9,7 +9,18 @@ from tracts.demography.parameter import ParamType, Parameter, DependentParameter
 from typing import Callable
 import warnings
 import logging
-from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_founder_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function, sex_bias_founder_to_optimizer_function
+from tracts.util import (
+    time_to_physical_function,
+    rate_to_physical_function,
+    founder_rates_to_physical_function,
+    founder_rates_to_optimizer_function,
+    sex_bias_founder_to_physical_function,
+    sex_bias_to_physical_function,
+    time_to_optimizer_function,
+    rate_to_optimizer_function,
+    sex_bias_to_optimizer_function,
+    sex_bias_founder_to_optimizer_function,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -286,7 +297,6 @@ class BaseParametrizedDemography(ABC):
         self.fixed_params: dict[str, Parameter] = {}
         self.dependent_params: dict[str, Parameter] = {}
         self.constant_params: dict[str, Parameter] = {}
-        self.parameters_groups: list[ParameterGroup] = []
         self.population_indices: dict[str, int] = {}
         self.reduced_constraints: list[dict] = []
         self.finalized: bool = False
@@ -406,22 +416,25 @@ class BaseParametrizedDemography(ABC):
         Finalizes the model by setting the indices for the parameters and populations. 
         This should be called after all parameters and populations have been added to the model and before the model is used for inference.
         """
+        if self.finalized == True:
+            logging.warning("demography was finlized twice")
         self.finalized = True
         for index, param_name in enumerate(self.model_base_params):
             self.model_base_params[param_name].index = index
         for index, population_name in enumerate(self.population_indices):
             self.population_indices[population_name] = index
 
-        self.grouped_parameters = []
-        self.grouped_parameters_indices = []
-        for group in self.parameters_groups:
-            self.grouped_parameters.extend(group.params)
+        self.parameter_handler.grouped_parameters = []
+        self.parameter_handler.grouped_parameters_indices = []
+        for group in self.parameter_handler.parameter_groups:
+            self.parameter_handler.grouped_parameters.extend(group.params)
             indices = [self.model_base_params[param_name].index for param_name in group.params]
             group.indices = indices
-            self.grouped_parameters_indices.extend(indices)
-        assert len(self.grouped_parameters) == len(set(self.grouped_parameters)), (
+            self.parameter_handler.grouped_parameters_indices.extend(indices)
+        assert len(self.parameter_handler.grouped_parameters) == len(set(self.parameter_handler.grouped_parameters)), (
             f"Duplicate parameter names found in grouped_parameters: "
-            f"{[name for name in set(grouped_parameters) if grouped_parameters.count(name) > 1]}"
+            f"{[name for name in set(self.parameter_handler.grouped_parameters) 
+                if self.parameter_handler.grouped_parameters.count(name) > 1]}"
         )
 
 
@@ -842,9 +855,12 @@ class ParameterGroup:
         self.params = params
         self.group_type = group_type
         self.indices = indices
-        if group_type == "SexBiasFounder":
+        if group_type == "FounderSexBiased":
             self._to_physical = sex_bias_founder_to_physical_function
             self._to_optimizer = sex_bias_founder_to_optimizer_function
+        elif group_type == "FounderRates":
+            self._to_physical = founder_rates_to_physical_function
+            self._to_optimizer = founder_rates_to_optimizer_function    
         else: 
             raise("group type not implemented")
 
@@ -917,7 +933,10 @@ class FixedParametersHandler:
         #self.parameter_groups = {}              # key: tuples of parameter names that are transformed together for optimization
                                                 # items: type of the
         
-        
+        self.parameter_groups: list[ParameterGroup] = []
+        self.grouped_parameters: list[str] = []
+        self.grouped_parameters_indices: list[int] = []
+        self.use_groups: bool = False
     
         self.to_physical_params_functions = {}
         self.to_optimizer_params_functions = {}
@@ -931,7 +950,7 @@ class FixedParametersHandler:
         self.to_optimizer_params_functions  = {ParamType.TIME: time_to_optimizer_function, 
                                         ParamType.RATE: rate_to_optimizer_function, 
                                         ParamType.SEX_BIAS: sex_bias_to_optimizer_function}
-        self.parameter_groups = {} # Parameters that get converted jointly between physical and optimizer units
+        self.parameter_groups = [] # Parameters that get converted jointly between physical and optimizer units
 
 
         self.enable_time_param_logging = True  # Controls whether time admissibility warnings/state tracking are active.
@@ -1031,8 +1050,9 @@ class FixedParametersHandler:
         assert np.asarray(optimizer_params).ndim == 1
         converted_params = optimizer_params.copy()
 
+        grouped_indices = self.demography.parameter_handler.grouped_parameters_indices if self.demography.parameter_handler.use_groups else []
         for index in range(len(optimizer_params)):
-            if index not in self.demography.grouped_parameters_indices: #then apply the default transformation
+            if index not in grouped_indices: #then apply the default transformation
                 param_name = list(self.demography.model_base_params.keys())[index]
                 param_type = self.demography.model_base_params[param_name].type
 
@@ -1088,9 +1108,9 @@ class FixedParametersHandler:
 
                     self._time_param_admissibility_state[param_name] = is_admissible
                     self._shared_time_param_admissibility_state[state_key] = is_admissible
-        # apply group transformation
-        for group in self.demography.parameters_groups:
-            converted_params = group.convert_to_physical(converted_params)
+        if self.demography.parameter_handler.use_groups:
+            for group in self.demography.parameter_handler.parameter_groups:
+                converted_params = group.convert_to_physical(converted_params)
         return converted_params
 
 
@@ -1113,17 +1133,18 @@ class FixedParametersHandler:
         assert np.asarray(physical_params).ndim == 1
         converted_params = physical_params.copy()
 
+        grouped_indices = self.demography.parameter_handler.grouped_parameters_indices if self.demography.parameter_handler.use_groups else []
         for index in range(len(physical_params)):
             param_name = list(self.demography.model_base_params.keys())[index]
             param_type = self.demography.model_base_params[param_name].type
-            
-            if index not in self.demography.grouped_parameters_indices: #then apply the default transformation
+
+            if index not in grouped_indices: #then apply the default transformation
                 if param_type in self.to_optimizer_params_functions.keys():
                     converted_params[index] = self.to_optimizer_params_functions[param_type](physical_params[index])
             
-        #apply group transformation
-        for group in self.demography.parameters_groups:
-            converted_params = group.convert_to_optimizer(converted_params)
+        if self.demography.parameter_handler.use_groups:
+            for group in self.demography.parameter_handler.parameter_groups:
+                converted_params = group.convert_to_optimizer(converted_params)
         return converted_params
 
 

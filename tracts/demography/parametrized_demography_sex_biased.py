@@ -30,7 +30,8 @@ class SexType(Enum):
     @staticmethod
     def male_female_sex_type_function(multiplier: float) -> Callable[[str,str], Callable[[BaseParametrizedDemography,list[float]], float]]:
         r"""
-        Returns a function :math:`f`(``[multiplier]``) to compute the sex-specific migration rates. Given a rate parameter and the accompanying sex bias, 
+        Returns a function :math:`f`(``[multiplier]``) to compute the sex-specific migration rates. Given a rate parameter and 
+        the accompanying sex bias, 
         :math:`f`(``[multiplier])(rate, sex_bias)`` will output a function to compute the corresponding rate in a demography.
 
         Parameters
@@ -211,8 +212,17 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
                 self.add_dependent_parameter(param_name=f"{rate_param}{sex_type.suffix}",
                                             expression=sex_type.expression(rate_param, sex_bias_param),
                                             param_type=ParamType.RATE)
-        self.parameters_groups.append(ParameterGroup(params = rate_parameters + sex_bias_parameters, group_type = "SexBiasFounder"))
-        
+        # Grouping all the founder rates seemed to make sense from an optimizatin perspective, but 
+        # it caused complications when doing two-step optimization. 
+        # self.parameters_group.append(ParameterGroup(params = rate_parameters + sex_bias_parameters, 
+        #                              group_type = "SexBiasFounder"))
+        #self.parameter_handler.parameter_groups.append(ParameterGroup(params = rate_parameters, 
+        #                              group_type = "FounderRates"))
+        #
+        #self.parameter_handler.parameter_groups.append(ParameterGroup(params = rate_parameters + sex_bias_parameters, 
+        #                              group_type = "FounderSexBiases"))
+
+                         
         for sex_type in sex_types:
             super().add_founder_event(dest_population=f"{dest_population}{sex_type.suffix}",
                                     source_populations={population: f"{rate_param}{sex_type.suffix}" for population, rate_param in source_populations.items()},

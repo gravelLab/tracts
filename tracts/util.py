@@ -58,6 +58,61 @@ def time_to_physical_function(x):
     return np.exp(x)
 
 
+def founder_rates_to_physical_function(x):
+    """
+    Convert a founder event rate parameters from optimizer space to physical space. 
+    This transformation maps unconstrained real values to values in (0,1)
+    using the exponential function, so that the ancestry of all founder populations sums to one.
+    We assume that there is exactly one remainder population
+
+    Parameters
+    ----------
+    x: float | numpy.ndarray
+        the list of rates in optimizer space. 
+        
+    
+    Returns
+    -------
+    float | numpy.ndarray
+        same parameters in physical space.
+    """
+    
+    # softmax with implicit remainder fixed at logit 0, so source rates sum to <1
+    x_phys = np.exp(x) / (1 + np.sum(np.exp(x)))
+
+    return x_phys
+
+def founder_rates_to_optimizer_function(x):
+    """
+    Convert founder event rates from physical space to optimizer space.
+    This is the inverse of :func:`founder_rates_to_physical_function`.
+
+    Parameters
+    ----------
+    x: numpy.ndarray
+        The list of parameters in physical space.
+        
+
+    Returns
+    -------
+    numpy.ndarray
+        Same parameters in optimizer space.
+       
+    """
+
+   
+
+    assert np.all(x >= 0), "All rates must be strictly positive"
+    assert np.sum(x) <= 1, "Rates must sum to less than 1 (implicit remainder must be positive)"
+
+    x_opt = np.log(x / (1 - np.sum(x)))
+   
+
+    return x_opt
+
+
+
+
 def sex_bias_founder_to_physical_function(x):
     """
     Convert a founder event parameters from optimizer space to physical space. 
@@ -92,6 +147,7 @@ def sex_bias_founder_to_physical_function(x):
     sex_biases = (r_f - r_m) / (2 * np.minimum(rates, 1 - rates))
 
     return np.concatenate([rates, sex_biases])
+
 
 
 def sex_bias_founder_to_optimizer_function(x):
