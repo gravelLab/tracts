@@ -482,6 +482,32 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
 
 # ------------------ Two-steps optimization ------------------
 
+
+def assign_step_indicators(steps):
+    """Validate the `steps` argument and return (step_1, step_2) booleans indicating 
+    which optimization steps to run."""
+    if steps is not None:
+        if not isinstance(steps, list):
+            raise TypeError("steps must be a list of integers or strings, or None.")
+        valid_step_values = {1, 2, 'step1', 'step2'}
+        for step in steps:
+            if step not in valid_step_values:
+                raise ValueError(f"Invalid step value: {step}. Must be one of {valid_step_values}.")
+        if len(steps) == 0:
+            raise ValueError("steps list cannot be empty.")
+
+    if steps is None:
+        normalized_steps = (1, 2)
+    else:
+        normalized_steps = tuple(sorted({1 if step in (1, 'step1') else 2 for step in steps}))
+        if len(normalized_steps) != len(steps):
+            raise ValueError("steps cannot contain duplicate references to the same optimization step.")
+        if normalized_steps not in ((1,), (2,), (1, 2)):
+            raise ValueError("Only step 1 only, step 2 only, or the combined step 1 + step 2 optimization are allowed.")
+
+    return 1 in normalized_steps, 2 in normalized_steps
+
+
 def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
@@ -578,27 +604,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
     # ----------- Specify which steps are to be run in the optimization procedure ------------
 
-    if steps is not None: # Validate steps argument
-        if not isinstance(steps, list):
-            raise TypeError("steps must be a list of integers or strings, or None.")
-        valid_step_values = {1, 2, 'step1', 'step2'}
-        for step in steps:
-            if step not in valid_step_values:
-                raise ValueError(f"Invalid step value: {step}. Must be one of {valid_step_values}.")
-        if len(steps) == 0:
-            raise ValueError("steps list cannot be empty.")
-
-    if steps is None:
-        normalized_steps = (1, 2)
-    else:
-        normalized_steps = tuple(sorted({1 if step in (1, 'step1') else 2 for step in steps}))
-        if len(normalized_steps) != len(steps):
-            raise ValueError("steps cannot contain duplicate references to the same optimization step.")
-        if normalized_steps not in ((1,), (2,), (1, 2)):
-            raise ValueError("Only step 1 only, step 2 only, or the combined step 1 + step 2 optimization are allowed.")
-
-    step_1 = 1 in normalized_steps
-    step_2 = 2 in normalized_steps
+    step_1, step_2 = assign_step_indicators(steps)
 
     if ad_model_allosomes is None and step_2:
         if step_1:
