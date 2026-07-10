@@ -1137,12 +1137,12 @@ class FixedParametersHandler:
                     report_non_admissible=report_non_admissible,
                 )
 
-                    self._time_param_admissibility_state[param_name] = is_admissible
-                    self._shared_time_param_admissibility_state[state_key] = is_admissible
         if self.demography.parameter_handler.use_groups:
             for group in self.demography.parameter_handler.parameter_groups:
                 converted_params = group.convert_to_physical(converted_params)
         return converted_params
+
+
 
 
     def convert_to_optimizer_params(self, physical_params: list[float]):
