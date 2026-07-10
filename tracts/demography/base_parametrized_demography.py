@@ -949,7 +949,7 @@ class FixedParametersHandler:
         self._time_param_admissibility_state[param_name] = is_admissible
         self._shared_time_param_admissibility_state[state_key] = is_admissible
 
-    def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, float]:
+    def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, str, float]:
         """
         Build a stable key for warning state that survives handler deep copies and
         deduplicates across model variants (e.g., autosomal/allosomal), but avoids
