@@ -882,6 +882,73 @@ class FixedParametersHandler:
         self._time_param_admissibility_state: dict[str, bool] = {} # Tracks whether each time parameter is currently within admissible bounds.
 
 
+    def _check_time_param_admissibility(self, param_name: str, index: int,
+                                          optimizer_params, converted_params,
+                                          max_time: float, report_non_admissible: bool):
+        """
+        Log admissibility transitions for a single time parameter and update the
+        shared/local warning-state latches.
+
+        Parameters
+        ----------
+        param_name: str
+            Name of the time parameter being checked.
+        index: int
+            Position of the parameter in ``optimizer_params`` / ``converted_params``.
+        optimizer_params:
+            Full array of parameters in optimizer units (used only for log messages).
+        converted_params:
+            Full array of parameters in physical units.
+        max_time: float
+            Upper admissible value for time parameters in physical units.
+        report_non_admissible: bool
+            If True, emit an explicit reminder when the parameter remains non-admissible.
+        """
+        is_admissible = converted_params[index] <= max_time
+        state_key = self._get_time_param_state_key(param_name=param_name, max_time=max_time)
+        local_previous_state = self._time_param_admissibility_state.get(param_name)
+        shared_previous_state = self._shared_time_param_admissibility_state.get(state_key)
+        previous_state = local_previous_state if local_previous_state is not None else shared_previous_state
+        already_warned_non_admissible = state_key in self._shared_time_param_non_admissible_warned
+
+        # Log only on status transitions admissible <-> non-admissible.
+        if previous_state is None:
+            if (not is_admissible) and (not already_warned_non_admissible):
+                self.logger.warning(
+                    f'Time parameter {param_name} is greater than the maximum allowed value {max_time}.')
+                self.logger.info(
+                    f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                self._shared_time_param_non_admissible_warned.add(state_key)
+                # Clear back-admissible latch so the warning can fire again once the param recovers.
+                self._shared_time_param_back_admissible_warned.discard(state_key)
+        elif previous_state and not is_admissible:
+            if not already_warned_non_admissible:
+                self.logger.warning(
+                    f'Time parameter {param_name} became non-admissible (>{max_time}).')
+                self.logger.info(
+                    f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+                self._shared_time_param_non_admissible_warned.add(state_key)
+            # Clear back-admissible latch so the warning can fire again once the param recovers.
+            self._shared_time_param_back_admissible_warned.discard(state_key)
+        elif (not previous_state) and is_admissible:
+            already_warned_back_admissible = state_key in self._shared_time_param_back_admissible_warned
+            if not already_warned_back_admissible:
+                self.logger.warning(
+                    f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
+                self._shared_time_param_back_admissible_warned.add(state_key)
+            # Clear the non-admissible latch so a future non-admissible transition can warn again.
+            self._shared_time_param_non_admissible_warned.discard(state_key)
+
+        # Optional reminder for end-of-optimization-step reporting.
+        if report_non_admissible and (not is_admissible) and previous_state is False:
+            self.logger.warning(
+                f'End-of-step status: time parameter {param_name} remains non-admissible (>{max_time}).')
+            self.logger.info(
+                f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
+
+        self._time_param_admissibility_state[param_name] = is_admissible
+        self._shared_time_param_admissibility_state[state_key] = is_admissible
+
     def _get_time_param_state_key(self, param_name: str, max_time: float) -> tuple[str, float]:
         """
         Build a stable key for warning state that survives handler deep copies and
@@ -985,52 +1052,14 @@ class FixedParametersHandler:
             if param_type == ParamType.TIME:
                 if not self.enable_time_param_logging and not report_non_admissible:
                     continue
-
-                is_admissible = converted_params[index] <= max_time
-                state_key = self._get_time_param_state_key(param_name=param_name,
-                                                           max_time=max_time)
-                local_previous_state = self._time_param_admissibility_state.get(param_name)
-                shared_previous_state = self._shared_time_param_admissibility_state.get(state_key)
-                previous_state = local_previous_state if local_previous_state is not None else shared_previous_state
-                already_warned_non_admissible = state_key in self._shared_time_param_non_admissible_warned
-
-                # Log only on status transitions admissible <-> non-admissible.
-                if previous_state is None:
-                    if (not is_admissible) and (not already_warned_non_admissible):
-                        self.logger.warning(
-                            f'Time parameter {param_name} is greater than the maximum allowed value {max_time}.')
-                        self.logger.info(
-                            f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
-                        self._shared_time_param_non_admissible_warned.add(state_key)
-                        # Clear back-admissible latch so the warning can fire again once the param recovers.
-                        self._shared_time_param_back_admissible_warned.discard(state_key)
-                elif previous_state and not is_admissible:
-                    if not already_warned_non_admissible:
-                        self.logger.warning(
-                            f'Time parameter {param_name} became non-admissible (>{max_time}).')
-                        self.logger.info(
-                            f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
-                        self._shared_time_param_non_admissible_warned.add(state_key)
-                    # Clear back-admissible latch so the warning can fire again once the param recovers.
-                    self._shared_time_param_back_admissible_warned.discard(state_key)
-                elif (not previous_state) and is_admissible:
-                    already_warned_back_admissible = state_key in self._shared_time_param_back_admissible_warned
-                    if not already_warned_back_admissible:
-                        self.logger.warning(
-                            f'Time parameter {param_name} is back in the admissible region (<= {max_time}).')
-                        self._shared_time_param_back_admissible_warned.add(state_key)
-                    # Clear the non-admissible latch so a future non-admissible transition can warn again.
-                    self._shared_time_param_non_admissible_warned.discard(state_key)
-
-                # Optional reminder for end-of-optimization-step reporting.
-                if report_non_admissible and (not is_admissible) and previous_state is False:
-                    self.logger.warning(
-                        f'End-of-step status: time parameter {param_name} remains non-admissible (>{max_time}).')
-                    self.logger.info(
-                        f'In optimizer units: {optimizer_params[index]}, in physical units: {converted_params[index]}.')
-
-                self._time_param_admissibility_state[param_name] = is_admissible
-                self._shared_time_param_admissibility_state[state_key] = is_admissible
+                self._check_time_param_admissibility(
+                    param_name=param_name,
+                    index=index,
+                    optimizer_params=optimizer_params,
+                    converted_params=converted_params,
+                    max_time=max_time,
+                    report_non_admissible=report_non_admissible,
+                )
 
         return converted_params
 
