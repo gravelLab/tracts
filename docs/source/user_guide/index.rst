@@ -205,10 +205,16 @@ Models
      model_filename: ../models/ppp.yaml
      ad_model_autosomes: DC
      ad_model_allosomes: H-DC
+     rho_f: 1
+     rho_m: 1
+     TP: 2
 
 - ``model_filename``: The path to the :ref:`YAML file <demographic-models>` specifying the demographic model.
 - ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 - ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
+- ``rho_f``: The female-specific recombination rate. Default is 1.
+- ``rho_m``: The male-specific recombination rate. Default is 1.
+- ``TP``: The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models. Default is 2. Ignored if not applicable.
 
 Starting parameters
 ^^^^^^^^^^^^^^^^^^^

@@ -282,7 +282,10 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                             two_steps_optimization=False,
                                                             start_params_title=step_1_start_params_title,
                                                             print_start_params_table=False,
-                                                            N_cores=driver_spec.optim.N_cores))
+                                                            N_cores=driver_spec.optim.N_cores,
+                                                            rho_f=driver_spec.models.rho_f,
+                                                            rho_m=driver_spec.models.rho_m,
+                                                            TP=driver_spec.models.TP))
 
             optimal_params, optimal_likelihood = _summarize_step_results(params_found=params_found,
                                                                         likelihoods=likelihoods,
@@ -313,8 +316,11 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                             steps=[1],
                                                             start_params_title=step_1_start_params_title,
                                                             print_start_params_table=False,
-                                                            N_cores=driver_spec.optim.N_cores))
-            
+                                                            N_cores=driver_spec.optim.N_cores,
+                                                            rho_f=driver_spec.models.rho_f,
+                                                            rho_m=driver_spec.models.rho_m,
+                                                            TP=driver_spec.models.TP))
+                                    
             #  Process and print results
             optimal_params_step_1, _optimal_likelihood_step_1 = _summarize_step_results(params_found=params_found_step_1,
                                                                         likelihoods=likelihoods_step_1,
@@ -388,7 +394,10 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                                                 steps=[2],
                                                                                 start_params_title=step_2_start_params_title,
                                                                                 print_start_params_table=False,
-                                                                                N_cores=driver_spec.optim.N_cores))
+                                                                                N_cores=driver_spec.optim.N_cores,
+                                                                                rho_f=driver_spec.models.rho_f,
+                                                                                rho_m=driver_spec.models.rho_m,
+                                                                                TP=driver_spec.models.TP))
 
                     #  Process and print results
                     optimal_params, optimal_likelihood = _summarize_step_results(params_found=params_found_step_2,
@@ -452,7 +461,10 @@ def run_tracts(driver_filename: str, script_dir: str):
                                     autosomes_in_step_2=driver_spec.optim.use_autosomes_for_sex_bias,
                                     steps=[2],
                                     print_start_params_table=False,
-                                    N_cores=driver_spec.optim.N_cores
+                                    N_cores=driver_spec.optim.N_cores,
+                                    rho_f=driver_spec.models.rho_f,
+                                    rho_m=driver_spec.models.rho_m,
+                                    TP=driver_spec.models.TP
                                 )
                             )
                     finally:
@@ -593,7 +605,8 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
                         ad_model_allosomes = 'DC', npts: int = 50, verbose_log: int = 0, verbose_screen:int = 0, 
                         two_steps_optimization: bool = True, autosomes_in_step_2: bool = True,
                         steps: list[int | str] | None = None, start_params_title: str | None = None,
-                        print_start_params_table: bool = True, N_cores: int = 1) -> tuple[list[np.ndarray], list[float], list[float | None]]:
+                        print_start_params_table: bool = True, N_cores: int = 1,
+                        rho_f: float = 1, rho_m: float = 1, TP: int = 2) -> tuple[list[np.ndarray], list[float], list[float | None]]:
     """
     Runs the model multiple times with different initial parameters.
 
@@ -641,6 +654,13 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     N_cores: int, optional
         The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
         are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1.
+    rho_f: float, optional
+        The female-specific recombination rate. Default is 1.
+    rho_m: float, optional
+        The male-specific recombination rate. Default is 1.
+    TP: int, optional
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
+        Default is 2. Ignored if not applicable. 
         
     Returns
     ----------
@@ -690,7 +710,10 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
                                                                         autosomes_in_step_2=autosomes_in_step_2,
                                                                         steps=steps,
                                                                         print_step_header=False,
-                                                                        N_cores=N_cores)
+                                                                        N_cores=N_cores,
+                                                                        rho_f=rho_f,
+                                                                        rho_m=rho_m,
+                                                                        TP=TP)
         optimal_params.append(params_found)
         likelihoods.append(likelihood_found)
         full_likelihoods.append(full_likelihood_found)
@@ -700,7 +723,8 @@ def run_model(model_func: callable, bound_func: callable, population: Population
                         startparams: list, population_dict: dict, parameter_handler: FixedParametersHandler, max_iter: int | None = None, 
                         exclude_tracts_below_cM: float = 0, ad_model_autosomes: str = 'DC', ad_model_allosomes: str = 'DC',
                         npts: int = 0, verbose_log: int = 0, verbose_screen: int = 0, two_steps_optimization: bool = True,
-                        autosomes_in_step_2: bool = True, steps: list[int | str] | None = None, print_step_header: bool = True, N_cores: int = 1) -> tuple[np.ndarray, float, float | None]:
+                        autosomes_in_step_2: bool = True, steps: list[int | str] | None = None, print_step_header: bool = True, N_cores: int = 1,
+                        rho_f: float = 1, rho_m: float = 1, TP: int = 2) -> tuple[np.ndarray, float, float | None]:
     
     """
     Runs the optimization for any demographic model, including sex-biased models. Works with only autosomal admixture or with both autosomal and allosomal admixture.
@@ -750,6 +774,13 @@ def run_model(model_func: callable, bound_func: callable, population: Population
     N_cores: int, optional
         The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
         are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1.
+    rho_f: float, optional
+        The female-specific recombination rate. Default is 1.
+    rho_m: float, optional
+        The male-specific recombination rate. Default is 1.
+    TP: int, optional
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
+        Default is 2. Ignored if not applicable. 
         
     Returns
     ----------
@@ -772,7 +803,10 @@ def run_model(model_func: callable, bound_func: callable, population: Population
                                                                     ad_model_allosomes=ad_model_allosomes,
                                                                     npts=npts,
                                                                     print_step_header=print_step_header,
-                                                                    N_cores=N_cores)
+                                                                    N_cores=N_cores,
+                                                                    rho_f=rho_f,
+                                                                    rho_m=rho_m,
+                                                                    TP=TP)
         full_data_likelihood = None
     else:
         optimal_params, optimal_likelihood, full_data_likelihood = optimize_cob_sex_biased_two_steps(p0=startparams, 
@@ -792,7 +826,10 @@ def run_model(model_func: callable, bound_func: callable, population: Population
                                                                                                        npts=npts,
                                                                                                        print_step_header=print_step_header,
                                                                                                        return_full_likelihood=True,
-                                                                                                       N_cores=N_cores)
+                                                                                                       N_cores=N_cores,
+                                                                                                       rho_f=rho_f,
+                                                                                                       rho_m=rho_m,
+                                                                                                       TP=TP)
     
     return optimal_params, optimal_likelihood, full_data_likelihood
        

@@ -138,11 +138,20 @@ class ModelsConfig(BaseModel):
         The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
     ad_model_allosomes: str
         The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".   
+    rho_f: float
+        The female-specific recombination rate. Defaults to 1.
+    rho_m: float
+        The male-specific recombination rate. Defaults to 1.
+    TP: int
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models. Ignored if not applicable. Defaults to 2.
     """
     model_config = ConfigDict(extra="forbid")
     model_filename: str
     ad_model_autosomes: str = "DC"
     ad_model_allosomes: str = "DC"
+    rho_f: float = 1
+    rho_m: float = 1
+    TP: int = 2
 
 class StartParamsConfig(BaseModel):
     """
