@@ -1405,27 +1405,24 @@ class FixedParametersHandler:
             return value
                 
 
+        def _build_start_point(candidate):
+            full = self.insert_solved_params(full_params=params_phys,
+                                             param_values_from_proportions=candidate)
+            opt_full = self.convert_to_optimizer_params(physical_params=full)
+            return full, opt_full[self.params_fixed_by_ancestry_indices]
+
         # Use the current parameter values as starting point for fsolve so that the solver starts from a
         # feasible region close to the candidate (avoids converging to extreme boundary values).
-        # Fall back to 0.1 if the current values are themselves infeasible.
+        # Fall back to 0.1 if the current values are infeasible or map to non-finite optimizer params
+        # (e.g. logit(0) = -inf for a RATE param at the boundary).
         start_point = np.array(params_phys)[self.params_fixed_by_ancestry_indices]
-        start_params_phys_full = self.insert_solved_params(full_params=params_phys,
-                                                            param_values_from_proportions=start_point)
-        if self.demography.check_bounds(params=start_params_phys_full) < 0:
+        start_params_phys_full, start_point_validated = _build_start_point(start_point)
+        if (self.demography.check_bounds(params=start_params_phys_full) < 0
+                or not np.all(np.isfinite(start_point_validated))):
             start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1
-            start_params_phys_full = self.insert_solved_params(full_params=params_phys,
-                                                                param_values_from_proportions=start_point)
-        assert(self.demography.check_bounds(params=start_params_phys_full) >= 0), "Starting point for fixed parameter optimisation is not feasible."
-        start_point_optimizer_full = self.convert_to_optimizer_params(physical_params=start_params_phys_full)
-        start_point_validated =  start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
-
-        # Fall back to 0.1 if optimizer starting point is non-finite (e.g. logit(0) = -inf for a RATE param at the boundary)
-        if not np.all(np.isfinite(start_point_validated)):
-            start_point = np.ones(len(self.params_fixed_by_ancestry)) * .1
-            start_params_phys_full = self.insert_solved_params(full_params=params_phys,
-                                                                param_values_from_proportions=start_point)
-            start_point_optimizer_full = self.convert_to_optimizer_params(physical_params=start_params_phys_full)
-            start_point_validated = start_point_optimizer_full[self.params_fixed_by_ancestry_indices]
+            start_params_phys_full, start_point_validated = _build_start_point(start_point)
+        assert self.demography.check_bounds(params=start_params_phys_full) >= 0, \
+            "Starting point for fixed parameter optimisation is not feasible."
         
 
         try: 
