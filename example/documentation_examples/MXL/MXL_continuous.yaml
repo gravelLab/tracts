@@ -44,7 +44,7 @@ optim:
   fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
 
 output:
-  output_directory: "./output_ccp/{date}/"
+  output_directory: "./output_ccp/"
   output_filename_format: "MXL_output_{label}"
   log_filename: 'MXL_continuous_pulse.log'
   verbose_log: 1

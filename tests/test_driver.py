@@ -77,6 +77,9 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             model_filename="test_model.yaml",
             ad_model_autosomes="DC",
             ad_model_allosomes="DC",
+            rho_f=1,
+            rho_m=1,
+            TP=2,
         ),
         start_params=SimpleNamespace(),
         optim=SimpleNamespace(
@@ -90,6 +93,7 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             two_steps_optimization=two_steps_optimization,
             autosomes_in_step_2=autosomes_in_step_2,
             use_autosomes_for_sex_bias=autosomes_in_step_2,
+            N_cores=5,
         ),
         output=SimpleNamespace(
             output_filename_format="test_output_{label}",

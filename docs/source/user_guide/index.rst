@@ -101,32 +101,48 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 .. admonition:: Sex-bias specification
    :class: tip
 
-   If allosomes are present in the sample, each migration proportion will be automatically associated with 
-   a corresponding sex-bias parameter, which specifies the proportion of female migrants.
-   
+   If allosomes are present in the sample, each migration proportion will be automatically associated with
+   a corresponding sex-bias parameter, measuring the deviation from an unbiased migration setting. For each
+   population :math:`i` and each generation :math:`t`, we consider the proportion :math:`R_{ti}^{f}` (resp. :math:`R_{ti}^{m}`)
+   of female (resp. male) migrants at generation :math:`t` from source population :math:`i`. The average migration
+   rate will then be :math:`R_{ti} = (R_{ti}^{f} + R_{ti}^{m})/2`, which corresponds to the balanced setting where
+   :math:`R_{ti}^{f} = R_{ti}^{m}`. The departure from such scenario is measured by the sex-bias parameter, defined as:
 
-   We take the overall migration rate from source population $i$ ``R_i`` as the average of the male and female replacement rate,
-   ``R = (R_{i,m} + R_{i,f})/2,`` with ``R_{i,f}`` the proportion of females who are migrants 
-   from source population ``i``.
-   We consider balanced a scenario where ``R_{i,m} = R_{i,f}.`` We measure departure from this scenario using the parameter
-   ``R_{i,sex_bias} = 2 * (R_{i,f}/(R_{i,m}+R_{i,f}) - 1/2).`` 
+   .. math::
 
-
-     
-   Consequently, ``R_sex_bias = 1`` corresponds to exclusively female migration, 
-   ``R_sex_bias = -1`` to exclusively male migration, and ``R_sex_bias = 0`` to unbiased migration.
-
-   For all generations except the founder generation, the initial value of ``R_sex_bias`` 
-   must be specified by the user when configuring the driver file. 
-   In the founder generation, all individuals are migrants, leading to a dependency among the migration rates: 
-   ``\sum_i R_i = 1``, and  ``\sum_i R{i,f} = 1.`` 
-   This entails a relationship among sex bias parameters: ``\sum_i R_{i, sex_bias}  R_i= 0.`` 
-   If there are ``k`` source populations, the user only specifies ``k-1`` rates and sex biases, 
-   and the remaining  parameters are inferred from these dependencies. 
+      R_{ti}^{\text{sex-bias}} = \frac{R_{ti}^{f} - R_{ti}^{m}}{2\min(R_{ti},\, 1 - R_{ti})}.
 
 
 
+   Consequently, the sex-specific rates are recovered from the mean rate and the sex-bias parameter as:
 
+   .. math::
+
+      R_{ti}^{f} &= R_{ti} + R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}),\\
+      R_{ti}^{m} &= R_{ti} - R_{ti}^{\text{sex-bias}} \cdot \min(R_{ti},\, 1 - R_{ti}).
+
+
+
+   Consequently, :math:`R_{ti}^{\text{sex-bias}} = 1` corresponds to exclusively female migration,
+   :math:`R_{ti}^{\text{sex-bias}} = -1` to exclusively male migration, and :math:`R_{ti}^{\text{sex-bias}} = 0` to 
+   unbiased migration.
+
+   For all generations except the founder generation, the initial value of :math:`R_{ti}^{\text{sex-bias}}`
+   must be specified by the user when configuring the driver file.
+   In the founder generation, all individuals are migrants, leading to a dependency among the migration rates:
+
+   .. math::
+
+      \sum_i R_{Ti} = \sum_i R_{Ti}^{f} = \sum_i R_{Ti}^{m} = 1.
+
+   This entails a relationship among sex bias parameters:
+
+   .. math::
+
+      \sum_{i} R_{Ti}^{\text{sex-bias}} \cdot \min(R_{Ti},\, 1 - R_{Ti}) = 0.
+
+   If there are :math:`P` source populations, the user only specifies :math:`P-1` rates and sex biases,
+   and the remaining parameters are inferred from these dependencies.
 
 
 .. _input-data:
@@ -189,10 +205,16 @@ Models
      model_filename: ../models/ppp.yaml
      ad_model_autosomes: DC
      ad_model_allosomes: H-DC
+     rho_f: 1
+     rho_m: 1
+     TP: 2
 
 - ``model_filename``: The path to the :ref:`YAML file <demographic-models>` specifying the demographic model.
 - ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 - ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
+- ``rho_f``: The female-specific recombination rate. Default is 1.
+- ``rho_m``: The male-specific recombination rate. Default is 1.
+- ``TP``: The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models. Default is 2. Ignored if not applicable.
 
 Starting parameters
 ^^^^^^^^^^^^^^^^^^^
@@ -222,6 +244,7 @@ Optimization
      fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias']
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
+     N_cores: 5
 
 - ``seed``: The random seed.
 - ``repetitions``: Number of independent optimization runs performed from different initial values, randomly chosen within the bounds set by the user. Since the optimizer may converge to different local optima, the algorithm repeats the optimization ``repetitions`` times and automatically retains the run with the highest likelihood.
@@ -232,6 +255,7 @@ Optimization
 - ``fix_parameters_from_ancestry_proportions``: These parameters are analytically computed from the ancestry proportions, and the optimization is restricted to the remaining parameters.
 - ``two_steps_optimization``: Whether to perform a two-step optimization, where non-sex-bias parameters are optimized first using autosomes, and then sex-bias parameters are optimized with the non-sex-bias parameters fixed. Defaults to ``True``.
 - ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to ``False``, which means that only allosomes are used to optimize sex-bias parameters.
+- ``N_cores``: The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used to model autosomal or allosomal admixture. Ignored if the hybrid-pedigree refinements are not used. Default is 1.
 
 .. admonition:: Using ``fix_parameters_from_ancestry_proportions``
    :class: tip
@@ -299,10 +323,14 @@ Outputs
 - ``_male_allosome_predicted_tract_distribution``: if allosomes are present in the sample, the predicted counts in each bin for the allosomal distribution in males, according to the predicted model.
 - ``_female_migration_matrix``: the inferred female-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
 - ``_male_migration_matrix``: the inferred male-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
-- ``_optimal_parameters.txt``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`.
-- ``_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
-- ``_female_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in females.
-- ``_male_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in males.
+- ``_optimal_parameters.txt``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`, together with the inferred likelihood.
+- ``_ancestry_per_individual``: a tab-separated file listing the ancestry proportions per individual for each source population.
+- ``_ancestry_proportions.txt``: a table of the observed and predicted mean ancestry proportions for autosomes and, if present, allosomes.
+- ``_admixture_plot.pdf``: a stacked bar chart of ancestry proportions per individual, sorted by the most common ancestry (ADMIXTURE-style).
+- ``_migration_matrices.pdf``, ``_migration_matrices.png``: plots of the inferred mean migration matrix and sex-bias values per generation. Only produced if ``plot_migration_matrices: True`` in the driver file.
+- ``_autosomes_all_populations.pdf``, ``_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
+- ``_female_allosomes_all_populations.pdf``, ``_female_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in females.
+- ``_male_allosomes_all_populations.pdf``, ``_male_allosomes_all_populations.png``: if allosomes are present in the sample, a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in males.
 
 
 

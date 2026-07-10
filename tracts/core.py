@@ -17,12 +17,289 @@ _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
 _ignore_oob_above = -1e-14
 
-# ------ Optimizers ------
+# ------------------ Objective function ------------------
+
+def _compute_objective(
+    parameters,
+    *,
+    local_parameter_handler,
+    best_state,
+    model_func,
+    outofbounds_fun,
+    ad_model_autosomes,
+    ad_model_allosomes,
+    N_cores,
+    verbose_log,
+    verbose_screen,
+    population,
+    autosome_bins,
+    autosome_data_mapped,
+    allosome_bins=None,
+    allosome_length=None,
+    female_data_mapped=None,
+    male_data_mapped=None,
+    num_females=None,
+    num_males=None,
+    include_autosomes=True,
+    include_allosomes=True,
+    rho_f=1,
+    rho_m=1,
+    TP=2
+):
+    """
+    Evaluate the optimization objective (negative log-likelihood) for a given parameter vector.
+
+    This is the shared implementation called by both
+    :func:`optimize_cob_sex_biased_single_step` and
+    :func:`optimize_cob_sex_biased_two_steps` via their thin ``objective_function``
+    wrappers. It increments the global iteration counter, logs/prints the current
+    iterate, handles out-of-bounds and singular-matrix penalties, computes the
+    autosomal and/or allosomal log-likelihoods, and updates ``best_state`` whenever
+    a new best finite objective is found.
+
+    Parameters
+    ----------
+    parameters : np.ndarray
+        Full parameter vector in optimizer space.
+    local_parameter_handler : FixedParametersHandler
+        Deep copy of the original handler; used to convert optimizer-space
+        parameters to physical parameters for logging.
+    best_state : dict
+        Mutable dict with keys ``'objective'`` (float, lowest objective seen so
+        far, initialised to ``np.inf``) and ``'params'`` (np.ndarray or None,
+        the corresponding parameter vector). Updated in place whenever a new best
+        finite objective is found.
+    model_func : callable
+        Returns a dict of migration matrices keyed by population label.
+    outofbounds_fun : callable or None
+        Returns a negative violation score when parameters are out of bounds, or
+        a value close to zero when they are admissible. If None, a warning is
+        printed but execution continues.
+    ad_model_autosomes : str
+        Admixture model for autosomes. One of ``'DC'``, ``'DF'``, ``'M'``,
+        ``'H-DC'``, or ``'H-DF'``.
+    ad_model_allosomes : str or None
+        Admixture model for allosomes. One of ``'DC'``, ``'DF'``, ``'H-DC'``,
+        or ``'H-DF'``. Only used when ``include_allosomes=True``.
+    N_cores : int
+        Number of CPU cores for parallel hybrid-pedigree computations.
+    verbose_log : int
+        Log every ``verbose_log`` iterations (0 = never).
+    verbose_screen : int
+        Print every ``verbose_screen`` iterations (0 = never).
+    population : Population
+        Population object providing chromosome lengths and sample sizes.
+    autosome_bins : np.ndarray
+        Bin edges for the autosomal tract-length histogram.
+    autosome_data_mapped : list of list
+        Observed autosomal tract counts per population, indexed to match the
+        model's population ordering.
+    allosome_bins : np.ndarray, optional
+        Bin edges for the allosomal tract-length histogram. Required when
+        ``include_allosomes=True``.
+    allosome_length : float, optional
+        Length of the X chromosome in Morgans. Required when
+        ``include_allosomes=True``.
+    female_data_mapped : list of list, optional
+        Observed X-chromosome tract counts for females per population. Required
+        when ``include_allosomes=True``.
+    male_data_mapped : list of list, optional
+        Observed X-chromosome tract counts for males per population. Required
+        when ``include_allosomes=True``.
+    num_females : int, optional
+        Number of female samples. Required when ``include_allosomes=True``.
+    num_males : int, optional
+        Number of male samples. Required when ``include_allosomes=True``.
+    include_autosomes : bool, default True
+        Whether to include the autosomal log-likelihood in the objective.
+    include_allosomes : bool, default True
+        Whether to include the allosomal log-likelihood in the objective.
+    rho_f : float, default 1
+        The female-specific recombination rate.
+    rho_f : float, default 1
+        The male-specific recombination rate.
+    TP : int, default 2
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
+
+    Returns
+    -------
+    float
+        The objective value (negative total log-likelihood), or a large positive
+        penalty when parameters are out of bounds or produce a singular matrix.
+    """
+    global _counter
+    global _out_of_bounds_val
+    global _min_out_of_bounds_val
+    _counter += 1
+
+    if not include_autosomes and not include_allosomes:
+        raise ValueError("At least one of include_autosomes or include_allosomes must be True.")
+
+    def flush_result(result, note=str()):
+        prev_time_param_logging = local_parameter_handler.enable_time_param_logging
+        local_parameter_handler.enable_time_param_logging = False
+        try:
+            param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(parameters, report_non_admissible=False)]))
+        finally:
+            local_parameter_handler.enable_time_param_logging = prev_time_param_logging
+        if (verbose_log > 0) and (_counter % verbose_log == 0):
+            logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, result, param_str, note)
+        if (verbose_screen > 0) and (_counter % verbose_screen == 0):
+            eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
+
+    if outofbounds_fun is not None:
+        oob = outofbounds_fun(parameters)
+        if oob < _ignore_oob_above:
+            out = oob * _out_of_bounds_val - _min_out_of_bounds_val
+            flush_result(out, f'OOB (oob={oob})')
+            return out
+    else:
+        eprint("No bound function defined")
+
+    try:
+        matrices = model_func(parameters)
+        matrix_list = [matrix for matrix in matrices.values()]
+        if include_allosomes:
+            [male_matrix, female_matrix] = matrix_list
+        else:
+            avg_matrix = np.mean(matrix_list, axis=0)
+            male_matrix = avg_matrix
+            female_matrix = avg_matrix
+    except (np.linalg.LinAlgError, ValueError, FloatingPointError):
+        out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty, consistent with OOB
+        flush_result(out, 'Singular matrix (infeasible params)')
+        return out
+
+    # ----------------- Compute model likelihood for autosomes -----------------
+
+    if include_autosomes:
+
+        if ad_model_autosomes == 'H-DC' or ad_model_autosomes == 'H-DF':
+
+            result_autosomes = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                            mig_matrix_m=male_matrix,
+                                            rho_f=rho_f,
+                                            rho_m=rho_m,
+                                            TP=TP,
+                                            Dioecious_model=ad_model_autosomes[2:],
+                                            X_chr=False,
+                                            X_chr_male=False,
+                                            N_cores=N_cores,
+                                            bins=autosome_bins,
+                                            Ls=population.Ls,
+                                            data=[mat for mat in autosome_data_mapped],
+                                            num_samples=len(population.indivs),
+                                            cutoff=0)
+
+        else:
+
+            try:
+                if ad_model_autosomes == 'M':
+                    model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix), rho=1)
+                else:
+                    assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
+                    model = PhTDioecious(migration_matrix_f=female_matrix,
+                                        migration_matrix_m=male_matrix,
+                                        rho_f=rho_f,
+                                        rho_m=rho_m,
+                                        sex_model=ad_model_autosomes)
+            except (np.linalg.LinAlgError, ValueError):
+                out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty
+                flush_result(out, 'Singular matrix (infeasible params)')
+                return out
+
+            result_autosomes = model.loglik(bins=autosome_bins,
+                                            Ls=population.Ls,
+                                            data=[mat for mat in autosome_data_mapped],
+                                            num_samples=len(population.indivs))
+
+        flush_result(result_autosomes, 'Autosomes')
+
+    # ----------------- Compute model likelihood for allosomes -----------------
+
+    if include_allosomes:
+
+        if ad_model_allosomes == 'H-DC' or ad_model_allosomes == 'H-DF':
+
+            result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                            mig_matrix_m=male_matrix,
+                                            rho_f=rho_f,
+                                            rho_m=rho_m,
+                                            TP=TP,
+                                            Dioecious_model=ad_model_allosomes[2:],
+                                            X_chr=True,
+                                            X_chr_male=False,
+                                            N_cores=N_cores,
+                                            bins=allosome_bins,
+                                            Ls=[allosome_length],
+                                            data=[mat for mat in female_data_mapped],
+                                            num_samples=num_females, cutoff=0)
+
+            result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
+                                          mig_matrix_m=male_matrix,
+                                          rho_f=rho_f,
+                                          rho_m=rho_m,
+                                          TP=TP,
+                                          Dioecious_model=ad_model_allosomes[2:],
+                                          X_chr=True,
+                                          X_chr_male=True,
+                                          N_cores=N_cores,
+                                          bins=allosome_bins,
+                                          Ls=[allosome_length],
+                                          data=[mat for mat in male_data_mapped],
+                                          num_samples=num_males, cutoff=0)
+
+        else:
+
+            result_X_females = PhTDioecious(migration_matrix_f=female_matrix,
+                                            migration_matrix_m=male_matrix,
+                                            rho_f=rho_f,
+                                            rho_m=rho_m,
+                                            sex_model=ad_model_allosomes,
+                                            X_chromosome=True).loglik(bins=allosome_bins,
+                                                                      Ls=[allosome_length],
+                                                                      data=[mat for mat in female_data_mapped],
+                                                                      num_samples=num_females)
+
+            result_X_males = PhTDioecious(migration_matrix_f=female_matrix,
+                                          migration_matrix_m=male_matrix,
+                                          rho_f=rho_f,
+                                          rho_m=rho_m,
+                                          sex_model=ad_model_allosomes,
+                                          X_chromosome=True,
+                                          X_chromosome_male=True).loglik(bins=allosome_bins,
+                                                                         Ls=[allosome_length],
+                                                                         data=[mat for mat in male_data_mapped],
+                                                                         num_samples=num_males)
+
+        flush_result(result_X_females, 'Female allosomes')
+        flush_result(result_X_males, 'Male allosomes')
+
+    if include_autosomes and include_allosomes:
+        result = result_autosomes + result_X_females + result_X_males
+    elif include_autosomes and not include_allosomes:
+        result = result_autosomes
+    elif not include_autosomes and include_allosomes:
+        result = result_X_females + result_X_males
+    else:
+        raise ValueError("At least one of include_autosomes or include_allosomes must be True.")
+
+    obj = -result
+
+    if np.isfinite(obj) and obj < best_state['objective']:
+        best_state['objective'] = obj
+        best_state['params'] = parameters.copy()
+    return obj
+
+
+# ------------------ Single-step optimization ------------------
+
 
 def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
                             verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
                             maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
-                            ad_model_allosomes:str='DC', npts:int=50, print_step_header:bool=True) -> tuple[np.ndarray, float]:
+                            ad_model_allosomes:str='DC', npts:int=50, print_step_header:bool=True, N_cores:int=1,
+                            rho_f:float=1, rho_m:float=1, TP:int=2) -> tuple[np.ndarray, float]:
     """
     Optimizes the log-likelihood over all parameters defined by the demographic model, given a specified pair of admixture models for autosomes and allosomes.
     The optimization is carried out jointly in a single step, estimating all parameters simultaneously using both autosomal and allosomal data.
@@ -63,6 +340,15 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
         optimization. If False, only the iteration table header is printed. For internal use only;
         set automatically by :func:`~tracts.driver.run_model_multi_init` to suppress repeated
         headers across multiple runs within the same step. Default is True.
+    N_cores: int, optional
+        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
+        are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1. 
+    rho_f: float, default 1
+        The female-specific recombination rate.
+    rho_m: float, default 1
+        The male-specific recombination rate.
+    TP: int, default 2
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
 
     Returns
     -------
@@ -105,195 +391,34 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
             male_data_mapped[dict(p_dict)[k]] = v
 
     local_parameter_handler = copy.deepcopy(parameter_handler)
-    best_objective = np.inf
-    best_full_params = None
+    _best_state = {'objective': np.inf, 'params': None}
 
     def objective_function(parameters):
-        nonlocal best_objective, best_full_params
-
-        global _counter
-        global _out_of_bounds_val
-        global _min_out_of_bounds_val
-        _counter += 1
-
-        def flush_result(result, note=str()):
-            prev_time_param_logging = parameter_handler.enable_time_param_logging
-            parameter_handler.enable_time_param_logging = False
-            try:
-                param_str = 'ocsb: array([%s])' % (', '.join(['%- 12g' % v for v in parameter_handler.convert_to_physical_params(parameters, report_non_admissible=False)]))
-            finally:
-                parameter_handler.enable_time_param_logging = prev_time_param_logging
-            if (verbose_log > 0) and (_counter % verbose_log == 0):
-                logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, result, param_str, note)
-            if (verbose_screen > 0) and (_counter % verbose_screen == 0):
-                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
-
-        if outofbounds_fun is not None:
-            oob = outofbounds_fun(parameters)
-            if oob < _ignore_oob_above:
-                out = oob * _out_of_bounds_val - _min_out_of_bounds_val
-                flush_result(out, f'OOB (oob={oob})')
-                return out
-        else:
-            eprint("No bound function defined")
-
-        matrices = model_func(parameters)
-
-        matrix_list = [matrix for matrix in matrices.values()]
-        if ad_model_allosomes is not None:
-            [male_matrix, female_matrix] = matrix_list
-        else:
-            male_matrix = matrix_list[0]
-            female_matrix = matrix_list[0]
-
-        if ad_model_autosomes == 'M':
-            try:
-                model = PhTMonoecious(migration_matrix=0.5 * (female_matrix + male_matrix), rho=1)
-            except (np.linalg.LinAlgError, ValueError):
-                return -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty
-            result_autosomes = model.loglik(
-                bins=autosome_bins,
-                Ls=population.Ls,
-                data=[mat for mat in autosome_data_mapped],
-                num_samples=len(population.indivs),
-                cutoff=0,
-            )
-        elif ad_model_autosomes == 'H-DC':
-            result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
-                                        mig_matrix_m=male_matrix,
-                                        rho_f=1,
-                                        rho_m=1,
-                                        TP = 2,
-                                        Dioecious_model = 'DC',
-                                        X_chr = False,
-                                        X_chr_male = False,
-                                        N_cores = 5,
-                                        bins=autosome_bins,
-                                        Ls=population.Ls,
-                                        data=[mat for mat in autosome_data_mapped],
-                                        num_samples=len(population.indivs),
-                                        cutoff=0)
-        elif ad_model_autosomes == 'H-DF':
-            result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
-                                        mig_matrix_m=male_matrix,
-                                        rho_f=1,
-                                        rho_m=1,
-                                        TP = 2,
-                                        Dioecious_model = 'DF',
-                                        X_chr = False,
-                                        X_chr_male = False,
-                                        N_cores = 5,
-                                        bins=autosome_bins,
-                                        Ls=population.Ls,
-                                        data=[mat for mat in autosome_data_mapped],
-                                        num_samples=len(population.indivs),
-                                        cutoff=0)
-        else:
-            result_autosomes = PhTDioecious(migration_matrix_f=female_matrix,
-                                            migration_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            sex_model=ad_model_autosomes).loglik(bins=autosome_bins,
-                                                                                Ls=population.Ls,
-                                                                                data=[mat for mat in autosome_data_mapped],
-                                                                                num_samples=len(population.indivs))
-        
-        if ad_model_allosomes is not None: # Model for allosomes
-            
-            if ad_model_allosomes == 'H-DC':
-                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                                mig_matrix_m=male_matrix,
-                                                rho_f=1,
-                                                rho_m=1,
-                                                TP = 2,
-                                                Dioecious_model = 'DC',
-                                                X_chr = True,
-                                                X_chr_male = False,
-                                                N_cores = 5,
-                                                bins=allosome_bins,
-                                                Ls=[allosome_length],
-                                                data=[mat for mat in female_data_mapped],
-                                                num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            TP = 2,
-                                            Dioecious_model = 'DC',
-                                            X_chr = True,
-                                            X_chr_male = True,
-                                            N_cores = 5,
-                                            bins=allosome_bins,
-                                            Ls=[allosome_length],
-                                            data=[mat for mat in male_data_mapped],
-                                            num_samples=num_males, cutoff=0)
-                
-            elif ad_model_allosomes == 'H-DF':
-                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                                mig_matrix_m=male_matrix,
-                                                rho_f=1,
-                                                rho_m=1,
-                                                TP = 2,
-                                                Dioecious_model = 'DF',
-                                                X_chr = True,
-                                                X_chr_male = False,
-                                                N_cores = 5,
-                                                bins=allosome_bins,
-                                                Ls=[allosome_length],
-                                                data=[mat for mat in female_data_mapped],
-                                                num_samples=num_females, cutoff=0)
-                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            TP = 2,
-                                            Dioecious_model = 'DF',
-                                            X_chr = True,
-                                            X_chr_male = True,
-                                            N_cores = 5,
-                                            bins=allosome_bins,
-                                            Ls=[allosome_length],
-                                            data=[mat for mat in male_data_mapped],
-                                            num_samples=num_males, cutoff=0)   
-            else:
-                result_X_females = PhTDioecious(migration_matrix_f=female_matrix,
-                                                migration_matrix_m=male_matrix,
-                                                rho_f=1,
-                                                rho_m=1,
-                                                sex_model=ad_model_allosomes,
-                                                X_chromosome=True).loglik(bins=allosome_bins,
-                                                                        Ls=[allosome_length],
-                                                                        data=[mat for mat in female_data_mapped],
-                                                                        num_samples=num_females)
-                result_X_males = PhTDioecious(migration_matrix_f=female_matrix,
-                                            migration_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            sex_model=ad_model_allosomes,
-                                            X_chromosome=True,
-                                            X_chromosome_male=True).loglik(bins=allosome_bins,
-                                                                        Ls=[allosome_length],
-                                                                        data=[mat for mat in male_data_mapped],
-                                                                        num_samples=num_males)
-        else:
-            result_X_females = 0
-            result_X_males = 0
-
-        result = (result_autosomes + result_X_females + result_X_males)
-                
-        flush_result(result_autosomes, 'Autosomes')
-        if ad_model_allosomes:
-            flush_result(result_X_females, 'Female allosomes')
-            flush_result(result_X_males, 'Male allosomes')
-        
-        obj = -result
-
-        if np.isfinite(obj) and obj < best_objective:
-            best_objective = obj
-            best_full_params = parameters.copy()
-            
-        return obj
-
+        return _compute_objective(
+            parameters,
+            local_parameter_handler=local_parameter_handler,
+            best_state=_best_state,
+            model_func=model_func,
+            outofbounds_fun=outofbounds_fun,
+            ad_model_autosomes=ad_model_autosomes,
+            ad_model_allosomes=ad_model_allosomes,
+            N_cores=N_cores,
+            verbose_log=verbose_log,
+            verbose_screen=verbose_screen,
+            population=population,
+            autosome_bins=autosome_bins,
+            autosome_data_mapped=autosome_data_mapped,
+            allosome_bins=allosome_bins if ad_model_allosomes is not None else None,
+            allosome_length=allosome_length if ad_model_allosomes is not None else None,
+            female_data_mapped=female_data_mapped if ad_model_allosomes is not None else None,
+            male_data_mapped=male_data_mapped if ad_model_allosomes is not None else None,
+            num_females=num_females if ad_model_allosomes is not None else None,
+            num_males=num_males if ad_model_allosomes is not None else None,
+            include_allosomes=ad_model_allosomes is not None,
+            rho_f=rho_f,
+            rho_m=rho_m,
+            TP=TP
+        )
     # ------------ Define reduced objective function and out-of-bounds function for optimization ------------
 
     def reduced_objective_function(free_parameters_opt):
@@ -345,21 +470,25 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
 
     # ------------ Return optimal parameters corresponding to best likelihood ------------
 
-    if best_full_params is None:
+    if _best_state['params'] is None:
         try:
             fallback_likelihood = -objective_function(optimized_parameters)
             return optimized_parameters, fallback_likelihood
         except Exception:
             return optimized_parameters, -1e32
 
-    return best_full_params, -best_objective 
+    return _best_state['params'], -_best_state['objective']
 
+
+# ------------------ Two-steps optimization ------------------
 
 def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
                                     p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
-                                    ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', autosomes_in_step_2:bool=True, steps: list[int | str] | None = None, npts:int=50, print_step_header:bool=True,
-                                    return_full_likelihood: bool = False) -> tuple[np.ndarray, float] | tuple[np.ndarray, float, float | None]:
+                                    ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', autosomes_in_step_2:bool=True,
+                                    steps: list[int | str] | None = None, npts:int=50, print_step_header:bool=True,
+                                    return_full_likelihood: bool = False, N_cores:int=1,
+                                    rho_f:float=1, rho_m:float=1, TP:int=2) -> tuple[np.ndarray, float] | tuple[np.ndarray, float, float | None]:
     """
     Optimizes the log-likelihood over all parameters defined by the demographic model, for a specified admixture model applied to both autosomes and allosomes.
     The procedure supports exactly three modes.
@@ -418,6 +547,15 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         step. If False, only the iteration table header is printed. For internal use only; set
         automatically by :func:`~tracts.driver.run_model_multi_init` to suppress repeated headers
         across multiple runs within the same step. Default is True.
+    N_cores: int, optional
+        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
+        are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1. 
+    rho_f: float, default 1
+        The female-specific recombination rate.
+    rho_m: float, default 1
+        The male-specific recombination rate.
+    TP: int, default 2
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
 
     Returns
     -------
@@ -501,8 +639,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
     # ------------ Set up fixed parameters for the upcoming optimization step ------------
 
-    best_objective = np.inf
-    best_full_params = None
+    _best_state = {'objective': np.inf, 'params': None}
 
     local_parameter_handler = copy.deepcopy(parameter_handler)
 
@@ -536,218 +673,33 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         
     # ----------- Define objective function for optimization ------------
 
-    def objective_function(model_base_parameters, include_autosomes = True, include_allosomes = True): # parameters are in optimizer space
-
-        nonlocal best_objective, best_full_params
-
-        global _counter
-        global _out_of_bounds_val
-        global _min_out_of_bounds_val
-        _counter += 1
-
-        if not include_autosomes and not include_allosomes:
-            raise ValueError("At least one of include_autosomes or include_allosomes must be True.")
-
-        def flush_result(result, note = str()):
-            prev_time_param_logging = local_parameter_handler.enable_time_param_logging
-            local_parameter_handler.enable_time_param_logging = False
-            try:
-                param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(model_base_parameters, report_non_admissible=False)]))
-            finally:
-                local_parameter_handler.enable_time_param_logging = prev_time_param_logging
-            if (verbose_log > 0) and (_counter % verbose_log == 0): # Add iteration to log file
-                logger.info(
-                     "iter=%-6d | obj=%-12g | params=%s %s",
-                        _counter,
-                        result,
-                        param_str,
-                        note,
-                    )
-            if (verbose_screen > 0) and (_counter % verbose_screen == 0): # Print iteration on screen
-                eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))    
-
-        if outofbounds_fun is not None:
-            # outofbounds can return either True or a negative value to signify out-of-boundedness.
-            oob = outofbounds_fun(model_base_parameters)
-            if oob < _ignore_oob_above:
-                out = oob * _out_of_bounds_val-_min_out_of_bounds_val
-                flush_result(out, f'OOB (oob={oob})')
-                return out 
-        else:
-            eprint("No bound function defined")
-
-        try:
-            matrices = model_func(model_base_parameters)
-            matrix_list = [matrix for matrix in matrices.values()]
-            if include_allosomes:
-                [male_matrix, female_matrix] = matrix_list
-            else:
-                # For autosome-only step: use the average of all matrices (correct for
-                # sex-biased models where matrix_list = [male_matrix, female_matrix]).
-                # Averaging prevents degenerate cases where one sex matrix has a zero row
-                # (e.g. RNAT_male≈0 at the sex-bias boundary) that would cause ETL=0 → NaN.
-                avg_matrix = np.mean(matrix_list, axis=0)
-                male_matrix = avg_matrix
-                female_matrix = avg_matrix
-        except (np.linalg.LinAlgError, ValueError, FloatingPointError):
-            out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty, consistent with OOB
-            flush_result(out, 'Singular matrix (infeasible params)')
-            return out
-
-        if include_autosomes: # Model for autosomes
-            
-            if ad_model_autosomes == 'M':
-                try:
-                    model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
-                                        rho=1)
-                except (np.linalg.LinAlgError, ValueError):
-                    out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty
-                    flush_result(out, 'Singular matrix (infeasible params)')
-                    return out
-                result_autosomes = model.loglik(bins=autosome_bins,
-                                                Ls=population.Ls,
-                                                data=[mat for mat in autosome_data_mapped],
-                                                num_samples=len(population.indivs))
-            elif ad_model_autosomes == 'H-DC':
-                result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            TP = 2,
-                                            Dioecious_model = 'DC',
-                                            X_chr = False,
-                                            X_chr_male = False,
-                                            N_cores = 5,
-                                            bins=autosome_bins,
-                                            Ls=population.Ls,
-                                            data=[mat for mat in autosome_data_mapped],
-                                            num_samples=len(population.indivs), cutoff=0)
-            elif ad_model_autosomes == 'H-DF':
-                result_autosomes=HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            TP = 2,
-                                            Dioecious_model = 'DF',
-                                            X_chr = False,
-                                            X_chr_male = False,
-                                            N_cores = 5,
-                                            bins=autosome_bins,
-                                            Ls=population.Ls,
-                                            data=[mat for mat in autosome_data_mapped],
-                                            num_samples=len(population.indivs), cutoff=0)
-            else:
-                assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
-                result_autosomes = PhTDioecious(migration_matrix_f=female_matrix,
-                                                migration_matrix_m=male_matrix,
-                                                rho_f=1,
-                                                rho_m=1,
-                                                sex_model=ad_model_autosomes).loglik(bins=autosome_bins,
-                                                                                    Ls=population.Ls,
-                                                                                    data=[mat for mat in autosome_data_mapped],
-                                                                                    num_samples=len(population.indivs))
-            flush_result(result_autosomes, 'Autosomes')
-
-        if include_allosomes: # Model for allosomes
-            
-            if ad_model_allosomes == 'H-DC':
-                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                                mig_matrix_m=male_matrix,
-                                                rho_f=1,
-                                                rho_m=1,
-                                                TP = 2,
-                                                Dioecious_model = 'DC',
-                                                X_chr = True,
-                                                X_chr_male = False,
-                                                N_cores = 5,
-                                                bins=allosome_bins,
-                                                Ls=[allosome_length],
-                                                data=[mat for mat in female_data_mapped],
-                                                num_samples=num_females, cutoff=0)
-                
-                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                              mig_matrix_m=male_matrix,
-                                              rho_f=1,
-                                              rho_m=1,
-                                              TP = 2,
-                                              Dioecious_model = 'DC',
-                                              X_chr = True,
-                                              X_chr_male = True,
-                                              N_cores = 5,
-                                              bins=allosome_bins,
-                                              Ls=[allosome_length],
-                                              data=[mat for mat in male_data_mapped],
-                                              num_samples=num_males, cutoff=0)
-                
-            elif ad_model_allosomes == 'H-DF':
-                result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                                mig_matrix_m=male_matrix,
-                                                rho_f=1,
-                                                rho_m=1,
-                                                TP = 2,
-                                                Dioecious_model = 'DF',
-                                                X_chr = True,
-                                                X_chr_male = False,
-                                                N_cores = 5,
-                                                bins=allosome_bins,
-                                                Ls=[allosome_length],
-                                                data=[mat for mat in female_data_mapped],
-                                                num_samples=num_females,
-                                                cutoff=0)
-                
-                result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            TP = 2,
-                                            Dioecious_model = 'DF',
-                                            X_chr = True,
-                                            X_chr_male = True,
-                                            N_cores = 5,
-                                            bins=allosome_bins,
-                                            Ls=[allosome_length],
-                                            data=[mat for mat in male_data_mapped],
-                                            num_samples=num_males, cutoff=0)   
-            else:
-                result_X_females = PhTDioecious(migration_matrix_f=female_matrix,
-                                            migration_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            sex_model=ad_model_allosomes,
-                                            X_chromosome=True).loglik(bins=allosome_bins,
-                                                                    Ls=[allosome_length],
-                                                                    data=[mat for mat in female_data_mapped],
-                                                                    num_samples=num_females)
-                result_X_males = PhTDioecious(migration_matrix_f=female_matrix,
-                                            migration_matrix_m=male_matrix,
-                                            rho_f=1,
-                                            rho_m=1,
-                                            sex_model=ad_model_allosomes,
-                                            X_chromosome=True,
-                                            X_chromosome_male=True).loglik(bins=allosome_bins,
-                                                                        Ls=[allosome_length],
-                                                                        data=[mat for mat in male_data_mapped],
-                                                                        num_samples=num_males)
-
-            flush_result(result_X_females, 'Female allosomes')
-            flush_result(result_X_males, 'Male allosomes')
-        
-        
-        if include_autosomes and include_allosomes:
-            result = result_autosomes + result_X_females + result_X_males
-        elif include_autosomes and not include_allosomes:
-            result = result_autosomes
-        elif not include_autosomes and include_allosomes:
-            result = result_X_females + result_X_males
-        else:
-            raise ValueError("At least one of include_autosomes or include_allosomes must be True.")        
-        
-        obj = -result
-
-        if np.isfinite(obj) and obj < best_objective:
-            best_objective = obj
-            best_full_params = model_base_parameters.copy()
-        return obj
+    def objective_function(model_base_parameters, include_autosomes=True, include_allosomes=True):
+        return _compute_objective(
+            model_base_parameters,
+            local_parameter_handler=local_parameter_handler,
+            best_state=_best_state,
+            model_func=model_func,
+            outofbounds_fun=outofbounds_fun,
+            ad_model_autosomes=ad_model_autosomes,
+            ad_model_allosomes=ad_model_allosomes,
+            N_cores=N_cores,
+            verbose_log=verbose_log,
+            verbose_screen=verbose_screen,
+            population=population,
+            autosome_bins=autosome_bins,
+            autosome_data_mapped=autosome_data_mapped,
+            allosome_bins=allosome_bins if (ad_model_allosomes is not None and step_2) else None,
+            allosome_length=allosome_length if (ad_model_allosomes is not None and step_2) else None,
+            female_data_mapped=female_data_mapped if (ad_model_allosomes is not None and step_2) else None,
+            male_data_mapped=male_data_mapped if (ad_model_allosomes is not None and step_2) else None,
+            num_females=num_females if (ad_model_allosomes is not None and step_2) else None,
+            num_males=num_males if (ad_model_allosomes is not None and step_2) else None,
+            include_autosomes=include_autosomes,
+            include_allosomes=include_allosomes,
+            rho_f=rho_f,
+            rho_m=rho_m,
+            TP=TP
+        )
 
     # Reduced functions are shared by both optimization steps
 
@@ -857,8 +809,8 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                 print(table_header)
                 print(line_header)
 
-        best_objective = np.inf
-        best_full_params = None
+        _best_state['objective'] = np.inf
+        _best_state['params'] = None
 
         reduced_objective_allosomes = lambda x: reduced_objective_function(x, include_autosomes=autosomes_in_step_2, include_allosomes=True)
         
@@ -882,28 +834,28 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
             # ------------ Return optimal parameters corresponding to best likelihood ------------
             
-            if best_full_params is None:
+            if _best_state['params'] is None:
                 try:
                     fallback_likelihood = -objective_function(step2_full_params_opt, include_autosomes=autosomes_in_step_2, include_allosomes=True)
                     full_data_likelihood = None
                     if not autosomes_in_step_2:
-                        prev_best_objective = best_objective
-                        prev_best_full_params = best_full_params
+                        prev_best_objective = _best_state['objective']
+                        prev_best_params = _best_state['params']
                         full_data_likelihood = -objective_function(step2_full_params_opt, include_autosomes=True, include_allosomes=True)
-                        best_objective = prev_best_objective
-                        best_full_params = prev_best_full_params
+                        _best_state['objective'] = prev_best_objective
+                        _best_state['params'] = prev_best_params
                     return _format_return(step2_full_params_opt, fallback_likelihood, full_data_likelihood)
                 except Exception:
                     return _format_return(step2_full_params_opt, -1e32, None)
 
             full_data_likelihood = None
             if not autosomes_in_step_2:
-                prev_best_objective = best_objective
-                prev_best_full_params = best_full_params
-                full_data_likelihood = -objective_function(best_full_params, include_autosomes=True, include_allosomes=True)
-                best_objective = prev_best_objective
-                best_full_params = prev_best_full_params
-            return _format_return(best_full_params, -best_objective, full_data_likelihood)
+                prev_best_objective = _best_state['objective']
+                prev_best_params = _best_state['params']
+                full_data_likelihood = -objective_function(_best_state['params'], include_autosomes=True, include_allosomes=True)
+                _best_state['objective'] = prev_best_objective
+                _best_state['params'] = prev_best_params
+            return _format_return(_best_state['params'], -_best_state['objective'], full_data_likelihood)
         
         else:
             final_message = f"No free parameters to optimize at step 2. Optimization completed."
@@ -915,7 +867,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         print(l)
         logger.info(l)
             
-    if best_full_params is None:
+    if _best_state['params'] is None:
         try:
             if step_2:
                 fallback_likelihood = -objective_function(optimized_parameters,
@@ -923,17 +875,17 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                           include_allosomes=True)
                 full_data_likelihood = None
                 if not autosomes_in_step_2:
-                    prev_best_objective = best_objective
-                    prev_best_full_params = best_full_params
+                    prev_best_objective = _best_state['objective']
+                    prev_best_params = _best_state['params']
                     full_data_likelihood = -objective_function(optimized_parameters,
                                                                include_autosomes=True,
                                                                include_allosomes=True)
-                    best_objective = prev_best_objective
-                    best_full_params = prev_best_full_params
+                    _best_state['objective'] = prev_best_objective
+                    _best_state['params'] = prev_best_params
                 return _format_return(optimized_parameters, fallback_likelihood, full_data_likelihood)
             else:
                 fallback_likelihood = -objective_function(optimized_parameters, include_allosomes=False)
             return _format_return(optimized_parameters, fallback_likelihood, None)
         except Exception:
             return _format_return(optimized_parameters, -1e32, None)
-    return _format_return(best_full_params, -best_objective, None)
+    return _format_return(_best_state['params'], -_best_state['objective'], None)

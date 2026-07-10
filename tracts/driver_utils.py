@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from matplotlib.figure import Figure
 from scipy.stats import poisson
 from tracts.population import Population
 from tracts.phase_type import hybrid_pedigree as HP
@@ -137,11 +138,20 @@ class ModelsConfig(BaseModel):
         The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
     ad_model_allosomes: str
         The admixture model to use for the allosomes. Must be one in ["DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".   
+    rho_f: float
+        The female-specific recombination rate. Defaults to 1.
+    rho_m: float
+        The male-specific recombination rate. Defaults to 1.
+    TP: int
+        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models. Ignored if not applicable. Defaults to 2.
     """
     model_config = ConfigDict(extra="forbid")
     model_filename: str
     ad_model_autosomes: str = "DC"
     ad_model_allosomes: str = "DC"
+    rho_f: float = 1
+    rho_m: float = 1
+    TP: int = 2
 
 class StartParamsConfig(BaseModel):
     """
@@ -173,6 +183,8 @@ class OptimizationConfig(BaseModel):
         Whether to perform a two-step optimization process, where the first step optimizes only the non-sex-bias parameters on autosomal data and the second step optimizes sex-bias parameters using both autosomal and allosomal data. Defaults to True.
     use_autosomes_for_sex_bias: bool
         Whether step 2 should include autosomal data in addition to allosomal data. Defaults to False.
+    N_cores: int
+        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used. Ignored if the hybrid-pedigree refinements are not used. Defaults to 1.
     """
     model_config = ConfigDict(extra="forbid")
     repetitions: int =1 
@@ -184,6 +196,7 @@ class OptimizationConfig(BaseModel):
     unknown_labels_for_smoothing : List[str] = []
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
+    N_cores: int = Field(default=1, ge=1)
 
 class OutputConfig(BaseModel):
     """
@@ -855,20 +868,23 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
 def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list, output_path: str):
 
     mean_matrix = (migration_matrix_f[1:,:] + migration_matrix_m[1:,:]) / 2
-    safe_mean = np.where(mean_matrix != 0, mean_matrix, np.nan)
-    sex_bias_matrix = migration_matrix_f[1:,:] / safe_mean - 1
+    denom_matrix = 2 * np.minimum(mean_matrix, 1 - mean_matrix)
+    safe_denom = np.where(denom_matrix > 1e-10, denom_matrix, np.nan)
+    sex_bias_matrix = (migration_matrix_f[1:,:] - migration_matrix_m[1:,:]) / safe_denom
 
     # Add migration rate and sex-bias for the admixed population
     admixed_rate = 1 - np.sum(mean_matrix, axis = 1) # 1 - \sum_{i}R_i
-    safe_admixed_rate = np.where(admixed_rate != 0, admixed_rate, np.nan)
-    admixed_sex_bias = -np.nansum(mean_matrix*sex_bias_matrix, axis = 1)/safe_admixed_rate # R_x R_{x,SB} = -\sum_{i \neq x}R_i R_{i,SB}
+    admixed_denom = 2 * np.minimum(admixed_rate, 1 - admixed_rate)
+    safe_admixed_denom = np.where(admixed_denom > 1e-10, admixed_denom, np.nan)
+    admixed_sex_bias = -np.nansum(denom_matrix * sex_bias_matrix, axis = 1) / safe_admixed_denom # (R^f_x - R^m_x) = -\sum_{i != x}(R^f_i - R^m_i)
     mean_matrix = np.concatenate([mean_matrix, admixed_rate[:, np.newaxis]], axis = 1)
     sex_bias_matrix = np.concatenate([sex_bias_matrix, admixed_sex_bias[:, np.newaxis]], axis = 1)
     pop_labels = pop_labels + ['Admixed']
 
     n_rows, n_cols = mean_matrix.shape
 
-    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig = Figure()
+    ax1, ax2 = fig.subplots(1, 2)
 
     # Adaptive fonts
     font_scale = max(7, min(12, 12 - 0.4 * n_cols))
@@ -968,7 +984,6 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     png_path = os.path.splitext(output_path)[0] + ".png"
     fig.savefig(png_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
 
 
 def output_simulation_data_sex_biased(sample_population: Population,
@@ -1019,6 +1034,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     exclude_tracts_below_cM = driver_spec.optim.exclude_tracts_below_cm
     npts = driver_spec.optim.npts
     log_scale = driver_spec.output.log_scale
+    N_cores = driver_spec.optim.N_cores
 
     matrices = model.get_migration_matrices(optimal_params)
     matrix_list = [matrix for matrix in matrices.values()]
@@ -1070,7 +1086,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_m=1,
                                                                             X_chr=False,
                                                                             X_chr_male=False,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=autosome_bins,
                                                                             chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
@@ -1083,7 +1099,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_m=1,
                                                                             X_chr=False,
                                                                             X_chr_male=False,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=autosome_bins,
                                                                             chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
@@ -1151,7 +1167,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                                 rho_m=1,
                                                                                 X_chr=True,
                                                                                 X_chr_male=False,
-                                                                                N_cores=5,
+                                                                                N_cores=N_cores,
                                                                                 population_number=pop_num,
                                                                                 bins=allosome_bins,
                                                                                 chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1163,7 +1179,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_m=1,
                                                                             X_chr=True,
                                                                             X_chr_male=True,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=allosome_bins,
                                                                             chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1176,7 +1192,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                                 rho_m=1,
                                                                                 X_chr=True,
                                                                                 X_chr_male=False,
-                                                                                N_cores=5,
+                                                                                N_cores=N_cores,
                                                                                 population_number=pop_num,
                                                                                 bins=allosome_bins,
                                                                                 chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1187,7 +1203,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             rho_f=1, rho_m=1,
                                                                             X_chr=True,
                                                                             X_chr_male=True,
-                                                                            N_cores=5,
+                                                                            N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=allosome_bins,
                                                                             chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
@@ -1261,8 +1277,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
     
     fig, ax = plot_admixture(ancestry_per_individual, pop_names, colors, ax=None)
     admixture_file_path = output_dir / output_filename_format.format(label="admixture_plot.pdf")
-    
     fig.savefig(admixture_file_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 
     def _bin_centers(bins):
@@ -1484,7 +1500,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
 def plot_admixture(ancestry_per_individual, labels, colors, ax=None):
     """
-    Stacked bar chart of ancestry proportions in ADMIXTURE style. AI-generated with review
+    Stacked bar chart of ancestry proportions in ADMIXTURE style. AI-generated with review.
 
     Parameters
     ----------
