@@ -559,7 +559,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     Parameters
     ----------    
     p0: list
-            An array of initial parameters to start the optimization.
+            An array of initial parameters to start the optimization. 
     population: :class:`tracts.population.Population`
         A Population object containing the data to fit.
     model_func: callable
@@ -686,15 +686,18 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     # optimizer call given the current sex-bias candidate, letting them drift.
     _ancestry_overrides: dict = {}  # maps param index -> optimizer-space value
 
-    # Identify free sex-bias parameters
-    free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
-                                (value.type == ParamType.SEX_BIAS) and 
-                                (param not in local_parameter_handler.user_params_fixed_by_value) and 
-                                (param not in local_parameter_handler.params_fixed_by_ancestry)}
-
+    # Identify free sex-bias parameters and fix them at their p0 values (optimizer space) during step 1
+    free_sex_bias_parameters_to_fix = {
+        param: p0[idx]
+        for idx, (param, value) in enumerate(local_parameter_handler.demography.model_base_params.items())
+        if (value.type == ParamType.SEX_BIAS)
+        and (param not in local_parameter_handler.user_params_fixed_by_value)
+        and (param not in local_parameter_handler.params_fixed_by_ancestry)
+    }
+    
     if step_1:
         # Fix free sex-bias parameters for step 1 optimization (optimize non-sex-bias parameters)
-        local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
+        local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters_to_fix)
     else:
         # Step 2 only: fix non-sex-bias parameters at p0 values (optimize only sex-bias parameters)
         param_names_ordered = list(local_parameter_handler.demography.model_base_params.keys())
@@ -762,9 +765,24 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     current_best_parameters = np.array(p0)  # default; overwritten by step 1 if it runs
 
     if step_1:
-    
-        reduced_p0 = local_parameter_handler.reduce_parameters(p0) # Initial parameters
-
+        p0_adjusted = p0
+        
+        """
+        if local_parameter_handler.has_known_proportions:
+            
+            p0_adjusted = local_parameter_handler.optimize_rates_to_match_ancestry(np.array(p0), units="opt")
+            try:
+                p0_adjusted_phys = local_parameter_handler.convert_to_physical_params(p0_adjusted)
+                _check_matrices = local_parameter_handler.demography.get_migration_matrices(p0_adjusted_phys)
+                if not all(np.all(np.isfinite(m)) for m in _check_matrices.values()):
+                    raise ValueError("Migration matrices contain non-finite values.")
+            except Exception:
+                logger.warning("optimize_rates_to_match_ancestry produced an infeasible starting point; falling back to p0.")
+                p0_adjusted = p0
+        """
+        
+        reduced_p0 = local_parameter_handler.reduce_parameters(np.array(p0_adjusted))
+        
         # ------------ Run first optimization step on autosomal data across non-sex-bias parameters ------------
 
         if ad_model_allosomes is not None and step_2:
@@ -807,7 +825,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
             new_fixed_values = current_best_parameters[local_parameter_handler.free_parameters_indices]
             new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
-            local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
+            local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters_to_fix.keys())
             local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
         # If step 2 only: current_best_parameters already holds p0, non-sex-bias already fixed, sex-bias already free
 
@@ -826,7 +844,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         reduced_params = local_parameter_handler.reduce_parameters(current_best_parameters)
 
         step_2_data = "autosomal + allosomal" if autosomes_in_step_2 else "allosomal"            
-        step_2_message_1 = f"Step 2 : Optimizing {step_2_data} likelihood over parameters : {str(list(free_sex_bias_parameters.keys()))}."
+        step_2_message_1 = f"Step 2 : Optimizing {step_2_data} likelihood over parameters : {str(list(free_sex_bias_parameters_to_fix.keys()))}."
         step_2_message = f"{step_2_message_1}\nNon-sex-bias parameters fixed at initial values." if not step_1 else f"{step_2_message_1}\nNon-sex-bias parameters fixed at values from previous optimization step."    
         line = "-" * len(step_2_message_1)
     

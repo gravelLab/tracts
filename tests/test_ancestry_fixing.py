@@ -51,7 +51,7 @@ def test_ancestry_fixing_single_population():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding time (since the rate is fixed)
     found_time = 10-1e-9
@@ -138,7 +138,7 @@ def test_ancestry_fixing_single_population_with_fixed_param():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # There are no free parameters !
     test_free_params = []  # Only the founding time
@@ -218,7 +218,7 @@ def test_ancestry_fixing_multiple_populations():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding times (since the rates are fixed)
     
@@ -309,7 +309,7 @@ def test_ancestry_fixing_three_founders():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding time (since the rates are fixed)
     founding_time = 10 - 1e-9
@@ -402,7 +402,7 @@ def test_ancestry_fixing_two_samples_three_founders():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding times (since the rates are fixed)
     
@@ -506,7 +506,7 @@ def test_ancestry_fixing_with_pulse_migration():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with founding time, pulse time, and pulse rate
     
@@ -594,7 +594,7 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with founding time and pulse time (since the rates are fixed)
     founding_time = 10 - 1e-9
@@ -676,7 +676,7 @@ def test_ancestry_fixing_sex_biased():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding time (since the rates are fixed)
     
@@ -778,7 +778,7 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding time (since the rates are fixed)
     test_free_params = [rate2,bias2,foundt,endt]  
@@ -819,7 +819,7 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     # Verify that the final proportions match the sample proportions
     for key in final_proportions.keys():
         #if not np.allclose(final_proportions[key], sample_proportions[key]):
-        #    breakpoint()
+        #    
         assert np.allclose(final_proportions[key], sample_proportions[key])
 
 
@@ -871,7 +871,7 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with founding time, founding rate, and pulse time (since the pulse rate is fixed)
     found_time = 10-1e-9
@@ -957,7 +957,7 @@ def test_parameter_fixing_single_population():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with the remaining parameters (since there are no free paramaters left)
     test_free_params = []
@@ -1037,7 +1037,7 @@ def test_ancestry_fixing_multiple_populations_v2():
     )
     
     # Verify that the model has been fixed
-    assert model.parameter_handler.has_been_fixed
+    assert model.parameter_handler.has_known_proportions
     
     # Create a parameter list with only the founding times (since the rates are fixed)
     
@@ -1082,4 +1082,159 @@ def test_ancestry_fixing_multiple_populations_v2():
     
     # Verify that the sum of proportions is 1 for each population
     assert np.isclose(final_proportions1.sum(), 1.0)
-    assert np.isclose(final_proportions2.sum(), 1.0)    
+    assert np.isclose(final_proportions2.sum(), 1.0)
+
+
+# -------- Tests for optimize_rates_to_match_ancestry --------
+
+def _make_single_pop_model(sample_proportions=None, params_to_fix_by_ancestry=("founder_rate1",)):
+    """Helper: single target_pop with two source populations."""
+    model = ParametrizedDemography(name="TestModel")
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time",
+    )
+    model.finalize()
+    if sample_proportions is not None:
+        model.parameter_handler.set_up_fixed_parameters(
+            demography=model,
+            params_to_fix_by_ancestry=list(params_to_fix_by_ancestry),
+            proportions=sample_proportions,
+        )
+    return model
+
+
+def test_optimize_rates_identity_single_pop():
+    """Starting from parameters that already match the target proportions produces no change."""
+    found_time = 10 - 1e-9
+    true_params = [0.7, found_time]  # [founder_rate1, found_time]
+
+    # Derive target proportions from the true parameters so the starting point is exact.
+    model_ref = _make_single_pop_model()
+    matrices = model_ref.get_migration_matrices(true_params)
+    sample_proportions = {
+        pop: list(prop) for pop, prop in model_ref.proportions_from_matrices(matrices).items()
+    }
+
+    model = _make_single_pop_model(sample_proportions=sample_proportions)
+    result = model.parameter_handler.optimize_rates_to_match_ancestry(true_params)
+
+    assert np.allclose(result, true_params, atol=1e-4)
+
+
+def test_optimize_rates_convergence_single_pop():
+    """Starting from a wrong rate converges to the rate that matches the target proportions."""
+    found_time = 10 - 1e-9
+    true_params = [0.7, found_time]
+    wrong_params = [0.3, found_time]  # wrong rate, correct time
+
+    model_ref = _make_single_pop_model()
+    matrices = model_ref.get_migration_matrices(true_params)
+    sample_proportions = {
+        pop: list(prop) for pop, prop in model_ref.proportions_from_matrices(matrices).items()
+    }
+
+    model = _make_single_pop_model(sample_proportions=sample_proportions)
+    result = model.parameter_handler.optimize_rates_to_match_ancestry(wrong_params)
+
+    assert np.isclose(result[0], true_params[0], atol=1e-3), \
+        f"Rate did not converge: expected {true_params[0]}, got {result[0]}"
+
+
+def test_optimize_rates_time_params_unchanged():
+    """TIME parameters are never modified by optimize_rates_to_match_ancestry."""
+    found_time = 10 - 1e-9
+    true_params = [0.7, found_time]
+
+    model_ref = _make_single_pop_model()
+    matrices = model_ref.get_migration_matrices(true_params)
+    sample_proportions = {
+        pop: list(prop) for pop, prop in model_ref.proportions_from_matrices(matrices).items()
+    }
+
+    model = _make_single_pop_model(sample_proportions=sample_proportions)
+    # Start from deliberately wrong rate; time should be preserved regardless.
+    result = model.parameter_handler.optimize_rates_to_match_ancestry([0.2, found_time])
+
+    assert np.isclose(result[1], found_time), \
+        f"TIME parameter was modified: expected {found_time}, got {result[1]}"
+
+
+def test_optimize_rates_identity_sex_biased():
+    """Identity holds for a sex-biased model: starting from parameters that already match the
+    target proportions produces no change.
+
+    We hardcode the proportions (matching the convention used by the existing sex-biased tests,
+    where the non-autosomal key is 'target_pop_X'), then recover the corresponding true parameters
+    via compute_params_fixed_by_ancestry and verify that optimising from those params is a no-op.
+    """
+    model = ParametrizedDemographySexBiased(name="SexBiasedModel")
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time",
+    )
+    model.finalize()
+
+    # Use the same key convention as the existing passing sex-biased tests.
+    sample_proportions = {
+        "target_pop_autosomal": [0.6, 0.4],
+        "target_pop_X": [0.55, 0.45],
+    }
+
+    model.parameter_handler.set_up_fixed_parameters(
+        demography=model,
+        params_to_fix_by_ancestry=["founder_rate1", "founder_rate1_sex_bias"],
+        proportions=sample_proportions,
+    )
+
+    found_time = 10 - 1e-15
+    # params order: [founder_rate1 (RATE), founder_rate1_sex_bias (SEX_BIAS), found_time (TIME)]
+    # Use compute_params_fixed_by_ancestry to obtain the exact params that reproduce the target
+    # proportions, so the identity test starts from a truly consistent point.
+    seed_params = [0.6, 0.0, found_time]
+    true_params = model.parameter_handler.compute_params_fixed_by_ancestry(seed_params)
+
+    result = model.parameter_handler.optimize_rates_to_match_ancestry(true_params)
+
+    assert np.allclose(result, true_params, atol=1e-4)
+
+
+def test_optimize_rates_identity_with_pulse_migration():
+    """Identity holds for a model with a pulse migration: starting from the true parameters produces no change."""
+    model = ParametrizedDemography(name="TestModel")
+    model.add_founder_event(
+        dest_population="target_pop",
+        source_populations={"source_pop1": "founder_rate1"},
+        remainder_population="source_pop2",
+        found_time="found_time",
+    )
+    model.add_pulse_migration(
+        dest_population="target_pop",
+        source_population="source_pop1",
+        rate_param="pulse_rate",
+        time_param="pulse_time",
+    )
+    model.finalize()
+
+    found_time = 10 - 1e-9
+    # params order: [founder_rate1 (RATE), found_time (TIME), pulse_rate (RATE), pulse_time (TIME)]
+    true_params = [0.5, found_time, 0.1, 5.0]
+
+    matrices = model.get_migration_matrices(true_params)
+    sample_proportions = {
+        pop: list(prop) for pop, prop in model.proportions_from_matrices(matrices).items()
+    }
+
+    model.parameter_handler.set_up_fixed_parameters(
+        demography=model,
+        params_to_fix_by_ancestry=["founder_rate1"],
+        proportions=sample_proportions,
+    )
+
+    result = model.parameter_handler.optimize_rates_to_match_ancestry(true_params)
+
+    assert np.allclose(result, true_params, atol=1e-3)

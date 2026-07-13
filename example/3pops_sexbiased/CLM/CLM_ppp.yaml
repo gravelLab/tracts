@@ -31,7 +31,7 @@ start_params:
   RNAT_sex_bias: -.1:0.5
 
 optim:
-  repetitions: 20
+  repetitions: 5
   seed: 10
   maximum_iterations: 1000
   npts: 50

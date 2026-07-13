@@ -133,6 +133,8 @@ def _make_mock_model():
         convert_to_optimizer_params=lambda params: np.array(params, dtype=float),
         convert_to_physical_params=lambda params, report_non_admissible=False: np.array(params, dtype=float),
         set_up_fixed_parameters=lambda *args, **kwargs: None,
+        set_known_parameters=lambda *args, **kwargs: None,
+        set_known_proportions=lambda *args, **kwargs: None,
         release_fixed_parameters=lambda *args, **kwargs: None,
         add_fixed_parameters=lambda *args, **kwargs: None,
         params_fixed_by_ancestry=[],
@@ -597,8 +599,10 @@ def _make_mock_model_with_ancestry_fixed():
         convert_to_optimizer_params=lambda params: np.array(params, dtype=float),
         convert_to_physical_params=lambda params, report_non_admissible=False: np.array(params, dtype=float),
         set_up_fixed_parameters=lambda *args, **kwargs: None,
+        set_known_proportions=lambda *args, **kwargs: None,
         release_fixed_parameters=lambda *args, **kwargs: None,
         add_fixed_parameters=lambda *args, **kwargs: None,
+        set_known_parameters=lambda *args, **kwargs: None
     )
     model.proportions_from_matrices = lambda matrices: {"A": np.array([1.0])}
     model.get_violation_score = lambda params, verbose=False: 1.0
