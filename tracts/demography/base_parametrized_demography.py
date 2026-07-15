@@ -773,8 +773,8 @@ class BaseParametrizedDemography(ABC):
             print(f"{param_name}: {param_info.type}")
         return
 
-    def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list[str], 
-                                proportions: dict[str, list[float]], params_to_fix_by_value: dict[str, float] | None = None):
+    def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list[str] = [], 
+                                proportions: dict[str, list[float]] = {}, user_params_to_fix_by_value: dict[str, float] = {}):
         """
         Tells the model to calculate certain rate parameters based on the known ancestry proportions of the sample populations. Proportions are given as a dict with keys corresponding to the sample populations.
 
@@ -784,16 +784,14 @@ class BaseParametrizedDemography(ABC):
             A list of the names of the parameters to be fixed by ancestry proportions.
         proportions: dict[str, list[float]]
             A dict mapping sample population names to their corresponding ancestry proportions, which are used to fix the parameters in ``params_to_fix_by_ancestry``.
-        params_to_fix_by_value: dict[str, float] | None
+        user_params_to_fix_by_value: dict[str, float]
             A dict mapping parameter names to their corresponding values, which are used to fix parameters by user-defined values. These parameters cannot be optimized and are not computed from ancestry proportions.
         """
-
-        params_to_fix_by_value = params_to_fix_by_value if params_to_fix_by_value is not None else {}
 
         self.parameter_handler.set_up_fixed_parameters(demography = self,
                                                     params_to_fix_by_ancestry=params_to_fix_by_ancestry, 
                                                     proportions=proportions,
-                                                    user_params_to_fix_by_value=params_to_fix_by_value)
+                                                    user_params_to_fix_by_value=user_params_to_fix_by_value)
                                   
     @abstractmethod
     def get_random_parameters():
@@ -1090,8 +1088,8 @@ class FixedParametersHandler:
         return converted_params
 
 
-    def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str],
-                                    proportions: dict[str, list[float]], user_params_to_fix_by_value: dict[str, float] | None = None):
+    def set_up_fixed_parameters(self, demography: BaseParametrizedDemography, params_to_fix_by_ancestry: list[str] = [],
+                                    proportions: dict[str, list[float]] = {}, user_params_to_fix_by_value: dict[str, float] = {}):
         """
         Tells the model to calculate certain rate parameters based on the known ancestry proportions of the sample populations, or to fix them by value. 
         
@@ -1101,13 +1099,11 @@ class FixedParametersHandler:
             The demography object that this FixedParametersHandler is associated with.
         params_to_fix_by_ancestry: list[str]
             A list of the names of the parameters to be fixed by ancestry proportions.
-        proportions: dict[str, list[float]]
+        proportions: dict[str, list[float]] 
             A dict mapping sample population names to their corresponding ancestry proportions, which are used to fix the parameters in ``params_to_fix_by_ancestry``.
-        user_params_to_fix_by_value: dict[str, float] | None
+        user_params_to_fix_by_value: dict[str, float] 
             A dict mapping parameter names to their corresponding values, which are used to fix parameters by user-defined values. These parameters cannot be optimized and are not computed from ancestry proportions.       
         """
-
-        user_params_to_fix_by_value = user_params_to_fix_by_value if user_params_to_fix_by_value is not None else {}
 
         self.demography = demography
         self.user_params_fixed_by_value = self.order_fixed_param_dict(user_params_to_fix_by_value)
@@ -1191,7 +1187,19 @@ class FixedParametersHandler:
 
         full_parameters = np.zeros(len(self.demography.model_base_params), dtype=float)
         full_parameters[self.free_parameters_indices] = free_parameters
-        full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
+        if units == "opt" and len(self.params_fixed_by_value_indices) > 0:
+            # params_fixed_by_values_values are stored in physical units; convert to optimizer space
+            param_names = list(self.demography.model_base_params.keys())
+            fixed_values_opt = []
+            for val, idx in zip(self.params_fixed_by_values_values, self.params_fixed_by_value_indices):
+                param_type = self.demography.model_base_params[param_names[idx]].type
+                if param_type in self.to_optimizer_params_functions:
+                    fixed_values_opt.append(self.to_optimizer_params_functions[param_type](val))
+                else:
+                    fixed_values_opt.append(val)
+            full_parameters[self.params_fixed_by_value_indices] = fixed_values_opt
+        else:
+            full_parameters[self.params_fixed_by_value_indices] = list(self.params_fixed_by_values_values)
 
         if len(self.params_fixed_by_ancestry) > 0:
             try:

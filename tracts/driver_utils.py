@@ -177,6 +177,8 @@ class OptimizationConfig(BaseModel):
         The minimum tract length in centiMorgans to include in the analysis. Tracts shorter than this length will be excluded. Defaults to 1 cM.
     fix_parameters_from_ancestry_proportions: List[str]
         A list of parameter names to fix based on the ancestry proportions. See online documentation for details.
+    fix_parameters_by_value: dict[str, float]
+        A dict mapping parameter names to their corresponding user-defined fixed values. These parameters are not optimized nor computed from ancestry proportions.
     unknown_labels_for_smoothing: List[str]
         A list of population labels for which to apply smoothing to the tract length distribution. Defaults to an empty list.
     two_steps_optimization: bool
@@ -193,6 +195,7 @@ class OptimizationConfig(BaseModel):
     npts: int = 50
     exclude_tracts_below_cm: float = 1
     fix_parameters_from_ancestry_proportions: List[str] = []
+    fix_parameters_by_value: dict[str, float] = {}
     unknown_labels_for_smoothing : List[str] = []
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
