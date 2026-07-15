@@ -168,7 +168,7 @@ def run_tracts(driver_filename: str, script_dir: str):
             logger.info(anc_message)
             print(anc_message)
         if len(driver_spec.optim.fix_parameters_by_value) > 0:
-            value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value)
+            value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value.keys())
             value_message = f"The following parameters have been fixed by value: {value_fixed_params}"
             fixed_at_one = {_param_name: _param_value for _param_name, _param_value in driver_spec.optim.fix_parameters_by_value.items() if np.isclose(_param_value, 1.0, atol=1e-5) or np.isclose(_param_value, -1.0, atol=1e-5)}
             logger.info(value_message)
