@@ -89,6 +89,7 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             npts=5,
             exclude_tracts_below_cm=0,
             fix_parameters_from_ancestry_proportions=[],
+            fix_parameters_by_value={},
             unknown_labels_for_smoothing=[],
             two_steps_optimization=two_steps_optimization,
             autosomes_in_step_2=autosomes_in_step_2,

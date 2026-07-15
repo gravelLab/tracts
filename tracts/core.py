@@ -17,9 +17,6 @@ _out_of_bounds_val = -1e32
 _min_out_of_bounds_val = -1e-10
 _ignore_oob_above = -1e-14
 
-_TABLE_HEADER = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
-_LINE_HEADER = "-" * len(_TABLE_HEADER.expandtabs())
-
 # ------------------ Objective function ------------------
 
 def _compute_objective(
@@ -303,26 +300,6 @@ def _compute_objective(
     return obj
 
 
-def _flush_final(note, *, best_state, verbose_log, verbose_screen, local_parameter_handler):
-    """Emit the best-seen result if it wasn't already printed on the last regular iteration."""
-    if best_state['params'] is None:
-        return
-    _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
-    _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
-    if not (_needs_log or _needs_screen):
-        return
-    _prev_tpl = local_parameter_handler.enable_time_param_logging
-    local_parameter_handler.enable_time_param_logging = False
-    try:
-        _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(best_state['params'], report_non_admissible=False)]))
-    finally:
-        local_parameter_handler.enable_time_param_logging = _prev_tpl
-    if _needs_log:
-        logger.info("iter=%-6d | obj=%-12g | params=%s %s", _counter, -best_state['objective'], _final_param_str, note)
-    if _needs_screen:
-        eprint('%-8i, %-12g, %s, %s' % (_counter, -best_state['objective'], _final_param_str, note))
-
-
 # ------------------ Single-step optimization ------------------
 
 
@@ -472,15 +449,18 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
         "Optimizing model likelihood over parameters "
         f"{str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
     )
+    subsubtitle_message = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
+    line = "-" * len(subsubtitle_message)
+
     if print_step_header:
         print(subtitle_message)
         logger.info(subtitle_message)
 
     if (verbose_log > 0) and (_counter % verbose_log == 0):
-        for l in [_TABLE_HEADER, _LINE_HEADER]:
+        for l in [subsubtitle_message, line]:
             logger.info(l)
     if (verbose_screen > 0) and (_counter % verbose_screen == 0):
-        for l in [_TABLE_HEADER, _LINE_HEADER]:
+        for l in [subsubtitle_message, line]:
             print(l)
 
     reduced_objective_to_optimize = lambda x: reduced_objective_function(x)
@@ -492,52 +472,39 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                         rhoend=.0001,
                                         maxfun=maxiter)
     
-    # Final flush: always show the last result at the end of the optimization run
-    _flush_final('Total', best_state=_best_state, verbose_log=verbose_log, verbose_screen=verbose_screen, local_parameter_handler=local_parameter_handler)
-
-    current_best_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
+    optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                     units="opt",
                                                                     show_ancestry_warning=True)
+
+    # Final flush: always show the last result at the end of the optimization run
+    if _best_state['params'] is not None:
+        _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
+        _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
+        if _needs_log or _needs_screen:
+            _prev_tpl = local_parameter_handler.enable_time_param_logging
+            local_parameter_handler.enable_time_param_logging = False
+            try:
+                _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
+            finally:
+                local_parameter_handler.enable_time_param_logging = _prev_tpl
+            if _needs_log:
+                logger.info("iter=%-6d | obj=%-12g | params=%s", _counter, -_best_state['objective'], _final_param_str)
+            if _needs_screen:
+                eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, ''))
 
     # ------------ Return optimal parameters corresponding to best likelihood ------------
 
     if _best_state['params'] is None:
         try:
-            fallback_likelihood = -objective_function(current_best_parameters)
-            return current_best_parameters, fallback_likelihood
+            fallback_likelihood = -objective_function(optimized_parameters)
+            return optimized_parameters, fallback_likelihood
         except Exception:
-            return current_best_parameters, -1e32
+            return optimized_parameters, -1e32
 
     return _best_state['params'], -_best_state['objective']
 
 
 # ------------------ Two-steps optimization ------------------
-
-
-def _assign_step_indicators(steps):
-    """Validate the `steps` argument and return (step_1, step_2) booleans indicating 
-    which optimization steps to run."""
-    if steps is not None:
-        if not isinstance(steps, list):
-            raise TypeError("steps must be a list of integers or strings, or None.")
-        valid_step_values = {1, 2, 'step1', 'step2'}
-        for step in steps:
-            if step not in valid_step_values:
-                raise ValueError(f"Invalid step value: {step}. Must be one of {valid_step_values}.")
-        if len(steps) == 0:
-            raise ValueError("steps list cannot be empty.")
-
-    if steps is None:
-        normalized_steps = (1, 2)
-    else:
-        normalized_steps = tuple(sorted({1 if step in (1, 'step1') else 2 for step in steps}))
-        if len(normalized_steps) != len(steps):
-            raise ValueError("steps cannot contain duplicate references to the same optimization step.")
-        if normalized_steps not in ((1,), (2,), (1, 2)):
-            raise ValueError("Only step 1 only, step 2 only, or the combined step 1 + step 2 optimization are allowed.")
-
-    return 1 in normalized_steps, 2 in normalized_steps
-
 
 def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
                                     outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
@@ -635,7 +602,27 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
     # ----------- Specify which steps are to be run in the optimization procedure ------------
 
-    step_1, step_2 = _assign_step_indicators(steps)
+    if steps is not None: # Validate steps argument
+        if not isinstance(steps, list):
+            raise TypeError("steps must be a list of integers or strings, or None.")
+        valid_step_values = {1, 2, 'step1', 'step2'}
+        for step in steps:
+            if step not in valid_step_values:
+                raise ValueError(f"Invalid step value: {step}. Must be one of {valid_step_values}.")
+        if len(steps) == 0:
+            raise ValueError("steps list cannot be empty.")
+
+    if steps is None:
+        normalized_steps = (1, 2)
+    else:
+        normalized_steps = tuple(sorted({1 if step in (1, 'step1') else 2 for step in steps}))
+        if len(normalized_steps) != len(steps):
+            raise ValueError("steps cannot contain duplicate references to the same optimization step.")
+        if normalized_steps not in ((1,), (2,), (1, 2)):
+            raise ValueError("Only step 1 only, step 2 only, or the combined step 1 + step 2 optimization are allowed.")
+
+    step_1 = 1 in normalized_steps
+    step_2 = 2 in normalized_steps
 
     if ad_model_allosomes is None and step_2:
         if step_1:
@@ -697,6 +684,9 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
     else:
         # Step 2 only: fix non-sex-bias parameters at p0 values (optimize only sex-bias parameters)
+        # p0 is in optimizer space (converted by the driver); convert to physical so that
+        # add_fixed_parameters always stores physical values (required by extend_parameters).
+        p0_phys = local_parameter_handler.convert_to_physical_params(np.array(p0))
         param_names_ordered = list(local_parameter_handler.demography.model_base_params.keys())
         fixed_non_sex_bias = {}
         for idx, param_name in enumerate(param_names_ordered):
@@ -705,7 +695,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                 param_name not in local_parameter_handler.user_params_fixed_by_value and
                 param_name not in local_parameter_handler.params_fixed_by_ancestry):
                 if idx < len(p0):
-                    fixed_non_sex_bias[param_name] = p0[idx]
+                    fixed_non_sex_bias[param_name] = p0_phys[idx]
         local_parameter_handler.add_fixed_parameters(fixed_non_sex_bias)
         
     # ----------- Define objective function for optimization ------------
@@ -759,7 +749,8 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             _extended_oob[_idx] = _val
         return outofbounds_fun(_extended_oob)
 
-    current_best_parameters = np.array(p0)  # default; overwritten by step 1 if it runs
+    table_header = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
+    line_header = "-" * len(table_header.expandtabs())
 
     if step_1:
     
@@ -776,7 +767,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             print(subtitle_message)
             logger.info(subtitle_message)
 
-        for l in [_TABLE_HEADER, _LINE_HEADER]:
+        for l in [table_header, line_header]:
             if verbose_log>0:
                 logger.info(l)
             if verbose_screen>0:
@@ -791,25 +782,41 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                             rhoend=.0001,
                                             maxfun=maxiter)
     
-        # Final flush: always show the last result at the end of step 1
-        _flush_final('Autosomes', best_state=_best_state, verbose_log=verbose_log, verbose_screen=verbose_screen, local_parameter_handler=local_parameter_handler)
-        current_best_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
+        optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                         units="opt",
                                                                         show_ancestry_warning=True)
+        # Final flush: always show the last result at the end of step 1
+        if _best_state['params'] is not None:
+            _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
+            _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
+            if _needs_log or _needs_screen:
+                _prev_tpl = local_parameter_handler.enable_time_param_logging
+                local_parameter_handler.enable_time_param_logging = False
+                try:
+                    _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
+                finally:
+                    local_parameter_handler.enable_time_param_logging = _prev_tpl
+                if _needs_log:
+                    logger.info("iter=%-6d | obj=%-12g | params=%s", _counter, -_best_state['objective'], _final_param_str)
+                if _needs_screen:
+                    eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, 'Autosomes'))
         final_message = f"Optimization completed"
 
     if step_2:
     
         # ------------ Run second optimization step on sex-bias parameters ------------
         
-        if step_1:
+        if not step_1:
+            # Step 2 only: optimized_parameters starts at p0, non-sex-bias already fixed, sex-bias already free
+            optimized_parameters = np.array(p0)
+        else:
             # Step 1 ran: release sex-bias parameters and fix optimized non-sex-bias parameters
             new_fixed_parameters_names = local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices)
-            new_fixed_values = current_best_parameters[local_parameter_handler.free_parameters_indices]
+            optimized_parameters_phys = local_parameter_handler.convert_to_physical_params(optimized_parameters)
+            new_fixed_values = optimized_parameters_phys[local_parameter_handler.free_parameters_indices]
             new_fixed_parameters = dict(zip(new_fixed_parameters_names, new_fixed_values))
             local_parameter_handler.release_fixed_parameters(free_sex_bias_parameters.keys())
             local_parameter_handler.add_fixed_parameters(new_fixed_parameters)
-        # If step 2 only: current_best_parameters already holds p0, non-sex-bias already fixed, sex-bias already free
 
         # Freeze ancestry-fixed non-sex-bias parameters at their step-1 / p0 values for
         # the entirety of step 2. compute_params_fixed_by_ancestry() would otherwise
@@ -820,10 +827,10 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
             _pinfo = local_parameter_handler.demography.model_base_params[_pname]
             if (_pinfo.type != ParamType.SEX_BIAS
                     and _pname in local_parameter_handler.params_fixed_by_ancestry
-                    and _idx < len(current_best_parameters)):
-                _ancestry_overrides[_idx] = current_best_parameters[_idx]
+                    and _idx < len(optimized_parameters)):
+                _ancestry_overrides[_idx] = optimized_parameters[_idx]
 
-        reduced_params = local_parameter_handler.reduce_parameters(current_best_parameters)
+        reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
 
         step_2_data = "autosomal + allosomal" if autosomes_in_step_2 else "allosomal"            
         step_2_message_1 = f"Step 2 : Optimizing {step_2_data} likelihood over parameters : {str(list(free_sex_bias_parameters.keys()))}."
@@ -835,15 +842,15 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                 logger.info(line)
                 logger.info(step_2_message)
             if ad_model_allosomes is not None:    
-                logger.info(_TABLE_HEADER)
-                logger.info(_LINE_HEADER)
+                logger.info(table_header)
+                logger.info(line_header)
         if len(reduced_params)>0 and verbose_screen>0:
             if print_step_header:
                 print(line)
                 print(step_2_message)
             if ad_model_allosomes is not None:
-                print(_TABLE_HEADER)
-                print(_LINE_HEADER)
+                print(table_header)
+                print(line_header)
 
         _best_state['objective'] = np.inf
         _best_state['params'] = None
@@ -858,12 +865,25 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                 rhoend=.0001,
                                                 maxfun=maxiter)
             
-            # Final flush: always show the last result at the end of step 2
-            _flush_final('Total' if autosomes_in_step_2 else 'Allosomes', best_state=_best_state, verbose_log=verbose_log, verbose_screen=verbose_screen, local_parameter_handler=local_parameter_handler)
-
             step2_full_params_opt = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                                units="opt",
                                                                                show_ancestry_warning=True) # Checks for the ancestry warning at the end of step 2.
+    
+            # Final flush: always show the last result at the end of step 2
+            if _best_state['params'] is not None:
+                _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
+                _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
+                if _needs_log or _needs_screen:
+                    _prev_tpl = local_parameter_handler.enable_time_param_logging
+                    local_parameter_handler.enable_time_param_logging = False
+                    try:
+                        _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
+                    finally:
+                        local_parameter_handler.enable_time_param_logging = _prev_tpl
+                    if _needs_log:
+                        logger.info("iter=%-6d | obj=%-12g | params=%s", _counter, -_best_state['objective'], _final_param_str)
+                    if _needs_screen:
+                        eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, 'Allosomes' if not autosomes_in_step_2 else 'Autosomes + Allosomes'))
             final_message = f"Optimization completed."
             line = "-" * len(final_message)
             for l in [final_message, line]:
@@ -908,22 +928,22 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     if _best_state['params'] is None:
         try:
             if step_2:
-                fallback_likelihood = -objective_function(current_best_parameters,
+                fallback_likelihood = -objective_function(optimized_parameters,
                                                           include_autosomes=autosomes_in_step_2,
                                                           include_allosomes=True)
                 full_data_likelihood = None
                 if not autosomes_in_step_2:
                     prev_best_objective = _best_state['objective']
                     prev_best_params = _best_state['params']
-                    full_data_likelihood = -objective_function(current_best_parameters,
+                    full_data_likelihood = -objective_function(optimized_parameters,
                                                                include_autosomes=True,
                                                                include_allosomes=True)
                     _best_state['objective'] = prev_best_objective
                     _best_state['params'] = prev_best_params
-                return _format_return(current_best_parameters, fallback_likelihood, full_data_likelihood)
+                return _format_return(optimized_parameters, fallback_likelihood, full_data_likelihood)
             else:
-                fallback_likelihood = -objective_function(current_best_parameters, include_allosomes=False)
-            return _format_return(current_best_parameters, fallback_likelihood, None)
+                fallback_likelihood = -objective_function(optimized_parameters, include_allosomes=False)
+            return _format_return(optimized_parameters, fallback_likelihood, None)
         except Exception:
-            return _format_return(current_best_parameters, -1e32, None)
+            return _format_return(optimized_parameters, -1e32, None)
     return _format_return(_best_state['params'], -_best_state['objective'], None)

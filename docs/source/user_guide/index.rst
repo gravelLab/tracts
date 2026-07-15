@@ -242,6 +242,7 @@ Optimization
      npts: 50
      unknown_labels_for_smoothing: ["UNK", "centromere", "miscall"]
      fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias']
+     fix_parameters_by_value: {'t': 10}
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
      N_cores: 5
@@ -253,6 +254,7 @@ Optimization
 - ``npts``: The number of bins controlling the resolution of the tract length histogram.
 - ``unknown_labels_for_smoothing``: Segments with these labels will be smoothed over, that is, will be filled with neighbouring ancestries up to their midpoints.
 - ``fix_parameters_from_ancestry_proportions``: These parameters are analytically computed from the ancestry proportions, and the optimization is restricted to the remaining parameters.
+- ``fix_parameters_by_value``: These parameters are fixed to the specified values, and the optimization is restricted to the remaining parameters.
 - ``two_steps_optimization``: Whether to perform a two-step optimization, where non-sex-bias parameters are optimized first using autosomes, and then sex-bias parameters are optimized with the non-sex-bias parameters fixed. Defaults to ``True``.
 - ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to ``False``, which means that only allosomes are used to optimize sex-bias parameters.
 - ``N_cores``: The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used to model autosomal or allosomal admixture. Ignored if the hybrid-pedigree refinements are not used. Default is 1.

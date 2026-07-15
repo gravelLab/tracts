@@ -139,25 +139,39 @@ def run_tracts(driver_filename: str, script_dir: str):
             print(allosomal_ancestry_message)
             logger.info(allosomal_ancestry_message)
 
-        if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0: # Set up fixed parameters if specified in the driver
+        if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0 or len(driver_spec.optim.fix_parameters_by_value) > 0: # Set up fixed parameters if specified in the driver
             
+            # Check for non-overlapping fixed parameters
+            overlapping_params = [_param for _param in driver_spec.optim.fix_parameters_from_ancestry_proportions if _param in driver_spec.optim.fix_parameters_by_value.keys()]
+            if len(overlapping_params) > 0:
+                raise ValueError(f"Parameters {', '.join(overlapping_params)} are specified to be fixed both from ancestry proportions and by value. Please choose only one fixing strategy per parameter.")
+
             if allosome_label:
                 model.parameter_handler.set_up_fixed_parameters(demography=model,
                                                                 params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
                                                                 proportions={
                                                                 f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
                                                                 f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
-                                                                } # Here, the option params_to_fix_by_value can be added in future development
+                                                                },
+                                                                user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value
                                                                 )
             else:
                 model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
-                                            proportions= {model.parametrized_populations[0]:ancestry_proportions}) # Here, the option params_to_fix_by_value can be added in future development
+                                            proportions= {model.parametrized_populations[0]:ancestry_proportions},
+                                            user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value) 
         else: # No parameters to fix 
             model.set_up_fixed_parameters([],{})
         print(f"Model parameters: {', '.join(model.model_base_params.keys())}") # Print model parameters
         if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0:
-            fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
-            print(f"The following parameters have been fixed from ancestry proportions: {fixed_params}")
+            ancestry_fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
+            anc_message = f"The following parameters have been fixed from ancestry proportions: {ancestry_fixed_params}"
+            logger.info(anc_message)
+            print(anc_message)
+        if len(driver_spec.optim.fix_parameters_by_value) > 0:
+            value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value)
+            value_message = f"The following parameters have been fixed by value: {value_fixed_params}"
+            logger.info(value_message)
+            print(value_message)
 
         if ad_model_allosomes is not None:
             admixture_model_message = (
@@ -172,9 +186,7 @@ def run_tracts(driver_filename: str, script_dir: str):
         # ------ Optimizer setup -------
         func = get_time_scaled_model_func(model) # Time parameters need to be rescaled for some optimizers, so we create a wrapper function that applies the necessary rescaling before passing parameters to the model.
         bound = get_time_scaled_model_bounds(model) # The same rescaling needs to be applied to the bounds function.
-        
-
-
+    
         model_param_names = list(model.model_base_params.keys())
         sex_bias_param_names = [
             name for name, info in model.model_base_params.items()
@@ -196,7 +208,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                 seed=driver_spec.optim.seed,
                 model=model,
                 sample_param_names=set(non_sex_bias_param_names),
-                fixed_param_values={name: 0.0 for name in sex_bias_param_names},
+                fixed_param_values={name: 0.0 for name in sex_bias_param_names if name not in driver_spec.optim.fix_parameters_by_value.keys()} | driver_spec.optim.fix_parameters_by_value, # Dictionary union
             )
             physical_start_params = collapse_identical_start_params(physical_start_params, "step 1")
         else:
@@ -205,6 +217,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                 repetitions=driver_spec.optim.repetitions,
                 seed=driver_spec.optim.seed,
                 model=model,
+                fixed_param_values=driver_spec.optim.fix_parameters_by_value
             )
         
         # ------ Convert starting parameters to optimizer units ------
@@ -349,6 +362,10 @@ def run_tracts(driver_filename: str, script_dir: str):
                     for name, value in zip(model_param_names, optimal_params_step_1)
                     if name not in sex_bias_param_names
                 }
+                # Sex-bias parameters fixed by the user at a specific value must not be resampled.
+                for _sbv_name, _sbv_value in model.parameter_handler.user_params_fixed_by_value.items():
+                    if _sbv_name in sex_bias_param_names:
+                        step_2_fixed_param_values[_sbv_name] = _sbv_value
 
                 if _has_free_sex_bias:
                     end_step_1_message = "Selecting best parameters from step 1 and proceeding to step 2 optimization.\n"
@@ -516,6 +533,23 @@ def run_tracts(driver_filename: str, script_dir: str):
             dep_msg = f"Parameters {', '.join(remainder_params.keys())} correspond to the dependent ancestry and were not free in the optimization."
             print(dep_msg)
             logger.info(dep_msg)
+
+        # Detect optimal sex-bias parameters at boundaries
+        unfixed_sex_bias_params_at_boundaries = {_param_name: _param_value for _param_name, _param_value in zip(all_param_names, all_param_values)
+                                if _param_name in sex_bias_param_names and 
+                                _param_name not in model.parameter_handler.params_fixed_by_ancestry and
+                                _param_name not in model.parameter_handler.user_params_fixed_by_value.keys() and
+                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 1e-3))}
+        
+        if unfixed_sex_bias_params_at_boundaries:
+            _boundary_msg = (
+                f"Warning: the optimal solution has sex-bias parameter(s) "
+                f"{', '.join(unfixed_sex_bias_params_at_boundaries)} at their \u00b11 boundary. "
+                "Re-running the optimization fixing these parameters at their boundary values may yield a better solution."
+            )
+            print(_boundary_msg)
+            logger.warning(_boundary_msg)
+
 
         # Check for "founding migration rates > 1" in the final parameters.
         # get_violation_score calls get_migration_matrices internally, which logs the warning.
