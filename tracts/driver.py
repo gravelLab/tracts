@@ -170,8 +170,12 @@ def run_tracts(driver_filename: str, script_dir: str):
         if len(driver_spec.optim.fix_parameters_by_value) > 0:
             value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value)
             value_message = f"The following parameters have been fixed by value: {value_fixed_params}"
+            fixed_at_one = {_param_name: _param_value for _param_name, _param_value in driver_spec.optim.fix_parameters_by_value.items() if np.isclose(_param_value, 1.0, atol=1e-5) or np.isclose(_param_value, -1.0, atol=1e-5)}
             logger.info(value_message)
             print(value_message)
+            if len(fixed_at_one) > 0:
+                print("Warning: fixing rate or sex-bias parameters at boundary values may lead to suboptimal results. Consider fixing at 0.99 or -0.99 instead.")
+            
 
         if ad_model_allosomes is not None:
             admixture_model_message = (
@@ -539,11 +543,11 @@ def run_tracts(driver_filename: str, script_dir: str):
                                 if _param_name in sex_bias_param_names and 
                                 _param_name not in model.parameter_handler.params_fixed_by_ancestry and
                                 _param_name not in model.parameter_handler.user_params_fixed_by_value.keys() and
-                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 1e-3))}
+                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 0.3))}
         # Detect derived remainder sex-bias parameters at boundaries
         remainder_sex_bias_at_boundaries = {_param_name: _param_value for _param_name, _param_value in remainder_params.items()
                                 if _param_name.endswith("_sex_bias") and
-                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 1e-3))}
+                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 0.3))}
 
         _all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
         if _all_at_boundary:
@@ -554,7 +558,6 @@ def run_tracts(driver_filename: str, script_dir: str):
             )
             print(_boundary_msg)
             logger.warning(_boundary_msg)
-
 
         # Check for "founding migration rates > 1" in the final parameters.
         # get_violation_score calls get_migration_matrices internally, which logs the warning.

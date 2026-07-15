@@ -1106,6 +1106,15 @@ class FixedParametersHandler:
         """
 
         self.demography = demography
+
+        for param_name in user_params_to_fix_by_value:
+            if param_name not in demography.model_base_params:
+                raise KeyError(
+                    f"Parameter '{param_name}' specified in fix_parameters_by_value is not a parameter of this model. "
+                    f"Model parameters are: {list(demography.model_base_params.keys())}. "
+                    f"Note: remainder-ancestry parameters are not optimizable and cannot be fixed by value."
+                )
+
         self.user_params_fixed_by_value = self.order_fixed_param_dict(user_params_to_fix_by_value)
         self.current_fixed_parameters = self.user_params_fixed_by_value.copy()
         self.params_fixed_by_value_indices = self.get_sorted_indices(user_params_to_fix_by_value.keys())  
