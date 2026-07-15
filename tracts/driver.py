@@ -305,7 +305,7 @@ def run_tracts(driver_filename: str, script_dir: str):
             step_1_current_title = step_1_start_params_title
             previous_optimal_params = None
             previous_optimal_likelihood = None
-            n_refinements = 0 # This can be set to a positive value if we want to attempt refining. 
+            n_refinements = 3 # This can be set to a positive value if we want to attempt refining. 
                               # This has not been shown to bu helpful yet, and is candidate for removing.  
             while (optimal_step_1_likelihood > current_step_1_likelihood + improvement_threshold) and (loop_iteration <= n_refinements):
                 current_step_1_likelihood = optimal_step_1_likelihood
@@ -315,6 +315,18 @@ def run_tracts(driver_filename: str, script_dir: str):
                     refine_iter_message = f"Starting refinement iteration {loop_iteration}, using the best parameters found in iteration {loop_iteration - 1}."
                     print(refine_iter_message)
                     logger.info(refine_iter_message)
+                    restart_range = 0.1
+
+                    # Draw a fresh set of "repetitions" starting points, in optimizer space, uniformly
+                    # within +/-10% of the previous iteration's best parameters.
+                    previous_best_opt = np.asarray(step_1_current_start_params[0], dtype=float)
+                    low = np.minimum((1-restart_range) * previous_best_opt, (1+restart_range)  * previous_best_opt)
+                    high = np.maximum((1-restart_range)  * previous_best_opt, (1+restart_range) * previous_best_opt)
+                    refinement_seed = driver_spec.optim.seed if driver_spec.optim.seed is None else driver_spec.optim.seed + loop_iteration
+                    rng = np.random.default_rng(seed=refinement_seed)
+                    step_1_current_start_params = [
+                        rng.uniform(low, high) for _ in range(driver_spec.optim.repetitions)
+                    ]
 
                 _print_run_intro(model.parameter_handler, model, step_1_current_start_params, bound, step_1_current_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [1])
 
