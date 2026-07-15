@@ -534,17 +534,22 @@ def run_tracts(driver_filename: str, script_dir: str):
             print(dep_msg)
             logger.info(dep_msg)
 
-        # Detect optimal sex-bias parameters at boundaries
+        # Detect optimal sex-bias parameters at boundaries (explicitely optimized)
         unfixed_sex_bias_params_at_boundaries = {_param_name: _param_value for _param_name, _param_value in zip(all_param_names, all_param_values)
                                 if _param_name in sex_bias_param_names and 
                                 _param_name not in model.parameter_handler.params_fixed_by_ancestry and
                                 _param_name not in model.parameter_handler.user_params_fixed_by_value.keys() and
                                 (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 1e-3))}
-        
-        if unfixed_sex_bias_params_at_boundaries:
+        # Detect derived remainder sex-bias parameters at boundaries
+        remainder_sex_bias_at_boundaries = {_param_name: _param_value for _param_name, _param_value in remainder_params.items()
+                                if _param_name.endswith("_sex_bias") and
+                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 1e-3))}
+
+        _all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
+        if _all_at_boundary:
             _boundary_msg = (
                 f"Warning: the optimal solution has sex-bias parameter(s) "
-                f"{', '.join(unfixed_sex_bias_params_at_boundaries)} at their \u00b11 boundary. "
+                f"{', '.join(_all_at_boundary)} at their \u00b11 boundary. "
                 "Re-running the optimization fixing these parameters at their boundary values may yield a better solution."
             )
             print(_boundary_msg)
