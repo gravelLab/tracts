@@ -20,6 +20,7 @@ samples:
 
 models:
   model_filename: ../models/ppp_EURIMPLICIT.yaml
+  implicit_population: NAT
   ad_model_autosomes: M
   ad_model_allosomes: DC
 

@@ -716,9 +716,145 @@ def test_non_integer_continuous_migration_time(model_with_continuous_migration):
     # The final proportions should be the same for both models
     assert np.isclose(final_proportions_int[0], final_proportions_non_int[0], atol=1e-4)  # source_pop1 proportion for integer model
     assert np.isclose(final_proportions_int[1], final_proportions_non_int[1], atol=1e-4)  # source_pop2 proportion for integer model
-    
+
     # Verify that the sum of proportions is 1 for each model
     assert np.isclose(final_proportions_int.sum(), 1.0)
     assert np.isclose(final_proportions_non_int.sum(), 1.0)
+
+
+# ------------ Tests for the implicit_population parameter of load_from_YAML ------------
+
+def _write_temp_yaml(content):
+    """
+    Writes the given YAML content to a temporary file and returns its path.
+    """
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as temp_file:
+        temp_file.write(content)
+        return temp_file.name
+
+
+_THREE_POP_YAML = """
+model_name: TestModel
+demes:
+  - name: EUR
+  - name: NAT
+  - name: AFR
+  - name: X
+    ancestors: [EUR, NAT, AFR]
+    proportions: [REUR, RNAT, RAFR]
+    start_time: tx
+"""
+
+
+def test_implicit_population_defaults_to_first_ancestor():
+    """
+    When implicit_population is not specified, the remainder population for a discrete
+    founder event should default to the first ancestor listed for that event.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML)
+    try:
+        model = ParametrizedDemography.load_from_YAML(path)
+        founder_event = model.founder_events["X"]
+        assert founder_event.remainder_population == "EUR"
+        assert founder_event.source_populations == {"NAT": "RNAT", "AFR": "RAFR"}
+        assert "REUR" not in model.model_base_params
+        assert "RNAT" in model.model_base_params
+        assert "RAFR" in model.model_base_params
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_explicit_selection():
+    """
+    Explicitly passing implicit_population selects the remainder population, regardless of
+    its position in the ancestors list, and its rate parameter is not added as a free parameter.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML)
+    try:
+        model = ParametrizedDemography.load_from_YAML(path, implicit_population="AFR")
+        founder_event = model.founder_events["X"]
+        assert founder_event.remainder_population == "AFR"
+        assert founder_event.source_populations == {"EUR": "REUR", "NAT": "RNAT"}
+        assert "REUR" in model.model_base_params
+        assert "RNAT" in model.model_base_params
+        assert "RAFR" not in model.model_base_params
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_invalid_name_raises():
+    """
+    Specifying an implicit_population that is not an ancestor of the founder event should
+    raise a clear error instead of silently failing or picking a wrong population.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML)
+    try:
+        with pytest.raises(ValueError):
+            ParametrizedDemography.load_from_YAML(path, implicit_population="NOT_A_POP")
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_independent_across_founder_events():
+    """
+    When implicit_population is left as None, each discrete founder event in the model
+    should independently default to its own first ancestor, rather than reusing whatever
+    population was resolved as implicit for a previous founder event.
+    """
+    yaml_content = """
+model_name: TestModel
+demes:
+  - name: EUR
+  - name: AFR
+  - name: ASN
+  - name: X
+    ancestors: [EUR, AFR]
+    proportions: [R1, R2]
+    start_time: tx
+  - name: Y
+    ancestors: [X, ASN]
+    proportions: [R3, R4]
+    start_time: ty
+"""
+    path = _write_temp_yaml(yaml_content)
+    try:
+        model = ParametrizedDemography.load_from_YAML(path)
+        assert model.founder_events["X"].remainder_population == "EUR"
+        assert model.founder_events["Y"].remainder_population == "X"
+        assert model.founder_events["X"].source_populations == {"AFR": "R2"}
+        assert model.founder_events["Y"].source_populations == {"ASN": "R4"}
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_rate_derived_as_remainder():
+    """
+    Verifies numerically that the implicit population's migration rate is derived as
+    1 minus the sum of the other source populations' rates, both for the default
+    (first-ancestor) and an explicitly-selected implicit population.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML)
+    try:
+        # Default implicit population (EUR, the first ancestor).
+        default_model = ParametrizedDemography.load_from_YAML(path)
+        default_model.finalize()
+        # model_base_params insertion order follows source_populations.items(): RNAT, RAFR, then tx.
+        matrices = default_model.get_migration_matrices([0.2, 0.3, 5])  # RNAT, RAFR, tx
+        matrix = matrices["X"]
+        assert np.isclose(matrix[5, default_model.population_indices["NAT"]], 0.2)
+        assert np.isclose(matrix[5, default_model.population_indices["AFR"]], 0.3)
+        assert np.isclose(matrix[5, default_model.population_indices["EUR"]], 0.5)
+
+        # Explicit implicit population (AFR).
+        explicit_model = ParametrizedDemography.load_from_YAML(path, implicit_population="AFR")
+        explicit_model.finalize()
+        # model_base_params insertion order follows source_populations.items(): REUR, RNAT, then tx.
+        matrices = explicit_model.get_migration_matrices([0.3, 0.2, 5])  # REUR, RNAT, tx
+        matrix = matrices["X"]
+        assert np.isclose(matrix[5, explicit_model.population_indices["EUR"]], 0.3)
+        assert np.isclose(matrix[5, explicit_model.population_indices["NAT"]], 0.2)
+        assert np.isclose(matrix[5, explicit_model.population_indices["AFR"]], 0.5)
+    finally:
+        os.unlink(path)
 
 

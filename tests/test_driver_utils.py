@@ -544,6 +544,22 @@ class TestConfigModels:
         with pytest.raises(Exception):  # ValidationError
             SamplesConfig(individual_names=["ind1"])
 
+    def test_models_config_implicit_population_default(self):
+        """
+        Test that ModelsConfig.implicit_population defaults to None when not specified.
+        """
+        from tracts.driver_utils import ModelsConfig
+        config = ModelsConfig(model_filename='model.yaml')
+        assert config.implicit_population is None
+
+    def test_models_config_implicit_population_explicit(self):
+        """
+        Test that ModelsConfig.implicit_population can be set explicitly.
+        """
+        from tracts.driver_utils import ModelsConfig
+        config = ModelsConfig(model_filename='model.yaml', implicit_population='AFR')
+        assert config.implicit_population == 'AFR'
+
 
 class TestLoadModelFromDriver:
     """
@@ -563,6 +579,7 @@ class TestLoadModelFromDriver:
 
         driver_spec = Mock()
         driver_spec.models.model_filename = "model.yaml"
+        driver_spec.models.implicit_population = None
         driver_spec.samples.allosomes = None
 
         result = load_model_from_driver(
@@ -573,7 +590,8 @@ class TestLoadModelFromDriver:
 
         assert result is mock_model
         mock_model_class.load_from_YAML.assert_called_once_with(
-            str(model_path.resolve())
+            source=str(model_path.resolve()),
+            implicit_population=None,
         )
 
     def test_load_model_basic_sexbiased(self, mock_locate, mock_model_class, mock_model_class_sexbiased):
@@ -587,6 +605,7 @@ class TestLoadModelFromDriver:
 
         driver_spec = Mock()
         driver_spec.models.model_filename = "model.yaml"
+        driver_spec.models.implicit_population = None
         driver_spec.samples = Mock()
         driver_spec.samples.allosomes = ["X"]
         driver_spec.samples.male_names = ["ind1"]
@@ -597,10 +616,38 @@ class TestLoadModelFromDriver:
 
         assert result == mock_model
         mock_model_class_sexbiased.load_from_YAML.assert_called_once_with(
-            str(model_path.resolve())
+            source=str(model_path.resolve()),
+            implicit_population=None,
         )
         mock_model_class.load_from_YAML.assert_not_called()
-    
+
+    def test_load_model_forwards_implicit_population(self, mock_locate, mock_model_class):
+        """
+        Test that a non-None implicit_population set in the driver spec is forwarded
+        to ParametrizedDemography.load_from_YAML.
+        """
+        model_path = Path("/path/to/model.yaml")
+        mock_locate.return_value = model_path
+
+        mock_model = Mock()
+        mock_model_class.load_from_YAML.return_value = mock_model
+
+        driver_spec = Mock()
+        driver_spec.models.model_filename = "model.yaml"
+        driver_spec.models.implicit_population = "AFR"
+        driver_spec.samples.allosomes = None
+
+        result = load_model_from_driver(
+            driver_spec,
+            script_dir=None,
+            driver_path="/path/driver.yaml",
+        )
+
+        assert result is mock_model
+        mock_model_class.load_from_YAML.assert_called_once_with(
+            source=str(model_path.resolve()),
+            implicit_population="AFR",
+        )
 
     def test_load_model_missing_filename_raises_error(self):
         """

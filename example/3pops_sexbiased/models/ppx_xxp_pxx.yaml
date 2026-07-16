@@ -8,7 +8,7 @@ demes:
   - name: NAT
   - name: targetpop
     ancestors: [EUR, NAT]
-    proportions: [REUR,1-REUR]
+    proportions: [REUR, RNAT]
     start_time: t1
 
 pulses:

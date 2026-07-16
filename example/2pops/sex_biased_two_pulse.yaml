@@ -13,6 +13,7 @@ samples:
 
 models:
   model_filename: ./models/pp_px.yaml
+  implicit_population: AFR
   ad_model_autosomes: DC
   ad_model_allosomes: DC
 

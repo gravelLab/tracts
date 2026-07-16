@@ -19,6 +19,7 @@ samples:
 
 models:
   model_filename: ./models/pxp_xpx.yaml
+  implicit_population: '2'
   ad_model_autosomes: DC
 
 start_params: 

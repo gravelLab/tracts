@@ -134,6 +134,9 @@ class ModelsConfig(BaseModel):
     ----------
     model_filename: str
         The filename of the demographic model to use for the inference. 
+    implicit_population: str | None
+        The name of the population to use as the implicit population in the discrete founder event (if any), whose proportion is set to one minus the sum of the proportions contributed by the other source populations.
+        The corresponding rate and sex-bias parameters will not be optimized and their optimal values will be derived from the optimal values of the rest of parameters. If None, defaults to the first source population specified in the founder event.
     ad_model_autosomes: str
         The admixture model to use for the autosomes. Must be one in ["M", "DC", "DF", "H-DC", "H-DF]. See online documentation for details. Defaults to "DC".
     ad_model_allosomes: str
@@ -146,6 +149,7 @@ class ModelsConfig(BaseModel):
         The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models. Ignored if not applicable. Defaults to 2.
     """
     model_config = ConfigDict(extra="forbid")
+    implicit_population: str | None = None
     model_filename: str
     ad_model_autosomes: str = "DC"
     ad_model_allosomes: str = "DC"
@@ -187,6 +191,8 @@ class OptimizationConfig(BaseModel):
         Whether step 2 should include autosomal data in addition to allosomal data. Defaults to False.
     N_cores: int
         The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used. Ignored if the hybrid-pedigree refinements are not used. Defaults to 1.
+    boundary_tol: float
+        The tolerance for determining if a parameter is at its boundary value. Defaults to 0.3.
     """
     model_config = ConfigDict(extra="forbid")
     repetitions: int =1 
@@ -200,6 +206,7 @@ class OptimizationConfig(BaseModel):
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
     N_cores: int = Field(default=1, ge=1)
+    boundary_tol: float = Field(default=0.3, ge=0)
 
 class OutputConfig(BaseModel):
     """
@@ -481,10 +488,12 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
     if model_path is None:
         raise FileNotFoundError(f'Model yaml file {driver_spec.models.model_filename} could not be found. {filepath_error_additional_message}')
     if allosome_label:
-        model = ParametrizedDemographySexBiased.load_from_YAML(str(model_path.resolve()))
+        model = ParametrizedDemographySexBiased.load_from_YAML(source=str(model_path.resolve()),
+                                                               implicit_population=driver_spec.models.implicit_population)
         model.allosome_label=allosome_label
     else:    
-        model = ParametrizedDemography.load_from_YAML(str(model_path.resolve()))
+        model = ParametrizedDemography.load_from_YAML(source=str(model_path.resolve()),
+                                                      implicit_population=driver_spec.models.implicit_population)
     return model
 
 def parse_start_params(start_param_bounds, model: ParametrizedDemography, repetitions: int=1, seed: float | None = None,

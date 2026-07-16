@@ -17,6 +17,7 @@ samples:
 
 models:
   model_filename: ../models/ppx_xxp_pxx.yaml
+  implicit_population: NAT
   ad_model_autosomes: M
   ad_model_allosomes: DC
 
