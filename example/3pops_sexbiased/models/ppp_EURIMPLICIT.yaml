@@ -7,5 +7,5 @@ demes:
   - name: NAT
   - name: targetpop
     ancestors: [AFR, NAT, EUR]
-    proportions: [RAFR,1-RAFR-REUR,REUR]
+    proportions: [RAFR,RNAT,REUR]
     start_time: t

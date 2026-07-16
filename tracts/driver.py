@@ -543,11 +543,11 @@ def run_tracts(driver_filename: str, script_dir: str):
                                 if _param_name in sex_bias_param_names and 
                                 _param_name not in model.parameter_handler.params_fixed_by_ancestry and
                                 _param_name not in model.parameter_handler.user_params_fixed_by_value.keys() and
-                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 0.3))}
+                                (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
         # Detect derived remainder sex-bias parameters at boundaries
         remainder_sex_bias_at_boundaries = {_param_name: _param_value for _param_name, _param_value in remainder_params.items()
                                 if _param_name.endswith("_sex_bias") and
-                                (np.isclose(_param_value, 1.0, atol = 1e-3) or np.isclose(_param_value, -1.0, atol = 0.3))}
+                                (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
 
         _all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
         if _all_at_boundary:

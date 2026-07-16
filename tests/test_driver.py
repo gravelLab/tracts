@@ -95,6 +95,7 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             autosomes_in_step_2=autosomes_in_step_2,
             use_autosomes_for_sex_bias=autosomes_in_step_2,
             N_cores=5,
+            boundary_tol=0.3
         ),
         output=SimpleNamespace(
             output_filename_format="test_output_{label}",

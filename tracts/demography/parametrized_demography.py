@@ -363,7 +363,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         return None
 
     @staticmethod
-    def load_from_YAML(source: str | Path) -> ParametrizedDemography:
+    def load_from_YAML(source: str | Path, implicit_population: str | None = None) -> ParametrizedDemography:
         """
         Creates an instance of :class:`~tracts.demography.parametrized_demography.ParametrizedDemography` from a YAML file.
 
@@ -371,7 +371,11 @@ class ParametrizedDemography(BaseParametrizedDemography):
         ----------
         source : str | Path
             The path to the YAML file containing the demographic model. See online documentations for details on how to specify demographic models in YAML files.
-        
+        implicit_population : str | None
+            The name of the population to use as the implicit population in the discrete founder event (if any), whose proportion is set to one minus the sum of the proportions contributed by the other source populations. 
+            The rate and sex-bias parameter of the implicit population is not explicitely optimized and its optimal value is derived from the optimal values of the other source populations. If None,
+            defaults to the first source population specified in the founder event.
+
         Returns
         -------
         ParametrizedDemography
@@ -408,10 +412,21 @@ class ParametrizedDemography(BaseParametrizedDemography):
                                                 found_time=population['start_time'],
                                                 end_time=end_time,
                                                 pulse_pops=pulse_pops)
-                else:    
-                    
-                    source_populations, remainder_population = ParametrizedDemography.parse_proportions(ancestor_names=population['ancestors'],
-                                                                                                        proportions=population['proportions'])
+                else:
+                    if implicit_population is None:
+                        current_implicit_population = population['ancestors'][0]
+                    elif implicit_population not in population['ancestors']:
+                        raise ValueError(f"Implicit population '{implicit_population}' is not a source population in model '{demes_data['model_name']}'.")
+                    else:
+                        current_implicit_population = implicit_population
+
+                    # Set the rate of the implicit population to be 1 minus the sum of the rates of the other source populations.
+                    explicit_rates = [_rate_param for _pop, _rate_param in zip(population['ancestors'], population['proportions']) if _pop != current_implicit_population]
+                    implicit_rate = "1-" + "-".join(explicit_rates)
+                    proportions_to_parse = explicit_rates + [implicit_rate]
+                    populations_to_parse = [_pop for _pop in population['ancestors'] if _pop != current_implicit_population] + [current_implicit_population]
+                    source_populations, remainder_population = ParametrizedDemography.parse_proportions(ancestor_names=populations_to_parse,
+                                                                                                    proportions=proportions_to_parse)
                     demography.add_founder_event(dest_population=population['name'],
                                                 source_populations=source_populations,
                                                 remainder_population=remainder_population,

@@ -22,6 +22,7 @@ samples:
 
 models:
   model_filename: ../models/ppp.yaml
+  implicit_population: AFR
 
   ad_model_autosomes: M
   ad_model_allosomes: DC

@@ -7,7 +7,7 @@ demes:
   - name: AFR
   - name: S
     ancestors: [EUR, AFR]
-    proportions: [R, 1-R]
+    proportions: [R, RAFR]
     start_time: tx
 pulses:
   - sources: [EUR]

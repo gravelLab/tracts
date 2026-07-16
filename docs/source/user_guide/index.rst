@@ -61,10 +61,10 @@ A founding pulse
      - name: AFR
      - name: X
        ancestors: [EUR, AFR]
-       proportions: [R, 1-R]
+       proportions: [REUR, RAFR]
        start_time: tx
 
-The previous block specifies a founding pulse at generation ``tx`` with a proportion ``R`` of ``EUR`` individuals and a proportion ``1-R`` of ``AFR`` individuals. The code ``X`` denotes the admixed population receving migration.
+The previous block specifies a founding pulse at generation ``tx`` with a proportion ``REUR`` of ``EUR`` individuals and a proportion ``RAFR`` of ``AFR`` individuals. The code ``X`` denotes the admixed population receving migration.
 
 
 Multiple migration pulses
@@ -203,6 +203,7 @@ Models
 
    models:
      model_filename: ../models/ppp.yaml
+     implicit_population: AFR
      ad_model_autosomes: DC
      ad_model_allosomes: H-DC
      rho_f: 1
@@ -210,6 +211,7 @@ Models
      TP: 2
 
 - ``model_filename``: The path to the :ref:`YAML file <demographic-models>` specifying the demographic model.
+- ``implicit_population``: The name of the population to use as the implicit population in the discrete founder event (if any), whose proportion is set to one minus the sum of the proportions contributed by the other source populations. The corresponding rate and sex-bias parameters will not be optimized and their optimal values will be derived from the optimal values of the rest of parameters. If None, defaults to the first source population specified in the founder event.
 - ``ad_model_autosomes``: The admixture model used to perform inference on autosomes. Must be either ``M`` (Monoecious), ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 - ``ad_model_allosomes``: The admixture model used to perform inference on allosomes. Must be either ``DC`` (Dioecious-Coarse), ``DF`` (Dioecious-Fine), ``H-DC`` (The hybrid-pedigree refinement of the Dioecious-Coarse model) or ``H-DF`` (The hybrid-pedigree refinement of the Dioecious-Fine model).
 - ``rho_f``: The female-specific recombination rate. Default is 1.

@@ -502,7 +502,7 @@ model_name: TestModel
 demes:
   - name: dest_pop1
     ancestors: [source_pop2, source_pop3]
-    proportions: [founding_rate_1, 1-founding_rate_1]
+    proportions: [founding_rate_1, founding_rate_1b]
     start_time: found_time
 pulses:
   - dest: dest_pop1
@@ -572,11 +572,11 @@ model_name: MultiPopModel
 demes:
   - name: dest_pop1
     ancestors: [source_pop1, source_pop2]
-    proportions: [founding_rate_1, 1-founding_rate_1]
+    proportions: [founding_rate_1, founding_rate_1b]
     start_time: found_time1
   - name: dest_pop2
     ancestors: [source_pop1, source_pop2]
-    proportions: [founding_rate_2, 1-founding_rate_2]
+    proportions: [founding_rate_2, founding_rate_2b]
     start_time: found_time2
 pulses:
   - dest: dest_pop1
@@ -671,7 +671,7 @@ model_name: MissingRequiredModel
 demes:
   - name: dest_pop1
     ancestors: [source_pop1, source_pop2]
-    proportions: [founding_rate_1, 1-founding_rate_1]
+    proportions: [founding_rate_1, founding_rate_1b]
     # Missing start_time
 pulses:
   - dest: dest_pop1
@@ -692,6 +692,110 @@ pulses:
     finally:
         # Clean up the temporary file
         os.unlink(temp_file_path)
+
+
+# ------------ Tests for the implicit_population parameter of load_from_YAML ------------
+
+_THREE_POP_YAML_SEX_BIASED = """
+model_name: TestModel
+demes:
+  - name: EUR
+  - name: NAT
+  - name: AFR
+  - name: X
+    ancestors: [EUR, NAT, AFR]
+    proportions: [REUR, RNAT, RAFR]
+    start_time: tx
+"""
+
+
+def _write_temp_yaml(content):
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as temp_file:
+        temp_file.write(content)
+        return temp_file.name
+
+
+def test_implicit_population_defaults_to_first_ancestor_sex_biased():
+    """
+    When implicit_population is not specified, the remainder population for a discrete
+    founder event should default to the first ancestor listed for that event, for both
+    the male and female founder events created by the sex-biased demography.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML_SEX_BIASED)
+    try:
+        model = ParametrizedDemographySexBiased.load_from_YAML(path)
+        assert model.founder_events["X_male"].remainder_population == "EUR"
+        assert model.founder_events["X_female"].remainder_population == "EUR"
+        assert set(model.founder_events["X_male"].source_populations.keys()) == {"NAT", "AFR"}
+        assert "REUR" not in model.model_base_params
+        assert "RNAT" in model.model_base_params
+        assert "RAFR" in model.model_base_params
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_explicit_selection_sex_biased():
+    """
+    Explicitly passing implicit_population selects the remainder population for both the
+    male and female founder events, and its rate parameter is not added as a free parameter.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML_SEX_BIASED)
+    try:
+        model = ParametrizedDemographySexBiased.load_from_YAML(path, implicit_population="AFR")
+        assert model.founder_events["X_male"].remainder_population == "AFR"
+        assert model.founder_events["X_female"].remainder_population == "AFR"
+        assert set(model.founder_events["X_male"].source_populations.keys()) == {"EUR", "NAT"}
+        assert "REUR" in model.model_base_params
+        assert "RNAT" in model.model_base_params
+        assert "RAFR" not in model.model_base_params
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_invalid_name_raises_sex_biased():
+    """
+    Specifying an implicit_population that is not an ancestor of the founder event should
+    raise a clear error instead of silently failing or picking a wrong population.
+    """
+    path = _write_temp_yaml(_THREE_POP_YAML_SEX_BIASED)
+    try:
+        with pytest.raises(ValueError):
+            ParametrizedDemographySexBiased.load_from_YAML(path, implicit_population="NOT_A_POP")
+    finally:
+        os.unlink(path)
+
+
+def test_implicit_population_independent_across_founder_events_sex_biased():
+    """
+    When implicit_population is left as None, each discrete founder event in the model
+    should independently default to its own first ancestor, rather than reusing whatever
+    population was resolved as implicit for a previous founder event, and this should not
+    raise an UnboundLocalError even when the resolution happens for the very first
+    founder event processed.
+    """
+    yaml_content = """
+model_name: TestModel
+demes:
+  - name: EUR
+  - name: AFR
+  - name: ASN
+  - name: X
+    ancestors: [EUR, AFR]
+    proportions: [R1, R2]
+    start_time: tx
+  - name: Y
+    ancestors: [X, ASN]
+    proportions: [R3, R4]
+    start_time: ty
+"""
+    path = _write_temp_yaml(yaml_content)
+    try:
+        model = ParametrizedDemographySexBiased.load_from_YAML(path)
+        assert model.founder_events["X_male"].remainder_population == "EUR"
+        assert model.founder_events["Y_male"].remainder_population == "X"
+    finally:
+        os.unlink(path)
+
 
 def test_migration_matrix_basic(model_with_both_migrations):
     """

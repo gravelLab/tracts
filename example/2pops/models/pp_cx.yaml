@@ -7,10 +7,10 @@ demes:
   - name: AFR
   - name: X
     ancestors: [EUR, AFR]
-    proportions: [R, 1-R]
+    proportions: [R, RAFR]
     start_time: tx
 migrations:
-  - sources: [EUR]
+  - source: [EUR]
     dest: X
     proportions: [P]
     time: t2

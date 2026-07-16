@@ -8,7 +8,7 @@ demes:
   - name: '2'
   - name: Sample
     ancestors: ['0', '2']
-    proportions: [A, 1-A]
+    proportions: [A, B]
     start_time: tx
 pulses:
   - sources: ['1']

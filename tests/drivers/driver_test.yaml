@@ -11,6 +11,7 @@ samples:
 
 models:
   model_filename: ./models/pp.yaml
+  implicit_population: AFR
 
 start_params: 
   tx: 6:8

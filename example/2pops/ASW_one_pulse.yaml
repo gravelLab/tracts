@@ -12,6 +12,7 @@ samples:
 
 models:
   model_filename: ./models/pp.yaml
+  implicit_population: AFR
   ad_model_autosomes: DC
 
 start_params: 

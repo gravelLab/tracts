@@ -1,13 +1,13 @@
 samples:
   directory: ../../data/1000G_ancestry_deconvolution/ASW/PopPhased/bed_files/
-  
+
   individual_names: [
     "NA19625","NA19700","NA19701","NA19703","NA19704","NA19707","NA19711","NA19712","NA19713","NA19818","NA19819",
     "NA19834","NA19835","NA19900","NA19901","NA19904","NA19908","NA19909","NA19913","NA19914","NA19916","NA19917",
     "NA19920","NA19921","NA19922","NA19923","NA19982","NA19984","NA20126","NA20127","NA20274","NA20276","NA20278",
     "NA20281","NA20282","NA20287","NA20289","NA20291","NA20294","NA20296","NA20298","NA20299","NA20317",
     "NA20318","NA20320","NA20321","NA20332","NA20334","NA20339","NA20340","NA20342","NA20346","NA20348","NA20351",
-    "NA20355","NA20356","NA20357","NA20359","NA20362","NA20412"] 
+    "NA20355","NA20356","NA20357","NA20359","NA20362","NA20412"]
   male_names: [
     "NA19700","NA19703","NA19711","NA19818","NA19834","NA19900","NA19904","NA19908","NA19916","NA19920",
     "NA19922","NA19982","NA19984","NA20126","NA20278","NA20281","NA20291","NA20298","NA20318","NA20340",
@@ -17,15 +17,13 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
 
-output_filename_format: "ASW_test_output_{label}"
-output_directory: "./output_ppx_xxp_ppx/{date}"
-log_filename: "ASW_three_pulses.log"
-verbose_log: 1
-verbose_screen: 30
-log_scale : True
+models:
+  model_filename: ../models/ppx_xxp_ppx.yaml
+  implicit_population: NAT
+  ad_model_autosomes: M
+  ad_model_allosomes: DC
 
-model_filename: ../models/ppx_xxp_ppx.yaml
-start_params: 
+start_params:
   #t1: 9:12
   #REUR: 0.7:0.9
   #RAFR: 0.7:0.9
@@ -47,13 +45,20 @@ start_params:
   REUR2_sex_bias: -.2:.2
   RNAT2_sex_bias: -.2:.2
   RAFR_sex_bias: -.2:.2
-repetitions: 10
-seed: 100
-maximum_iterations: 1000
-unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
-exclude_tracts_below_cm: 2
-npts : 50
-#fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
 
-ad_model_autosomes: M
-ad_model_allosomes: DC
+optim:
+  repetitions: 10
+  seed: 100
+  maximum_iterations: 1000
+  npts: 50
+  #fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
+  exclude_tracts_below_cm: 2
+  unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
+
+output:
+  output_directory: "./output_ppx_xxp_ppx/{date}"
+  output_filename_format: "ASW_test_output_{label}"
+  log_filename: "ASW_three_pulses.log"
+  verbose_log: 1
+  verbose_screen: 30
+  log_scale: True
