@@ -1,19 +1,21 @@
 import io
 import contextlib
 import logging
-from pathlib import Path
 from typing import Callable
 import numpy as np
-import os
 
 from tracts.population import Population
 from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
-from tracts.util import time_to_physical_function, rate_to_physical_function, sex_bias_to_physical_function, time_to_optimizer_function, rate_to_optimizer_function, sex_bias_to_optimizer_function
-from tracts.demography.parameter import ParamType
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
-from tracts.driver_utils import locate_file_path, load_driver_file, load_population, load_model_from_driver, get_time_scaled_model_func, get_time_scaled_model_bounds, parse_start_params, collapse_identical_start_params, output_simulation_data_sex_biased, _summarize_step_results, _normalize_multi_init_result, _print_run_intro, _compute_remainder_params, _save_ancestry_proportions_table
-from tracts.logs import setup_logger, set_log_file, close_log_file
-from datetime import datetime
+from tracts.driver_utils import *
+from tracts.driver_utils import (
+    _print_run_intro,
+    _normalize_multi_init_result,
+    _summarize_step_results,
+    _print_optimal_values_and_likelihood,
+    _save_ancestry_proportions_table,
+)
+from tracts.logs import initialize_tracts, close_log_file
 
 logger = logging.getLogger(__name__)
 
@@ -36,259 +38,98 @@ def run_tracts(driver_filename: str, script_dir: str):
                                    script_dir=script_dir)
     driver_spec = load_driver_file(driver_path)
 
-    # ------ Set up logging using filename from driver-------
-    logger, memory_handler = setup_logger()
-    if driver_spec.output.log_filename:
-        log_filename = Path(driver_spec.output.log_filename)
-    else:
-        log_filename = Path("tracts.log")
-        logger.warning(f"No log filename specified in driver file. Defaulting to {log_filename} in the working directory.")
-    
-    if not driver_spec.output.output_directory:
-        logger.warning("No output directory specified in driver file. Defaulting to current working directory.")
-        output_dir = Path.cwd()
-        driver_spec.output.output_directory = str(output_dir)
-    else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        formatted_output_directory =  driver_spec.output.output_directory.format(date=timestamp)
-        output_dir = Path(formatted_output_directory)
- 
-    if not os.path.exists(output_dir): # Create output directory if it doesn't exist 
-        os.makedirs(output_dir)
-    
-    log_full_path = Path(log_filename)
-    if not log_full_path.is_absolute() and log_full_path.parent == Path("."): # If log_filename is a relative path without directories, save it in the output directory. Otherwise, save it in the specified path (which may be absolute or relative with directories).
-        log_full_path = Path(output_dir) / log_full_path
+    # ------ Initialize tracts: set up logging and output directory using filename from driver-------
+    logger, log_full_path, output_dir = initialize_tracts(driver_spec=driver_spec, driver_filename=driver_filename)
 
-    set_log_file(log_filename=log_full_path,
-                memory_handler=memory_handler)
-
-    try:
-        logger.info(f"Running tracts 2.0 with driver file: {driver_filename}")
-        output_message = f"Results will be written to: {output_dir}."
-        logger_message = f"Using log file: {log_full_path}."
-        tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.optim.exclude_tracts_below_cm} cM.'
-
-        # ------ Print initial information -------
-        print('------------------------------------------------------------------------------------------------\n')
-        print('Running tracts 2.0 with driver file:', driver_filename,'\n')
-        print('------------------------------------------------------------------------------------------------\n')   
-        for message in (output_message, logger_message, tracts_below_cm_message):
-            print(message)
-            logger.info(message)
-        
-        # ----- Extract specifications from the driver file and do necessary checks -------
-        # Autosomal admixture model is correctly specified
-        ad_model_autosomes = driver_spec.models.ad_model_autosomes
-        if not driver_spec.models.ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
-            print('The model for autosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), M (for Monoecious), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_autosomes = DC by default.')
-            ad_model_autosomes = 'DC'
-
-        
-        # Check whether allosomes are present in the sample
-        allosome_labels = driver_spec.samples.allosomes
-        allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
-
-        # Allosomal admixture model is correctly specified
-        if hasattr(driver_spec.models, "ad_model_allosomes") and allosome_label is not None:
-            ad_model_allosomes = driver_spec.models.ad_model_allosomes
-            if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
-                print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
-                ad_model_allosomes = 'DC'
-        elif allosome_label is not None:
-            print('Model for allosomal admixture not specified. Setting DC by default.')
-            ad_model_allosomes = 'DC'
-        else:
-            print('No allosomes specified in the driver file. Modelling only autosomal admixture.')
-            ad_model_allosomes = None # This will trigger the code to not model allosomal admixture.
+    try:        
+        # ----- Extract admixture models and allosomal configuration from the driver file -------
+        ad_model_autosomes, ad_model_allosomes, allosome_label = get_admixture_models(driver_spec=driver_spec)
 
         # ------ Load the population -------
         pop = load_population(driver_path=driver_path,
                             driver_spec=driver_spec,
                             script_dir=script_dir,
-                            allosome_labels = allosome_labels) 
+                            allosome_labels = driver_spec.samples.allosomes) 
         pop.unknown_labels = driver_spec.optim.unknown_labels_for_smoothing
-        pop.smooth_unknowns(allosome_labels=allosome_labels)
+        pop.smooth_unknowns(allosome_labels=driver_spec.samples.allosomes)
         _bins, _data = pop.get_global_tractlengths(npts=driver_spec.optim.npts, # Get the population labels and validate that these correspond to to model population labels.
                                                    exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm) 
         
-        # ------ Load the model -------
-        model = load_model_from_driver(driver_spec=driver_spec,
-                                    script_dir=script_dir,
-                                    driver_path=driver_path,
-                                    allosome_label=allosome_label)
-        ancestor_labels = model.population_indices.keys()
-        data_labels =  _data.keys()
-           
-        for label in data_labels:
-            if label not in ancestor_labels and label not in pop.unknown_labels:
-                raise ValueError(f"Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
-                f"unknown labels: {pop.unknown_labels}")
-
-        # ------ Calculate ancestry proportions and set up fixed parameters if specified in the driver -------
-        ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)
+        # ------ Load the demographic model -------
+        demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names  = load_demographic_model_from_driver(driver_spec=driver_spec,
+                                                                                                                                    script_dir=script_dir,
+                                                                                                                                    driver_path=driver_path,
+                                                                                                                                    allosome_label=allosome_label)
         
-        print(f"Ancestries: {', '.join(ancestor_labels)}")
-        autosomal_ancestry_message = f"Data autosome proportions: {np.array2string(ancestry_proportions, separator=' ')}"
-        print(autosomal_ancestry_message)
-        logger.info(autosomal_ancestry_message)
-        if len(allosome_labels)>=1:
-            allosome_proportions = pop.calculate_allosome_proportions(population_labels=ancestor_labels,
-                                                                    allosome_label=allosome_label)
-            allosomal_ancestry_message = f"Data allosome proportions: {np.array2string(allosome_proportions, separator=' ')}"
-            print(allosomal_ancestry_message)
-            logger.info(allosomal_ancestry_message)
-
-        if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0 or len(driver_spec.optim.fix_parameters_by_value) > 0: # Set up fixed parameters if specified in the driver
-            
-            # Check for non-overlapping fixed parameters
-            overlapping_params = [_param for _param in driver_spec.optim.fix_parameters_from_ancestry_proportions if _param in driver_spec.optim.fix_parameters_by_value.keys()]
-            if len(overlapping_params) > 0:
-                raise ValueError(f"Parameters {', '.join(overlapping_params)} are specified to be fixed both from ancestry proportions and by value. Please choose only one fixing strategy per parameter.")
-
-            if allosome_label:
-                model.parameter_handler.set_up_fixed_parameters(demography=model,
-                                                                params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
-                                                                proportions={
-                                                                f'{model.parametrized_populations[0]}_autosomal':ancestry_proportions,
-                                                                f'{model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
-                                                                },
-                                                                user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value
-                                                                )
-            else:
-                model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
-                                            proportions= {model.parametrized_populations[0]:ancestry_proportions},
-                                            user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value) 
-        else: # No parameters to fix 
-            model.set_up_fixed_parameters([],{})
-        print(f"Model parameters: {', '.join(model.model_base_params.keys())}") # Print model parameters
-        if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0:
-            ancestry_fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
-            anc_message = f"The following parameters have been fixed from ancestry proportions: {ancestry_fixed_params}"
-            logger.info(anc_message)
-            print(anc_message)
-        if len(driver_spec.optim.fix_parameters_by_value) > 0:
-            value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value.keys())
-            value_message = f"The following parameters have been fixed by value: {value_fixed_params}"
-            fixed_at_one = {_param_name: _param_value for _param_name, _param_value in driver_spec.optim.fix_parameters_by_value.items() if np.isclose(_param_value, 1.0, atol=1e-5) or np.isclose(_param_value, -1.0, atol=1e-5)}
-            logger.info(value_message)
-            print(value_message)
-            if len(fixed_at_one) > 0:
-                print("Warning: fixing rate or sex-bias parameters at boundary values may lead to suboptimal results. Consider fixing at 0.99 or -0.99 instead.")
-            
-
-        if ad_model_allosomes is not None:
-            admixture_model_message = (
-                f"Admixture is modelled with the {ad_model_autosomes} model for autosomes "
-                f"and with the {ad_model_allosomes} model for allosomes."
-            )
-        else:
-            admixture_model_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
-        print(admixture_model_message)
-        logger.info(admixture_model_message)
-
+        #----- Validate that the population labels in the data correspond to the model population labels -------
+        check_population_labels(demographic_model=demographic_model,
+                                population=pop,
+                                data=_data)
+        
+        # ------ Calculate ancestry proportions -------
+        autosome_proportions, allosome_proportions = get_ancestry_proportions(driver_spec=driver_spec,
+                                                                            population=pop,
+                                                                            ancestor_labels=demographic_model.population_indices.keys(),
+                                                                            allosome_label=allosome_label)
+        
+        # ------ Set up fixed parameters if specified in the driver ------
+        setup_fixed_parameters(driver_spec=driver_spec,
+                               demographic_model=demographic_model,
+                               allosome_label=allosome_label,
+                               autosome_proportions=autosome_proportions,
+                               allosome_proportions=allosome_proportions)
+        
         # ------ Optimizer setup -------
-        func = get_time_scaled_model_func(model) # Time parameters need to be rescaled for some optimizers, so we create a wrapper function that applies the necessary rescaling before passing parameters to the model.
-        bound = get_time_scaled_model_bounds(model) # The same rescaling needs to be applied to the bounds function.
+        func = get_time_scaled_model_func(demographic_model) # Time parameters need to be rescaled for some optimizers, so we create a wrapper function that applies the necessary rescaling before passing parameters to the model.
+        bound = get_time_scaled_model_bounds(demographic_model) # The same rescaling needs to be applied to the bounds function.
     
-        model_param_names = list(model.model_base_params.keys())
-        sex_bias_param_names = [
-            name for name, info in model.model_base_params.items()
-            if info.type == ParamType.SEX_BIAS
-        ]
-        non_sex_bias_param_names = [
-            name for name in model_param_names
-            if name not in sex_bias_param_names
-        ]
-
         # Show time-admissibility warnings only during optimization and final reporting.
-        model.parameter_handler.enable_time_param_logging = False
+        demographic_model.parameter_handler.enable_time_param_logging = False
 
         # ------ Compute starting parameters in physical units ------
         if driver_spec.optim.two_steps_optimization:
-            physical_start_params = parse_start_params(
-                start_param_bounds=driver_spec.start_params,
-                repetitions=driver_spec.optim.repetitions,
-                seed=driver_spec.optim.seed,
-                model=model,
-                sample_param_names=set(non_sex_bias_param_names),
-                fixed_param_values={name: 0.0 for name in sex_bias_param_names if name not in driver_spec.optim.fix_parameters_by_value.keys()} | driver_spec.optim.fix_parameters_by_value, # Dictionary union
-            )
+            physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
+                                                        repetitions=driver_spec.optim.repetitions,
+                                                        seed=driver_spec.optim.seed,
+                                                        demographic_model=demographic_model,
+                                                        sample_param_names=set(non_sex_bias_param_names),
+                                                        fixed_param_values={name: 0.0 for name in sex_bias_param_names if name not in driver_spec.optim.fix_parameters_by_value.keys()} | driver_spec.optim.fix_parameters_by_value, # Dictionary union
+                                                        )
             physical_start_params = collapse_identical_start_params(physical_start_params, "step 1")
         else:
-            physical_start_params = parse_start_params(
-                start_param_bounds=driver_spec.start_params,
-                repetitions=driver_spec.optim.repetitions,
-                seed=driver_spec.optim.seed,
-                model=model,
-                fixed_param_values=driver_spec.optim.fix_parameters_by_value
-            )
+            physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
+                                                        repetitions=driver_spec.optim.repetitions,
+                                                        seed=driver_spec.optim.seed,
+                                                        demographic_model=demographic_model,
+                                                        fixed_param_values=driver_spec.optim.fix_parameters_by_value
+                                                        )
         
+        check_start_params(physical_start_params=physical_start_params,
+                          model_param_names=model_param_names) # Checks compatibility with demographic model and prints message
+
         # ------ Convert starting parameters to optimizer units ------
-        optimizer_start_params = [model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]   
-
-        # ------ Message about starting parameters setup ------ 
-        if len(physical_start_params) > 1: # Multiple runs with different starting parameters
-            mult_params_message = "Multiple starting parameters will be generated and used for multiple optimization runs."
-            logger.info(mult_params_message)
-            print(mult_params_message+"\n")
-
-        else: # Single run with one set of starting parameters
-            single_params_message = "A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization."
-            logger.info(single_params_message)
-            print(single_params_message+"\n")
-
-        # ------ Print starting parameters in physical units ------
-        n_start_params = len(physical_start_params[0]) if len(physical_start_params) > 0 else 0
-        assert len(model_param_names) == n_start_params
-        start_param_names = model_param_names
-
-        if driver_spec.optim.two_steps_optimization:
-            step_1_start_params_title = "Starting parameters for step 1 optimization"
-        else:
-            step_1_start_params_title = "Starting parameters for single-step optimization"
-        
+        optimizer_start_params = [demographic_model.parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]   
+      
         # ------ Get starting ancestry proportions for the starting parameters ------ 
-        # Check that the starting parameters produce reasonable ancestry proportions before optimization. Only logged for now.
-        first_props = model.proportions_from_matrices(func(optimizer_start_params[0]))
-        tract_types = list(first_props.keys())
-        start_ancestry_props_message = "Starting ancestry proportions for the starting parameters"
-        header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in tract_types)
-        line = "-" * len(header)
-        logger.info(start_ancestry_props_message)
-        for l in (line, header, line):
-            logger.info(l)
+        get_starting_ancestry_proportions(demographic_model=demographic_model,
+                                            model_func=func,
+                                            optimizer_start_params=optimizer_start_params) # The computed proportions are only logged.
 
-        for i, opt in enumerate(optimizer_start_params):
-            try: 
-                props = model.proportions_from_matrices(func(opt))
-
-            except ValueError:
-                print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
-
-            row_values = []
-            for k in tract_types:
-                arr = props[k]
-                arr_str = ", ".join(f"{x:.4g}" for x in arr)
-                row_values.append(f"[{arr_str:<33}]")
-
-            anc_line = f"{1+i:>3} | " + " | ".join(row_values)
-            logger.info(anc_line)
-
-        model.parameter_handler.enable_time_param_logging = True
+        demographic_model.parameter_handler.enable_time_param_logging = True
 
         # ------ Run the model with (multiple) starting parameters ------
+        step_1_start_params_title = "Starting parameters for step 1 optimization" if driver_spec.optim.two_steps_optimization else "Starting parameters for single-step optimization"
 
         if driver_spec.optim.two_steps_optimization is False: # Single-step optimization using optimize_cob_sex_biased_single_step
 
-            _print_run_intro(model.parameter_handler, model, optimizer_start_params, bound, step_1_start_params_title, False, True)
+            _print_run_intro(demographic_model.parameter_handler, demographic_model, optimizer_start_params, bound, step_1_start_params_title, False, True)
 
             params_found, likelihoods, _full_likelihoods = _normalize_multi_init_result(run_model_multi_init(model_func=func,
                                                             bound_func=bound,
                                                             population=pop, 
                                                             start_params_list=optimizer_start_params,
-                                                            population_dict=model.population_indices.items(),
-                                                            parameter_handler=model.parameter_handler,
+                                                            population_dict=demographic_model.population_indices.items(),
+                                                            parameter_handler=demographic_model.parameter_handler,
                                                             max_iter=driver_spec.optim.maximum_iterations,
                                                             exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                             ad_model_autosomes = ad_model_autosomes, 
@@ -306,21 +147,21 @@ def run_tracts(driver_filename: str, script_dir: str):
 
             optimal_params, optimal_likelihood = _summarize_step_results(params_found=params_found,
                                                                         likelihoods=likelihoods,
-                                                                        parameter_handler=model.parameter_handler,
-                                                                        param_names=start_param_names)
+                                                                        parameter_handler=demographic_model.parameter_handler,
+                                                                        param_names=model_param_names)
         
         else: # Performs two-steps optimization with multiple starting parameters            
 
             # ------ Step 1: optimize non-sex-bias parameters on autosomal data ------
 
-            _print_run_intro(model.parameter_handler, model, optimizer_start_params, bound, step_1_start_params_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [1])
+            _print_run_intro(demographic_model.parameter_handler, demographic_model, optimizer_start_params, bound, step_1_start_params_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [1])
 
             params_found_step_1, likelihoods_step_1, _full_likelihoods_step_1 = _normalize_multi_init_result(run_model_multi_init(model_func=func,
                                                             bound_func=bound,
                                                             population=pop, 
                                                             start_params_list=optimizer_start_params,
-                                                            population_dict=model.population_indices.items(),
-                                                            parameter_handler=model.parameter_handler,
+                                                            population_dict=demographic_model.population_indices.items(),
+                                                            parameter_handler=demographic_model.parameter_handler,
                                                             max_iter=driver_spec.optim.maximum_iterations,
                                                             exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                             ad_model_autosomes = ad_model_autosomes, 
@@ -341,8 +182,8 @@ def run_tracts(driver_filename: str, script_dir: str):
             #  Process and print results
             optimal_params_step_1, _optimal_likelihood_step_1 = _summarize_step_results(params_found=params_found_step_1,
                                                                         likelihoods=likelihoods_step_1,
-                                                                        parameter_handler=model.parameter_handler,
-                                                                        param_names=start_param_names,
+                                                                        parameter_handler=demographic_model.parameter_handler,
+                                                                        param_names=model_param_names,
                                                                         step_label="Step 1")
 
             if ad_model_allosomes is None:
@@ -355,8 +196,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                 # or by value). When all sex-bias params are fixed, step 2 has no free variables: skip
                 # all the verbose setup/results output and go straight to the final table.
                 _all_fixed_in_step_2 = (
-                    set(model.parameter_handler.params_fixed_by_ancestry)
-                    | set(model.parameter_handler.user_params_fixed_by_value.keys())
+                    set(demographic_model.parameter_handler.params_fixed_by_ancestry)
+                    | set(demographic_model.parameter_handler.user_params_fixed_by_value.keys())
                 )
                 _has_free_sex_bias = any(name not in _all_fixed_in_step_2 for name in sex_bias_param_names)
 
@@ -367,7 +208,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                     if name not in sex_bias_param_names
                 }
                 # Sex-bias parameters fixed by the user at a specific value must not be resampled.
-                for _sbv_name, _sbv_value in model.parameter_handler.user_params_fixed_by_value.items():
+                for _sbv_name, _sbv_value in demographic_model.parameter_handler.user_params_fixed_by_value.items():
                     if _sbv_name in sex_bias_param_names:
                         step_2_fixed_param_values[_sbv_name] = _sbv_value
 
@@ -380,13 +221,13 @@ def run_tracts(driver_filename: str, script_dir: str):
                         start_param_bounds=driver_spec.start_params,
                         repetitions=driver_spec.optim.repetitions,
                         seed=driver_spec.optim.seed,
-                        model=model,
+                        demographic_model=demographic_model,
                         sample_param_names=set(sex_bias_param_names),
                         fixed_param_values=step_2_fixed_param_values,
                     )
                     step_2_physical_start_params = collapse_identical_start_params(step_2_physical_start_params, "step 2")
                     step_2_start_params = [
-                        model.parameter_handler.convert_to_optimizer_params(params)
+                        demographic_model.parameter_handler.convert_to_optimizer_params(params)
                         for params in step_2_physical_start_params
                     ]
 
@@ -395,14 +236,14 @@ def run_tracts(driver_filename: str, script_dir: str):
                         "(non-sex-bias parameters are fixed to the best step 1 estimates)."
                     )
 
-                    _print_run_intro(model.parameter_handler, model, step_2_start_params, bound, step_2_start_params_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [2])
+                    _print_run_intro(demographic_model.parameter_handler, demographic_model, step_2_start_params, bound, step_2_start_params_title, True, driver_spec.optim.use_autosomes_for_sex_bias, [2])
 
                     params_found_step_2, likelihoods_step_2, full_likelihoods_step_2 = _normalize_multi_init_result(run_model_multi_init(model_func=func,
                                                                                 bound_func=bound,
                                                                                 population=pop,
                                                                                 start_params_list=step_2_start_params,
-                                                                                population_dict=model.population_indices.items(),
-                                                                                parameter_handler=model.parameter_handler,
+                                                                                population_dict=demographic_model.population_indices.items(),
+                                                                                parameter_handler=demographic_model.parameter_handler,
                                                                                 max_iter=driver_spec.optim.maximum_iterations,
                                                                                 exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                                                 ad_model_autosomes=ad_model_autosomes,
@@ -423,8 +264,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                     #  Process and print results
                     optimal_params, optimal_likelihood = _summarize_step_results(params_found=params_found_step_2,
                                                                                 likelihoods=likelihoods_step_2,
-                                                                                parameter_handler=model.parameter_handler,
-                                                                                param_names=start_param_names,
+                                                                                parameter_handler=demographic_model.parameter_handler,
+                                                                                param_names=model_param_names,
                                                                                 step_label="Step 2")
 
                     end_step_2_message = "Selecting best parameters from step 2."
@@ -443,8 +284,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                 else:
                     # No free sex-bias parameters: run step 2 silently (only to compute the
                     # full-data likelihood at the step-1 optimal params) then skip to final table.
-                    _fixed_by_ancestry = [n for n in sex_bias_param_names if n in set(model.parameter_handler.params_fixed_by_ancestry)]
-                    _fixed_by_value = [n for n in sex_bias_param_names if n in set(model.parameter_handler.user_params_fixed_by_value.keys())]
+                    _fixed_by_ancestry = [n for n in sex_bias_param_names if n in set(demographic_model.parameter_handler.params_fixed_by_ancestry)]
+                    _fixed_by_value = [n for n in sex_bias_param_names if n in set(demographic_model.parameter_handler.user_params_fixed_by_value.keys())]
                     _fix_parts = []
                     if _fixed_by_ancestry:
                         _fix_parts.append(f"{', '.join(_fixed_by_ancestry)} by ancestry proportions")
@@ -457,7 +298,7 @@ def run_tracts(driver_filename: str, script_dir: str):
                     )
                     print(_skip_msg)
                     logger.info(_skip_msg)
-                    _silent_start = [model.parameter_handler.convert_to_optimizer_params(optimal_params_step_1)]
+                    _silent_start = [demographic_model.parameter_handler.convert_to_optimizer_params(optimal_params_step_1)]
                     _tracts_logger = logging.getLogger("tracts")
                     _saved_tracts_level = _tracts_logger.level
                     _tracts_logger.setLevel(logging.CRITICAL)
@@ -469,8 +310,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                                     bound_func=bound,
                                     population=pop,
                                     start_params_list=_silent_start,
-                                    population_dict=model.population_indices.items(),
-                                    parameter_handler=model.parameter_handler,
+                                    population_dict=demographic_model.population_indices.items(),
+                                    parameter_handler=demographic_model.parameter_handler,
                                     max_iter=driver_spec.optim.maximum_iterations,
                                     exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                     ad_model_autosomes=ad_model_autosomes,
@@ -494,8 +335,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                     optimal_params, optimal_likelihood = _summarize_step_results(
                         params_found=params_found_step_2,
                         likelihoods=likelihoods_step_2,
-                        parameter_handler=model.parameter_handler,
-                        param_names=start_param_names,
+                        parameter_handler=demographic_model.parameter_handler,
+                        param_names=model_param_names,
                         step_label="Step 2",
                     )
                     if not driver_spec.optim.use_autosomes_for_sex_bias:
@@ -504,130 +345,48 @@ def run_tracts(driver_filename: str, script_dir: str):
                         if full_data_likelihood is not None:
                             optimal_likelihood = float(full_data_likelihood)
 
-        # Print final optimal parameters and likelihood.
-        final_data = "autosomal + allosomal" if ad_model_allosomes is not None else "autosomal"
-        final_message = f"Final parameters and corresponding likelihood computed on {final_data} data:"
-        param_names = list(model.model_base_params.keys())
-        # Append derived (remainder) quantities to the table
-        remainder_params = _compute_remainder_params(
-            model, model.get_migration_matrices(optimal_params)
-        )
-        all_param_names = param_names + list(remainder_params.keys())
-        all_param_values = list(optimal_params) + list(remainder_params.values())
-        param_col_widths = [max(len(name), 12) for name in all_param_names]
-        header = f"{'LogLik':>12} | " + " | ".join(
-            f"{name:>{w}}" for name, w in zip(all_param_names, param_col_widths)
-        )
-        line = "-" * len(header)
-        print("\n" + final_message)
-        for l in (line, header, line):
-            print(l)
-            logger.info(l)  
-        
-        values_str = " | ".join(
-            f"{x:>{w}.4g}" for x, w in zip(all_param_values, param_col_widths)
-        )
-        loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
-        logger.info(loglik_message)
-        print(loglik_message)
-        print(line)
 
-        # Report derived parameters for the remainder (dependent) ancestry.
-        if remainder_params:
-            dep_msg = f"Parameters {', '.join(remainder_params.keys())} correspond to the dependent ancestry and were not free in the optimization."
-            print(dep_msg)
-            logger.info(dep_msg)
+        # ------ Compute remainder parameters (i.e. dependent parameters that have not been explicitely optimized) ------
+        remainder_params = compute_remainder_params(demographic_model=demographic_model,
+                                                migration_matrices=demographic_model.get_migration_matrices(optimal_params))
+     
+        # ------ Print final optimal parameters and likelihood ------
+        _print_optimal_values_and_likelihood(demographic_model=demographic_model,
+                                             optimal_params=optimal_params,
+                                             optimal_likelihood=optimal_likelihood,
+                                             remainder_parameters=remainder_params,
+                                             ad_model_allosomes=ad_model_allosomes)
 
-        # Detect optimal sex-bias parameters at boundaries (explicitely optimized)
-        unfixed_sex_bias_params_at_boundaries = {_param_name: _param_value for _param_name, _param_value in zip(all_param_names, all_param_values)
-                                if _param_name in sex_bias_param_names and 
-                                _param_name not in model.parameter_handler.params_fixed_by_ancestry and
-                                _param_name not in model.parameter_handler.user_params_fixed_by_value.keys() and
-                                (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
-        # Detect derived remainder sex-bias parameters at boundaries
-        remainder_sex_bias_at_boundaries = {_param_name: _param_value for _param_name, _param_value in remainder_params.items()
-                                if _param_name.endswith("_sex_bias") and
-                                (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
+        # ------ Detect optimal parameters at boundaries ------
+        check_optimal_parameters_at_boundaries(demographic_model=demographic_model,
+                                               driver_spec=driver_spec,
+                                               sex_bias_param_names=sex_bias_param_names,
+                                               remainder_params=remainder_params,
+                                               optimal_params=optimal_params)
 
-        _all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
-        if _all_at_boundary:
-            _boundary_msg = (
-                f"Warning: the optimal solution has sex-bias parameter(s) "
-                f"{', '.join(_all_at_boundary)} at their \u00b11 boundary. "
-                "Re-running the optimization fixing these parameters at their boundary values may yield a better solution."
-            )
-            print(_boundary_msg)
-            logger.warning(_boundary_msg)
+        # ------ Check for founding migration rates > 1 in the final parameters ------
+        check_final_parameters(demographic_model=demographic_model,
+                               optimal_params=optimal_params)
 
-        # Check for "founding migration rates > 1" in the final parameters.
-        # get_violation_score calls get_migration_matrices internally, which logs the warning.
-        # we capture it here so it can be shown as a user-visible printed message.
-        class _WarnCapture(logging.Handler):
-            def __init__(self):
-                super().__init__()
-                self.records: list[str] = []
-            def emit(self, record):
-                if record.levelno >= logging.WARNING:
-                    self.records.append(record.getMessage())
-
-        _dem_logger_check = logging.getLogger("tracts.demography.base_parametrized_demography")
-        _capture_handler = _WarnCapture()
-        _dem_logger_check.addHandler(_capture_handler)
-        try:
-            _ = model.get_violation_score(optimal_params, verbose=True)
-        except Exception as e:
-            logger.warning(f"Could not compute post-optimization diagnostics: {e}")
-        finally:
-            _dem_logger_check.removeHandler(_capture_handler)
-
-        if any("Founding migration rates add up to more than 1" in msg for msg in _capture_handler.records):
-            founding_rate_msg = (
-                "Warning: the final optimal parameters have founding migration rates that add up "
-                "to more than 1. This means that no valid combination of migration rates exists "
-                "for these parameter values, and the model result may be unreliable."
-            )
-            print(founding_rate_msg)
-            logger.warning(founding_rate_msg)
-
-        # Print ancestry proportions predicted by the model
-        predicted_props = model.proportions_from_matrices(func(model.parameter_handler.convert_to_optimizer_params(optimal_params)))
-        predicted_autosome_props = {k: v for k, v in predicted_props.items() if "autosomal" in k.lower()}
-        predicted_allosome_props = {k: v for k, v in predicted_props.items() if "autosomal" not in k.lower()}
-
-        autosome_values = None
-        allosome_values = None
-
-        if predicted_autosome_props:
-            autosome_key = sorted(predicted_autosome_props.keys())[0]
-            autosome_values = np.asarray(predicted_autosome_props[autosome_key])
-            predicted_autosome_message = f"Predicted autosome proportions: {np.array2string(autosome_values, separator=' ')}"
-            print(predicted_autosome_message)
-            logger.info(predicted_autosome_message)
-
-        if predicted_allosome_props:
-            allosome_key = sorted(predicted_allosome_props.keys())[0]
-            allosome_values = np.asarray(predicted_allosome_props[allosome_key])
-            predicted_allosome_message = f"Predicted allosome proportions: {np.array2string(allosome_values, separator=' ')}"
-            print(predicted_allosome_message)
-            logger.info(predicted_allosome_message)
+        # ------ Compute and print ancestry proportions predicted by the model ------
+        autosomal_predicted_ancestries, allosomal_predicted_ancestries = get_predicted_ancestry_proportions(demographic_model=demographic_model,
+                                                                                                            model_func=func,
+                                                                                                            optimal_params=optimal_params)
 
         # ------ Save ancestry proportions table -------
-        _save_ancestry_proportions_table(
-            ancestor_labels=ancestor_labels,
-            observed_autosome_proportions=ancestry_proportions,
-            predicted_autosome_proportions=autosome_values,
-            output_dir=output_dir,
-            output_filename_format=driver_spec.output.output_filename_format,
-            observed_allosome_proportions=allosome_proportions if len(allosome_labels) >= 1 else None,
-            predicted_allosome_proportions=allosome_values,
-            allosome_label=allosome_label,
-        )
-        logger.info(f"Ancestry proportions table saved to {output_dir / driver_spec.output.output_filename_format.format(label='ancestry_proportions.txt')}")
-
+        _save_ancestry_proportions_table(ancestor_labels=demographic_model.population_indices.keys(),
+                                        observed_autosome_proportions=autosome_proportions,
+                                        predicted_autosome_proportions=autosomal_predicted_ancestries,
+                                        output_dir=output_dir,
+                                        output_filename_format=driver_spec.output.output_filename_format,
+                                        observed_allosome_proportions=allosome_proportions if len(driver_spec.samples.allosomes) >= 1 else None,
+                                        predicted_allosome_proportions=allosomal_predicted_ancestries,
+                                        allosome_label=allosome_label)
+        
         # ------ Produce output -------
         output_simulation_data_sex_biased(sample_population=pop,
                                         optimal_params=optimal_params,
-                                        model=model,
+                                        demographic_model=demographic_model,
                                         driver_spec=driver_spec,
                                         output_dir=output_dir,
                                         ad_model_autosomes=ad_model_autosomes,
@@ -716,7 +475,7 @@ def run_model_multi_init(model_func: Callable, bound_func: Callable, population:
     if print_start_params_table:
         _print_run_intro(
             parameter_handler=parameter_handler,
-            model=parameter_handler.demography if hasattr(parameter_handler, "demography") else None,
+            demographic_model=parameter_handler.demography if hasattr(parameter_handler, "demography") else None,
             start_params_list=start_params_list,
             bound_func=bound_func,
             title_message=start_params_title,

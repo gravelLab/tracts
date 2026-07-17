@@ -1,5 +1,5 @@
 from tracts.driver_utils import locate_file_path, load_driver_file
-from tracts.driver_utils import load_population, load_model_from_driver
+from tracts.driver_utils import load_population, load_demographic_model_from_driver
 import numpy as np
 from pathlib import Path
 current_dir = Path(__file__).resolve().parent
@@ -27,7 +27,7 @@ def test_ancestry_proportions(driver_filename = "./drivers/driver_test.yaml", sc
     pop.unknown_labels = driver_spec.optim.unknown_labels_for_smoothing
     
     pop.smooth_unknowns(allosome_labels = allosome_labels)
-    model = load_model_from_driver(driver_spec=driver_spec, script_dir=script_path, 
+    model, _, _, _ = load_demographic_model_from_driver(driver_spec=driver_spec, script_dir=script_path,
     driver_path=driver_path, allosome_label=allosome_label)
     ancestor_labels = model.population_indices.keys()
     ancestry_proportions = pop.calculate_ancestry_proportions(ancestor_labels)

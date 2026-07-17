@@ -147,6 +147,23 @@ def _make_mock_model():
     return model
 
 
+def _load_demographic_model_from_driver_result(model):
+    """
+    Mirrors the derived-name computation performed by ``load_demographic_model_from_driver``,
+    so that mocked ``model`` instances can stand in for its 4-tuple return value.
+    """
+    model_param_names = list(model.model_base_params.keys())
+    sex_bias_param_names = [
+        name for name, info in model.model_base_params.items()
+        if info.type == ParamType.SEX_BIAS
+    ]
+    non_sex_bias_param_names = [
+        name for name in model_param_names
+        if name not in sex_bias_param_names
+    ]
+    return model, model_param_names, sex_bias_param_names, non_sex_bias_param_names
+
+
 def _make_mock_population():
     """
     Return a minimal population SimpleNamespace with stub data sufficient for driver book-keeping.
@@ -268,15 +285,16 @@ def _install_driver_run_mocks(monkeypatch, tmp_path: Path, two_steps_optimizatio
     monkeypatch.setattr(driver_module, "locate_file_path", lambda filename, script_dir: Path("/tmp/test_driver.yaml"))
     monkeypatch.setattr(driver_module, "load_driver_file", lambda driver_path: driver_spec)
     monkeypatch.setattr(driver_module, "load_population", lambda **kwargs: population)
-    monkeypatch.setattr(driver_module, "load_model_from_driver", lambda **kwargs: model)
+    monkeypatch.setattr(driver_module, "load_demographic_model_from_driver", lambda **kwargs: _load_demographic_model_from_driver_result(model))
     monkeypatch.setattr(driver_module, "parse_start_params", fake_parse_start_params)
     monkeypatch.setattr(driver_module, "collapse_identical_start_params", fake_collapse_identical_start_params)
     monkeypatch.setattr(driver_module, "get_time_scaled_model_func", lambda model: (lambda params: params))
     monkeypatch.setattr(driver_module, "get_time_scaled_model_bounds", lambda model: (lambda params: 1.0))
     monkeypatch.setattr(driver_module, "run_model_multi_init", fake_run_model_multi_init)
     monkeypatch.setattr(driver_module, "output_simulation_data_sex_biased", lambda **kwargs: None)
-    monkeypatch.setattr(driver_module, "setup_logger", lambda: (driver_module.logger, SimpleNamespace()))
-    monkeypatch.setattr(driver_module, "set_log_file", lambda **kwargs: None)
+    mock_output_dir = tmp_path / "test_output"
+    mock_output_dir.mkdir(exist_ok=True)
+    monkeypatch.setattr(driver_module, "initialize_tracts", lambda **kwargs: (driver_module.logger, mock_output_dir / "test.log", mock_output_dir))
     monkeypatch.setattr(driver_module, "close_log_file", lambda **kwargs: None)
     monkeypatch.setattr(driver_module, "_print_run_intro", recording_print_run_intro)
 
@@ -651,7 +669,7 @@ def test_parse_start_params_preserves_fixed_values_for_ancestry_fixed_params():
         start_param_bounds=SimpleNamespace(sb="0.0:0.5"),
         repetitions=3,
         seed=42,
-        model=mock_model,
+        demographic_model=mock_model,
         sample_param_names={"sb"},
         fixed_param_values={
             "t": 0.5,
@@ -734,15 +752,16 @@ def test_two_steps_ancestry_fixed_params_included_in_step2_fixed_values(tmp_path
     monkeypatch.setattr(driver_module, "locate_file_path",    lambda filename, script_dir: Path("/tmp/test_driver.yaml"))
     monkeypatch.setattr(driver_module, "load_driver_file",    lambda driver_path: driver_spec)
     monkeypatch.setattr(driver_module, "load_population",     lambda **kwargs: population)
-    monkeypatch.setattr(driver_module, "load_model_from_driver", lambda **kwargs: model)
+    monkeypatch.setattr(driver_module, "load_demographic_model_from_driver", lambda **kwargs: _load_demographic_model_from_driver_result(model))
     monkeypatch.setattr(driver_module, "parse_start_params",  fake_parse_start_params)
     monkeypatch.setattr(driver_module, "collapse_identical_start_params", lambda sp, label: sp)
     monkeypatch.setattr(driver_module, "get_time_scaled_model_func",   lambda m: (lambda params: params))
     monkeypatch.setattr(driver_module, "get_time_scaled_model_bounds", lambda m: (lambda params: 1.0))
     monkeypatch.setattr(driver_module, "run_model_multi_init", fake_run_model_multi_init)
     monkeypatch.setattr(driver_module, "output_simulation_data_sex_biased", lambda **kwargs: None)
-    monkeypatch.setattr(driver_module, "setup_logger",   lambda: (driver_module.logger, SimpleNamespace()))
-    monkeypatch.setattr(driver_module, "set_log_file",   lambda **kwargs: None)
+    mock_output_dir = tmp_path / "test_output"
+    mock_output_dir.mkdir(exist_ok=True)
+    monkeypatch.setattr(driver_module, "initialize_tracts", lambda **kwargs: (driver_module.logger, mock_output_dir / "test.log", mock_output_dir))
     monkeypatch.setattr(driver_module, "close_log_file", lambda **kwargs: None)
     monkeypatch.setattr(driver_module, "_print_run_intro", lambda *args, **kwargs: None)
 
