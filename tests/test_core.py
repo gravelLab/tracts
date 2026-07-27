@@ -2,13 +2,21 @@
 Tests for sex-biased optimizers in tracts/core.py.
 
 The tests use lightweight mocks so that no real tract data or costly model
-evaluations are needed.  The Population mock returns pre-computed constant
+evaluations are needed. The Population mock returns pre-computed constant
 histogram arrays; fmin_cobyla is patched to return x0 unchanged so we can
 inspect what the optimizers would have been called with without running real
 phase-type computations. Tests that only need to exercise the validation
 logic (raises before fmin_cobyla is called) do not need the patch.
+
+GeneticModel.model_func / outofbounds_fun / loglik are stubbed at the class
+level (see ``_stub_genetic_model_methods``) rather than on individual
+instances: optimize_cob_sex_biased_* always operate on ``genetic_model.copy()``,
+which reconstructs a fresh GeneticModel via ``GeneticModel(...)`` rather than
+copying arbitrary instance attributes, so an instance-level stub would be
+silently lost after the internal copy.
 """
 
+import contextlib
 import logging
 import numpy as np
 import pytest
@@ -16,6 +24,8 @@ from unittest.mock import MagicMock, patch
 
 import tracts.core as core_module
 from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
+from tracts.genetic_model import GeneticModel, LoglikBreakdown
+from tracts.likelihood_options import LikelihoodOptions
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.demography.parameter import ParamType
@@ -30,6 +40,12 @@ N_POPS   = 2  # populations A, B
 P0      = np.array([5.0, 0.3, 0.05, 0.05])   # [t, rate_eur, sb_eur, sb_afr]
 P_DICT  = {"A": 0, "B": 1}
 
+# Keys that belong to GeneticModel's PhaseTypeModelConfig / LikelihoodOptions,
+# used by _call / _call_single to route **overrides to the right place.
+_GENETIC_MODEL_KEYS = {"ad_model_autosomes", "ad_model_allosomes", "rho_f", "rho_m", "TP", "N_cores"}
+_LIKELIHOOD_OPTIONS_KEYS = {"verbose_log", "verbose_screen"}
+
+
 def _make_demography():
     """
     Return a minimal ParametrizedDemographySexBiased with two sex-bias params.
@@ -43,13 +59,26 @@ def _make_demography():
 
 def _make_handler(dem=None):
     """
-    Return a FixedParametersHandler wired to *dem* with no parameters fixed.    
+    Return a FixedParametersHandler wired to *dem* with no parameters fixed.
     """
     if dem is None:
         dem = _make_demography()
     ph = FixedParametersHandler(logging.getLogger("test"))
     ph.set_up_fixed_parameters(dem, params_to_fix_by_ancestry=[], proportions={})
     return ph
+
+
+def _make_genetic_model(**phase_type_overrides):
+    """
+    Return a GeneticModel wrapping a fresh demography + handler (see
+    _make_demography / _make_handler), with default phase_type_config
+    ad_model_autosomes='DC', ad_model_allosomes='DC' unless overridden.
+    """
+    dem = _make_demography()
+    dem.parameter_handler = _make_handler(dem)
+    config = dict(ad_model_autosomes="DC", ad_model_allosomes="DC")
+    config.update(phase_type_overrides)
+    return GeneticModel(dem, **config)
 
 
 def _make_population():
@@ -76,23 +105,6 @@ def _make_population():
     pop.allosome_lengths = {"X": 1.0}
     return pop
 
-def _make_model_func():
-    """
-    Dummy model_func – never actually called (fmin_cobyla is always patched).
-    """
-    mat = np.array([[0.5, 0.5]])
-
-    def model_func(params):
-        return {"female": mat, "male": mat}
-
-    return model_func
-
-
-def _always_valid(params):
-    """
-    outofbounds_fun that always returns +1 (never out of bounds).
-    """
-    return 1.0
 
 def _fake_fmin(func, x0, cons, **kwargs):
     """
@@ -101,24 +113,37 @@ def _fake_fmin(func, x0, cons, **kwargs):
     return x0
 
 
-# Common kwargs shared by most calls; tests override what they need.
-COMMON_KWARGS = dict(
-    p0                    = P0,
-    population            = None,   # replaced per test
-    model_func            = _make_model_func(),
-    parameter_handler     = None,   # replaced per test
-    outofbounds_fun       = _always_valid,
-    verbose_log           = 0,
-    verbose_screen        = 0,
-    p_dict                = P_DICT,
-    exclude_tracts_below_cM = 0,
-    maxiter               = 2,
-    reset_counter         = True,
-    ad_model_autosomes    = "DC",
-    ad_model_allosomes    = "DC",
-    autosomes_in_step_2   = True,
-    npts                  = N_BINS,
-)
+@contextlib.contextmanager
+def _stub_genetic_model_methods():
+    """
+    Patches GeneticModel.model_func / outofbounds_fun / loglik at the class
+    level so that the (only) real objective evaluation performed by the
+    optimizers (the "fallback" call made when fmin_cobyla is stubbed and
+    never updates best_state) never triggers real migration-matrix or
+    phase-type computations. The fixed LoglikBreakdown values are the same
+    regardless of which components were requested; tests in this file only
+    check types/shapes/control-flow, never exact likelihood values.
+    """
+    dummy_matrix = np.array([[0.5, 0.5]])
+    fake_loglik_result = LoglikBreakdown(autosomes=-1.0, female_allosomes=-1.0, male_allosomes=-1.0)
+    with patch.object(GeneticModel, "model_func", return_value={"female": dummy_matrix, "male": dummy_matrix}), \
+         patch.object(GeneticModel, "outofbounds_fun", return_value=1.0), \
+         patch.object(GeneticModel, "loglik", return_value=fake_loglik_result):
+        yield
+
+
+def _split_overrides(overrides):
+    """
+    Splits **overrides into (genetic_model_overrides, likelihood_options_overrides, remaining),
+    based on which of GeneticModel's phase_type_config / LikelihoodOptions each key belongs to.
+    """
+    genetic_model_overrides = {k: v for k, v in overrides.items() if k in _GENETIC_MODEL_KEYS}
+    likelihood_options_overrides = {k: v for k, v in overrides.items() if k in _LIKELIHOOD_OPTIONS_KEYS}
+    remaining = {
+        k: v for k, v in overrides.items()
+        if k not in _GENETIC_MODEL_KEYS and k not in _LIKELIHOOD_OPTIONS_KEYS
+    }
+    return genetic_model_overrides, likelihood_options_overrides, remaining
 
 
 def _call(steps=None, patch_fmin=True, **overrides):
@@ -127,19 +152,35 @@ def _call(steps=None, patch_fmin=True, **overrides):
 
     When *patch_fmin* is True (default) scipy.optimize.fmin_cobyla is replaced
     with a stub that returns x0 unchanged, avoiding any real phase-type call.
-    Set patch_fmin=False only for tests that raise before fmin_cobyla is reached.
+    Set patch_fmin=False only for tests that raise before fmin_cobyla is reached,
+    or that install their own fmin_cobyla mock.
     """
-    kwargs = dict(COMMON_KWARGS)
-    kwargs["population"]         = _make_population()
-    kwargs["parameter_handler"]  = _make_handler()
-    kwargs["steps"]              = steps
-    kwargs.update(overrides)
+    genetic_model_overrides, likelihood_overrides, remaining = _split_overrides(overrides)
 
-    if patch_fmin:
-        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+    genetic_model = _make_genetic_model(**genetic_model_overrides)
+    likelihood_options = LikelihoodOptions(verbose_log=0, verbose_screen=0, **likelihood_overrides)
+
+    kwargs = dict(
+        p0=P0,
+        population=_make_population(),
+        genetic_model=genetic_model,
+        likelihood_options=likelihood_options,
+        p_dict=P_DICT,
+        exclude_tracts_below_cM=0,
+        maxiter=2,
+        reset_counter=True,
+        autosomes_in_step_2=True,
+        npts=N_BINS,
+        steps=steps,
+    )
+    kwargs.update(remaining)
+
+    with _stub_genetic_model_methods():
+        if patch_fmin:
+            with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+                return optimize_cob_sex_biased_two_steps(**kwargs)
+        else:
             return optimize_cob_sex_biased_two_steps(**kwargs)
-    else:
-        return optimize_cob_sex_biased_two_steps(**kwargs)
 
 
 def _call_single(patch_fmin=True, **overrides):
@@ -149,17 +190,29 @@ def _call_single(patch_fmin=True, **overrides):
     When *patch_fmin* is True (default) scipy.optimize.fmin_cobyla is replaced
     with a stub that returns x0 unchanged.
     """
-    kwargs = dict(COMMON_KWARGS)
-    kwargs["population"] = _make_population()
-    kwargs["parameter_handler"] = _make_handler()
-    kwargs.pop("steps", None)
-    kwargs.pop("autosomes_in_step_2", None)
-    kwargs.update(overrides)
+    genetic_model_overrides, likelihood_overrides, remaining = _split_overrides(overrides)
 
-    if patch_fmin:
-        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
-            return optimize_cob_sex_biased_single_step(**kwargs)
-    return optimize_cob_sex_biased_single_step(**kwargs)
+    genetic_model = _make_genetic_model(**genetic_model_overrides)
+    likelihood_options = LikelihoodOptions(verbose_log=0, verbose_screen=0, **likelihood_overrides)
+
+    kwargs = dict(
+        p0=P0,
+        population=_make_population(),
+        genetic_model=genetic_model,
+        likelihood_options=likelihood_options,
+        p_dict=P_DICT,
+        exclude_tracts_below_cM=0,
+        maxiter=2,
+        reset_counter=True,
+        npts=N_BINS,
+    )
+    kwargs.update(remaining)
+
+    with _stub_genetic_model_methods():
+        if patch_fmin:
+            with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+                return optimize_cob_sex_biased_single_step(**kwargs)
+        return optimize_cob_sex_biased_single_step(**kwargs)
 
 
 # --------------- Steps argument validation ---------------
@@ -167,7 +220,7 @@ def _call_single(patch_fmin=True, **overrides):
 class TestStepsValidation:
     """
     This class contains tests for the validation logic of the *steps* argument to optimize_cob_sex_biased_two_steps.
-    The tests verify that valid specifications are accepted and invalid ones raise the appropriate exceptions with informative messages. 
+    The tests verify that valid specifications are accepted and invalid ones raise the appropriate exceptions with informative messages.
     It also checks that the default behavior (steps=None) runs without error and returns a valid output type, as this is a common usage pattern.
     """
 
@@ -248,13 +301,13 @@ class TestStepsValidation:
 class TestAllosomeModelConstraint:
     """
     This class contains tests for the requirement that step 2 of optimize_cob_sex_biased_two_steps must have an allosomal model specified.
-    The tests verify that attempting to run step 2 without an allosomal model raises a ValueError with an informative message, 
+    The tests verify that attempting to run step 2 without an allosomal model raises a ValueError with an informative message,
     and that step 1 only does not require an allosomal model.
     """
 
     def test_step2_without_allosome_model_raises(self):
         """
-        Checks that step 2 without an allosomal model raises ValueError, as step 2 relies on allosomal data to estimate sex bias. 
+        Checks that step 2 without an allosomal model raises ValueError, as step 2 relies on allosomal data to estimate sex bias.
         The error message should mention "ad_model_allosomes" to guide the user to the missing argument.
         """
         with pytest.raises(ValueError, match="ad_model_allosomes"):
@@ -339,7 +392,7 @@ class TestParameterFixingSemantics:
         return captured
 
     def test_step1_only_optimises_non_sex_bias(self):
-        """ 
+        """
         Checks that step 1 only optimizes non-sex-bias parameters.
         """
         captured = self._run_and_capture_free_labels(steps=[1])
@@ -439,7 +492,7 @@ class TestAutosomesInStep2:
         """
         Tests that autosomes_in_step_2=True runs without error and returns a parameter array,
         indicating that the step-2 objective was able to include autosomal data as intended.
-        """    
+        """
         params, lik = self._run_and_capture_include_autosomes([2], autosomes_in_step_2=True)
         assert isinstance(params, np.ndarray)
 
@@ -682,6 +735,11 @@ class TestAncestryOverridesInStep2:
         rate_eur = |sb_eur| * 100 (simulating drift), then checks that the full
         parameter vector seen by outofbounds_fun — after the _ancestry_overrides
         override — always has rate_eur == P0[1] (== 0.3), never the drifted value.
+
+        GeneticModel.outofbounds_fun is patched (class-level, so it survives the
+        internal genetic_model.copy()) to delegate to capturing_oob, which always
+        reports out-of-bounds so the objective short-circuits before ever reaching
+        model_func/loglik — those do not need stubbing for this test.
         """
         captured = []
         state = {"in_fmin": False}
@@ -712,6 +770,9 @@ class TestAncestryOverridesInStep2:
             return x0
 
         ph = self._make_handler_with_ancestry_fixed()
+        dem = ph.demography
+        dem.parameter_handler = ph
+        genetic_model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes="DC")
 
         with patch.object(
             FixedParametersHandler,
@@ -719,26 +780,23 @@ class TestAncestryOverridesInStep2:
             drifting_ancestry,
         ):
             with patch.object(
-                core_module.scipy.optimize, "fmin_cobyla", side_effect=fmin_mock
+                GeneticModel, "outofbounds_fun", lambda self, params, verbose=False: capturing_oob(params)
             ):
-                optimize_cob_sex_biased_two_steps(
-                    p0=P0,
-                    population=_make_population(),
-                    model_func=_make_model_func(),
-                    parameter_handler=ph,
-                    outofbounds_fun=capturing_oob,
-                    verbose_log=0,
-                    verbose_screen=0,
-                    p_dict=P_DICT,
-                    exclude_tracts_below_cM=0,
-                    maxiter=2,
-                    reset_counter=True,
-                    ad_model_autosomes="DC",
-                    ad_model_allosomes="DC",
-                    autosomes_in_step_2=True,
-                    npts=N_BINS,
-                    steps=[2],
-                )
+                with patch.object(
+                    core_module.scipy.optimize, "fmin_cobyla", side_effect=fmin_mock
+                ):
+                    optimize_cob_sex_biased_two_steps(
+                        p0=P0,
+                        population=_make_population(),
+                        genetic_model=genetic_model,
+                        likelihood_options=LikelihoodOptions(verbose_log=0, verbose_screen=0),
+                        p_dict=P_DICT,
+                        exclude_tracts_below_cM=0,
+                        maxiter=2,
+                        reset_counter=True,
+                        npts=N_BINS,
+                        steps=[2],
+                    )
 
         assert len(captured) > 0, (
             "outofbounds_fun was never called during the fmin phase; "

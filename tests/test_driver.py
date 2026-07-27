@@ -4,11 +4,13 @@ import shutil
 from collections import OrderedDict
 from types import SimpleNamespace
 from pathlib import Path
+from unittest.mock import MagicMock
 import numpy as np
 
 import tracts.driver as driver_module
 from tracts.driver import run_tracts
 from tracts.demography.parameter import ParamType
+from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.driver_utils import _print_run_intro as real_print_run_intro
 
 # ------------ Helper functions for test setup and checks ----------
@@ -110,7 +112,8 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
 
 def _make_mock_model():
     """
-    Return a minimal model SimpleNamespace with four parameters:
+    Return a minimal mock model (spec'd to ParametrizedDemographySexBiased so it
+    satisfies GeneticModel's isinstance check) with four parameters:
       - t        (TIME,     index 0)
       - rate_eur (RATE,     index 1)
       - sb_eur   (SEX_BIAS, index 2)
@@ -119,7 +122,7 @@ def _make_mock_model():
     Indices 0–1 are non-sex-bias (replaced by Step 1 best in two-step runs).
     Indices 2–3 are sex-bias (kept run-specific in Step 2).
     """
-    model = SimpleNamespace()
+    model = MagicMock(spec=ParametrizedDemographySexBiased)
     model.model_base_params = OrderedDict([
         ("t", SimpleNamespace(index=0, type=ParamType.TIME)),
         ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE)),
@@ -128,6 +131,7 @@ def _make_mock_model():
     ])
     model.population_indices = OrderedDict([("A", 0), ("B", 1)])
     model.parametrized_populations = ["pop"]
+    model.founder_events = {}
     model.parameter_handler = SimpleNamespace(
         to_physical_params_functions={},
         to_optimizer_params_functions={},
@@ -599,7 +603,7 @@ def _make_mock_model_with_ancestry_fixed():
       - sb_eur   (SEX_BIAS, index 3)
       - sb_afr   (SEX_BIAS, index 4)
     """
-    model = SimpleNamespace()
+    model = MagicMock(spec=ParametrizedDemographySexBiased)
     model.model_base_params = OrderedDict([
         ("t",        SimpleNamespace(index=0, type=ParamType.TIME)),
         ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE)),
@@ -610,6 +614,7 @@ def _make_mock_model_with_ancestry_fixed():
     model.params_fixed_by_ancestry = {"rate_afr"}
     model.population_indices = OrderedDict([("A", 0), ("B", 1)])
     model.parametrized_populations = ["pop"]
+    model.founder_events = {}
     model.parameter_handler = SimpleNamespace(
         to_physical_params_functions={},
         to_optimizer_params_functions={},

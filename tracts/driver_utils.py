@@ -2260,6 +2260,58 @@ def _get_display_param_indices(parameter_handler: FixedParametersHandler,
     ]
 
 
+def _print_and_log(*messages: str) -> None:
+    """
+    Prints and logs each message, unconditionally.
+    """
+    for message in messages:
+        print(message)
+        logger.info(message)
+
+
+def _build_step2_skip_message(sex_bias_param_names: list[str], parameter_handler: FixedParametersHandler) -> str:
+    """
+    Builds the message announcing that step 2 has no free sex-bias parameters to
+    optimize, listing which fixing mechanism (ancestry proportions vs. user-provided
+    values) accounts for each fixed sex-bias parameter.
+    """
+    fixed_by_ancestry = [n for n in sex_bias_param_names if n in set(parameter_handler.params_fixed_by_ancestry)]
+    fixed_by_value = [n for n in sex_bias_param_names if n in set(parameter_handler.user_params_fixed_by_value.keys())]
+    fix_parts = []
+    if fixed_by_ancestry:
+        fix_parts.append(f"{', '.join(fixed_by_ancestry)} by ancestry proportions")
+    if fixed_by_value:
+        fix_parts.append(f"{', '.join(fixed_by_value)} by user-provided values")
+    return (
+        "All sex-bias parameters are fixed"
+        + (f" ({'; '.join(fix_parts)})" if fix_parts else "")
+        + ". Step 2 has no free parameters to optimize and will be skipped."
+    )
+
+
+def _select_full_data_likelihood(likelihoods_step_2: list[float], full_likelihoods_step_2: list,
+                                optimal_likelihood: float, use_autosomes_for_sex_bias: bool,
+                                announce: bool = False) -> float:
+    """
+    When step 2 used allosomal data only (``use_autosomes_for_sex_bias`` is False), selects
+    the full-data (autosomal + allosomal) likelihood computed at the best run's parameters, if
+    one was computed, and returns it in place of ``optimal_likelihood``. Otherwise returns
+    ``optimal_likelihood`` unchanged. If ``announce``, reports the substitution.
+    """
+    if use_autosomes_for_sex_bias:
+        return optimal_likelihood
+    best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
+    full_data_likelihood = full_likelihoods_step_2[best_run_index]
+    if full_data_likelihood is None:
+        return optimal_likelihood
+    if announce:
+        _print_and_log(
+            "Step 2 used allosomal data only. Final likelihood is evaluated on "
+            "autosomal + allosomal data at the selected optimal parameters."
+        )
+    return float(full_data_likelihood)
+
+
 def _print_run_intro(parameter_handler: FixedParametersHandler,
                      demographic_model,
                      start_params_list: list[np.ndarray],
