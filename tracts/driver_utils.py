@@ -26,8 +26,6 @@ from typing import List
 from pydantic_core import PydanticUndefined
 import logging
 logger = logging.getLogger(__name__)
-from datetime import datetime
-
 
 # --------------- Locate driver file ---------------
 
@@ -89,6 +87,7 @@ def locate_file_path(filename: str,
             return candidate
 
     return None
+
 
 # --------------- Models ---------------
 
@@ -311,6 +310,184 @@ def load_driver_file(driver_path: str) -> InferenceConfig:
     return InferenceConfig.model_validate(driver_spec)
 
 
+def get_admixture_models(driver_spec: InferenceConfig):
+    """
+    Validates the admixture models specified in the driver file and returns the models for autosomes and allosomes.
+
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file.
+
+    Returns
+    -------
+    tuple[str, str | None, str | None]
+        A tuple containing the admixture model for autosomes, the admixture model for allosomes (or None if no allosomes are specified), and the allosome label (or None if no allosomes are specified).
+    """
+
+    # Autosomal admixture model is correctly specified
+    ad_model_autosomes = driver_spec.models.ad_model_autosomes
+    if not driver_spec.models.ad_model_autosomes in ['DC','DF','M','H-DC','H-DF']:
+        print('The model for autosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), M (for Monoecious), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_autosomes = DC by default.')
+        ad_model_autosomes = 'DC'
+        
+    # Check whether allosomes are present in the sample
+    allosome_labels = driver_spec.samples.allosomes
+    allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
+
+    # Allosomal admixture model is correctly specified
+    if hasattr(driver_spec.models, "ad_model_allosomes") and allosome_label is not None:
+        ad_model_allosomes = driver_spec.models.ad_model_allosomes
+        if not ad_model_allosomes in ['DC','DF','H-DC','H-DF']:
+            print('The model for allosomal admixture must be either DC (for Dioecious-Coarse), DF (for Dioecious-Fine), H-DC or H-DF (for the hybrid pedigree refinements of DC and DF, resp.). Setting ad_model_allosomes = DC by default.')
+            ad_model_allosomes = 'DC'
+    elif allosome_label is not None:
+        print('Model for allosomal admixture not specified. Setting DC by default.')
+        ad_model_allosomes = 'DC'
+    else:
+        print('No allosomes specified in the driver file. Modelling only autosomal admixture.')
+        ad_model_allosomes = None # This will trigger the code to not model allosomal admixture.
+    
+    if ad_model_allosomes is not None:
+            admixture_model_message = (
+                f"Admixture is modelled with the {ad_model_autosomes} model for autosomes "
+                f"and with the {ad_model_allosomes} model for allosomes."
+            )
+    else:
+        admixture_model_message = f"Admixture is modelled with the {ad_model_autosomes} model for autosomes."
+        print(admixture_model_message)
+        logger.info(admixture_model_message)
+
+    return ad_model_autosomes, ad_model_allosomes, allosome_label
+
+
+def get_ancestry_proportions(driver_spec: InferenceConfig, population: Population, ancestor_labels: list[str], allosome_label: str):
+    """
+    Computes and reports the observed ancestry proportions for a population, based on autosomal data and,
+    if allosomes are specified in the driver file, allosomal data as well.
+
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file. Used to check whether allosomes are specified in the sample configuration.
+    population: Population
+        The population for which to calculate ancestry proportions.
+    ancestor_labels: list[str]
+        A list of ancestry labels for which to calculate the ancestry proportions.
+    allosome_label: str
+        The label for the allosome to use when calculating allosome ancestry proportions. Only used if allosomes are specified in the driver file.
+
+    Returns
+    -------
+    tuple[list[float], list[float]]
+        A tuple ``(autosome_proportions, allosome_proportions)``, where ``autosome_proportions`` are the ancestry proportions calculated from autosomal data,
+        averaged across all individuals in the population, and ``allosome_proportions`` are the corresponding proportions calculated from allosomal data.
+        If ``driver_spec.samples.allosomes`` is empty, ``allosome_proportions`` is an empty list.
+    """
+    autosome_proportions = population.calculate_ancestry_proportions(ancestor_labels)
+        
+    print(f"Ancestries: {', '.join(ancestor_labels)}")
+    autosomal_ancestry_message = f"Data autosome proportions: {np.array2string(autosome_proportions, separator=' ')}"
+    print(autosomal_ancestry_message)
+    logger.info(autosomal_ancestry_message)
+
+    if len(driver_spec.samples.allosomes)>=1:
+        allosome_proportions = population.calculate_allosome_proportions(population_labels=ancestor_labels,
+                                                                        allosome_label=allosome_label)
+        allosomal_ancestry_message = f"Data allosome proportions: {np.array2string(allosome_proportions, separator=' ')}"
+        print(allosomal_ancestry_message)
+        logger.info(allosomal_ancestry_message)
+    else:
+        allosome_proportions = []
+
+    return autosome_proportions, allosome_proportions
+
+
+def check_population_labels(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, population: Population, data: dict[str, np.ndarray]):
+    """
+    Validates that the population labels in the data correspond to the model population labels. 
+    Raises a ValueError if any label in the data is not found in the model or in the list of unknown labels to be smoothed over.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to validate the population labels.
+    population: Population
+        The population for which to validate the population labels.
+    data: dict[str, np.ndarray]
+        A dictionary containing the data for which to validate the population labels. The keys of the dictionary are the population labels.
+    """
+
+    ancestor_labels = demographic_model.population_indices.keys()
+    data_labels =  data.keys()
+           
+    for label in data_labels:
+        if label not in ancestor_labels and label not in population.unknown_labels:
+            raise ValueError(f"Population label '{label}' found in data but not in model or labels to be smoothed over. data labels: {data_labels}, model labels: {ancestor_labels}, " \
+            f"unknown labels: {population.unknown_labels}")
+
+
+def setup_fixed_parameters(driver_spec: InferenceConfig, demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, 
+                           allosome_label: str, autosome_proportions: list[float], allosome_proportions: list[float]):
+
+    """
+    Sets up fixed parameters in the demographic model based on the specifications in the driver file.
+
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file.
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to set up fixed parameters.
+    allosome_label: str
+        The label for the allosome to use when setting up fixed parameters. Only used if allosomes are specified in the driver file.
+    autosome_proportions: list[float]
+        The ancestry proportions calculated from autosomal data, averaged across all individuals in the population.
+    allosome_proportions: list[float]
+        The ancestry proportions calculated from allosomal data, averaged across all individuals in the population. Only used if allosomes are specified in the driver file.
+    
+    """
+    if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0 or len(driver_spec.optim.fix_parameters_by_value) > 0: # Set up fixed parameters if specified in the driver
+            
+        # Check for non-overlapping fixed parameters
+        overlapping_params = [_param for _param in driver_spec.optim.fix_parameters_from_ancestry_proportions if _param in driver_spec.optim.fix_parameters_by_value.keys()]
+        if len(overlapping_params) > 0:
+            raise ValueError(f"Parameters {', '.join(overlapping_params)} are specified to be fixed both from ancestry proportions and by value. Please choose only one fixing strategy per parameter.")
+
+        if allosome_label:
+            demographic_model.parameter_handler.set_up_fixed_parameters(demography=demographic_model,
+                                                                    params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
+                                                                    proportions={
+                                                                    f'{demographic_model.parametrized_populations[0]}_autosomal':autosome_proportions,
+                                                                    f'{demographic_model.parametrized_populations[0]}_{allosome_label}': allosome_proportions
+                                                                    },
+                                                                    user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value
+                                                                    )
+        else:
+            demographic_model.set_up_fixed_parameters(params_to_fix_by_ancestry=driver_spec.optim.fix_parameters_from_ancestry_proportions,
+                                                    proportions= {demographic_model.parametrized_populations[0]:autosome_proportions},
+                                                    user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value) 
+    else: # No parameters to fix 
+        demographic_model.set_up_fixed_parameters([],{})
+
+    print(f"Model parameters: {', '.join(demographic_model.model_base_params.keys())}") # Print model parameters
+
+    if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0:
+        ancestry_fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
+        anc_message = f"The following parameters have been fixed from ancestry proportions: {ancestry_fixed_params}"
+        logger.info(anc_message)
+        print(anc_message)
+    if len(driver_spec.optim.fix_parameters_by_value) > 0:
+        value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value.keys())
+        value_message = f"The following parameters have been fixed by value: {value_fixed_params}"
+        fixed_at_one = {_param_name: _param_value for _param_name, _param_value in driver_spec.optim.fix_parameters_by_value.items() if np.isclose(_param_value, 1.0, atol=1e-5) or np.isclose(_param_value, -1.0, atol=1e-5)}
+        logger.info(value_message)
+        print(value_message)
+        if len(fixed_at_one) > 0:
+            print("Warning: fixing rate or sex-bias parameters at boundary values may lead to suboptimal results. Consider fixing at 0.99 or -0.99 instead.")
+
+
+
 # --------------- Loader ---------------
 
 
@@ -460,7 +637,7 @@ def load_population(driver_path: str, driver_spec: InferenceConfig, script_dir: 
     return pop
 
 
-def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path | None, driver_path: str, allosome_label: str | None=None):
+def load_demographic_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path | None, driver_path: str, allosome_label: str | None=None):
     """
     Loads the demographic model based on the specifications in the driver file. The model is expected to be defined in a separate yaml file, 
     whose path is specified in the driver file under "models.model_filename". See online documentation for details on how to specify the model yaml file and its contents.
@@ -478,9 +655,14 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
 
     Returns
     -------
-    ParametrizedDemography | ParametrizedDemographySexBiased
-        The loaded demographic model, which can be either a ParametrizedDemography or a ParametrizedDemographySexBiased depending on whether allosomal admixture is modelled.
-    """ 
+    tuple[ParametrizedDemography | ParametrizedDemographySexBiased, list[str], list[str], list[str]]
+        A tuple ``(demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names)``, where:
+
+        * ``demographic_model`` is the loaded demographic model, which can be either a ``ParametrizedDemography`` or a ``ParametrizedDemographySexBiased`` depending on whether allosomal admixture is modelled.
+        * ``model_param_names`` is the list of all parameter names of ``demographic_model``, in the order given by ``demographic_model.model_base_params``.
+        * ``sex_bias_param_names`` is the subset of ``model_param_names`` corresponding to sex-bias parameters.
+        * ``non_sex_bias_param_names`` is the remaining subset of ``model_param_names``, excluding sex-bias parameters.
+    """
 
     model_path = locate_file_path(filename=driver_spec.models.model_filename,
                                   script_dir=script_dir,
@@ -488,15 +670,26 @@ def load_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path 
     if model_path is None:
         raise FileNotFoundError(f'Model yaml file {driver_spec.models.model_filename} could not be found. {filepath_error_additional_message}')
     if allosome_label:
-        model = ParametrizedDemographySexBiased.load_from_YAML(source=str(model_path.resolve()),
+        demographic_model = ParametrizedDemographySexBiased.load_from_YAML(source=str(model_path.resolve()),
                                                                implicit_population=driver_spec.models.implicit_population)
-        model.allosome_label=allosome_label
+        demographic_model.allosome_label=allosome_label
     else:    
-        model = ParametrizedDemography.load_from_YAML(source=str(model_path.resolve()),
+        demographic_model = ParametrizedDemography.load_from_YAML(source=str(model_path.resolve()),
                                                       implicit_population=driver_spec.models.implicit_population)
-    return model
 
-def parse_start_params(start_param_bounds, model: ParametrizedDemography, repetitions: int=1, seed: float | None = None,
+    model_param_names = list(demographic_model.model_base_params.keys())
+    sex_bias_param_names = [
+        name for name, info in demographic_model.model_base_params.items()
+        if info.type == ParamType.SEX_BIAS
+    ]
+    non_sex_bias_param_names = [
+        name for name in model_param_names
+        if name not in sex_bias_param_names
+    ]
+    
+    return demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names
+
+def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemography, repetitions: int=1, seed: float | None = None,
                        sample_param_names: set[str] | None = None, fixed_param_values: dict[str, float] | None = None):
     """
     Produces starting parameters for optimization in physical units. Only produces starting parameters that are compatible with well-defined migration matrices.
@@ -504,8 +697,8 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
     Parameters
     ----------
     start_param_bounds
-        An object containing attributes corresponding to each parameter in model.model_base_parameters, where the value of each attribute is either a single number (if the starting value for that parameter should be fixed) or a string of the form "min:max" specifying the range from which to sample starting values for that parameter. The parameters specified in start_param_bounds must match those in model.model_base_parameters, and an error will be raised if any parameters are missing or if any extra parameters are included.
-    model: ParametrizedDemography
+        An object containing attributes corresponding to each parameter in demographic_model.model_base_parameters, where the value of each attribute is either a single number (if the starting value for that parameter should be fixed) or a string of the form "min:max" specifying the range from which to sample starting values for that parameter. The parameters specified in start_param_bounds must match those in demographic_model.model_base_parameters, and an error will be raised if any parameters are missing or if any extra parameters are included.
+    demographic_model: ParametrizedDemography
         The demographic model for which to produce starting parameters. 
     repetitions: int
         The number of sets of starting parameters to produce. Defaults to 1.
@@ -521,7 +714,7 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
     
     Returns
     -------
-    list[np.ndarray]: A list of arrays of starting parameters in physical units, where each array corresponds to a set of starting parameters for one repetition of the optimization. The parameters are ordered according to their order in model.model_base_parameters.
+    list[np.ndarray]: A list of arrays of starting parameters in physical units, where each array corresponds to a set of starting parameters for one repetition of the optimization. The parameters are ordered according to their order in demographic_model.model_base_parameters.
     
     Notes
     -----
@@ -533,14 +726,14 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
     sampled from user input and are initialized from the configured ancestry-fixed
     behavior.
 
-    Feasibility is checked by evaluating ``model.get_violation_score(candidate)``.
+    Feasibility is checked by evaluating ``demographic_model.get_violation_score(candidate)``.
     Candidates are accepted only when the returned score is non-negative. Any
     ``ValueError`` raised during validation is treated as infeasible, and candidate
     generation continues until the requested number of feasible starts is collected
     or the attempt limit is reached.    
     """ 
     
-    num_params = len(model.model_base_params)
+    num_params = len(demographic_model.model_base_params)
     rng = np.random.default_rng(seed=seed)
     sampled_param_names = set(sample_param_names) if sample_param_names is not None else None
     fixed_param_values = {} if fixed_param_values is None else dict(fixed_param_values)
@@ -583,17 +776,17 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
     # ------- Parse and validate start-parameter specifications once to avoid repeated parsing while resampling -------
 
     parsed_specs = {}
-    for param_name, param_info in model.model_base_params.items():
+    for param_name, param_info in demographic_model.model_base_params.items():
         if param_name in fixed_param_values:
             parsed_specs[param_name] = ("fixed", float(fixed_param_values[param_name]))
             continue
 
-        if sampled_param_names is not None and param_name not in sampled_param_names and param_name not in model.params_fixed_by_ancestry:
+        if sampled_param_names is not None and param_name not in sampled_param_names and param_name not in demographic_model.params_fixed_by_ancestry:
             raise KeyError(
                 f"Parameter '{param_name}' must be provided in fixed_param_values when sampling only a subset of parameters."
             )
 
-        if param_name in model.params_fixed_by_ancestry: # Ancestry-fixed parameters do not need to be present in start_param_bounds and default to model lower bound.
+        if param_name in demographic_model.params_fixed_by_ancestry: # Ancestry-fixed parameters do not need to be present in start_param_bounds and default to model lower bound.
             if not has_start_param(param_name):
                 parsed_specs[param_name] = ("fixed", float(param_info.bounds[0]))
                 continue
@@ -633,7 +826,7 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
         "fixed": use the provided fixed value, "range": sample uniformly from the interval [min, max].
         """
         candidate = rng.random(num_params)  # Base random draws: independent Uniform(0,1) for each parameter.
-        for param_name, param_info in model.model_base_params.items():
+        for param_name, param_info in demographic_model.model_base_params.items():
             mode, spec = parsed_specs[param_name]
             if mode == "fixed":
                 candidate[param_info.index] = spec
@@ -654,7 +847,7 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
         demography_logger.setLevel(logging.ERROR)
         try:
             _tol = 1e-10  # Tolerance for floating-point rounding at the boundary of feasibility
-            return model.get_violation_score(start_param_set) >= -_tol
+            return demographic_model.get_violation_score(start_param_set) >= -_tol
         except ValueError:
             return False
         finally:
@@ -668,12 +861,12 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
         attempts += 1
         candidate = _draw_candidate()
 
-        if len(model.params_fixed_by_ancestry) > 0:
+        if len(demographic_model.params_fixed_by_ancestry) > 0:
             demography_logger = logging.getLogger("tracts.demography.base_parametrized_demography")
             original_level = demography_logger.level
             demography_logger.setLevel(logging.ERROR)
             try:
-                candidate = model.parameter_handler.compute_params_fixed_by_ancestry(candidate)
+                candidate = demographic_model.parameter_handler.compute_params_fixed_by_ancestry(candidate)
             except (ValueError, AssertionError):
                 demography_logger.setLevel(original_level)
                 continue
@@ -681,18 +874,18 @@ def parse_start_params(start_param_bounds, model: ParametrizedDemography, repeti
                 demography_logger.setLevel(original_level)
             # Re-apply any values from fixed_param_values that compute_params_fixed_by_ancestry
             # may have overridden (e.g. sex-bias params held at 0 during step-1 of a two-step
-            # optimisation are still in params_fixed_by_ancestry on the shared model object).
+            # optimisation are still in params_fixed_by_ancestry on the shared demographic_model object).
             for param_name, value in fixed_param_values.items():
-                if param_name in model.params_fixed_by_ancestry:
-                    candidate[model.model_base_params[param_name].index] = value
+                if param_name in demographic_model.params_fixed_by_ancestry:
+                    candidate[demographic_model.model_base_params[param_name].index] = value
 
             # Re-apply only values that were explicitly supplied via fixed_param_values.
             # Ancestry-fixed params absent from fixed_param_values also appear in parsed_specs
             # as ("fixed", lower_bound) due to the default fallback; restoring those here would
             # overwrite the correctly ancestry-solved value with the lower bound.
-            for anc_param_name in model.params_fixed_by_ancestry:
+            for anc_param_name in demographic_model.params_fixed_by_ancestry:
                 if anc_param_name in fixed_param_values:
-                    anc_param_info = model.model_base_params[anc_param_name]
+                    anc_param_info = demographic_model.model_base_params[anc_param_name]
                     candidate[anc_param_info.index] = fixed_param_values[anc_param_name]
 
         if _is_feasible(candidate):
@@ -736,17 +929,267 @@ def collapse_identical_start_params(start_params: list[np.ndarray], step_label: 
 
     return start_params
 
+def check_start_params(physical_start_params: list[np.ndarray], model_param_names: list[str]):
+    """
+    Checks that the number of starting parameters matches the number of model parameters and prints a message about the starting parameters setup.
+
+    Parameters
+    ----------
+    physical_start_params: list[np.ndarray]
+        A list of arrays of starting parameters in physical units, where each array corresponds to a set of starting parameters for one repetition of the optimization. The parameters are ordered according to their order in demographic_model.model_base_parameters.
+    model_param_names: list[str]
+        A list of all parameter names of the demographic model, in the order given by demographic_model.model_base_params.
+    """
+
+    # ------ Message about starting parameters setup ------ 
+    if len(physical_start_params) > 1: # Multiple runs with different starting parameters
+        mult_params_message = "Multiple starting parameters will be generated and used for multiple optimization runs."
+        logger.info(mult_params_message)
+        print(mult_params_message+"\n")
+
+    else: # Single run with one set of starting parameters
+        single_params_message = "A single set of starting parameters was generated. It will be converted to optimizer units and used for optimization."
+        logger.info(single_params_message)
+        print(single_params_message+"\n")
+
+    # ------ Print starting parameters in physical units ------
+    n_start_params = len(physical_start_params[0]) if len(physical_start_params) > 0 else 0
+    assert len(model_param_names) == n_start_params
+
+def get_starting_ancestry_proportions(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, model_func: Callable[[np.ndarray], dict[str, np.ndarray]], optimizer_start_params: list[np.ndarray]):
+    """
+    Computes and logs the starting ancestry proportions for each set of starting parameters.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to compute the starting ancestry proportions.
+    model_func: Callable[[np.ndarray], dict[str, np.ndarray]]
+        A function that takes in optimizer parameters and returns the migration matrices for those parameters.
+    optimizer_start_params: list[np.ndarray]
+        A list of arrays of starting parameters in optimizer units, where each array corresponds to a set of starting parameters for one repetition of the optimization. The parameters are ordered according to their order in demographic_model.model_base_parameters.
+    """
+
+    first_props = demographic_model.proportions_from_matrices(model_func(optimizer_start_params[0]))
+    tract_types = list(first_props.keys())
+    start_ancestry_props_message = "Starting ancestry proportions for the starting parameters"
+    header = f"{'Run':>3} | " + " | ".join(f"{k:<35}" for k in tract_types)
+    line = "-" * len(header)
+    logger.info(start_ancestry_props_message)
+    
+    for l in (line, header, line):
+        logger.info(l)
+
+    for i, opt in enumerate(optimizer_start_params):
+        try: 
+            props = demographic_model.proportions_from_matrices(model_func(opt))
+
+        except ValueError:
+            print("Could not compute starting ancestry proportions - likely due to out of bounds starting parameters.")
+
+        row_values = []
+        for k in tract_types:
+            arr = props[k]
+            arr_str = ", ".join(f"{x:.4g}" for x in arr)
+            row_values.append(f"[{arr_str:<33}]")
+
+        anc_line = f"{1+i:>3} | " + " | ".join(row_values)
+        logger.info(anc_line)
+
+
+def get_predicted_ancestry_proportions(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, model_func: Callable[[np.ndarray], dict[str, np.ndarray]], optimal_params: np.ndarray):
+    """
+    Computes and logs the predicted ancestry proportions for the optimal parameters.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to compute the predicted ancestry proportions.
+    model_func: Callable[[np.ndarray], dict[str, np.ndarray]]
+        A function that takes in optimizer parameters and returns the migration matrices for those parameters.
+    optimal_params: np.ndarray
+        The final optimal parameters in optimizer units, as returned by the optimization process.
+    
+    Returns
+    -------
+    tuple[np.ndarray | None, np.ndarray | None]
+        A tuple containing the predicted autosome proportions and predicted allosome proportions, respectively. Each is an array of proportions corresponding to the populations in the model. If no autosomal or allosomal proportions are predicted, the corresponding value in the tuple will be None.
+    """
+
+    predicted_props = demographic_model.proportions_from_matrices(model_func(demographic_model.parameter_handler.convert_to_optimizer_params(optimal_params)))
+    predicted_autosome_props = {k: v for k, v in predicted_props.items() if "autosomal" in k.lower()}
+    predicted_allosome_props = {k: v for k, v in predicted_props.items() if "autosomal" not in k.lower()}
+
+    autosome_values = None
+    allosome_values = None
+
+    if predicted_autosome_props:
+        autosome_key = sorted(predicted_autosome_props.keys())[0]
+        autosome_values = np.asarray(predicted_autosome_props[autosome_key])
+        predicted_autosome_message = f"Predicted autosome proportions: {np.array2string(autosome_values, separator=' ')}"
+        print(predicted_autosome_message)
+        logger.info(predicted_autosome_message)
+
+    if predicted_allosome_props:
+        allosome_key = sorted(predicted_allosome_props.keys())[0]
+        allosome_values = np.asarray(predicted_allosome_props[allosome_key])
+        predicted_allosome_message = f"Predicted allosome proportions: {np.array2string(allosome_values, separator=' ')}"
+        print(predicted_allosome_message)
+        logger.info(predicted_allosome_message)
+    
+    return autosome_values, allosome_values
+
+
+def check_final_parameters(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, optimal_params: np.ndarray):
+    """
+    Checks that the final optimal parameters are compatible will well-defined migration matrices.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to check the final optimal parameters.
+    optimal_params: np.ndarray
+        The final optimal parameters in physical units, as returned by the optimization process.
+    """
+    class _WarnCapture(logging.Handler):
+        def __init__(self):
+            super().__init__()
+            self.records: list[str] = []
+        def emit(self, record):
+            if record.levelno >= logging.WARNING:
+                self.records.append(record.getMessage())
+
+    _dem_logger_check = logging.getLogger("tracts.demography.base_parametrized_demography")
+    _capture_handler = _WarnCapture()
+    _dem_logger_check.addHandler(_capture_handler)
+    try:
+        _ = demographic_model.get_violation_score(optimal_params, verbose=True)
+        # get_violation_score calls get_migration_matrices internally, which logs the warning.
+        # We capture it here so it can be shown as a user-visible printed message.
+    except Exception as e:
+        logger.warning(f"Could not compute post-optimization diagnostics: {e}")
+    finally:
+        _dem_logger_check.removeHandler(_capture_handler)
+
+    if any("Founding migration rates add up to more than 1" in msg for msg in _capture_handler.records):
+        founding_rate_msg = (
+            "Warning: the final optimal parameters have founding migration rates that add up "
+            "to more than 1. This means that no valid combination of migration rates exists "
+            "for these parameter values, and the model result may be unreliable."
+        )
+        print(founding_rate_msg)
+        logger.warning(founding_rate_msg)
+
+def _print_optimal_values_and_likelihood(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, 
+                                        optimal_params: np.ndarray, optimal_likelihood: float, 
+                                        remainder_parameters: dict[str, float], ad_model_allosomes: bool | None):
+    
+    """
+    Prints the final optimal parameter values and the corresponding likelihood, along with any derived parameters for the remainder (dependent) ancestry.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to print the optimal parameter values and likelihood.
+    optimal_params: np.ndarray
+        The final optimal parameters in physical units, as returned by the optimization process.
+    optimal_likelihood: float
+        The likelihood corresponding to the final optimal parameters.
+    remainder_parameters: dict[str, float]
+        A dictionary of derived parameters for the 'remainder' (dependent) ancestry in each parametrized population, as computed by ``compute_remainder_params``.
+    ad_model_allosomes: bool | None
+        A boolean indicating whether allosomal admixture is modelled. If None, only autosomal admixture is modelled. This affects the message printed about the data used for computing the likelihood.
+    """
+
+    final_data = "autosomal + allosomal" if ad_model_allosomes is not None else "autosomal"
+    final_message = f"Final parameters and corresponding likelihood computed on {final_data} data:"
+    param_names = list(demographic_model.model_base_params.keys())
+
+    all_param_names = param_names + list(remainder_parameters.keys())
+    all_param_values = list(optimal_params) + list(remainder_parameters.values())
+    param_col_widths = [max(len(name), 12) for name in all_param_names]
+    header = f"{'LogLik':>12} | " + " | ".join(
+        f"{name:>{w}}" for name, w in zip(all_param_names, param_col_widths)
+    )
+    line = "-" * len(header)
+    print("\n" + final_message)
+    for l in (line, header, line):
+        print(l)
+        logger.info(l)
+
+    values_str = " | ".join(
+        f"{x:>{w}.4g}" for x, w in zip(all_param_values, param_col_widths)
+    )
+    loglik_message = f"{float(optimal_likelihood):>12.6g} | {values_str}"
+    logger.info(loglik_message)
+    print(loglik_message)
+    print(line)
+
+    # Report derived parameters for the remainder (dependent) ancestry.
+    if remainder_parameters:
+        dep_msg = f"Parameters {', '.join(remainder_parameters.keys())} correspond to the dependent ancestry and were not free in the optimization."
+        print(dep_msg)
+        logger.info(dep_msg)
+
+
+def check_optimal_parameters_at_boundaries(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, driver_spec: InferenceConfig,
+                                           sex_bias_param_names: list[str], remainder_params: dict[str, float], optimal_params: np.ndarray):
+
+    """
+    Checks whether the optimal parameters have values at the border of the feasible region, up to a pre-specified tolerance.
+    If any sex-bias parameter has an optimal value at the border, the function raises a warning to suggest a re-run with 
+    fixed values.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model for which to check the optimal parameters.
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file.
+    sex_bias_param_names: list[str]
+        A list of parameter names corresponding to sex-bias parameters in the demographic model.
+    remainder_params: dict[str, float]
+        A dictionary of derived parameters for the 'remainder' (dependent) ancestry in each parametrized population, as computed by ``compute_remainder_params``.
+    optimal_params: np.ndarray
+        The final optimal parameters in physical units, as returned by the optimization process.
+    """    
+    param_names = list(demographic_model.model_base_params.keys())    
+    all_param_names = param_names + list(remainder_params.keys())
+    all_param_values = list(optimal_params) + list(remainder_params.values())
+     
+    # Detect optimal sex-bias parameters at boundaries (explicitely optimized)
+    unfixed_sex_bias_params_at_boundaries = {_param_name: _param_value for _param_name, _param_value in zip(all_param_names, all_param_values)
+                            if _param_name in sex_bias_param_names and 
+                            _param_name not in demographic_model.parameter_handler.params_fixed_by_ancestry and
+                            _param_name not in demographic_model.parameter_handler.user_params_fixed_by_value.keys() and
+                            (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
+    
+    # Detect derived remainder sex-bias parameters at boundaries
+    remainder_sex_bias_at_boundaries = {_param_name: _param_value for _param_name, _param_value in remainder_params.items()
+                            if _param_name.endswith("_sex_bias") and
+                            (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
+
+    _all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
+    if _all_at_boundary:
+        _boundary_msg = (
+            f"Warning: the optimal solution has sex-bias parameter(s) "
+            f"{', '.join(_all_at_boundary)} at their \u00b11 boundary. "
+            "Re-running the optimization fixing these parameters at their boundary values may yield a better solution."
+            )
+        print(_boundary_msg)
+        logger.warning(_boundary_msg)
+
 
 # ---------- Conversion between optimizer and physical parameters ---------
 
-def get_time_scaled_model_func(model: ParametrizedDemography) -> Callable[[np.ndarray], dict[str, np.ndarray]]:
+def get_time_scaled_model_func(demographic_model: ParametrizedDemography) -> Callable[[np.ndarray], dict[str, np.ndarray]]:
     """
     Computes a function that takes in optimizer parameters, converts them to physical parameters using the model's parameter handler, and returns the migration matrices for those parameters.
     This is necessary because some optimizers may require parameters to be on a different scale (e.g. log scale) than the physical parameters used in the model, so this function serves as a wrapper to apply the necessary transformations before passing parameters to the model.
     
     Parameters
     ----------
-    model: ParametrizedDemography
+    demographic_model: ParametrizedDemography
         The demographic model for which to compute the migration matrices.
 
     Returns
@@ -754,17 +1197,17 @@ def get_time_scaled_model_func(model: ParametrizedDemography) -> Callable[[np.nd
     Callable[[np.ndarray], dict[str, np.ndarray]]
         A function that takes in optimizer parameters, converts them to physical parameters, and returns the migration matrices for those parameters.
     """
-    return lambda params: model.get_migration_matrices(model.parameter_handler.convert_to_physical_params(params))
+    return lambda params: demographic_model.get_migration_matrices(demographic_model.parameter_handler.convert_to_physical_params(params))
 
 
-def get_time_scaled_model_bounds(model: ParametrizedDemography, verbose = False):
+def get_time_scaled_model_bounds(demographic_model: ParametrizedDemography, verbose = False):
     """
     Computes a function that takes in optimizer parameters, converts them to physical parameters using the model's parameter handler, and returns the violation score for those parameters.
     This is necessary because some optimizers may require parameters to be on a different scale (e.g. log scale) than the physical parameters used in the model, so this function serves as a wrapper to apply the necessary transformations before passing parameters to the model.
     
     Parameters
     ----------
-    model: ParametrizedDemography
+    demographic_model: ParametrizedDemography
         The demographic model for which to compute the violation score.
     verbose: bool
         Whether to print detailed information about the violation score. Defaults to False.
@@ -774,7 +1217,7 @@ def get_time_scaled_model_bounds(model: ParametrizedDemography, verbose = False)
     Callable[[np.ndarray], float]
         A function that takes in optimizer parameters, converts them to physical parameters, and returns the violation score for those parameters.
     """
-    return lambda params: model.get_violation_score(model.parameter_handler.convert_to_physical_params(params), verbose = verbose)
+    return lambda params: demographic_model.get_violation_score(demographic_model.parameter_handler.convert_to_physical_params(params), verbose = verbose)
 
 
 def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
@@ -787,12 +1230,12 @@ def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
 
 # --------------- Output production ---------------
 
-def _compute_remainder_params(model, migration_matrices: dict) -> dict:
+def compute_remainder_params(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, migration_matrices: dict) -> dict:
     r"""
     Compute derived parameters for the 'remainder' (dependent) ancestry in
     each parametrized population.
 
-    For a model with *n* free rate parameters ``R_1, ..., R_{n-1}`` and a
+    For a demographic model with *n* free rate parameters ``R_1, ..., R_{n-1}`` and a
     remainder ancestry whose rate is ``1 - R_1 - ... - R_{n-1}``, the
     remainder rate is read directly from the founding row of the migration
     matrix.  For :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
@@ -808,11 +1251,11 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
 
     Parameters
     ----------
-    model : ParametrizedDemography | ParametrizedDemographySexBiased
+    demographic_model : ParametrizedDemography | ParametrizedDemographySexBiased
         The demographic model.  Only these two types are accepted; any other
         type raises a :class:`TypeError`.
     migration_matrices : dict
-        Migration matrices as returned by ``model.get_migration_matrices()``.
+        Migration matrices as returned by ``demographic_model.get_migration_matrices()``.
         For :class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`
         models the keys are ``'{population}_male'`` / ``'{population}_female'``;
         for :class:`~tracts.demography.parametrized_demography.ParametrizedDemography`
@@ -831,15 +1274,15 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
           models; ``nan`` when the remainder rate is 0 or 1.
 
         Returns an empty dict when the model has no remainder population or when
-        *model* is not a recognised demography type (e.g. a test stub).
+        *demographic_model* is not a recognised demography type (e.g. a test stub).
     """
-    if not isinstance(model, (ParametrizedDemographySexBiased, ParametrizedDemography)):
+    if not isinstance(demographic_model, (ParametrizedDemographySexBiased, ParametrizedDemography)):
         return {}
-    is_sex_biased = isinstance(model, ParametrizedDemographySexBiased)
+    is_sex_biased = isinstance(demographic_model, ParametrizedDemographySexBiased)
 
     result = {}
     seen = set()
-    for population in model.parametrized_populations:
+    for population in demographic_model.parametrized_populations:
         if population in seen:
             continue
         seen.add(population)
@@ -849,15 +1292,15 @@ def _compute_remainder_params(model, migration_matrices: dict) -> dict:
         else:
             event_key = population                              # e.g. 'X'
 
-        founder_event = model.founder_events.get(event_key)
+        founder_event = demographic_model.founder_events.get(event_key)
         if founder_event is None or founder_event.remainder_population is None:
             continue
 
         remainder_pop = founder_event.remainder_population
-        if remainder_pop not in model.population_indices:
+        if remainder_pop not in demographic_model.population_indices:
             continue
 
-        remainder_col = model.population_indices[remainder_pop]
+        remainder_col = demographic_model.population_indices[remainder_pop]
 
         if is_sex_biased:
             male_matrix  = migration_matrices[f'{population}{SexType.MALE.suffix}']
@@ -1001,7 +1444,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray, 
                                     optimal_likelihood:float,
-                                    model: ParametrizedDemographySexBiased,
+                                    demographic_model: ParametrizedDemographySexBiased,
                                     driver_spec: InferenceConfig,
                                     output_dir: Path,
                                     ad_model_autosomes: str='DC', 
@@ -1019,7 +1462,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The population for which to output simulation data.
     optimal_params: np.ndarray
         The optimal parameters for the model.
-    model: ParametrizedDemographySexBiased
+    demographic_model: ParametrizedDemographySexBiased
         The demographic model for which to output simulation data.
     driver_spec: InferenceConfig
         The driver specification containing output configuration.
@@ -1048,7 +1491,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     log_scale = driver_spec.output.log_scale
     N_cores = driver_spec.optim.N_cores
 
-    matrices = model.get_migration_matrices(optimal_params)
+    matrices = demographic_model.get_migration_matrices(optimal_params)
     matrix_list = [matrix for matrix in matrices.values()]
 
     if ad_model_allosomes is not None:
@@ -1062,7 +1505,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
     autosome_bins, autosome_data = sample_population.get_global_tractlengths(npts=npts,
                                                                             exclude_tracts_below_cM=exclude_tracts_below_cM)
     
-    pop_names = list(model.population_indices.keys())
+    pop_names = list(demographic_model.population_indices.keys())
 
     ancestry_per_individual = {ind:ind.ancestryProps(pop_names, cutoff=0) for ind in sample_population.indivs}
     
@@ -1083,12 +1526,12 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                             rho_m=1,
                                             sex_model=ad_model_autosomes).tract_length_histogram_multi_windowed(population_number=pop_num,
                                                                                                                 bins=autosome_bins,
-                                                                                                                chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+                                                                                                                chrom_lengths=Ls) for pop, pop_num in demographic_model.population_indices.items()}
     elif ad_model_autosomes == 'M':
         autosome_predicted={pop:PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix),
                                             rho=1).tract_length_histogram_multi_windowed(population_number=pop_num,
                                                                                         bins=autosome_bins,
-                                                                                        chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+                                                                                        chrom_lengths=Ls) for pop, pop_num in demographic_model.population_indices.items()}
     elif ad_model_autosomes == 'H-DC':
         autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
                                                                             mig_matrix_m=male_matrix,
@@ -1101,7 +1544,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=autosome_bins,
-                                                                            chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+                                                                            chrom_lengths=Ls) for pop, pop_num in demographic_model.population_indices.items()}
     else:
         autosome_predicted={pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
                                                                             mig_matrix_m=male_matrix,
@@ -1114,13 +1557,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=autosome_bins,
-                                                                            chrom_lengths=Ls) for pop, pop_num in model.population_indices.items()}
+                                                                            chrom_lengths=Ls) for pop, pop_num in demographic_model.population_indices.items()}
     
     # Save autosome results
     with open(output_dir / output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
         fbins.write("\t".join(map(str, autosome_bins)))
     with open(output_dir / output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
-        for population in model.population_indices.keys():
+        for population in demographic_model.population_indices.keys():
             try:
                 fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
             except KeyError:
@@ -1133,7 +1576,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         for line in male_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
     with open(output_dir / output_filename_format.format(label='autosome_predicted_tract_distribution'), 'w') as fpred2:
-        for pop, pop_num in model.population_indices.items():
+        for pop, pop_num in demographic_model.population_indices.items():
             fpred2.write("\t".join(map(
                 str,
                 [nind * num_tracts for num_tracts in autosome_predicted[pop]]))
@@ -1160,7 +1603,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                 sex_model=ad_model_allosomes,
                                                 X_chromosome=True).tract_length_histogram_multi_windowed(population_number=pop_num,
                                                                                                         bins=allosome_bins,
-                                                                                                        chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+                                                                                                        chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
             male_predicted = {pop: PhTDioecious(migration_matrix_f=female_matrix,
                                                 migration_matrix_m=male_matrix,
                                                 rho_f=1,
@@ -1169,7 +1612,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                 X_chromosome=True,
                                                 X_chromosome_male=True).tract_length_histogram_multi_windowed(population_number=pop_num,
                                                                                                             bins=allosome_bins,
-                                                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+                                                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
         elif ad_model_allosomes == 'H-DC':
             female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
                                                                                 mig_matrix_m=male_matrix,
@@ -1182,7 +1625,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                                 N_cores=N_cores,
                                                                                 population_number=pop_num,
                                                                                 bins=allosome_bins,
-                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
             male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
                                                                             mig_matrix_m=male_matrix,
                                                                             TP=2,
@@ -1194,7 +1637,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=allosome_bins,
-                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
         else:
             female_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
                                                                                 mig_matrix_m=male_matrix,
@@ -1207,7 +1650,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                                 N_cores=N_cores,
                                                                                 population_number=pop_num,
                                                                                 bins=allosome_bins,
-                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+                                                                                chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
             male_predicted = {pop:HP.HP_tract_length_histogram_multi_windowed(mig_matrix_f=female_matrix,
                                                                             mig_matrix_m=male_matrix,
                                                                             TP=2,
@@ -1218,42 +1661,42 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             N_cores=N_cores,
                                                                             population_number=pop_num,
                                                                             bins=allosome_bins,
-                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in model.population_indices.items()}
+                                                                            chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
     
         # Save allosome results
         with open(output_dir / output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
             fbins.write("\t".join(map(str, allosome_bins)))
         with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
-            for population in model.population_indices.keys():
+            for population in demographic_model.population_indices.keys():
                 try:
                     fdat.write("\t".join(map(str, female_data[population])) + "\n")
                 except KeyError:
                     female_data[population] = np.zeros(len(allosome_bins)).tolist()
                     print(f'Population {population} not found in female allosome data.')
         with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
-            for population in model.population_indices.keys():
+            for population in demographic_model.population_indices.keys():
                 try:
                     fdat.write("\t".join(map(str, male_data[population])) + "\n")
                 except KeyError:
                     male_data[population] = np.zeros(len(allosome_bins)).tolist()
                     print(f'Population {population} not found in male allosome data.')           
         with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
-            for pop, pop_num in model.population_indices.items():
+            for pop, pop_num in demographic_model.population_indices.items():
                 fpred2.write("\t".join(map(
                     str,
                     [num_females * num_tracts for num_tracts in female_predicted[pop]]))
                             + "\n")
         with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
-            for pop, pop_num in model.population_indices.items():
+            for pop, pop_num in demographic_model.population_indices.items():
                 fpred2.write("\t".join(map(
                     str,
                     [num_males * num_tracts for num_tracts in male_predicted[pop]]))
                             + "\n")
 
     # ------ Save optimal parameters -------
-    param_names = list(model.model_base_params.keys())
+    param_names = list(demographic_model.model_base_params.keys())
     params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
-    remainder_params = _compute_remainder_params(model, matrices)
+    remainder_params = compute_remainder_params(demographic_model, matrices)
     with open(params_file_path, "w") as f:
 
         f.write("parameter\tvalue\n")
@@ -1577,9 +2020,9 @@ def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[fl
     likelihoods: list[float] 
         A list of likelihoods corresponding to each set of parameters found by the optimization runs.
     parameter_handler: FixedParametersHandler
-        The parameter handler for the model.
+        The parameter handler for the demographic model.
     param_names: list[str]
-        A list of parameter names corresponding to the parameters in the model, used for printing results.
+        A list of parameter names corresponding to the parameters in the demographic model, used for printing results.
     step_label: str | None
         A label for the optimization step, used for printing results.
     likelihood_tolerance: float
@@ -1764,7 +2207,7 @@ def _normalize_multi_init_result(result):
 
 
 def _get_display_param_indices(parameter_handler: FixedParametersHandler,
-                               model,
+                               demographic_model,
                                two_steps_optimization: bool,
                                steps: list[int | str] | None = None) -> list[int]:
     """
@@ -1777,8 +2220,8 @@ def _get_display_param_indices(parameter_handler: FixedParametersHandler,
     ----------
     parameter_handler: FixedParametersHandler
         Parameter handler containing free/fixed parameter metadata.
-    model
-        Demography model used as a fallback source for parameter metadata when ``parameter_handler.demography`` is unavailable.
+    demographic_model
+        Demographic model used as a fallback source for parameter metadata when ``parameter_handler.demography`` is unavailable.
     two_steps_optimization: bool
         Whether optimization runs in two-step mode.
     steps: list[int | str] | None
@@ -1793,13 +2236,13 @@ def _get_display_param_indices(parameter_handler: FixedParametersHandler,
     if not two_steps_optimization:
         if hasattr(parameter_handler, "free_parameters_indices"):
             return list(parameter_handler.free_parameters_indices)
-        return list(range(len(model.model_base_params)))
+        return list(range(len(demographic_model.model_base_params)))
 
     step_2_only = bool(steps) and all(step in (2, "step2") for step in steps)
     model_base_params = (
         parameter_handler.demography.model_base_params
         if hasattr(parameter_handler, "demography")
-        else model.model_base_params
+        else demographic_model.model_base_params
     )
     user_params_fixed_by_value = getattr(parameter_handler, "user_params_fixed_by_value", {})
     params_fixed_by_ancestry = getattr(parameter_handler, "params_fixed_by_ancestry", {})
@@ -1817,8 +2260,60 @@ def _get_display_param_indices(parameter_handler: FixedParametersHandler,
     ]
 
 
+def _print_and_log(*messages: str) -> None:
+    """
+    Prints and logs each message, unconditionally.
+    """
+    for message in messages:
+        print(message)
+        logger.info(message)
+
+
+def _build_step2_skip_message(sex_bias_param_names: list[str], parameter_handler: FixedParametersHandler) -> str:
+    """
+    Builds the message announcing that step 2 has no free sex-bias parameters to
+    optimize, listing which fixing mechanism (ancestry proportions vs. user-provided
+    values) accounts for each fixed sex-bias parameter.
+    """
+    fixed_by_ancestry = [n for n in sex_bias_param_names if n in set(parameter_handler.params_fixed_by_ancestry)]
+    fixed_by_value = [n for n in sex_bias_param_names if n in set(parameter_handler.user_params_fixed_by_value.keys())]
+    fix_parts = []
+    if fixed_by_ancestry:
+        fix_parts.append(f"{', '.join(fixed_by_ancestry)} by ancestry proportions")
+    if fixed_by_value:
+        fix_parts.append(f"{', '.join(fixed_by_value)} by user-provided values")
+    return (
+        "All sex-bias parameters are fixed"
+        + (f" ({'; '.join(fix_parts)})" if fix_parts else "")
+        + ". Step 2 has no free parameters to optimize and will be skipped."
+    )
+
+
+def _select_full_data_likelihood(likelihoods_step_2: list[float], full_likelihoods_step_2: list,
+                                optimal_likelihood: float, use_autosomes_for_sex_bias: bool,
+                                announce: bool = False) -> float:
+    """
+    When step 2 used allosomal data only (``use_autosomes_for_sex_bias`` is False), selects
+    the full-data (autosomal + allosomal) likelihood computed at the best run's parameters, if
+    one was computed, and returns it in place of ``optimal_likelihood``. Otherwise returns
+    ``optimal_likelihood`` unchanged. If ``announce``, reports the substitution.
+    """
+    if use_autosomes_for_sex_bias:
+        return optimal_likelihood
+    best_run_index = int(np.argmax([float(x) for x in likelihoods_step_2]))
+    full_data_likelihood = full_likelihoods_step_2[best_run_index]
+    if full_data_likelihood is None:
+        return optimal_likelihood
+    if announce:
+        _print_and_log(
+            "Step 2 used allosomal data only. Final likelihood is evaluated on "
+            "autosomal + allosomal data at the selected optimal parameters."
+        )
+    return float(full_data_likelihood)
+
+
 def _print_run_intro(parameter_handler: FixedParametersHandler,
-                     model,
+                     demographic_model,
                      start_params_list: list[np.ndarray],
                      bound_func: Callable[[np.ndarray], float],
                      title_message: str,
@@ -1835,8 +2330,8 @@ def _print_run_intro(parameter_handler: FixedParametersHandler,
     ----------
     parameter_handler: FixedParametersHandler
         Parameter handler used for subtitle generation and parameter conversion.
-    model
-        Model object used as fallback metadata source when needed.
+    demographic_model
+        Demographic model used as fallback metadata source when needed.
     start_params_list: list[np.ndarray]
         Starting parameters (in optimizer units) for all runs in the phase.
     bound_func: Callable[[np.ndarray], float]
@@ -1860,7 +2355,7 @@ def _print_run_intro(parameter_handler: FixedParametersHandler,
             steps=steps,
         )
     else:
-        all_params = model.model_base_params
+        all_params = demographic_model.model_base_params
         if not two_steps_optimization:
             free_params = list(all_params.keys())
             subtitle_message = f"Optimizing model likelihood over parameters {str(free_params)}."
@@ -1886,7 +2381,7 @@ def _print_run_intro(parameter_handler: FixedParametersHandler,
 
     display_param_indices = _get_display_param_indices(
         parameter_handler=parameter_handler,
-        model=model,
+        demographic_model=demographic_model,
         two_steps_optimization=two_steps_optimization,
         steps=steps,
     )
@@ -2029,3 +2524,5 @@ def _save_ancestry_proportions_table(ancestor_labels, observed_autosome_proporti
     out_path = Path(output_dir) / output_filename_format.format(label="ancestry_proportions.txt")
     with open(out_path, "w") as f:
         f.write("\n".join(lines) + "\n")
+    
+    logger.info(f"Ancestry proportions table saved to {output_dir / output_filename_format.format(label='ancestry_proportions.txt')}")

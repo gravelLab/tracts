@@ -1,15 +1,20 @@
 import logging
 import numpy as np
 import scipy.optimize
-import copy
-
-from tracts.phase_type import hybrid_pedigree as HP
-from tracts.phase_type import PhTMonoecious, PhTDioecious
-from tracts.demography.parametrized_demography_sex_biased import SexType
-from tracts.demography.base_parametrized_demography import FixedParametersHandler
 from tracts.population import Population
 from tracts.util import eprint
 from tracts.demography.parameter import ParamType
+from tracts.genetic_model import GeneticModel
+from tracts.tracts_data import TractsData
+from tracts.likelihood_options import LikelihoodOptions
+from tracts.core_utils import (
+    _print_and_log,
+    _print_verbose,
+    _print_single_step_header,
+    _get_steps,
+    _flush_final_result,
+    _print_step2_header,
+)
 logger = logging.getLogger(__name__)
 
 _counter = 0
@@ -22,29 +27,10 @@ _ignore_oob_above = -1e-14
 def _compute_objective(
     parameters,
     *,
-    local_parameter_handler,
     best_state,
-    model_func,
-    outofbounds_fun,
-    ad_model_autosomes,
-    ad_model_allosomes,
-    N_cores,
-    verbose_log,
-    verbose_screen,
-    population,
-    autosome_bins,
-    autosome_data_mapped,
-    allosome_bins=None,
-    allosome_length=None,
-    female_data_mapped=None,
-    male_data_mapped=None,
-    num_females=None,
-    num_males=None,
-    include_autosomes=True,
-    include_allosomes=True,
-    rho_f=1,
-    rho_m=1,
-    TP=2
+    local_genetic_model: GeneticModel,
+    tracts_data: TractsData,
+    likelihood_options: LikelihoodOptions,
 ):
     """
     Evaluate the optimization objective (negative log-likelihood) for a given parameter vector.
@@ -61,65 +47,30 @@ def _compute_objective(
     ----------
     parameters : np.ndarray
         Full parameter vector in optimizer space.
-    local_parameter_handler : FixedParametersHandler
-        Deep copy of the original handler; used to convert optimizer-space
-        parameters to physical parameters for logging.
     best_state : dict
         Mutable dict with keys ``'objective'`` (float, lowest objective seen so
         far, initialised to ``np.inf``) and ``'params'`` (np.ndarray or None,
         the corresponding parameter vector). Updated in place whenever a new best
         finite objective is found.
-    model_func : callable
-        Returns a dict of migration matrices keyed by population label.
-    outofbounds_fun : callable or None
-        Returns a negative violation score when parameters are out of bounds, or
-        a value close to zero when they are admissible. If None, a warning is
-        printed but execution continues.
-    ad_model_autosomes : str
-        Admixture model for autosomes. One of ``'DC'``, ``'DF'``, ``'M'``,
-        ``'H-DC'``, or ``'H-DF'``.
-    ad_model_allosomes : str or None
-        Admixture model for allosomes. One of ``'DC'``, ``'DF'``, ``'H-DC'``,
-        or ``'H-DF'``. Only used when ``include_allosomes=True``.
-    N_cores : int
-        Number of CPU cores for parallel hybrid-pedigree computations.
-    verbose_log : int
-        Log every ``verbose_log`` iterations (0 = never).
-    verbose_screen : int
-        Print every ``verbose_screen`` iterations (0 = never).
-    population : Population
-        Population object providing chromosome lengths and sample sizes.
-    autosome_bins : np.ndarray
-        Bin edges for the autosomal tract-length histogram.
-    autosome_data_mapped : list of list
-        Observed autosomal tract counts per population, indexed to match the
-        model's population ordering.
-    allosome_bins : np.ndarray, optional
-        Bin edges for the allosomal tract-length histogram. Required when
-        ``include_allosomes=True``.
-    allosome_length : float, optional
-        Length of the X chromosome in Morgans. Required when
-        ``include_allosomes=True``.
-    female_data_mapped : list of list, optional
-        Observed X-chromosome tract counts for females per population. Required
-        when ``include_allosomes=True``.
-    male_data_mapped : list of list, optional
-        Observed X-chromosome tract counts for males per population. Required
-        when ``include_allosomes=True``.
-    num_females : int, optional
-        Number of female samples. Required when ``include_allosomes=True``.
-    num_males : int, optional
-        Number of male samples. Required when ``include_allosomes=True``.
-    include_autosomes : bool, default True
-        Whether to include the autosomal log-likelihood in the objective.
-    include_allosomes : bool, default True
-        Whether to include the allosomal log-likelihood in the objective.
-    rho_f : float, default 1
-        The female-specific recombination rate.
-    rho_m : float, default 1
-        The male-specific recombination rate.
-    TP : int, default 2
-        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
+    local_genetic_model : GeneticModel
+        Deep copy of the original genetic model (demographic model + admixture/
+        phase-type configuration), local to this optimization run. Its
+        ``parameter_handler`` is used to convert optimizer-space parameters to
+        physical parameters for logging, its ``model_func``/``outofbounds_fun``
+        methods compute the migration matrices and violation score for
+        ``parameters``, and its ``phase_type_config`` supplies the admixture
+        models and recombination/pedigree settings used to compute the
+        likelihood.
+    tracts_data : TractsData
+        The population and mapped autosomal/allosomal tract-length histogram data
+        used to compute the likelihood. Its allosome-related fields
+        (``allosome_bins``, ``allosome_length``, ``female_data_mapped``,
+        ``male_data_mapped``, ``num_females``, ``num_males``) are required when
+        ``likelihood_options.include_allosomes=True``.
+    likelihood_options : LikelihoodOptions
+        Logging verbosity (``verbose_log``, ``verbose_screen``) and autosome/allosome
+        inclusion flags (``include_autosomes``, ``include_allosomes``) for this
+        evaluation.
 
     Returns
     -------
@@ -127,15 +78,16 @@ def _compute_objective(
         The objective value (negative total log-likelihood), or a large positive
         penalty when parameters are out of bounds or produce a singular matrix.
     """
+    local_parameter_handler = local_genetic_model.parameter_handler
+    include_allosomes = likelihood_options.include_allosomes
+    verbose_log = likelihood_options.verbose_log
+    verbose_screen = likelihood_options.verbose_screen
     global _counter
     global _out_of_bounds_val
     global _min_out_of_bounds_val
     _counter += 1
 
-    if not include_autosomes and not include_allosomes:
-        raise ValueError("At least one of include_autosomes or include_allosomes must be True.")
-
-    def flush_result(result, note=str()):
+    def flush_result(result, note=''):
         prev_time_param_logging = local_parameter_handler.enable_time_param_logging
         local_parameter_handler.enable_time_param_logging = False
         try:
@@ -149,20 +101,17 @@ def _compute_objective(
         if _did_screen:
             eprint('%-8i, %-12g, %s, %s' % (_counter, result, param_str, note))
 
-    if outofbounds_fun is not None:
-        oob = outofbounds_fun(parameters)
-        if oob < _ignore_oob_above:
-            out = oob * _out_of_bounds_val - _min_out_of_bounds_val
-            flush_result(out, f'OOB (oob={oob})')
-            if np.isfinite(out) and out < best_state['objective']:
-                best_state['objective'] = out
-                best_state['params'] = parameters.copy()
-            return out
-    else:
-        eprint("No bound function defined")
+    oob = local_genetic_model.outofbounds_fun(parameters)
+    if oob < _ignore_oob_above:
+        out = oob * _out_of_bounds_val - _min_out_of_bounds_val
+        flush_result(out, f'OOB (oob={oob})')
+        if np.isfinite(out) and out < best_state['objective']:
+            best_state['objective'] = out
+            best_state['params'] = parameters.copy()
+        return out
 
     try:
-        matrices = model_func(parameters)
+        matrices = local_genetic_model.model_func(parameters)
         matrix_list = [matrix for matrix in matrices.values()]
         if include_allosomes:
             [male_matrix, female_matrix] = matrix_list
@@ -170,7 +119,16 @@ def _compute_objective(
             avg_matrix = np.mean(matrix_list, axis=0)
             male_matrix = avg_matrix
             female_matrix = avg_matrix
+
+        loglik = local_genetic_model.loglik(
+            male_matrix=male_matrix,
+            female_matrix=female_matrix,
+            tracts_data=tracts_data,
+            likelihood_options=likelihood_options,
+        )
     except (np.linalg.LinAlgError, ValueError, FloatingPointError):
+        # Covers both a singular/infeasible model_func(parameters) call and a singular
+        # migration matrix rejected during phase-type model construction inside loglik().
         out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty, consistent with OOB
         flush_result(out, 'Singular matrix (infeasible params)')
         if np.isfinite(out) and out < best_state['objective']:
@@ -178,121 +136,14 @@ def _compute_objective(
             best_state['params'] = parameters.copy()
         return out
 
-    # ----------------- Compute model likelihood for autosomes -----------------
+    if loglik.autosomes is not None:
+        flush_result(loglik.autosomes, 'Autosomes')
+    if loglik.female_allosomes is not None:
+        flush_result(loglik.female_allosomes, 'Female allosomes')
+    if loglik.male_allosomes is not None:
+        flush_result(loglik.male_allosomes, 'Male allosomes')
 
-    if include_autosomes:
-
-        if ad_model_autosomes == 'H-DC' or ad_model_autosomes == 'H-DF':
-
-            result_autosomes = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=rho_f,
-                                            rho_m=rho_m,
-                                            TP=TP,
-                                            Dioecious_model=ad_model_autosomes[2:],
-                                            X_chr=False,
-                                            X_chr_male=False,
-                                            N_cores=N_cores,
-                                            bins=autosome_bins,
-                                            Ls=population.Ls,
-                                            data=[mat for mat in autosome_data_mapped],
-                                            num_samples=len(population.indivs),
-                                            cutoff=0)
-
-        else:
-
-            try:
-                if ad_model_autosomes == 'M':
-                    model = PhTMonoecious(migration_matrix=0.5*(female_matrix+male_matrix), rho=1)
-                else:
-                    assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
-                    model = PhTDioecious(migration_matrix_f=female_matrix,
-                                        migration_matrix_m=male_matrix,
-                                        rho_f=rho_f,
-                                        rho_m=rho_m,
-                                        sex_model=ad_model_autosomes)
-            except (np.linalg.LinAlgError, ValueError):
-                out = -_out_of_bounds_val - _min_out_of_bounds_val  # large positive penalty
-                flush_result(out, 'Singular matrix (infeasible params)')
-                return out
-
-            result_autosomes = model.loglik(bins=autosome_bins,
-                                            Ls=population.Ls,
-                                            data=[mat for mat in autosome_data_mapped],
-                                            num_samples=len(population.indivs))
-
-        flush_result(result_autosomes, 'Autosomes')
-
-    # ----------------- Compute model likelihood for allosomes -----------------
-
-    if include_allosomes:
-
-        if ad_model_allosomes == 'H-DC' or ad_model_allosomes == 'H-DF':
-
-            result_X_females = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                            mig_matrix_m=male_matrix,
-                                            rho_f=rho_f,
-                                            rho_m=rho_m,
-                                            TP=TP,
-                                            Dioecious_model=ad_model_allosomes[2:],
-                                            X_chr=True,
-                                            X_chr_male=False,
-                                            N_cores=N_cores,
-                                            bins=allosome_bins,
-                                            Ls=[allosome_length],
-                                            data=[mat for mat in female_data_mapped],
-                                            num_samples=num_females, cutoff=0)
-
-            result_X_males = HP.HP_loglik(mig_matrix_f=female_matrix,
-                                          mig_matrix_m=male_matrix,
-                                          rho_f=rho_f,
-                                          rho_m=rho_m,
-                                          TP=TP,
-                                          Dioecious_model=ad_model_allosomes[2:],
-                                          X_chr=True,
-                                          X_chr_male=True,
-                                          N_cores=N_cores,
-                                          bins=allosome_bins,
-                                          Ls=[allosome_length],
-                                          data=[mat for mat in male_data_mapped],
-                                          num_samples=num_males, cutoff=0)
-
-        else:
-
-            result_X_females = PhTDioecious(migration_matrix_f=female_matrix,
-                                            migration_matrix_m=male_matrix,
-                                            rho_f=rho_f,
-                                            rho_m=rho_m,
-                                            sex_model=ad_model_allosomes,
-                                            X_chromosome=True).loglik(bins=allosome_bins,
-                                                                      Ls=[allosome_length],
-                                                                      data=[mat for mat in female_data_mapped],
-                                                                      num_samples=num_females)
-
-            result_X_males = PhTDioecious(migration_matrix_f=female_matrix,
-                                          migration_matrix_m=male_matrix,
-                                          rho_f=rho_f,
-                                          rho_m=rho_m,
-                                          sex_model=ad_model_allosomes,
-                                          X_chromosome=True,
-                                          X_chromosome_male=True).loglik(bins=allosome_bins,
-                                                                         Ls=[allosome_length],
-                                                                         data=[mat for mat in male_data_mapped],
-                                                                         num_samples=num_males)
-
-        flush_result(result_X_females, 'Female allosomes')
-        flush_result(result_X_males, 'Male allosomes')
-
-    if include_autosomes and include_allosomes:
-        result = result_autosomes + result_X_females + result_X_males
-    elif include_autosomes and not include_allosomes:
-        result = result_autosomes
-    elif not include_autosomes and include_allosomes:
-        result = result_X_females + result_X_males
-    else:
-        raise ValueError("At least one of include_autosomes or include_allosomes must be True.")
-
-    obj = -result
+    obj = -loglik.total
 
     if np.isfinite(obj) and obj < best_state['objective']:
         best_state['objective'] = obj
@@ -303,31 +154,31 @@ def _compute_objective(
 # ------------------ Single-step optimization ------------------
 
 
-def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_func: callable, parameter_handler: FixedParametersHandler, outofbounds_fun:callable=None, 
-                            verbose_log:int=0, verbose_screen:int=10, p_dict:dict=None, exclude_tracts_below_cM:float=0, 
-                            maxiter:int=None, reset_counter:bool=True, ad_model_autosomes:str='DC',
-                            ad_model_allosomes:str='DC', npts:int=50, print_step_header:bool=True, N_cores:int=1,
-                            rho_f:float=1, rho_m:float=1, TP:int=2) -> tuple[np.ndarray, float]:
+def optimize_cob_sex_biased_single_step(p0:list, population: Population, genetic_model: GeneticModel,
+                            likelihood_options: LikelihoodOptions | None = None, p_dict:dict=None, exclude_tracts_below_cM:float=0,
+                            maxiter:int=None, reset_counter:bool=True,
+                            npts:int=50, print_step_header:bool=True) -> tuple[np.ndarray, float]:
     """
     Optimizes the log-likelihood over all parameters defined by the demographic model, given a specified pair of admixture models for autosomes and allosomes.
     The optimization is carried out jointly in a single step, estimating all parameters simultaneously using both autosomal and allosomal data.
 
     Parameters
-    ----------    
+    ----------
     p0: list
             An array of initial parameters to start the optimization.
     population: :class:`tracts.population.Population`
         A Population object containing the data to fit.
-    model_func: callable
-        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    parameter_handler: FixedParametersHandler
-        An object that handles parameter transformations and fixed parameters.
-    outofbounds_fun: callable, Optional
-        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    verbose_log: int, default: 0
-        If greater than zero, logs optimization status every ``verbose`` iterations.
-    verbose_screen: int, default: 0
-        If greater than zero, prints optimization status every ``verbose`` iterations.
+    genetic_model: GeneticModel
+        Bundles the demographic model (whose ``parameter_handler`` handles parameter
+        transformations and fixed parameters, and whose ``model_func``/``outofbounds_fun``
+        methods compute migration matrices and violation scores) with the admixture and
+        phase-type model configuration (``ad_model_autosomes``, ``ad_model_allosomes``,
+        ``rho_f``, ``rho_m``, ``TP``, ``N_cores``) used to compute the likelihood.
+    likelihood_options: LikelihoodOptions | None
+        Logging verbosity (``verbose_log``, ``verbose_screen``) for this optimization run.
+        Its ``include_autosomes``/``include_allosomes`` flags are ignored here: allosomes
+        are included whenever ``genetic_model.phase_type_config.ad_model_allosomes`` is not
+        None. If None, defaults to ``LikelihoodOptions()``.
     p_dict: dict
         A dictionary mapping population labels to their corresponding indices in the model.
     exclude_tracts_below_cM: float, optional
@@ -337,10 +188,6 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
     reset_counter: bool, default: True
         Resets the iteration counter to zero. Set to False to
         continue iteration count (e.g., if optimization continues from previous point).
-    ad_model_autosomes: str, optional
-        The model to use for autosomal admixture. Must be one of 'DC', 'DF', 'M', 'H-DC' or 'H-DF'. Default is 'DC'.
-    ad_model_allosomes: str, optional
-        The model to use for allosomal admixture. Must be one of 'DC', 'DF', 'H-DC' or 'H-DF'. Default is 'DC'. If None, allosomal admixture will not be modeled.
     npts: int, optional
         Number of bins for the tract length histogram. Default is 50.
     print_step_header: bool, optional
@@ -348,84 +195,42 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
         optimization. If False, only the iteration table header is printed. For internal use only;
         set automatically by :func:`~tracts.driver.run_model_multi_init` to suppress repeated
         headers across multiple runs within the same step. Default is True.
-    N_cores: int, optional
-        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
-        are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1. 
-    rho_f: float, default 1
-        The female-specific recombination rate.
-    rho_m: float, default 1
-        The male-specific recombination rate.
-    TP: int, default 2
-        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
 
     Returns
     -------
     tuple [np.ndarray, float]
         A tuple containing the optimal parameters found and the corresponding likelihood.
     """
-    
+
     if reset_counter:
         global _counter
         _counter = 0
 
-    autosome_bins, autosome_data = population.get_global_tractlengths(
+    likelihood_options = likelihood_options if likelihood_options is not None else LikelihoodOptions()
+    verbose_log = likelihood_options.verbose_log
+    verbose_screen = likelihood_options.verbose_screen
+    ad_model_allosomes = genetic_model.phase_type_config.ad_model_allosomes
+
+    tracts_data = TractsData.from_population(
+        population=population,
+        p_dict=p_dict,
         npts=npts,
         exclude_tracts_below_cM=exclude_tracts_below_cM,
+        include_allosomes=ad_model_allosomes is not None,
     )
-    n_autosome_bins = len(autosome_bins)
-    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-    for k, v in autosome_data.items():
-        autosome_data_mapped[dict(p_dict)[k]] = v
 
-    if ad_model_allosomes is not None:
-        allosome_bins, allosome_data = population.get_global_allosome_tractlengths(
-            allosome='X',
-            npts=npts,
-            exclude_tracts_below_cM=exclude_tracts_below_cM,
-        )
-        n_allosome_bins = len(allosome_bins)
-        allosome_length = population.allosome_lengths['X']
-        female_data = allosome_data[SexType.FEMALE]
-        male_data = allosome_data[SexType.MALE]
-        num_males = population.num_males
-        num_females = population.num_females
-
-        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-        for k, v in female_data.items():
-            female_data_mapped[dict(p_dict)[k]] = v
-
-        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-        for k, v in male_data.items():
-            male_data_mapped[dict(p_dict)[k]] = v
-
-    local_parameter_handler = copy.deepcopy(parameter_handler)
+    local_genetic_model = genetic_model.copy()
+    local_parameter_handler = local_genetic_model.parameter_handler
     _best_state = {'objective': np.inf, 'params': None}
+    _likelihood_options = likelihood_options.with_overrides(include_allosomes=ad_model_allosomes is not None)
 
     def objective_function(parameters):
         return _compute_objective(
             parameters,
-            local_parameter_handler=local_parameter_handler,
+            local_genetic_model=local_genetic_model,
             best_state=_best_state,
-            model_func=model_func,
-            outofbounds_fun=outofbounds_fun,
-            ad_model_autosomes=ad_model_autosomes,
-            ad_model_allosomes=ad_model_allosomes,
-            N_cores=N_cores,
-            verbose_log=verbose_log,
-            verbose_screen=verbose_screen,
-            population=population,
-            autosome_bins=autosome_bins,
-            autosome_data_mapped=autosome_data_mapped,
-            allosome_bins=allosome_bins if ad_model_allosomes is not None else None,
-            allosome_length=allosome_length if ad_model_allosomes is not None else None,
-            female_data_mapped=female_data_mapped if ad_model_allosomes is not None else None,
-            male_data_mapped=male_data_mapped if ad_model_allosomes is not None else None,
-            num_females=num_females if ad_model_allosomes is not None else None,
-            num_males=num_males if ad_model_allosomes is not None else None,
-            include_allosomes=ad_model_allosomes is not None,
-            rho_f=rho_f,
-            rho_m=rho_m,
-            TP=TP
+            tracts_data=tracts_data,
+            likelihood_options=_likelihood_options,
         )
     # ------------ Define reduced objective function and out-of-bounds function for optimization ------------
 
@@ -434,63 +239,31 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
                                                                         units="opt",
                                                                         counter=_counter,
                                                                         verbose_warning_log=verbose_log) # NOTE: Add verbose_warning_screen=verbose_screen if RuntimeWarnings should be printed on screen.
-        
+
         return objective_function(extended_parameters) #Full parameters in optimizer space
-  
+
     def reduced_outofbounds_fun(free_parameters_opt):
-        return outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
+        return local_genetic_model.outofbounds_fun(local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,
                                                                         units="opt")) #Full parameters in optimizer space
 
     reduced_p0 = local_parameter_handler.reduce_parameters(p0) # Initial parameters
 
     # ------------ Run single-step optimization ------------
 
-    subtitle_message = (
-        "Optimizing model likelihood over parameters "
-        f"{str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
-    )
-    subsubtitle_message = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
-    line = "-" * len(subsubtitle_message)
+    _print_single_step_header(local_parameter_handler, print_step_header, verbose_log, verbose_screen, _counter)
 
-    if print_step_header:
-        print(subtitle_message)
-        logger.info(subtitle_message)
-
-    if (verbose_log > 0) and (_counter % verbose_log == 0):
-        for l in [subsubtitle_message, line]:
-            logger.info(l)
-    if (verbose_screen > 0) and (_counter % verbose_screen == 0):
-        for l in [subsubtitle_message, line]:
-            print(l)
-
-    reduced_objective_to_optimize = lambda x: reduced_objective_function(x)
-
-    outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_to_optimize,
+    outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_function,
                                         x0=reduced_p0,
                                         cons=reduced_outofbounds_fun,
                                         rhobeg=.01,
                                         rhoend=.0001,
                                         maxfun=maxiter)
-    
+
     optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                     units="opt",
                                                                     show_ancestry_warning=True)
 
-    # Final flush: always show the last result at the end of the optimization run
-    if _best_state['params'] is not None:
-        _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
-        _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
-        if _needs_log or _needs_screen:
-            _prev_tpl = local_parameter_handler.enable_time_param_logging
-            local_parameter_handler.enable_time_param_logging = False
-            try:
-                _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
-            finally:
-                local_parameter_handler.enable_time_param_logging = _prev_tpl
-            if _needs_log:
-                logger.info("iter=%-6d | obj=%-12g | params=%s", _counter, -_best_state['objective'], _final_param_str)
-            if _needs_screen:
-                eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, ''))
+    _flush_final_result(_best_state, local_parameter_handler, verbose_log, verbose_screen, _counter) # Final flush: always show the last result at the end of the optimization run
 
     # ------------ Return optimal parameters corresponding to best likelihood ------------
 
@@ -506,13 +279,12 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, model_f
 
 # ------------------ Two-steps optimization ------------------
 
-def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_func:callable, parameter_handler: FixedParametersHandler,
-                                    outofbounds_fun:callable=None, verbose_log:int=0, verbose_screen:int=10,
-                                    p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True, 
-                                    ad_model_autosomes:str='DC', ad_model_allosomes:str='DC', autosomes_in_step_2:bool=True,
+def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_model: GeneticModel,
+                                    likelihood_options: LikelihoodOptions | None = None,
+                                    p_dict:dict=None, exclude_tracts_below_cM:float=0, maxiter:int=None, reset_counter:bool=True,
+                                    autosomes_in_step_2:bool=True,
                                     steps: list[int | str] | None = None, npts:int=50, print_step_header:bool=True,
-                                    return_full_likelihood: bool = False, N_cores:int=1,
-                                    rho_f:float=1, rho_m:float=1, TP:int=2) -> tuple[np.ndarray, float] | tuple[np.ndarray, float, float | None]:
+                                    return_full_likelihood: bool = False) -> tuple[np.ndarray, float] | tuple[np.ndarray, float, float | None]:
     """
     Optimizes the log-likelihood over all parameters defined by the demographic model, for a specified admixture model applied to both autosomes and allosomes.
     The procedure supports exactly three modes.
@@ -524,23 +296,27 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     No other optimization-step combinations are allowed.
 
     Parameters
-    ----------    
+    ----------
     p0: list
             An array of initial parameters to start the optimization.
     population: :class:`tracts.population.Population`
         A Population object containing the data to fit.
-    model_func: callable
-        A function that takes a parameter array and returns a dictionary of migration matrices for each population.
-    parameter_handler: FixedParametersHandler
-        An object that handles parameter transformations and fixed parameters.
-    outofbounds_fun: callable, Optional
-        A function that takes a parameter array and returns a violation score indicating how much the parameters violate the bounds.
-    cutoff: int, default:0 
-        The number of bins to drop at the beginning of the array. This could be achieved with masks.
-    verbose_log: int, default: 0
-        If greater than zero, logs optimization status every ``verbose`` iterations.
-    verbose_screen: int, default: 0
-        If greater than zero, prints optimization status every ``verbose`` iterations.
+    genetic_model: GeneticModel
+        Bundles the demographic model (whose ``parameter_handler`` handles parameter
+        transformations and fixed parameters, and whose ``model_func``/``outofbounds_fun``
+        methods compute migration matrices and violation scores) with the admixture and
+        phase-type model configuration (``ad_model_autosomes``, ``ad_model_allosomes``,
+        ``rho_f``, ``rho_m``, ``TP``, ``N_cores``) used to compute the likelihood. If
+        ``ad_model_allosomes`` is None (no allosomal data provided), step 2 cannot be
+        run. If only step 2 is requested (steps=[2]), an error is raised. If both
+        steps are requested (steps=None or steps=[1,2]), step 2 is automatically
+        disabled with a log message.
+    likelihood_options: LikelihoodOptions | None
+        Logging verbosity (``verbose_log``, ``verbose_screen``) for this optimization run.
+        Its ``include_autosomes``/``include_allosomes`` flags are ignored here: which data
+        are included is determined per step (autosomes only in step 1; allosomes, and
+        optionally autosomes per ``autosomes_in_step_2``, in step 2). If None, defaults to
+        ``LikelihoodOptions()``.
     p_dict: dict
         A dictionary mapping population labels to their corresponding indices in the model.
     exclude_tracts_below_cM: float, optional
@@ -550,12 +326,6 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     reset_counter: bool, default: True
         Resets the iteration counter to zero. Set to False to
         continue iteration count (e.g., if optimization continues from previous point).
-    ad_model_autosomes: str, optional
-        The model to use for autosomal admixture. Must be one of 'DC', 'DF', 'M', 'H-DC' or 'H-DF'. Default is 'DC'.
-    ad_model_allosomes: str, optional
-        The model to use for allosomal admixture. Must be one of 'DC', 'DF', 'H-DC' or 'H-DF'. Default is 'DC'.
-        If None (no allosomal data provided), step 2 cannot be run. If only step 2 is requested (steps=[2]), an error is raised.
-        If both steps are requested (steps=None or steps=[1,2]), step 2 is automatically disabled with a log message.
     autosomes_in_step_2: bool, optional
         If True, both autosomal and allosomal data will be used in the second optimization step. If False, only allosomal data will be used.
         This option is only relevant when step 2 is run. Default is True.
@@ -571,15 +341,6 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         step. If False, only the iteration table header is printed. For internal use only; set
         automatically by :func:`~tracts.driver.run_model_multi_init` to suppress repeated headers
         across multiple runs within the same step. Default is True.
-    N_cores: int, optional
-        The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models
-        are used. Ignored if the hybrid-pedigree refinements are not used. Default is 1. 
-    rho_f: float, default 1
-        The female-specific recombination rate.
-    rho_m: float, default 1
-        The male-specific recombination rate.
-    TP: int, default 2
-        The number of pedigree generations under the hybrid-pedigree refinements of the Dioecious models.
 
     Returns
     -------
@@ -590,6 +351,10 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         with allosomal data only (``autosomes_in_step_2=False``), and corresponds
         to evaluating the final parameters on autosomal + allosomal data.
     """
+    likelihood_options = likelihood_options if likelihood_options is not None else LikelihoodOptions()
+    verbose_log = likelihood_options.verbose_log
+    verbose_screen = likelihood_options.verbose_screen
+    ad_model_allosomes = genetic_model.phase_type_config.ad_model_allosomes
 
     def _format_return(parameters: np.ndarray, likelihood: float, full_likelihood: float | None = None):
         if return_full_likelihood:
@@ -602,70 +367,24 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
     # ----------- Specify which steps are to be run in the optimization procedure ------------
 
-    if steps is not None: # Validate steps argument
-        if not isinstance(steps, list):
-            raise TypeError("steps must be a list of integers or strings, or None.")
-        valid_step_values = {1, 2, 'step1', 'step2'}
-        for step in steps:
-            if step not in valid_step_values:
-                raise ValueError(f"Invalid step value: {step}. Must be one of {valid_step_values}.")
-        if len(steps) == 0:
-            raise ValueError("steps list cannot be empty.")
-
-    if steps is None:
-        normalized_steps = (1, 2)
-    else:
-        normalized_steps = tuple(sorted({1 if step in (1, 'step1') else 2 for step in steps}))
-        if len(normalized_steps) != len(steps):
-            raise ValueError("steps cannot contain duplicate references to the same optimization step.")
-        if normalized_steps not in ((1,), (2,), (1, 2)):
-            raise ValueError("Only step 1 only, step 2 only, or the combined step 1 + step 2 optimization are allowed.")
-
-    step_1 = 1 in normalized_steps
-    step_2 = 2 in normalized_steps
-
-    if ad_model_allosomes is None and step_2:
-        if step_1:
-            # Both steps were requested, but allosomes unavailable - downgrade to step 1 only
-            logger.info("ad_model_allosomes is None (no allosomal data provided). Forcing step 2 to False and running only step 1.")
-            step_2 = False
-        else:
-            # Step 2 only was explicitly requested, but allosomes unavailable - error
-            raise ValueError("ad_model_allosomes is None but step 2 only was explicitly requested. Step 2 requires allosomal data. Please specify steps=[1] or steps=None to run step 1 only or both steps respectively.")
+    step_1, step_2 = _get_steps(steps, ad_model_allosomes)
 
     # ----------- Load data and map to model populations ------------
 
-    # Include autosomal data for inference
-    autosome_bins, autosome_data = population.get_global_tractlengths(npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM) 
-    n_autosome_bins = len(autosome_bins)
-
-    autosome_data_mapped = [np.zeros(n_autosome_bins, dtype='int64').tolist() for _i in dict(p_dict).keys()]
-    for k, v in autosome_data.items():
-        autosome_data_mapped[dict(p_dict)[k]] = v
-    
-    if ad_model_allosomes is not None and step_2: # Include allosomal data for inference at step 2
-
-        allosome_bins, allosome_data = population.get_global_allosome_tractlengths('X', npts=npts, exclude_tracts_below_cM=exclude_tracts_below_cM)
-        n_allosome_bins = len(allosome_bins)
-        allosome_length = population.allosome_lengths['X']
-        female_data = allosome_data[SexType.FEMALE]
-        male_data = allosome_data[SexType.MALE]
-        num_males = population.num_males
-        num_females = population.num_females  
-        
-        female_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-        for k, v in female_data.items():
-            female_data_mapped[dict(p_dict)[k]] = v
-        
-        male_data_mapped = [np.zeros(n_allosome_bins, dtype='int64').tolist()  for _i in dict(p_dict).keys()]
-        for k, v in male_data.items():
-            male_data_mapped[dict(p_dict)[k]] = v
+    tracts_data = TractsData.from_population(
+        population=population,
+        p_dict=p_dict,
+        npts=npts,
+        exclude_tracts_below_cM=exclude_tracts_below_cM,
+        include_allosomes=ad_model_allosomes is not None and step_2,
+    )
 
     # ------------ Set up fixed parameters for the upcoming optimization step ------------
 
     _best_state = {'objective': np.inf, 'params': None}
 
-    local_parameter_handler = copy.deepcopy(parameter_handler)
+    local_genetic_model = genetic_model.copy()
+    local_parameter_handler = local_genetic_model.parameter_handler
 
     # Optimizer-space overrides applied after extend_parameters() in step 2 to keep
     # ancestry-fixed non-sex-bias parameters frozen at their step-1 / p0 values.
@@ -674,9 +393,9 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
     _ancestry_overrides: dict = {}  # maps param index -> optimizer-space value
 
     # Identify free sex-bias parameters
-    free_sex_bias_parameters = {param:0 for param, value in local_parameter_handler.demography.model_base_params.items() if 
-                                (value.type == ParamType.SEX_BIAS) and 
-                                (param not in local_parameter_handler.user_params_fixed_by_value) and 
+    free_sex_bias_parameters = {param: 0 for param, value in local_parameter_handler.demography.model_base_params.items() if
+                                (value.type == ParamType.SEX_BIAS) and
+                                (param not in local_parameter_handler.user_params_fixed_by_value) and
                                 (param not in local_parameter_handler.params_fixed_by_ancestry)}
 
     if step_1:
@@ -691,44 +410,27 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         fixed_non_sex_bias = {}
         for idx, param_name in enumerate(param_names_ordered):
             param_info = local_parameter_handler.demography.model_base_params[param_name]
-            if (param_info.type != ParamType.SEX_BIAS and 
+            if (param_info.type != ParamType.SEX_BIAS and
                 param_name not in local_parameter_handler.user_params_fixed_by_value and
                 param_name not in local_parameter_handler.params_fixed_by_ancestry):
                 if idx < len(p0):
                     fixed_non_sex_bias[param_name] = p0_phys[idx]
         local_parameter_handler.add_fixed_parameters(fixed_non_sex_bias)
-        
+
     # ----------- Define objective function for optimization ------------
 
     def objective_function(model_base_parameters, include_autosomes=True, include_allosomes=True):
         return _compute_objective(
             model_base_parameters,
-            local_parameter_handler=local_parameter_handler,
+            local_genetic_model=local_genetic_model,
             best_state=_best_state,
-            model_func=model_func,
-            outofbounds_fun=outofbounds_fun,
-            ad_model_autosomes=ad_model_autosomes,
-            ad_model_allosomes=ad_model_allosomes,
-            N_cores=N_cores,
-            verbose_log=verbose_log,
-            verbose_screen=verbose_screen,
-            population=population,
-            autosome_bins=autosome_bins,
-            autosome_data_mapped=autosome_data_mapped,
-            allosome_bins=allosome_bins if (ad_model_allosomes is not None and step_2) else None,
-            allosome_length=allosome_length if (ad_model_allosomes is not None and step_2) else None,
-            female_data_mapped=female_data_mapped if (ad_model_allosomes is not None and step_2) else None,
-            male_data_mapped=male_data_mapped if (ad_model_allosomes is not None and step_2) else None,
-            num_females=num_females if (ad_model_allosomes is not None and step_2) else None,
-            num_males=num_males if (ad_model_allosomes is not None and step_2) else None,
-            include_autosomes=include_autosomes,
-            include_allosomes=include_allosomes,
-            rho_f=rho_f,
-            rho_m=rho_m,
-            TP=TP
+            tracts_data=tracts_data,
+            likelihood_options=likelihood_options.with_overrides(
+                include_autosomes=include_autosomes, include_allosomes=include_allosomes
+            ),
         )
 
-    # Reduced functions are shared by both optimization steps
+    # ----------- Reduced functions (shared by both optimization steps) -----------
 
     def reduced_objective_function(free_parameters_opt, include_autosomes=True, include_allosomes=True):
         extended_parameters = local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt,  # Full parameters in optimizer space
@@ -740,20 +442,20 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
         return objective_function(model_base_parameters=extended_parameters,
                                   include_autosomes=include_autosomes,
-                                  include_allosomes=include_allosomes) 
+                                  include_allosomes=include_allosomes)
 
     def reduced_outofbounds_fun(free_parameters_opt):
         _extended_oob = local_parameter_handler.extend_parameters(free_parameters=free_parameters_opt, # Full parameters in optimizer space
                                                                    units="opt")
         for _idx, _val in _ancestry_overrides.items():
             _extended_oob[_idx] = _val
-        return outofbounds_fun(_extended_oob)
+        return local_genetic_model.outofbounds_fun(_extended_oob)
 
     table_header = "Iter.\t Log-likelihood\t Model parameters\t Transmission"
     line_header = "-" * len(table_header.expandtabs())
 
     if step_1:
-    
+
         reduced_p0 = local_parameter_handler.reduce_parameters(p0) # Initial parameters
 
         # ------------ Run first optimization step on autosomal data across non-sex-bias parameters ------------
@@ -761,51 +463,33 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
         if ad_model_allosomes is not None and step_2:
             subtitle_message = f"Optimization is performed in two steps.\nStep 1 : Optimizing autosomal likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
         else:
-            subtitle_message = f"Step 1 : Optimizing autosomal likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."      
+            subtitle_message = f"Step 1 : Optimizing autosomal likelihood over parameters {str(local_parameter_handler.indices_to_labels(local_parameter_handler.free_parameters_indices))}."
 
         if print_step_header:
-            print(subtitle_message)
-            logger.info(subtitle_message)
+            _print_and_log(subtitle_message)
 
-        for l in [table_header, line_header]:
-            if verbose_log>0:
-                logger.info(l)
-            if verbose_screen>0:
-                print(l)
-            
+        _print_verbose([table_header, line_header], verbose_log, verbose_screen)
+
         reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes=False)
-    
+
         outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_autosomes,
                                             x0=reduced_p0,
                                             cons=reduced_outofbounds_fun,
                                             rhobeg=.01,
                                             rhoend=.0001,
                                             maxfun=maxiter)
-    
+
         optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                         units="opt",
                                                                         show_ancestry_warning=True)
-        # Final flush: always show the last result at the end of step 1
-        if _best_state['params'] is not None:
-            _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
-            _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
-            if _needs_log or _needs_screen:
-                _prev_tpl = local_parameter_handler.enable_time_param_logging
-                local_parameter_handler.enable_time_param_logging = False
-                try:
-                    _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
-                finally:
-                    local_parameter_handler.enable_time_param_logging = _prev_tpl
-                if _needs_log:
-                    logger.info("iter=%-6d | obj=%-12g | params=%s", _counter, -_best_state['objective'], _final_param_str)
-                if _needs_screen:
-                    eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, 'Autosomes'))
-        final_message = f"Optimization completed"
+
+        _flush_final_result(_best_state, local_parameter_handler, verbose_log, verbose_screen, _counter, note='Autosomes') # Final flush: always show the last result at the end of step 1
+        final_message = "Optimization completed."
 
     if step_2:
-    
+
         # ------------ Run second optimization step on sex-bias parameters ------------
-        
+
         if not step_1:
             # Step 2 only: optimized_parameters starts at p0, non-sex-bias already fixed, sex-bias already free
             optimized_parameters = np.array(p0)
@@ -832,31 +516,18 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
 
         reduced_params = local_parameter_handler.reduce_parameters(optimized_parameters)
 
-        step_2_data = "autosomal + allosomal" if autosomes_in_step_2 else "allosomal"            
-        step_2_message_1 = f"Step 2 : Optimizing {step_2_data} likelihood over parameters : {str(list(free_sex_bias_parameters.keys()))}."
-        step_2_message = f"{step_2_message_1}\nNon-sex-bias parameters fixed at initial values." if not step_1 else f"{step_2_message_1}\nNon-sex-bias parameters fixed at values from previous optimization step."    
-        line = "-" * len(step_2_message_1)
-    
-        if len(reduced_params)>0 and verbose_log>0:
-            if print_step_header:
-                logger.info(line)
-                logger.info(step_2_message)
-            if ad_model_allosomes is not None:    
-                logger.info(table_header)
-                logger.info(line_header)
-        if len(reduced_params)>0 and verbose_screen>0:
-            if print_step_header:
-                print(line)
-                print(step_2_message)
-            if ad_model_allosomes is not None:
-                print(table_header)
-                print(line_header)
+        _print_step2_header(
+            step_1, autosomes_in_step_2, free_sex_bias_parameters,
+            table_header, line_header, print_step_header, ad_model_allosomes,
+            has_free_params=len(reduced_params) > 0,
+            verbose_log=verbose_log, verbose_screen=verbose_screen,
+        )
 
         _best_state['objective'] = np.inf
         _best_state['params'] = None
 
         reduced_objective_allosomes = lambda x: reduced_objective_function(x, include_autosomes=autosomes_in_step_2, include_allosomes=True)
-        
+
         if len(reduced_params)>0:
             outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_allosomes,
                                                 x0=reduced_params,
@@ -864,34 +535,22 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                                                 rhobeg=.01,
                                                 rhoend=.0001,
                                                 maxfun=maxiter)
-            
+
             step2_full_params_opt = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                                units="opt",
                                                                                show_ancestry_warning=True) # Checks for the ancestry warning at the end of step 2.
-    
+
             # Final flush: always show the last result at the end of step 2
-            if _best_state['params'] is not None:
-                _needs_log = verbose_log > 0 and (_counter % verbose_log != 0)
-                _needs_screen = verbose_screen > 0 and (_counter % verbose_screen != 0)
-                if _needs_log or _needs_screen:
-                    _prev_tpl = local_parameter_handler.enable_time_param_logging
-                    local_parameter_handler.enable_time_param_logging = False
-                    try:
-                        _final_param_str = 'array([%s])' % (', '.join(['%- 12g' % v for v in local_parameter_handler.convert_to_physical_params(_best_state['params'], report_non_admissible=False)]))
-                    finally:
-                        local_parameter_handler.enable_time_param_logging = _prev_tpl
-                    if _needs_log:
-                        logger.info("iter=%-6d | obj=%-12g | params=%s", _counter, -_best_state['objective'], _final_param_str)
-                    if _needs_screen:
-                        eprint('%-8i, %-12g, %s, %s' % (_counter, -_best_state['objective'], _final_param_str, 'Allosomes' if not autosomes_in_step_2 else 'Autosomes + Allosomes'))
-            final_message = f"Optimization completed."
+            _flush_final_result(
+                _best_state, local_parameter_handler, verbose_log, verbose_screen, _counter,
+                note='Allosomes' if not autosomes_in_step_2 else 'Autosomes + Allosomes',
+            )
+            final_message = "Optimization completed."
             line = "-" * len(final_message)
-            for l in [final_message, line]:
-                print(l)
-                logger.info(l)
+            _print_and_log(final_message, line)
 
             # ------------ Return optimal parameters corresponding to best likelihood ------------
-            
+
             if _best_state['params'] is None:
                 try:
                     fallback_likelihood = -objective_function(step2_full_params_opt, include_autosomes=autosomes_in_step_2, include_allosomes=True)
@@ -914,17 +573,15 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, model_fun
                 _best_state['objective'] = prev_best_objective
                 _best_state['params'] = prev_best_params
             return _format_return(_best_state['params'], -_best_state['objective'], full_data_likelihood)
-        
+
         else:
-            final_message = f"No free parameters to optimize at step 2. Optimization completed."
+            final_message = "No free parameters to optimize at step 2. Optimization completed."
 
     # ------------ Return optimal parameters corresponding to best likelihood ------------
-    
+
     line = "-" * len(final_message)
-    for l in [final_message, line]:
-        print(l)
-        logger.info(l)
-            
+    _print_and_log(final_message, line)
+
     if _best_state['params'] is None:
         try:
             if step_2:

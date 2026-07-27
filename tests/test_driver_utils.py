@@ -1,11 +1,12 @@
 from tracts.driver_utils import locate_file_path
 from tracts.driver_utils import parse_chromosomes, parse_start_params, scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
 from tracts.driver_utils import SamplesConfig, InferenceConfig
-from tracts.driver_utils import load_model_from_driver
+from tracts.driver_utils import load_demographic_model_from_driver
 from tracts.driver_utils import load_population
-from tracts.driver_utils import _compute_remainder_params
+from tracts.driver_utils import compute_remainder_params
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
+from tracts.demography.parameter import ParamType
 from pathlib import Path
 import pytest
 from unittest.mock import Mock, patch
@@ -171,7 +172,7 @@ class TestParseStartParams:
             start_param_bounds=start_bounds,
             repetitions=2,
             seed=42,
-            model=mock_model
+            demographic_model=mock_model
         )
 
         assert len(result) == 2
@@ -195,7 +196,7 @@ class TestParseStartParams:
             start_param_bounds=start_bounds,
             repetitions=1,
             seed=42,
-            model=mock_model
+            demographic_model=mock_model
         )
 
         assert len(result) == 1
@@ -220,7 +221,7 @@ class TestParseStartParams:
             start_param_bounds=start_bounds,
             repetitions=1,
             seed=42,
-            model=mock_model
+            demographic_model=mock_model
         )
 
         assert len(result) == 1
@@ -249,7 +250,7 @@ class TestParseStartParams:
                 start_param_bounds=start_bounds,
                 repetitions=1,
                 seed=42,
-                model=mock_model
+                demographic_model=mock_model
             )
 
         assert mock_model.get_violation_score.call_count == 1000
@@ -272,7 +273,7 @@ class TestParseStartParams:
             start_param_bounds=start_bounds,
             repetitions=1,
             seed=42,
-            model=mock_model
+            demographic_model=mock_model
         )
 
         assert len(result) == 1
@@ -299,7 +300,7 @@ class TestParseStartParams:
             start_param_bounds=start_bounds,
             repetitions=3,
             seed=42,
-            model=mock_model
+            demographic_model=mock_model
         )
 
         assert len(result) == 3
@@ -328,7 +329,7 @@ class TestParseStartParams:
             start_param_bounds=start_bounds,
             repetitions=2,
             seed=42,
-            model=mock_model
+            demographic_model=mock_model
         )
 
         assert len(result) == 2
@@ -353,7 +354,7 @@ class TestParseStartParams:
                 start_param_bounds=start_bounds,
                 repetitions=1,
                 seed=42,
-                model=mock_model
+                demographic_model=mock_model
             )
 
 class TestScaleSelectIndices:
@@ -563,7 +564,7 @@ class TestConfigModels:
 
 class TestLoadModelFromDriver:
     """
-    A class for testing the load_model_from_driver function, which is responsible for loading a demographic model based on specifications provided in a driver file.
+    A class for testing the load_demographic_model_from_driver function, which is responsible for loading a demographic model based on specifications provided in a driver file.
     The tests cover scenarios such as successful model loading, handling of missing model filename in the driver specifications, and error handling for cases where the specified model file cannot be found.
     """
 
@@ -575,6 +576,10 @@ class TestLoadModelFromDriver:
         mock_locate.return_value = model_path
 
         mock_model = Mock()
+        mock_model.model_base_params = {
+            "rate1": Mock(type=ParamType.RATE),
+            "sb1": Mock(type=ParamType.SEX_BIAS),
+        }
         mock_model_class.load_from_YAML.return_value = mock_model
 
         driver_spec = Mock()
@@ -582,13 +587,16 @@ class TestLoadModelFromDriver:
         driver_spec.models.implicit_population = None
         driver_spec.samples.allosomes = None
 
-        result = load_model_from_driver(
+        demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names = load_demographic_model_from_driver(
             driver_spec,
             script_dir=None,
             driver_path="/path/driver.yaml",
         )
 
-        assert result is mock_model
+        assert demographic_model is mock_model
+        assert model_param_names == ["rate1", "sb1"]
+        assert sex_bias_param_names == ["sb1"]
+        assert non_sex_bias_param_names == ["rate1"]
         mock_model_class.load_from_YAML.assert_called_once_with(
             source=str(model_path.resolve()),
             implicit_population=None,
@@ -601,6 +609,10 @@ class TestLoadModelFromDriver:
         model_path = Path("/path/to/model.yaml")
         mock_locate.return_value = model_path
         mock_model = Mock()
+        mock_model.model_base_params = {
+            "rate1": Mock(type=ParamType.RATE),
+            "sb1": Mock(type=ParamType.SEX_BIAS),
+        }
         mock_model_class_sexbiased.load_from_YAML.return_value = mock_model
 
         driver_spec = Mock()
@@ -610,11 +622,15 @@ class TestLoadModelFromDriver:
         driver_spec.samples.allosomes = ["X"]
         driver_spec.samples.male_names = ["ind1"]
 
-        result = load_model_from_driver(driver_spec, script_dir=None,
-                                       driver_path="/path/driver.yaml",
-                                       allosome_label="X")
+        demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names = load_demographic_model_from_driver(
+            driver_spec, script_dir=None,
+            driver_path="/path/driver.yaml",
+            allosome_label="X")
 
-        assert result == mock_model
+        assert demographic_model == mock_model
+        assert model_param_names == ["rate1", "sb1"]
+        assert sex_bias_param_names == ["sb1"]
+        assert non_sex_bias_param_names == ["rate1"]
         mock_model_class_sexbiased.load_from_YAML.assert_called_once_with(
             source=str(model_path.resolve()),
             implicit_population=None,
@@ -630,6 +646,9 @@ class TestLoadModelFromDriver:
         mock_locate.return_value = model_path
 
         mock_model = Mock()
+        mock_model.model_base_params = {
+            "rate1": Mock(type=ParamType.RATE),
+        }
         mock_model_class.load_from_YAML.return_value = mock_model
 
         driver_spec = Mock()
@@ -637,13 +656,16 @@ class TestLoadModelFromDriver:
         driver_spec.models.implicit_population = "AFR"
         driver_spec.samples.allosomes = None
 
-        result = load_model_from_driver(
+        demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names = load_demographic_model_from_driver(
             driver_spec,
             script_dir=None,
             driver_path="/path/driver.yaml",
         )
 
-        assert result is mock_model
+        assert demographic_model is mock_model
+        assert model_param_names == ["rate1"]
+        assert sex_bias_param_names == []
+        assert non_sex_bias_param_names == ["rate1"]
         mock_model_class.load_from_YAML.assert_called_once_with(
             source=str(model_path.resolve()),
             implicit_population="AFR",
@@ -659,7 +681,7 @@ class TestLoadModelFromDriver:
         driver_spec = Mock(spec=[])  # No attributes at all
         
         with pytest.raises((ValueError, AttributeError)):
-            load_model_from_driver(driver_spec, script_dir=None, 
+            load_demographic_model_from_driver(driver_spec, script_dir=None, 
                                   driver_path="/path/driver.yaml")
     
 
@@ -673,7 +695,7 @@ class TestLoadModelFromDriver:
         driver_spec.models.model_filename = "nonexistent.yaml"
         
         with pytest.raises(FileNotFoundError):
-            load_model_from_driver(driver_spec, script_dir=None, 
+            load_demographic_model_from_driver(driver_spec, script_dir=None, 
                                   driver_path="/path/driver.yaml")
 
 
@@ -733,7 +755,7 @@ class TestLoadPopulation:
 
 class TestComputeRemainderParams:
     """
-    Tests for _compute_remainder_params, which extracts the founding rate (and,
+    Tests for compute_remainder_params, which extracts the founding rate (and,
     for sex-biased models, the derived sex bias) of the remainder/dependent
     ancestry from the final migration matrices.
     """
@@ -780,7 +802,7 @@ class TestComputeRemainderParams:
     def test_unsupported_model_type_returns_empty_dict(self):
         """Any object that is not a recognised demography type returns {}."""
         from types import SimpleNamespace
-        result = _compute_remainder_params(SimpleNamespace(), {})
+        result = compute_remainder_params(SimpleNamespace(), {})
         assert result == {}
 
     # ------------------------------------------------------------------
@@ -790,31 +812,31 @@ class TestComputeRemainderParams:
     def test_plain_basic_rate(self):
         """Remainder rate = 1 - source_rate is read from the founding row."""
         model, matrices = self._plain_model(founder_rate=0.3, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isclose(result["dest_pop_remainder_pop_rate"], 0.7)
 
     def test_plain_rate_zero(self):
         """When source occupies 100 %, remainder rate = 0."""
         model, matrices = self._plain_model(founder_rate=1.0, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isclose(result["dest_pop_remainder_pop_rate"], 0.0)
 
     def test_plain_rate_one(self):
         """When source contributes 0 %, remainder rate = 1."""
         model, matrices = self._plain_model(founder_rate=0.0, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isclose(result["dest_pop_remainder_pop_rate"], 1.0)
 
     def test_plain_no_sex_bias_key(self):
         """Non-sex-biased models must not produce a sex_bias key."""
         model, matrices = self._plain_model()
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert not any("sex_bias" in k for k in result)
 
     def test_plain_key_includes_dest_pop(self):
         """Key must be '{dest_pop}_{remainder_pop}_rate', not just '{remainder_pop}_rate'."""
         model, matrices = self._plain_model()
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert "dest_pop_remainder_pop_rate" in result
         assert "remainder_pop_rate" not in result
 
@@ -822,14 +844,14 @@ class TestComputeRemainderParams:
         """A population listed twice is processed only once (no duplicate keys)."""
         model, matrices = self._plain_model()
         model.parametrized_populations = ["dest_pop", "dest_pop"]
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert list(result.keys()).count("dest_pop_remainder_pop_rate") == 1
 
     def test_plain_empty_parametrized_populations(self):
         """Empty parametrized_populations → empty result."""
         model, matrices = self._plain_model()
         model.parametrized_populations = []
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert result == {}
 
     def test_plain_no_remainder_continuous_founder(self):
@@ -845,7 +867,7 @@ class TestComputeRemainderParams:
         )
         model.parametrized_populations = ["dest_pop"]
         matrices = model.get_migration_matrices([0.4, 0.3, 8, 5])
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert result == {}
 
     # ------------------------------------------------------------------
@@ -855,7 +877,7 @@ class TestComputeRemainderParams:
     def test_sex_biased_rate_value(self):
         """Remainder rate = mean of male and female founding rates = 1 - source_rate."""
         model, matrices = self._sex_biased_model(founder_rate=0.3, sex_bias=0.0, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isclose(result["dest_pop_remainder_pop_rate"], 0.7)
 
     def test_sex_biased_sex_bias_opposite_sign(self):
@@ -873,33 +895,33 @@ class TestComputeRemainderParams:
                        = -s
         """
         model, matrices = self._sex_biased_model(founder_rate=0.3, sex_bias=0.5, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isclose(result["dest_pop_remainder_pop_sex_bias"], -0.5)
 
     def test_sex_biased_zero_sex_bias(self):
         """Zero source sex bias → remainder sex bias is also 0."""
         model, matrices = self._sex_biased_model(founder_rate=0.4, sex_bias=0.0, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isclose(result["dest_pop_remainder_pop_sex_bias"], 0.0)
 
     def test_sex_biased_nan_when_remainder_rate_zero(self):
         """When remainder rate = 0 the sex bias denominator collapses → NaN."""
         # source_rate = 1 → remainder_rate = 0
         model, matrices = self._sex_biased_model(founder_rate=1.0, sex_bias=0.0, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isnan(result["dest_pop_remainder_pop_sex_bias"])
 
     def test_sex_biased_nan_when_remainder_rate_one(self):
         """When remainder rate = 1 the sex bias denominator collapses → NaN."""
         # source_rate = 0 → remainder_rate = 1
         model, matrices = self._sex_biased_model(founder_rate=0.0, sex_bias=0.0, found_time=5)
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert np.isnan(result["dest_pop_remainder_pop_sex_bias"])
 
     def test_sex_biased_keys_include_dest_pop(self):
         """Both keys must be prefixed with the destination population name."""
         model, matrices = self._sex_biased_model()
-        result = _compute_remainder_params(model, matrices)
+        result = compute_remainder_params(model, matrices)
         assert "dest_pop_remainder_pop_rate" in result
         assert "dest_pop_remainder_pop_sex_bias" in result
         assert "remainder_pop_rate" not in result
