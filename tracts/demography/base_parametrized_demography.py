@@ -168,22 +168,26 @@ class FounderEvent(BaseFounderEvent):
                 total_rate += parametrized_demography.get_param_value(param_name=rate_param,
                                                                     params=params)
             
+            # If all source rates are 0 (e.g. a transient candidate during ancestry-based
+            # parameter fixing), total_rate is 0 too; rate / total_rate is then 0/0 and each
+            # source's fair share of the first generation is 0 regardless, so we define it as
+            # such instead of letting a NaN (and a RuntimeWarning) propagate into the matrix.
             for source_population, rate_param in self.source_populations.items():
                 rate = parametrized_demography.get_param_value(param_name=rate_param,
                                                                 params=params)
-                
-        
+                rate_fraction = rate / total_rate if total_rate != 0 else 0.
+
                 if source_population not in self.pulse_pops:
-                    
+
                     migration_matrix[integer_end_time - 1, parametrized_demography.population_indices[source_population]] += rate * (integer_end_time - float_end_time)
                     for t in range(integer_end_time, start_time-1):
                         migration_matrix[t, parametrized_demography.population_indices[source_population]] += rate
                 else:
                     migration_matrix[start_time-2, parametrized_demography.population_indices[source_population]] += frac_part_start*rate #to ensure continuity of the matrix
 
-                migration_matrix[start_time, parametrized_demography.population_indices[source_population]] += rate / total_rate # First generation must sum to 1
+                migration_matrix[start_time, parametrized_demography.population_indices[source_population]] += rate_fraction # First generation must sum to 1
                 # The second generation does not need to sum to one. However, we want a continuously varying matrix. If true start time is 7.00001, or 6.999, we want the 7th generation to be an almost full replacement.
-                migration_matrix[start_time-1, parametrized_demography.population_indices[source_population]] += frac_part_start*(rate / total_rate)  + rate*(1- frac_part_start)
+                migration_matrix[start_time-1, parametrized_demography.population_indices[source_population]] += frac_part_start*rate_fraction  + rate*(1- frac_part_start)
 
         return migration_matrix
 
