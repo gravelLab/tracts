@@ -40,6 +40,9 @@ optim:
   #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
   two_steps_optimization: True
   use_autosomes_for_sex_bias: False
+  n_reoptimizations: 5
+  rerun_optimization_on_boundaries: True
+  boundary_tol: 0.3
 
 output:
   output_filename_format: "ASW_{label}"

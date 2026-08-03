@@ -26,6 +26,9 @@ optim:
   maximum_iterations: 1000
   exclude_tracts_below_cm: 2
   fix_parameters_from_ancestry_proportions: ['R']
+  n_reoptimizations: 5
+  rerun_optimization_on_boundaries: True
+  boundary_tol: 0.3
 
 output:
   output_directory: ./output_fix_two_pulse/

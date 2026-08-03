@@ -39,6 +39,9 @@ optim:
   exclude_tracts_below_cm: 2
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
   fix_parameters_by_value: {'REUR_sex_bias': 0.99}
+  n_reoptimizations: 5
+  rerun_optimization_on_boundaries: True
+  boundary_tol: 0.3
 output:
   output_directory: "./output_ppp_EURIMPLICIT/{date}/"
   output_filename_format: "CLM_EURIMPLICIT_{label}"

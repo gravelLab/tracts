@@ -248,6 +248,11 @@ Optimization
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
      N_cores: 5
+     n_reoptimizations: 5
+     reoptimization_likelihood_tolerance: 1e-3
+     rerun_optimization_on_boundaries: True
+     boundary_tol: 0.3
+     repetitions_likelihood_tolerance: 0.5
 
 - ``seed``: The random seed.
 - ``repetitions``: Number of independent optimization runs performed from different initial values, randomly chosen within the bounds set by the user. Since the optimizer may converge to different local optima, the algorithm repeats the optimization ``repetitions`` times and automatically retains the run with the highest likelihood.
@@ -260,6 +265,12 @@ Optimization
 - ``two_steps_optimization``: Whether to perform a two-step optimization, where non-sex-bias parameters are optimized first using autosomes, and then sex-bias parameters are optimized with the non-sex-bias parameters fixed. Defaults to ``True``.
 - ``use_autosomes_for_sex_bias``: Whether to use both autosomal and allosomal data to optimize sex-bias parameters. Defaults to ``False``, which means that only allosomes are used to optimize sex-bias parameters.
 - ``N_cores``: The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used to model autosomal or allosomal admixture. Ignored if the hybrid-pedigree refinements are not used. Default is 1.
+- ``n_reoptimizations``: The number of times to repeat fixing the sex-bias parameters at their most recently optimized values and re-running the optimization from the current optimal parameters. This lets the non-sex-bias and sex-bias parameters refine each other iteratively. Defaults to 0 (not run).
+- ``reoptimization_likelihood_tolerance``: Absolute tolerance used to decide whether a re-optimization repetition (see ``n_reoptimizations``) has stopped improving the likelihood, in which case the repetitions stop early. Defaults to ``1e-3``.
+- ``rerun_optimization_on_boundaries``: Whether to re-run the optimization when one or more sex-bias parameters have an optimal value at their +-1 boundary, fixing the boundary-hitting parameters by value (and, if required, changing the implicit population). Defaults to ``True``.
+- ``boundary_tol``: The tolerance used to determine whether an optimized sex-bias parameter's value is at its +-1 boundary. Default is 0.3.
+- ``repetitions_likelihood_tolerance``: Absolute tolerance used to decide whether a run (among the ``repetitions`` runs from different starting parameters) reached a likelihood value close to the best one; a warning is logged if only one run out of several is found within this tolerance of the best. Defaults to ``0.5``.
+
 
 .. admonition:: Using ``fix_parameters_from_ancestry_proportions``
    :class: tip

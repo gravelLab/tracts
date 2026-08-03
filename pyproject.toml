@@ -32,7 +32,10 @@ filterwarnings = [
     # Third-party: Matplotlib's own math-text renderer (used when plotting output figures)
     # calls pyparsing APIs that pyparsing itself has since deprecated; not caused by tracts
     # and only fixable by upgrading the installed Matplotlib/pyparsing versions.
-    "ignore::pyparsing.PyparsingDeprecationWarning",
+    # (Registered in conftest.py instead of here: pyparsing's deprecation-warning class has
+    # moved between top-level and submodule locations across versions, and resolving a
+    # nonexistent dotted path in this static list crashes pytest collection entirely rather
+    # than just skipping the filter.)
     # Expected on newer SciPy (whose COBYLA implementation validates maxfun >= num_vars + 2):
     # the test driver YAMLs and core.py test fixtures deliberately use very low
     # maxiter/maximum_iterations values (as low as 2) to keep the test suite fast, not to

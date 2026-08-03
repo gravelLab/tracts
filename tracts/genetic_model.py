@@ -207,6 +207,34 @@ class GeneticModel:
         """
         return self.demographic_model.get_migration_matrices(params)
 
+    def set_up_fixed_parameters(self, params_to_fix_by_ancestry: list | None = None,
+                                proportions: dict | None = None,
+                                user_params_to_fix_by_value: dict | None = None) -> None:
+        """
+        Sets up fixed parameters (by ancestry proportions and/or by user-provided value) on
+        this instance's ``demographic_model`` (see ``BaseParametrizedDemography.set_up_fixed_parameters``).
+
+        Provided as a GeneticModel method — rather than requiring callers to reach into
+        ``genetic_model.demographic_model`` themselves — so that fixing parameters through a
+        GeneticModel always mutates the exact demographic_model that GeneticModel's own
+        ``parameter_handler``/``model_func``/``outofbounds_fun``/``loglik`` read from, and the
+        change is guaranteed visible on any later use of this same GeneticModel instance.
+
+        Parameters
+        ----------
+        params_to_fix_by_ancestry: list[str] | None
+            Names of parameters to fix from ``proportions``. Defaults to none.
+        proportions: dict[str, list[float]] | None
+            Ancestry proportions used to fix ``params_to_fix_by_ancestry``. Defaults to none.
+        user_params_to_fix_by_value: dict[str, float] | None
+            A dict mapping parameter names to the values they should be fixed at. Defaults to none.
+        """
+        self.demographic_model.set_up_fixed_parameters(
+            params_to_fix_by_ancestry=params_to_fix_by_ancestry or [],
+            proportions=proportions or {},
+            user_params_to_fix_by_value=user_params_to_fix_by_value or {},
+        )
+
     def model_func(self, params):
         """
         Converts optimizer-space ``params`` to physical parameters via ``demographic_model.parameter_handler``

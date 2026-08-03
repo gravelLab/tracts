@@ -202,12 +202,13 @@ def initialize_tracts(driver_spec: InferenceConfig, driver_filename: str) -> tup
     output_message = f"Results will be written to: {output_dir}."
     logger_message = f"Using log file: {log_full_path}."
     tracts_below_cm_message = f'excluding_tracts_below set to {driver_spec.optim.exclude_tracts_below_cm} cM.'
+    re_optimization_message = f"Re-optimization will be performed until convergence or maximum {driver_spec.optim.n_reoptimizations} times." if driver_spec.optim.n_reoptimizations > 0 else "Re-optimization will not be performed."
 
     # ------ Print initial information -------
     print('------------------------------------------------------------------------------------------------\n')
     print('Running tracts 2.0 with driver file:', driver_filename,'\n')
     print('------------------------------------------------------------------------------------------------\n')   
-    for message in (output_message, logger_message, tracts_below_cm_message):
+    for message in (output_message, logger_message, tracts_below_cm_message, re_optimization_message):
         print(message)
         logger.info(message)
 
