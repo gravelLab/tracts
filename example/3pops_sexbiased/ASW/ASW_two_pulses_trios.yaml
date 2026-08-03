@@ -38,6 +38,9 @@ optim:
   #fix_parameters_from_ancestry_proportions: ['REUR2', 'RNAT', 'REUR2_sex_bias', 'RNAT_sex_bias']
   exclude_tracts_below_cm: 2
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
+  n_reoptimizations: 5
+  rerun_optimization_on_boundaries: True
+  boundary_tol: 0.3
 
 output:
   output_directory: ./output_ppp_pxx_trios/

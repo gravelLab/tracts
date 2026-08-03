@@ -2,6 +2,7 @@ import numbers
 import os
 import sys
 import inspect
+from dataclasses import dataclass
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Callable, Optional
@@ -12,6 +13,7 @@ from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 from matplotlib.figure import Figure
 from scipy.stats import poisson
 from tracts.population import Population
+from tracts.genetic_model import GeneticModel
 from tracts.phase_type import hybrid_pedigree as HP
 from tracts.phase_type import PhTMonoecious, PhTDioecious
 from tracts.demography.parametrized_demography import ParametrizedDemography
@@ -27,8 +29,8 @@ from pydantic_core import PydanticUndefined
 import logging
 logger = logging.getLogger(__name__)
 
-# --------------- Locate driver file ---------------
 
+# --------------- Locate driver file ---------------
 
 def locate_file_path(filename: str, 
                     script_dir: str | Path | None,
@@ -190,13 +192,28 @@ class OptimizationConfig(BaseModel):
         Whether step 2 should include autosomal data in addition to allosomal data. Defaults to False.
     N_cores: int
         The number of CPU cores to use for parallel processing, when the hybrid-pedigree refinements of the DF or DC models are used. Ignored if the hybrid-pedigree refinements are not used. Defaults to 1.
+    n_reoptimizations: int
+        The number of times to repeat: fixing the sex-bias parameters at their most recently
+        optimized values, then re-running the optimization. Defaults to 0 (not run).
+    reoptimization_likelihood_tolerance: float
+        Absolute tolerance used to decide whether a re-optimization repetition (see
+        ``run_sex_bias_fixing_reoptimizations``) has stopped improving the likelihood. Defaults
+        to 1e-3.
+    rerun_optimization_on_boundaries: bool
+        Whether to re-run the optimization (see ``run_boundary_reoptimization``) when one or more
+        sex-bias parameters have an optimal value at their +-1 boundary. Defaults to True.
     boundary_tol: float
-        The tolerance for determining if a parameter is at its boundary value. Defaults to 0.3.
+            The tolerance for determining if a parameter is at its boundary value. Defaults to 0.3.
+    repetitions_likelihood_tolerance: float
+        Absolute tolerance used to decide whether a run (among the ``repetitions`` runs from
+        different starting parameters) reached a likelihood value close to the best one. A
+        warning is logged if only one run out of several is found to be within this tolerance of
+        the best. Defaults to 0.5.
     """
     model_config = ConfigDict(extra="forbid")
-    repetitions: int =1 
+    repetitions: int =1
     seed: int
-    maximum_iterations: int|None = None 
+    maximum_iterations: int|None = None
     npts: int = 50
     exclude_tracts_below_cm: float = 1
     fix_parameters_from_ancestry_proportions: List[str] = []
@@ -205,7 +222,12 @@ class OptimizationConfig(BaseModel):
     two_steps_optimization: bool = True
     use_autosomes_for_sex_bias: bool = False
     N_cores: int = Field(default=1, ge=1)
+    n_reoptimizations: int = Field(default=0, ge=0)
+    reoptimization_likelihood_tolerance: float = Field(default=1e-3, ge=0)
+    rerun_optimization_on_boundaries: bool = True
     boundary_tol: float = Field(default=0.3, ge=0)
+    repetitions_likelihood_tolerance: float = Field(default=0.5, ge=0)
+
 
 class OutputConfig(BaseModel):
     """
@@ -427,8 +449,9 @@ def check_population_labels(demographic_model: ParametrizedDemography | Parametr
             f"unknown labels: {population.unknown_labels}")
 
 
-def setup_fixed_parameters(driver_spec: InferenceConfig, demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, 
-                           allosome_label: str, autosome_proportions: list[float], allosome_proportions: list[float]):
+def setup_fixed_parameters(driver_spec: InferenceConfig, demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased,
+                           allosome_label: str, autosome_proportions: list[float], allosome_proportions: list[float],
+                           print_details: bool = True):
 
     """
     Sets up fixed parameters in the demographic model based on the specifications in the driver file.
@@ -445,7 +468,12 @@ def setup_fixed_parameters(driver_spec: InferenceConfig, demographic_model: Para
         The ancestry proportions calculated from autosomal data, averaged across all individuals in the population.
     allosome_proportions: list[float]
         The ancestry proportions calculated from allosomal data, averaged across all individuals in the population. Only used if allosomes are specified in the driver file.
-    
+    print_details: bool
+        Whether to print the model parameters list and which parameters were fixed (from ancestry
+        proportions or by value), and the boundary-value warning. The corresponding log messages
+        are always emitted regardless. Defaults to True; set to False for the quieter
+        boundary re-optimization, where this has already been reported once for the original model.
+
     """
     if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0 or len(driver_spec.optim.fix_parameters_by_value) > 0: # Set up fixed parameters if specified in the driver
             
@@ -470,21 +498,24 @@ def setup_fixed_parameters(driver_spec: InferenceConfig, demographic_model: Para
     else: # No parameters to fix 
         demographic_model.set_up_fixed_parameters([],{})
 
-    print(f"Model parameters: {', '.join(demographic_model.model_base_params.keys())}") # Print model parameters
+    if print_details:
+        print(f"Model parameters: {', '.join(demographic_model.model_base_params.keys())}") # Print model parameters
 
     if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0:
         ancestry_fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
         anc_message = f"The following parameters have been fixed from ancestry proportions: {ancestry_fixed_params}"
         logger.info(anc_message)
-        print(anc_message)
+        if print_details:
+            print(anc_message)
     if len(driver_spec.optim.fix_parameters_by_value) > 0:
         value_fixed_params = ", ".join(driver_spec.optim.fix_parameters_by_value.keys())
         value_message = f"The following parameters have been fixed by value: {value_fixed_params}"
         fixed_at_one = {_param_name: _param_value for _param_name, _param_value in driver_spec.optim.fix_parameters_by_value.items() if np.isclose(_param_value, 1.0, atol=1e-5) or np.isclose(_param_value, -1.0, atol=1e-5)}
         logger.info(value_message)
-        print(value_message)
-        if len(fixed_at_one) > 0:
-            print("Warning: fixing rate or sex-bias parameters at boundary values may lead to suboptimal results. Consider fixing at 0.99 or -0.99 instead.")
+        if print_details:
+            print(value_message)
+            if len(fixed_at_one) > 0:
+                print("Warning: fixing rate or sex-bias parameters at boundary values may lead to suboptimal results. Consider fixing at 0.99 or -0.99 instead.")
 
 
 
@@ -637,6 +668,71 @@ def load_population(driver_path: str, driver_spec: InferenceConfig, script_dir: 
     return pop
 
 
+def get_param_names_by_type(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased) -> tuple[list[str], list[str], list[str]]:
+    """
+    Derives a demographic model's free base parameter names, split into sex-bias and
+    non-sex-bias subsets, straight from its ``model_base_params``. Since this is fully
+    determined by the demographic model itself, callers that already hold a demographic model
+    (or a ``GeneticModel`` wrapping one) never need to separately track or pass around these
+    three lists.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model whose parameter names are derived.
+
+    Returns
+    -------
+    tuple[list[str], list[str], list[str]]
+        A tuple ``(model_param_names, sex_bias_param_names, non_sex_bias_param_names)``, where:
+
+        * ``model_param_names`` is the list of all parameter names, in the order given by
+          ``demographic_model.model_base_params``.
+        * ``sex_bias_param_names`` is the subset of ``model_param_names`` corresponding to
+          sex-bias parameters.
+        * ``non_sex_bias_param_names`` is the remaining subset of ``model_param_names``,
+          excluding sex-bias parameters.
+    """
+    model_param_names = list(demographic_model.model_base_params.keys())
+    sex_bias_param_names = [
+        name for name, info in demographic_model.model_base_params.items()
+        if info.type == ParamType.SEX_BIAS
+    ]
+    non_sex_bias_param_names = [
+        name for name in model_param_names
+        if name not in sex_bias_param_names
+    ]
+    return model_param_names, sex_bias_param_names, non_sex_bias_param_names
+
+
+@dataclass
+class ModelReloadContext:
+    """
+    Bundles the file-location and ancestry-proportion context needed to reload a demographic
+    model from its driver/model YAML files (e.g. when the implicit population changes and the
+    founder-event structure has to be re-parsed), so that functions needing this context take
+    one parameter instead of five.
+
+    Attributes
+    ----------
+    script_dir: str
+        The directory containing the script.
+    driver_path: str
+        The path to the driver file.
+    allosome_label: str | None
+        The label used for allosomal data, as returned by ``get_admixture_models``.
+    autosome_proportions: dict
+        Observed autosomal ancestry proportions, as returned by ``get_ancestry_proportions``.
+    allosome_proportions: dict
+        Observed allosomal ancestry proportions, as returned by ``get_ancestry_proportions``.
+    """
+    script_dir: str
+    driver_path: str
+    allosome_label: str | None
+    autosome_proportions: dict
+    allosome_proportions: dict
+
+
 def load_demographic_model_from_driver(driver_spec: InferenceConfig, script_dir: str | Path | None, driver_path: str, allosome_label: str | None=None):
     """
     Loads the demographic model based on the specifications in the driver file. The model is expected to be defined in a separate yaml file, 
@@ -677,16 +773,8 @@ def load_demographic_model_from_driver(driver_spec: InferenceConfig, script_dir:
         demographic_model = ParametrizedDemography.load_from_YAML(source=str(model_path.resolve()),
                                                       implicit_population=driver_spec.models.implicit_population)
 
-    model_param_names = list(demographic_model.model_base_params.keys())
-    sex_bias_param_names = [
-        name for name, info in demographic_model.model_base_params.items()
-        if info.type == ParamType.SEX_BIAS
-    ]
-    non_sex_bias_param_names = [
-        name for name in model_param_names
-        if name not in sex_bias_param_names
-    ]
-    
+    model_param_names, sex_bias_param_names, non_sex_bias_param_names = get_param_names_by_type(demographic_model)
+
     return demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names
 
 def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemography, repetitions: int=1, seed: float | None = None,
@@ -1131,12 +1219,68 @@ def _print_optimal_values_and_likelihood(demographic_model: ParametrizedDemograp
         print(dep_msg)
         logger.info(dep_msg)
 
+def has_free_sex_bias_parameters(parameter_handler: FixedParametersHandler, sex_bias_param_names: list[str]):
+    """
+    Checks whether any sex-bias parameters are free (not fixed by ancestry proportions or value) in the demographic model.
 
-def check_optimal_parameters_at_boundaries(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, driver_spec: InferenceConfig,
+    Parameters
+    ----------
+    parameter_handler: FixedParametersHandler
+        The parameter handler for the demographic model.
+    sex_bias_param_names: list[str]
+        A list of parameter names corresponding to sex-bias parameters
+    
+    Returns
+    -------
+    bool
+        True if any sex-bias parameters are free, False otherwise.
+    """
+
+    fixed_sex_bias_params = (
+        set(parameter_handler.params_fixed_by_ancestry)
+        | set(parameter_handler.user_params_fixed_by_value.keys())
+    )
+    return any(name not in fixed_sex_bias_params for name in sex_bias_param_names)
+
+
+def _get_driver_for_reoptimization(driver_spec: InferenceConfig, model_param_names: list[str], optimal_params: np.ndarray):
+
+    """
+    Creates a new driver specification for re-optimization, using the optimal parameters from a previous optimization as the starting parameters for the new optimization.
+    The new driver specification is a copy of the original driver specification, with the starting parameters updated to the optimal parameters and the number of repetitions set to 1,
+    so that no resampling of starting parameters is peformed.
+
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The configuration for the inference process, as specified in the driver file.
+    model_param_names: list[str]
+        A list of all parameter names of the demographic model, in the order given by demographic_model.model_base_params.
+    optimal_params: np.ndarray
+        The final optimal parameters in physical units, as returned by the optimization process.
+    
+    Returns
+    -------
+    InferenceConfig
+        A new driver specification for re-optimization, with the starting parameters updated to the optimal parameters and the number of repetitions set to 1.
+    """
+    reopt_start_params_config = driver_spec.start_params.model_copy(update={
+                                    name: float(value) for name, value in zip(model_param_names, optimal_params)
+                                    })
+            
+    reopt_driver_spec = driver_spec.model_copy(update={
+                                "start_params": reopt_start_params_config,
+                                "optim": driver_spec.optim.model_copy(update={"repetitions": 1}),
+                                })
+
+    return reopt_driver_spec
+
+
+def check_optimal_sex_bias_parameters_at_boundaries(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, driver_spec: InferenceConfig,
                                            sex_bias_param_names: list[str], remainder_params: dict[str, float], optimal_params: np.ndarray):
 
     """
-    Checks whether the optimal parameters have values at the border of the feasible region, up to a pre-specified tolerance.
+    Checks whether the optimal sex-bias parameters have values at the border of the feasible region, up to a pre-specified tolerance.
     If any sex-bias parameter has an optimal value at the border, the function raises a warning to suggest a re-run with 
     fixed values.
 
@@ -1152,6 +1296,11 @@ def check_optimal_parameters_at_boundaries(demographic_model: ParametrizedDemogr
         A dictionary of derived parameters for the 'remainder' (dependent) ancestry in each parametrized population, as computed by ``compute_remainder_params``.
     optimal_params: np.ndarray
         The final optimal parameters in physical units, as returned by the optimization process.
+
+    Returns
+    -------
+    list[str]
+        A list of parameter names that have optimal values at the boundary of the feasible region.
     """    
     param_names = list(demographic_model.model_base_params.keys())    
     all_param_names = param_names + list(remainder_params.keys())
@@ -1169,15 +1318,341 @@ def check_optimal_parameters_at_boundaries(demographic_model: ParametrizedDemogr
                             if _param_name.endswith("_sex_bias") and
                             (np.isclose(_param_value, 1.0, atol = driver_spec.optim.boundary_tol) or np.isclose(_param_value, -1.0, atol = driver_spec.optim.boundary_tol))}
 
-    _all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
-    if _all_at_boundary:
+    all_at_boundary = list(unfixed_sex_bias_params_at_boundaries) + list(remainder_sex_bias_at_boundaries)
+    if all_at_boundary:
         _boundary_msg = (
-            f"Warning: the optimal solution has sex-bias parameter(s) "
-            f"{', '.join(_all_at_boundary)} at their \u00b11 boundary. "
-            "Re-running the optimization fixing these parameters at their boundary values may yield a better solution."
+            f"The optimal solution has sex-bias parameter(s) "
+            f"{', '.join(all_at_boundary)} at their \u00b11 boundary. "
             )
+        if not driver_spec.optim.rerun_optimization_on_boundaries:
+            _boundary_msg+="Re-running the optimization fixing these parameters at their boundary values may yield a better solution. Consider setting driver_spec.optim.rerun_optimization_on_boundaries to TRUE."
         print(_boundary_msg)
-        logger.warning(_boundary_msg)
+        logger.info(_boundary_msg)
+    
+    return all_at_boundary
+
+
+def _get_founder_event_with_remainder(demographic_model: ParametrizedDemographySexBiased, population: str):
+    """
+    Returns the male-suffixed founder event for ``population`` (e.g. ``"X_male"``), or None if
+    there is no such founder event or it has no remainder population (i.e. it is a continuous
+    founder event, or every source population's proportion is explicitly parametrized).
+    """
+    founder_event = demographic_model.founder_events.get(f"{population}{SexType.MALE.suffix}")
+    if founder_event is None or founder_event.remainder_population is None:
+        return None
+    return founder_event
+
+
+def get_alternate_implicit_population(demographic_model: ParametrizedDemographySexBiased,
+                                      optimal_sex_bias_at_boundaries: list[str]) -> str | None:
+    """
+    Checks whether any of the boundary-violating sex-bias parameter names in
+    ``optimal_sex_bias_at_boundaries`` is a derived remainder parameter (i.e. corresponds to
+    ``demographic_model``'s current implicit population, rather than a directly-optimized
+    sex-bias parameter). If so, returns the name of a different source population from the
+    same founder event, whose own sex-bias parameter is not itself at a boundary, that could
+    be used as the implicit population instead.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemographySexBiased
+        The demographic model whose founder events are inspected.
+    optimal_sex_bias_at_boundaries: list[str]
+        Parameter names at their +-1 boundary, as returned by
+        ``check_optimal_sex_bias_parameters_at_boundaries``.
+
+    Returns
+    -------
+    str | None
+        The name of an alternate source population to use as the implicit population, or
+        None if no boundary-violating parameter corresponds to the current implicit
+        population, or if every other source population in that founder event is also
+        at a boundary.
+    """
+    for population in demographic_model.parametrized_populations:
+        founder_event = _get_founder_event_with_remainder(demographic_model, population)
+        if founder_event is None:
+            continue
+
+        remainder_key = f"{population}_{founder_event.remainder_population}_sex_bias"
+        if remainder_key not in optimal_sex_bias_at_boundaries:
+            continue
+
+        for source_population, rate_param in founder_event.source_populations.items():
+            # rate_param is sex-suffixed here (e.g. "REUR_male", from the male founder event's
+            # own source_populations); strip the suffix to match the plain sex-bias parameter
+            # names in optimal_sex_bias_at_boundaries (e.g. "REUR_sex_bias").
+            base_rate_param = rate_param.removesuffix(SexType.MALE.suffix)
+            if f"{base_rate_param}_sex_bias" not in optimal_sex_bias_at_boundaries:
+                return source_population
+
+        _boundary_msg = (
+            f"The implicit population's ('{founder_event.remainder_population}') sex-bias parameter "
+            f"({remainder_key}) is at the +-1 boundary, but every other source population in the same "
+            "founder event also has its sex-bias parameter at a boundary: no alternate implicit "
+            "population can be chosen."
+        )
+        print(_boundary_msg)
+        logger.info(_boundary_msg)
+        return None
+
+    return None
+
+
+def _get_params_for_newly_explicit_population(old_demographic_model: ParametrizedDemographySexBiased,
+                                              new_demographic_model: ParametrizedDemographySexBiased,
+                                              remainder_params: dict[str, float]) -> tuple[dict[str, float], dict[str, float]]:
+    """
+    When switching the implicit population, the population that was previously implicit becomes an
+    explicit, directly-optimized parameter in the new demographic model, with no starting value
+    specified in the driver file (it was never optimized before, so the user never had to provide
+    one), taken from the optimal remainder values computed at the end of the previous optimization
+    (see ``compute_remainder_params``).
+
+    The rate is only used as a starting value (it was not itself flagged as a boundary hit, so it
+    remains free to be optimized). The sex-bias parameter, however, is the very one whose derived
+    (remainder) value was at the +-1 boundary that triggered this implicit-population switch in
+    the first place: per ``run_boundary_reoptimization``'s "all boundary-hitting parameters must be
+    fixed by value" rule, it must be fixed at that boundary value in the new model, not left free
+    to be resampled/re-optimized from scratch.
+
+    Parameters
+    ----------
+    old_demographic_model: ParametrizedDemographySexBiased
+        The demographic model before the implicit-population switch.
+    new_demographic_model: ParametrizedDemographySexBiased
+        The demographic model after the implicit-population switch (freshly reloaded).
+    remainder_params: dict[str, float]
+        The remainder (derived) parameters computed from the previous optimization's optimal
+        parameters, as returned by ``compute_remainder_params``.
+
+    Returns
+    -------
+    tuple[dict[str, float], dict[str, float]]
+        A pair ``(start_param_updates, fixed_param_values)``: a dict mapping the newly-explicit
+        rate parameter name to its starting value, and a dict fixing the newly-explicit sex-bias
+        parameter name at its previous (boundary) value.
+    """
+    start_param_updates = {}
+    fixed_param_values = {}
+    for population in old_demographic_model.parametrized_populations:
+        old_founder_event = _get_founder_event_with_remainder(old_demographic_model, population)
+        if old_founder_event is None:
+            continue
+
+        old_remainder_population = old_founder_event.remainder_population
+        new_founder_event = new_demographic_model.founder_events.get(f"{population}{SexType.MALE.suffix}")
+        if new_founder_event is None:
+            continue
+
+        new_rate_param = new_founder_event.source_populations.get(old_remainder_population)
+        if new_rate_param is None:
+            continue
+        new_rate_param = new_rate_param.removesuffix(SexType.MALE.suffix)
+
+        rate_value = remainder_params.get(f"{population}_{old_remainder_population}_rate")
+        if rate_value is not None:
+            start_param_updates[new_rate_param] = float(rate_value)
+
+        sex_bias_value = remainder_params.get(f"{population}_{old_remainder_population}_sex_bias")
+        if sex_bias_value is not None and not np.isnan(sex_bias_value):
+            fixed_param_values[f"{new_rate_param}_sex_bias"] = float(sex_bias_value)
+
+    return start_param_updates, fixed_param_values
+
+
+def compute_physical_start_params(driver_spec: InferenceConfig, demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased,
+                                  sex_bias_param_names: list[str], non_sex_bias_param_names: list[str],
+                                  step_label: str = "step 1") -> list[np.ndarray]:
+    """
+    Computes physical starting parameters to optimize from. When
+    ``driver_spec.optim.two_steps_optimization`` is True, only non-sex-bias parameters are
+    sampled (sex-bias parameters are fixed at 0, or at any user-provided fixed value), matching
+    step 1's parameter subset, and identical starting points are collapsed into one (see
+    ``collapse_identical_start_params``). Otherwise, all parameters are sampled/fixed according
+    to ``driver_spec.optim.fix_parameters_by_value`` alone.
+
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The driver-file configuration controlling repetitions/seed/two_steps_optimization/
+        fix_parameters_by_value.
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model to sample starting parameters for.
+    sex_bias_param_names: list[str]
+        Names of the sex-bias parameters among the demographic model's free base parameters.
+    non_sex_bias_param_names: list[str]
+        Names of the non-sex-bias parameters among the demographic model's free base parameters.
+    step_label: str
+        Label used when collapsing identical two-step starting parameters into one. Defaults to
+        "step 1".
+
+    Returns
+    -------
+    list[np.ndarray]
+        The physical starting parameters to optimize from.
+    """
+    if driver_spec.optim.two_steps_optimization:
+        zeroed_sex_bias = {name: 0.0 for name in sex_bias_param_names if name not in driver_spec.optim.fix_parameters_by_value.keys()}
+        physical_start_params = parse_start_params(
+            start_param_bounds=driver_spec.start_params,
+            repetitions=driver_spec.optim.repetitions,
+            seed=driver_spec.optim.seed,
+            demographic_model=demographic_model,
+            sample_param_names=set(non_sex_bias_param_names),
+            fixed_param_values=zeroed_sex_bias | driver_spec.optim.fix_parameters_by_value,
+        )
+        return collapse_identical_start_params(physical_start_params, step_label)
+
+    return parse_start_params(
+        start_param_bounds=driver_spec.start_params,
+        repetitions=driver_spec.optim.repetitions,
+        seed=driver_spec.optim.seed,
+        demographic_model=demographic_model,
+        fixed_param_values=driver_spec.optim.fix_parameters_by_value,
+    )
+
+
+def build_boundary_reoptimization_model(driver_spec: InferenceConfig, reload_context: ModelReloadContext,
+                                        boundary_fixed_param_values: dict[str, float], genetic_model: GeneticModel,
+                                        optimal_params: np.ndarray, remainder_params: dict[str, float],
+                                        alternate_implicit_population: str | None = None):
+    """
+    Builds a genetic model and driver specification identical to the given ones, except with
+    the sex-bias parameters in ``boundary_fixed_param_values`` now fixed by value, and (if given)
+    ``alternate_implicit_population`` as the implicit population instead of the current one. Fixed
+    parameters and starting parameters are set up accordingly. Used to retry the optimization when
+    one or more sex-bias parameters have an optimal value at a +-1 boundary.
+
+    As with ``_get_driver_for_reoptimization``, all starting parameters are pinned to their
+    previous optimal value (no resampling) and repetitions are set to 1: this re-optimization
+    should resume from where the previous one left off, not restart from a fresh random point.
+
+    Parameters
+    ----------
+    driver_spec: InferenceConfig
+        The original driver-file configuration.
+    reload_context: ModelReloadContext
+        File-location and ancestry-proportion context needed to reload the demographic model from
+        the model YAML file, used only when ``alternate_implicit_population`` is given.
+    boundary_fixed_param_values: dict[str, float]
+        Directly-optimized sex-bias parameter names (and their boundary value) to fix by value,
+        merged into ``driver_spec.optim.fix_parameters_by_value``.
+    genetic_model: GeneticModel
+        The current genetic model. When ``alternate_implicit_population`` is None, a deep copy of
+        this genetic model is reused instead of reloading the demographic model from the model
+        YAML file (its parameter names are derived directly from
+        ``genetic_model.demographic_model``, which is unchanged in that case). When
+        ``alternate_implicit_population`` is given, only its ``phase_type_config`` is reused (the
+        demographic model must be reloaded, since which population is implicit is baked into the
+        founder events at YAML-parse time).
+    optimal_params: np.ndarray
+        The current optimal parameters (physical units), before this re-optimization, in the order
+        given by ``genetic_model.demographic_model``'s free base parameters. Used to pin the
+        starting parameters of the re-optimization (see ``_get_driver_for_reoptimization``).
+    remainder_params: dict[str, float]
+        The remainder (derived) parameters computed from the previous optimization's optimal
+        parameters, as returned by ``compute_remainder_params``. Used, when
+        ``alternate_implicit_population`` is given, to set a starting value for the rate, and fix
+        by value the sex-bias parameter, of the population that was previously implicit and is now
+        explicit (see ``_get_params_for_newly_explicit_population``).
+    alternate_implicit_population: str | None
+        The name of the population to use as the implicit population instead of the current one.
+        If None, the current implicit population is kept. Defaults to None.
+
+    Returns
+    -------
+    tuple[InferenceConfig, GeneticModel, list[str], list[str], list[str], list[np.ndarray]]
+        The new driver spec; the new genetic model built from it; the model, sex-bias, and
+        non-sex-bias parameter names; and the physical starting parameters to optimize from.
+    """
+
+    all_fixed_param_values = dict(boundary_fixed_param_values)
+
+    model_param_names_before_reload, _, _ = get_param_names_by_type(genetic_model.demographic_model)
+    optimal_param_values = dict(zip(model_param_names_before_reload, (float(v) for v in optimal_params)))
+
+    reopt_driver_spec = _get_driver_for_reoptimization(driver_spec=driver_spec,
+                                                       model_param_names=model_param_names_before_reload,
+                                                       optimal_params=optimal_params)
+
+    models_update = {}
+    if alternate_implicit_population is not None:
+        models_update["implicit_population"] = alternate_implicit_population
+
+    reopt_driver_spec = reopt_driver_spec.model_copy(update={
+        "models": reopt_driver_spec.models.model_copy(update=models_update),
+        "optim": reopt_driver_spec.optim.model_copy(update={
+            "fix_parameters_by_value": reopt_driver_spec.optim.fix_parameters_by_value | boundary_fixed_param_values,
+        }),
+    })
+
+    if alternate_implicit_population is not None:
+        # Changing the implicit population changes which parameters are explicit vs. derived, so
+        # the demographic model must be reloaded from the model YAML file, and its fixed
+        # parameters (ancestry- and value-based) set up from scratch.
+        demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names = load_demographic_model_from_driver(driver_spec=reopt_driver_spec,
+                                                                                                                                  script_dir=reload_context.script_dir,
+                                                                                                                                  driver_path=reload_context.driver_path,
+                                                                                                                                  allosome_label=reload_context.allosome_label)
+        reopt_genetic_model = GeneticModel(demographic_model=demographic_model,
+                                           phase_type_config=genetic_model.phase_type_config)
+
+        # The population that was previously implicit is now explicit and has no starting value in
+        # the driver file (it was never optimized before). Seed its rate from the remainder values
+        # computed at the end of the previous optimization, and fix its sex-bias parameter by value
+        # at that same (boundary) value: it was the derived sex-bias hitting the +-1 boundary that
+        # triggered this implicit-population switch, so it must be fixed, not left free to be
+        # resampled/re-optimized from scratch.
+        new_explicit_start_params, new_explicit_fixed_param_values = _get_params_for_newly_explicit_population(
+            old_demographic_model=genetic_model.demographic_model,
+            new_demographic_model=demographic_model,
+            remainder_params=remainder_params,
+        )
+        if new_explicit_start_params:
+            reopt_driver_spec = reopt_driver_spec.model_copy(update={
+                "start_params": reopt_driver_spec.start_params.model_copy(update=new_explicit_start_params),
+            })
+        if new_explicit_fixed_param_values:
+            reopt_driver_spec = reopt_driver_spec.model_copy(update={
+                "optim": reopt_driver_spec.optim.model_copy(update={
+                    "fix_parameters_by_value": reopt_driver_spec.optim.fix_parameters_by_value | new_explicit_fixed_param_values,
+                }),
+            })
+            all_fixed_param_values.update(new_explicit_fixed_param_values)
+
+        optimal_param_values.update(new_explicit_start_params)
+        optimal_param_values.update(new_explicit_fixed_param_values)
+
+        setup_fixed_parameters(driver_spec=reopt_driver_spec,
+                               demographic_model=demographic_model,
+                               allosome_label=reload_context.allosome_label,
+                               autosome_proportions=reload_context.autosome_proportions,
+                               allosome_proportions=reload_context.allosome_proportions,
+                               print_details=False)
+    else:
+        # No structural change: reuse a copy of the current genetic model (which already has the
+        # original ancestry- and value-based fixed parameters set up) instead of reloading, and
+        # just add the new boundary fixes on top.
+        reopt_genetic_model = genetic_model.copy()
+        demographic_model = reopt_genetic_model.demographic_model
+        demographic_model.parameter_handler.add_fixed_parameters(boundary_fixed_param_values)
+        model_param_names, sex_bias_param_names, non_sex_bias_param_names = get_param_names_by_type(demographic_model)
+
+    _print_and_log("\nRe-optimizing with sex-bias parameter(s) "
+                    f"{', '.join(all_fixed_param_values) or '(none)'} fixed at their boundary value"
+                    + (f", and '{alternate_implicit_population}' as the implicit population" if alternate_implicit_population is not None else "")
+                    + "."
+                   )
+
+    # Unlike compute_physical_start_params (used for the initial optimization, where there is no
+    # previous run to carry values from), this re-optimization must start from the previous
+    # optimization's result as-is: no sex-bias parameter is reset to 0, and no parameter is
+    # resampled.
+    physical_start_params = [np.array([optimal_param_values[name] for name in model_param_names])]
+
+    return reopt_driver_spec, reopt_genetic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names, physical_start_params
 
 
 # ---------- Conversion between optimizer and physical parameters ---------
@@ -1442,13 +1917,11 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
 
 def output_simulation_data_sex_biased(sample_population: Population,
-                                    optimal_params: np.ndarray, 
+                                    optimal_params: np.ndarray,
                                     optimal_likelihood:float,
-                                    demographic_model: ParametrizedDemographySexBiased,
+                                    genetic_model: GeneticModel,
                                     driver_spec: InferenceConfig,
                                     output_dir: Path,
-                                    ad_model_autosomes: str='DC', 
-                                    ad_model_allosomes: str='DC',
                                     driver_path: str|None = None
                                     ):
     """
@@ -1462,23 +1935,23 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The population for which to output simulation data.
     optimal_params: np.ndarray
         The optimal parameters for the model.
-    demographic_model: ParametrizedDemographySexBiased
-        The demographic model for which to output simulation data.
+    genetic_model: GeneticModel
+        Bundles the demographic model for which to output simulation data with the admixture
+        model configuration (``ad_model_autosomes``/``ad_model_allosomes``) used to compute it.
     driver_spec: InferenceConfig
         The driver specification containing output configuration.
     output_dir: Path
         The directory to which output files will be written.
-    ad_model_autosomes: str
-        The model for autosomal admixture. Defaults to 'DC'.
-    ad_model_allosomes: str
-        The model for allosomal admixture. Defaults to 'DC'.
     driver_path: str | None
         The path to the driver yaml file. If None, no driver file will be copied to the output directory. Defaults to None.
     """
-    
+    demographic_model = genetic_model.demographic_model
+    ad_model_autosomes = genetic_model.phase_type_config.ad_model_autosomes
+    ad_model_allosomes = genetic_model.phase_type_config.ad_model_allosomes
+
     # ------ Create output directory if it doesn't exist ------
- 
-    if not os.path.exists(output_dir): 
+
+    if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     if driver_path is not None:
@@ -2269,6 +2742,22 @@ def _print_and_log(*messages: str) -> None:
         logger.info(message)
 
 
+def _build_reoptimization_intro_message(n_reoptimizations: int) -> str:
+    """
+    Builds the message announcing that ``n_reoptimizations`` (greater than 0) triggers an
+    iterating re-optimization starting at the current optimal parameters, where sex-bias
+    parameters are fixed at their optimal values, changing how step 1 is optimized.
+    """
+
+    reopt_intro_message = f"Launching re-optimization until convergence is achieved or {n_reoptimizations} re-optimizations have been performed."
+    separator = "-" * len(reopt_intro_message)
+    return (
+        f"\n{separator}\n"
+        f"{reopt_intro_message}\n"
+        f"{separator}"
+    )
+
+
 def _build_step2_skip_message(sex_bias_param_names: list[str], parameter_handler: FixedParametersHandler) -> str:
     """
     Builds the message announcing that step 2 has no free sex-bias parameters to
@@ -2319,9 +2808,10 @@ def _print_run_intro(parameter_handler: FixedParametersHandler,
                      title_message: str,
                      two_steps_optimization: bool,
                      autosomes_in_step_2: bool,
-                     steps: list[int | str] | None = None) -> None:
+                     steps: list[int | str] | None = None,
+                     print_start_params_table: bool = True) -> None:
     """
-    Print the optimization subtitle and starting-parameter table for a run.
+    Print the optimization subtitle (always) and starting-parameter table (optional) for a run.
 
     This helper centralizes the pre-run console/log output shown before each optimization phase. Time-parameter transition logging is temporarily
     disabled while printing the starting-parameter table to avoid emitting admissibility transition warnings during display-only conversions.
@@ -2346,6 +2836,9 @@ def _print_run_intro(parameter_handler: FixedParametersHandler,
         allosomal data.
     steps: list[int | str] | None
         Active step selection used to compute subtitle and displayed columns.
+    print_start_params_table: bool
+        Whether to print the starting-parameters table below the subtitle. The dash-bordered
+        subtitle itself is always printed. Defaults to True.
     """
     if hasattr(parameter_handler, "demography"):
         subtitle_message = _get_optimization_subtitle(
@@ -2385,6 +2878,9 @@ def _print_run_intro(parameter_handler: FixedParametersHandler,
         two_steps_optimization=two_steps_optimization,
         steps=steps,
     )
+
+    if not print_start_params_table:
+        return
 
     prev_time_param_logging = parameter_handler.enable_time_param_logging
     parameter_handler.enable_time_param_logging = False

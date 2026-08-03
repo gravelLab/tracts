@@ -392,8 +392,17 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
     # optimizer call given the current sex-bias candidate, letting them drift.
     _ancestry_overrides: dict = {}  # maps param index -> optimizer-space value
 
-    # Identify free sex-bias parameters
-    free_sex_bias_parameters = {param: 0 for param, value in local_parameter_handler.demography.model_base_params.items() if
+    # p0 is in optimizer space (converted by the driver); convert to physical so that
+    # add_fixed_parameters always stores physical values (required by extend_parameters).
+    p0_phys = local_parameter_handler.convert_to_physical_params(np.array(p0))
+    param_names_ordered = list(local_parameter_handler.demography.model_base_params.keys())
+
+    # Identify free sex-bias parameters, fixed at their p0 (starting-parameter) values for step 1
+    # optimization: this lets a caller carry over previously-optimized sex-bias values (e.g. when
+    # re-optimizing) by simply passing them in p0, without permanently fixing them by value, so
+    # they remain free to be optimized again in step 2.
+    free_sex_bias_parameters = {param: p0_phys[param_names_ordered.index(param)]
+                                for param, value in local_parameter_handler.demography.model_base_params.items() if
                                 (value.type == ParamType.SEX_BIAS) and
                                 (param not in local_parameter_handler.user_params_fixed_by_value) and
                                 (param not in local_parameter_handler.params_fixed_by_ancestry)}
@@ -403,10 +412,6 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
         local_parameter_handler.add_fixed_parameters(free_sex_bias_parameters)
     else:
         # Step 2 only: fix non-sex-bias parameters at p0 values (optimize only sex-bias parameters)
-        # p0 is in optimizer space (converted by the driver); convert to physical so that
-        # add_fixed_parameters always stores physical values (required by extend_parameters).
-        p0_phys = local_parameter_handler.convert_to_physical_params(np.array(p0))
-        param_names_ordered = list(local_parameter_handler.demography.model_base_params.keys())
         fixed_non_sex_bias = {}
         for idx, param_name in enumerate(param_names_ordered):
             param_info = local_parameter_handler.demography.model_base_params[param_name]

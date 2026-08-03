@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import numpy as np
 
 import tracts.driver as driver_module
+import tracts.driver_utils as driver_utils_module
 from tracts.driver import run_tracts
 from tracts.demography.parameter import ParamType
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
@@ -97,7 +98,11 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             autosomes_in_step_2=autosomes_in_step_2,
             use_autosomes_for_sex_bias=autosomes_in_step_2,
             N_cores=5,
-            boundary_tol=0.3
+            boundary_tol=0.3,
+            n_reoptimizations=0,
+            rerun_optimization_on_boundaries=True,
+            reoptimization_likelihood_tolerance=1e-3,
+            repetitions_likelihood_tolerance=0.5
         ),
         output=SimpleNamespace(
             output_filename_format="test_output_{label}",
@@ -292,6 +297,11 @@ def _install_driver_run_mocks(monkeypatch, tmp_path: Path, two_steps_optimizatio
     monkeypatch.setattr(driver_module, "load_demographic_model_from_driver", lambda **kwargs: _load_demographic_model_from_driver_result(model))
     monkeypatch.setattr(driver_module, "parse_start_params", fake_parse_start_params)
     monkeypatch.setattr(driver_module, "collapse_identical_start_params", fake_collapse_identical_start_params)
+    # compute_physical_start_params (used by run_tracts for the step-1/single-step starting
+    # parameters) lives in driver_utils.py and calls parse_start_params/collapse_identical_start_params
+    # via that module's own namespace, so those must be patched there too.
+    monkeypatch.setattr(driver_utils_module, "parse_start_params", fake_parse_start_params)
+    monkeypatch.setattr(driver_utils_module, "collapse_identical_start_params", fake_collapse_identical_start_params)
     monkeypatch.setattr(driver_module, "get_time_scaled_model_func", lambda model: (lambda params: params))
     monkeypatch.setattr(driver_module, "get_time_scaled_model_bounds", lambda model: (lambda params: 1.0))
     monkeypatch.setattr(driver_module, "run_model_multi_init", fake_run_model_multi_init)
@@ -760,6 +770,11 @@ def test_two_steps_ancestry_fixed_params_included_in_step2_fixed_values(tmp_path
     monkeypatch.setattr(driver_module, "load_demographic_model_from_driver", lambda **kwargs: _load_demographic_model_from_driver_result(model))
     monkeypatch.setattr(driver_module, "parse_start_params",  fake_parse_start_params)
     monkeypatch.setattr(driver_module, "collapse_identical_start_params", lambda sp, label: sp)
+    # compute_physical_start_params (used by run_tracts for the step-1/single-step starting
+    # parameters) lives in driver_utils.py and calls parse_start_params/collapse_identical_start_params
+    # via that module's own namespace, so those must be patched there too.
+    monkeypatch.setattr(driver_utils_module, "parse_start_params", fake_parse_start_params)
+    monkeypatch.setattr(driver_utils_module, "collapse_identical_start_params", lambda sp, label: sp)
     monkeypatch.setattr(driver_module, "get_time_scaled_model_func",   lambda m: (lambda params: params))
     monkeypatch.setattr(driver_module, "get_time_scaled_model_bounds", lambda m: (lambda params: 1.0))
     monkeypatch.setattr(driver_module, "run_model_multi_init", fake_run_model_multi_init)

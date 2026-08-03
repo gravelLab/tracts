@@ -18,8 +18,6 @@ samples:
   chromosomes: 1-22 #The chromosomes to use for analysis. Can be specified as a list or a range
   allosomes: [X]
   
-
-
 models:
   model_filename: ../models/ppp.yaml
   implicit_population: AFR
@@ -42,6 +40,9 @@ optim:
   exclude_tracts_below_cm: 2
   npts: 50
   #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
+  n_reoptimizations: 5
+  rerun_optimization_on_boundaries: True
+  boundary_tol: 0.3
 
 output:
   output_filename_format: "ASW_{label}"
