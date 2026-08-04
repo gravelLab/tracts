@@ -529,7 +529,14 @@ class TestRunBoundaryReoptimization:
         model_param_names, sex_bias_param_names, non_sex_bias_param_names = _three_pop_param_names()
         driver_spec = _make_real_driver_spec()
 
-        rebuilt_genetic_model = GeneticModel(_make_three_pop_sex_biased_model(), ad_model_autosomes="DC", ad_model_allosomes="DC")
+        # REUR_sex_bias is marked fixed here, mirroring what the real build_boundary_reoptimization_model
+        # would do with boundary_fixed_param_values={"REUR_sex_bias": ...}: this is what makes
+        # has_free_sex_bias_parameters correctly report only RNAT_sex_bias as still free below, so the
+        # loop stops after one iteration instead of re-checking (and re-fixing) REUR_sex_bias again.
+        rebuilt_model = _make_three_pop_sex_biased_model()
+        rebuilt_model.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={},
+                                              user_params_to_fix_by_value={"REUR_sex_bias": 0.999})
+        rebuilt_genetic_model = GeneticModel(rebuilt_model, ad_model_autosomes="DC", ad_model_allosomes="DC")
         rebuilt_driver_spec = _make_real_driver_spec()
         captured_build_calls = []
         captured_run_optimization_calls = []
@@ -633,6 +640,79 @@ class TestRunBoundaryReoptimization:
         assert result_autosome_proportions is reload_context.autosome_proportions
         assert result_allosome_proportions is reload_context.allosome_proportions
         assert any("did not improve" in message for message in captured_log_messages)
+
+    def test_loops_again_when_a_previously_free_parameter_newly_hits_the_boundary(self, monkeypatch):
+        # REUR_sex_bias starts at the boundary and gets fixed in the first iteration; the
+        # re-optimization from that iteration then reports RNAT_sex_bias (until then free) as
+        # having also landed on the boundary, so a second iteration must fix and re-optimize that
+        # one too, stopping only once no free sex-bias parameter remains.
+        model = _make_three_pop_sex_biased_model()
+        genetic_model = GeneticModel(model, ad_model_autosomes="DC", ad_model_allosomes="DC")
+        model_param_names, sex_bias_param_names, non_sex_bias_param_names = _three_pop_param_names()
+        driver_spec = _make_real_driver_spec()
+
+        model_after_first_fix = _make_three_pop_sex_biased_model()
+        model_after_first_fix.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={},
+                                                       user_params_to_fix_by_value={"REUR_sex_bias": 0.999})
+        genetic_model_after_first_fix = GeneticModel(model_after_first_fix, ad_model_autosomes="DC", ad_model_allosomes="DC")
+
+        model_after_second_fix = _make_three_pop_sex_biased_model()
+        model_after_second_fix.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={},
+                                                        user_params_to_fix_by_value={"REUR_sex_bias": 0.999, "RNAT_sex_bias": 0.999})
+        genetic_model_after_second_fix = GeneticModel(model_after_second_fix, ad_model_autosomes="DC", ad_model_allosomes="DC")
+
+        captured_build_calls = []
+        captured_run_optimization_calls = []
+        build_results = iter([
+            (driver_spec, genetic_model_after_first_fix, model_param_names, sex_bias_param_names, non_sex_bias_param_names,
+             [np.array([0.3, 1.0, 0.3, 1.0, 10.0])]),
+            (driver_spec, genetic_model_after_second_fix, model_param_names, sex_bias_param_names, non_sex_bias_param_names,
+             [np.array([0.35, 0.9, 0.32, 1.0, 10.0])]),
+        ])
+        run_optimization_results = iter([
+            (np.array([0.35, 0.9, 0.32, 1.0, 10.0]), -90.0),   # RNAT_sex_bias comes back at 1.0: a new boundary hit.
+            (np.array([0.4, 0.9, 0.34, 0.9, 10.0]), -50.0),    # Further improvement; no more free sex-bias params left.
+        ])
+
+        def fake_build_boundary_reoptimization_model(**kwargs):
+            captured_build_calls.append(kwargs)
+            return next(build_results)
+
+        def fake_run_optimization(**kwargs):
+            captured_run_optimization_calls.append(kwargs)
+            return next(run_optimization_results)
+
+        monkeypatch.setattr(driver_module, "get_alternate_implicit_population", lambda **kwargs: None)
+        monkeypatch.setattr(driver_module, "build_boundary_reoptimization_model", fake_build_boundary_reoptimization_model)
+        monkeypatch.setattr(driver_module, "run_optimization", fake_run_optimization)
+        monkeypatch.setattr(driver_module, "_print_optimal_values_and_likelihood", lambda **kwargs: None)
+
+        reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
+                                            autosome_proportions={}, allosome_proportions={})
+
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
+            driver_spec=driver_spec,
+            reload_context=reload_context,
+            optimal_sex_bias_at_boundaries=["REUR_sex_bias"],
+            genetic_model=genetic_model,
+            optimal_params=np.array([0.3, 1.0, 0.3, 0.0, 10.0]),
+            optimal_likelihood=-150.0,
+            remainder_params={},
+            population=SimpleNamespace(),
+            likelihood_options=SimpleNamespace(),
+        )
+
+        assert len(captured_build_calls) == 2
+        assert captured_build_calls[0]["boundary_fixed_param_values"] == {"REUR_sex_bias": pytest.approx(0.999)}
+        # RNAT_sex_bias (value 1.0, newly returned by the first re-optimization) is fixed in the
+        # second iteration; REUR_sex_bias is no longer included since it was already fixed by the
+        # first iteration and is thus no longer among the free base params being checked.
+        assert captured_build_calls[1]["boundary_fixed_param_values"] == {"RNAT_sex_bias": pytest.approx(0.999)}
+        assert len(captured_run_optimization_calls) == 2
+        assert result_genetic_model is genetic_model_after_second_fix
+        assert result_optimal_likelihood == pytest.approx(-50.0)
+        np.testing.assert_allclose(result_optimal_params, [0.4, 0.9, 0.34, 0.9, 10.0])
 
 
 # --------------- core.py: step-1 sex-bias fixing derives values from p0, not 0 ---------------
