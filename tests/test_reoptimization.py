@@ -580,6 +580,60 @@ class TestRunBoundaryReoptimization:
         assert result_autosome_proportions is reload_context.autosome_proportions
         assert result_allosome_proportions is reload_context.allosome_proportions
 
+    def test_reverts_to_previous_state_when_reoptimization_does_not_improve_likelihood(self, monkeypatch):
+        model = _make_three_pop_sex_biased_model()
+        genetic_model = GeneticModel(model, ad_model_autosomes="DC", ad_model_allosomes="DC")
+        model_param_names, sex_bias_param_names, non_sex_bias_param_names = _three_pop_param_names()
+        driver_spec = _make_real_driver_spec()
+        original_optimal_params = np.array([0.3, 1.0, 0.3, 0.0, 10.0])
+
+        rebuilt_genetic_model = GeneticModel(_make_three_pop_sex_biased_model(), ad_model_autosomes="DC", ad_model_allosomes="DC")
+        rebuilt_driver_spec = _make_real_driver_spec()
+        captured_log_messages = []
+
+        def fake_build_boundary_reoptimization_model(**kwargs):
+            return (rebuilt_driver_spec, rebuilt_genetic_model, model_param_names,
+                    sex_bias_param_names, non_sex_bias_param_names, [np.array([0.3, 1.0, 0.3, 0.0, 10.0])])
+
+        def fake_run_optimization(**kwargs):
+            # Worse (lower) likelihood than the -150.0 passed in below.
+            return np.array([0.35, 0.9, 0.3, 0.0, 10.0]), -200.0
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("Should not report/compute results for a discarded (worse) re-optimization")
+
+        monkeypatch.setattr(driver_module, "get_alternate_implicit_population", lambda **kwargs: None)
+        monkeypatch.setattr(driver_module, "build_boundary_reoptimization_model", fake_build_boundary_reoptimization_model)
+        monkeypatch.setattr(driver_module, "run_optimization", fake_run_optimization)
+        monkeypatch.setattr(driver_module, "_print_and_log", lambda *messages: captured_log_messages.extend(messages))
+        monkeypatch.setattr(driver_module, "_print_optimal_values_and_likelihood", fail_if_called)
+        monkeypatch.setattr(driver_module, "compute_remainder_params", fail_if_called)
+
+        reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
+                                            autosome_proportions=np.array([0.5, 0.3, 0.2]), allosome_proportions=[])
+
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
+            driver_spec=driver_spec,
+            reload_context=reload_context,
+            optimal_sex_bias_at_boundaries=["REUR_sex_bias"],
+            genetic_model=genetic_model,
+            optimal_params=original_optimal_params,
+            optimal_likelihood=-150.0,
+            remainder_params={},
+            population=SimpleNamespace(),
+            likelihood_options=SimpleNamespace(),
+        )
+
+        # The pre-re-optimization state is returned unchanged, not the (worse) rebuilt/re-optimized one.
+        assert result_driver_spec is driver_spec
+        assert result_genetic_model is genetic_model
+        assert result_optimal_params is original_optimal_params
+        assert result_optimal_likelihood == pytest.approx(-150.0)
+        assert result_autosome_proportions is reload_context.autosome_proportions
+        assert result_allosome_proportions is reload_context.allosome_proportions
+        assert any("did not improve" in message for message in captured_log_messages)
+
 
 # --------------- core.py: step-1 sex-bias fixing derives values from p0, not 0 ---------------
 
