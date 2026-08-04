@@ -544,17 +544,25 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
                                 genetic_model: GeneticModel, optimal_params: np.ndarray, optimal_likelihood: float,
                                 remainder_params: dict, population: Population, likelihood_options: LikelihoodOptions):
     """
-    Re-optimizes after one or more sex-bias parameters have an optimal value at a +-1 boundary.
+    Repeatedly re-optimizes while one or more sex-bias parameters have an optimal value at a +-1
+    boundary. Each iteration: all boundary-hitting sex-bias parameters that are directly optimized
+    (present in ``model_base_params``) are fixed by value (at +-``near_one``) for the
+    re-optimization. A boundary hit on the implicit population's derived sex-bias parameter cannot
+    be fixed this way; instead, this tries to switch to a different explicit source population
+    (from the same founder event) whose sex-bias parameter is not itself at a boundary, and use
+    that as the implicit population instead (see ``get_alternate_implicit_population``).
 
-    All boundary-hitting sex-bias parameters that are directly optimized (present in
-    ``model_base_params``) are fixed by value for the re-optimization. A boundary hit on the
-    implicit population's derived sex-bias parameter cannot be fixed this way; instead, this
-    tries to switch to a different explicit source population (from the same founder event)
-    whose sex-bias parameter is not itself at a boundary, and use that as the implicit population
-    instead (see ``get_alternate_implicit_population``). If neither applies, ``genetic_model``/
-    ``optimal_params``/``optimal_likelihood`` are returned unchanged.
+    After each re-optimization, if the likelihood has not improved over the state before that
+    iteration, the loop stops immediately, printing/logging a message stating so, and the state
+    from before that iteration (the original input, if this was the first iteration) is returned.
+    Otherwise, the improvement is kept and, unless no sex-bias parameter remains free to fix (all
+    have already been fixed by value), the newly-updated optimal parameters are checked again for
+    boundary hits: if any (previously free) sex-bias parameter is now at a boundary too, the loop
+    repeats to fix and re-optimize those as well. The loop otherwise stops once no sex-bias
+    parameter is at a boundary any more, or if neither of the two fixing mechanisms above applies
+    (e.g. the boundary hit is on the implicit population and no alternate is available).
 
-    This re-optimization resumes from the previous optimization's result: all starting parameters
+    Each re-optimization resumes from the previous optimization's result: all starting parameters
     are pinned to their previous optimal value (no resampling), so there is a single repetition,
     and (as in ``run_sex_bias_fixing_reoptimizations``) it runs with ``print_run_details=False``
     to keep its console output brief.
@@ -588,89 +596,106 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
     Returns
     -------
     tuple[InferenceConfig, GeneticModel, np.ndarray, float, np.ndarray, np.ndarray | list]
-        The (possibly updated) driver spec and genetic model, the optimal parameters and
-        likelihood, and ``reload_context.autosome_proportions``/``allosome_proportions``
-        realigned to the (possibly reordered) population order of the returned genetic model's
-        demographic model (see ``_reorder_ancestry_proportions``): switching the implicit
-        population reorders ``demographic_model.population_indices`` (the implicit population is
-        always placed last; see ``ParametrizedDemography(SexBiased).load_from_YAML``). If the
-        re-optimization does not improve the likelihood over ``optimal_likelihood``, all of the
-        above are instead returned unchanged (i.e. as they were passed in).
+        The driver spec and genetic model, the optimal parameters and likelihood, and
+        ``reload_context.autosome_proportions``/``allosome_proportions`` realigned to the
+        population order of the returned genetic model's demographic model (see
+        ``_reorder_ancestry_proportions``): switching the implicit population reorders
+        ``demographic_model.population_indices`` (the implicit population is always placed last;
+        see ``ParametrizedDemography(SexBiased).load_from_YAML``) -- all reflecting the last
+        iteration whose re-optimization improved the likelihood, or the original input if none did
+        (including if no iteration was ever attempted).
     """
-    # Kept aside (rather than overwriting the parameters) so that, if the re-optimization below
-    # does not improve the likelihood, the pre-re-optimization state can be returned as-is.
-    original_driver_spec = driver_spec
-    original_genetic_model = genetic_model
-    original_optimal_params = optimal_params
-    original_optimal_likelihood = optimal_likelihood
+    autosome_proportions, allosome_proportions = reload_context.autosome_proportions, reload_context.allosome_proportions
 
     demographic_model = genetic_model.demographic_model
-    ancestor_labels_before_reopt = list(demographic_model.population_indices.keys())
-    model_param_names, _, _ = get_param_names_by_type(demographic_model)
+    model_param_names, sex_bias_param_names, _ = get_param_names_by_type(demographic_model)
 
-    # Only directly-optimized parameters (present in model_base_params) can be fixed by value; a
-    # boundary hit on the implicit population's derived sex-bias parameter is instead addressed by
-    # changing which population is implicit (if possible). Fixed at +-near_one rather than the
-    # actual optimal value (which can be less extreme, e.g. 1 - boundary_tol).
-    boundary_fixed_param_values = {
-        name: float(np.sign(value)) * driver_spec.optim.near_one
-        for name, value in zip(model_param_names, optimal_params)
-        if name in optimal_sex_bias_at_boundaries
-    }
+    while True:
+        # Only directly-optimized parameters (present in model_base_params) can be fixed by value; a
+        # boundary hit on the implicit population's derived sex-bias parameter is instead addressed by
+        # changing which population is implicit (if possible). Fixed at +-near_one rather than the
+        # actual optimal value (which can be less extreme, e.g. 1 - boundary_tol).
+        boundary_fixed_param_values = {
+            name: float(np.sign(value)) * driver_spec.optim.near_one
+            for name, value in zip(model_param_names, optimal_params)
+            if name in optimal_sex_bias_at_boundaries
+        }
 
-    # If any boundary-hitting parameter corresponds to the implicit population, try to switch to a
-    # different explicit source population (from the same founder event) whose sex-bias parameter
-    # is not itself at a boundary. If none is available, get_alternate_implicit_population already
-    # prints/logs an informative message and the implicit population is left unchanged.
-    alternate_implicit_population = get_alternate_implicit_population(
-        demographic_model=demographic_model, optimal_sex_bias_at_boundaries=optimal_sex_bias_at_boundaries)
+        # If any boundary-hitting parameter corresponds to the implicit population, try to switch to a
+        # different explicit source population (from the same founder event) whose sex-bias parameter
+        # is not itself at a boundary. If none is available, get_alternate_implicit_population already
+        # prints/logs an informative message and the implicit population is left unchanged.
+        alternate_implicit_population = get_alternate_implicit_population(
+            demographic_model=demographic_model, optimal_sex_bias_at_boundaries=optimal_sex_bias_at_boundaries)
 
-    if not boundary_fixed_param_values and alternate_implicit_population is None:
-        return (original_driver_spec, original_genetic_model, original_optimal_params, original_optimal_likelihood,
-                reload_context.autosome_proportions, reload_context.allosome_proportions)
+        if not boundary_fixed_param_values and alternate_implicit_population is None:
+            break
 
-    (driver_spec, genetic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names,
-     reopt_physical_start_params) = build_boundary_reoptimization_model(driver_spec=driver_spec,
-                                                                        reload_context=reload_context,
-                                                                        boundary_fixed_param_values=boundary_fixed_param_values,
-                                                                        genetic_model=genetic_model,
-                                                                        optimal_params=optimal_params,
-                                                                        remainder_params=remainder_params,
-                                                                        alternate_implicit_population=alternate_implicit_population)
+        ancestor_labels_before_reopt = list(demographic_model.population_indices.keys())
 
-    optimal_params, optimal_likelihood = run_optimization(physical_start_params=reopt_physical_start_params,
-                                                        genetic_model=genetic_model,
-                                                        population=population,
-                                                        driver_spec=driver_spec,
-                                                        likelihood_options=likelihood_options,
-                                                        model_param_names=model_param_names,
-                                                        sex_bias_param_names=sex_bias_param_names,
-                                                        print_run_details=False)
+        (new_driver_spec, new_genetic_model, new_model_param_names, new_sex_bias_param_names, _new_non_sex_bias_param_names,
+         reopt_physical_start_params) = build_boundary_reoptimization_model(driver_spec=driver_spec,
+                                                                            reload_context=reload_context,
+                                                                            boundary_fixed_param_values=boundary_fixed_param_values,
+                                                                            genetic_model=genetic_model,
+                                                                            optimal_params=optimal_params,
+                                                                            remainder_params=remainder_params,
+                                                                            alternate_implicit_population=alternate_implicit_population)
 
-    if optimal_likelihood <= original_optimal_likelihood:
-        _print_and_log(
-            f"Boundary re-optimization did not improve the likelihood: "
-            f"({optimal_likelihood:.6f} after vs. {original_optimal_likelihood:.6f} before re-optimization). "
-            "Keeping the parameters and likelihood from before this re-optimization."
-        )
-        return (original_driver_spec, original_genetic_model, original_optimal_params, original_optimal_likelihood,
-                reload_context.autosome_proportions, reload_context.allosome_proportions)
+        new_optimal_params, new_optimal_likelihood = run_optimization(physical_start_params=reopt_physical_start_params,
+                                                            genetic_model=new_genetic_model,
+                                                            population=population,
+                                                            driver_spec=new_driver_spec,
+                                                            likelihood_options=likelihood_options,
+                                                            model_param_names=new_model_param_names,
+                                                            sex_bias_param_names=new_sex_bias_param_names,
+                                                            print_run_details=False)
 
-    demographic_model = genetic_model.demographic_model
-    remainder_params = compute_remainder_params(demographic_model=demographic_model,
-                                                migration_matrices=demographic_model.get_migration_matrices(optimal_params))
+        if new_optimal_likelihood <= optimal_likelihood:
+            _print_and_log(
+                f"Boundary re-optimization did not improve the likelihood "
+                f"({new_optimal_likelihood:.6f} after vs. {optimal_likelihood:.6f} before this re-optimization step). "
+                "Keeping the parameters and likelihood from before this re-optimization step."
+            )
+            break
 
-    _print_optimal_values_and_likelihood(demographic_model=demographic_model,
-                                        optimal_params=optimal_params,
-                                        optimal_likelihood=optimal_likelihood,
-                                        remainder_parameters=remainder_params,
-                                        ad_model_allosomes=genetic_model.phase_type_config.ad_model_allosomes)
+        driver_spec, genetic_model = new_driver_spec, new_genetic_model
+        optimal_params, optimal_likelihood = new_optimal_params, new_optimal_likelihood
+        model_param_names, sex_bias_param_names = new_model_param_names, new_sex_bias_param_names
+        demographic_model = genetic_model.demographic_model
 
-    autosome_proportions, allosome_proportions = _reorder_ancestry_proportions(
-        old_ancestor_labels=ancestor_labels_before_reopt,
-        new_ancestor_labels=list(demographic_model.population_indices.keys()),
-        autosome_proportions=reload_context.autosome_proportions,
-        allosome_proportions=reload_context.allosome_proportions)
+        remainder_params = compute_remainder_params(demographic_model=demographic_model,
+                                                    migration_matrices=demographic_model.get_migration_matrices(optimal_params))
+
+        _print_optimal_values_and_likelihood(demographic_model=demographic_model,
+                                            optimal_params=optimal_params,
+                                            optimal_likelihood=optimal_likelihood,
+                                            remainder_parameters=remainder_params,
+                                            ad_model_allosomes=genetic_model.phase_type_config.ad_model_allosomes)
+
+        autosome_proportions, allosome_proportions = _reorder_ancestry_proportions(
+            old_ancestor_labels=ancestor_labels_before_reopt,
+            new_ancestor_labels=list(demographic_model.population_indices.keys()),
+            autosome_proportions=autosome_proportions,
+            allosome_proportions=allosome_proportions)
+
+        # Stop once no sex-bias parameter remains free to fix (all have hit the boundary and been
+        # fixed already, over this and/or previous iterations): nothing is left to check or
+        # re-optimize further.
+        if not has_free_sex_bias_parameters(demographic_model.parameter_handler, sex_bias_param_names):
+            break
+
+        # Check whether fixing the previous boundary-hitters revealed new ones among the remaining
+        # free sex-bias parameters; if so, loop again to fix and re-optimize those too.
+        optimal_sex_bias_at_boundaries = check_optimal_sex_bias_parameters_at_boundaries(
+            demographic_model=demographic_model,
+            driver_spec=driver_spec,
+            sex_bias_param_names=sex_bias_param_names,
+            remainder_params=remainder_params,
+            optimal_params=optimal_params)
+
+        if len(optimal_sex_bias_at_boundaries) == 0:
+            break
 
     return driver_spec, genetic_model, optimal_params, optimal_likelihood, autosome_proportions, allosome_proportions
 
