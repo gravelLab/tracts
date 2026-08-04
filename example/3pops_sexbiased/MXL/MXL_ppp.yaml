@@ -45,7 +45,7 @@ optim:
   boundary_tol: 0.3
 
 output:
-  output_directory: "./output_ppp_popphased/{date}/"
+  output_directory: "./output_ppp/{date}/"
   output_filename_format: "MXL_{label}"
   log_filename: 'MXL_ppp.log'
   verbose_log: 1

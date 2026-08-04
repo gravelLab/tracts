@@ -923,13 +923,13 @@ def test_migration_matrix_continuous_founder(model_with_continuous_founder_event
     founder_rate_2 = 0.5
     bias2 = -1
     found_time = 8
-    end_time=2
+    end_time=3
     test_params = [founder_rate_1, bias1, founder_rate_2, bias2, found_time,end_time]
     
     # Get migration matrices
     migration_matrices = model_with_continuous_founder_event.get_migration_matrices(test_params)
     assert np.isclose(migration_matrices["destination_pop_male"].sum(axis=1)[0] ,0), "should have no males from pop 1"
-    assert np.isclose(migration_matrices["destination_pop_female"].sum(axis=1)[1] ,0), "should have no females from pop 2"
+    assert np.isclose(migration_matrices["destination_pop_female"].sum(axis=1)[0] ,0), "should have no females from pop 2"
 
 
 
