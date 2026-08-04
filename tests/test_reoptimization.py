@@ -348,7 +348,7 @@ class TestBuildBoundaryReoptimizationModel:
         # The previously-implicit population's (AFR) derived sex-bias was at the +-1 boundary
         # (that's what triggered the implicit-population switch to EUR in the first place); once
         # AFR becomes explicit in the new model, its sex-bias parameter must be fixed by value at
-        # that same boundary value, not left free to be resampled/re-optimized from scratch.
+        # +-near_one (default 0.999), not left free to be resampled/re-optimized from scratch.
         old_model = _make_three_pop_sex_biased_model()  # EUR, NAT explicit; AFR implicit
         genetic_model = GeneticModel(old_model, ad_model_autosomes="DC", ad_model_allosomes="DC")
         driver_spec = _make_real_driver_spec()
@@ -378,15 +378,16 @@ class TestBuildBoundaryReoptimizationModel:
             alternate_implicit_population="EUR",
         )
 
-        assert reopt_driver_spec.optim.fix_parameters_by_value["RAFR_sex_bias"] == pytest.approx(0.97)
+        # The old value (0.97) is positive, so it's fixed at +near_one (default 0.999), not at 0.97.
+        assert reopt_driver_spec.optim.fix_parameters_by_value["RAFR_sex_bias"] == pytest.approx(0.999)
         assert reopt_driver_spec.start_params.RAFR == pytest.approx(0.25)
-        assert reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value["RAFR_sex_bias"] == pytest.approx(0.97)
+        assert reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value["RAFR_sex_bias"] == pytest.approx(0.999)
         # The rate is only seeded as a starting value, not fixed: it should remain free to optimize.
         assert "RAFR" not in reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value
         # RNAT_sex_bias is retained from the old model and free (not fixed): it must carry forward
         # its previous optimal value (-0.2), not reset to 0.
         assert out_model_param_names == ["RNAT", "RNAT_sex_bias", "RAFR", "RAFR_sex_bias", "t"]
-        np.testing.assert_allclose(physical_start_params[0], [0.2, -0.2, 0.25, 0.97, 10.0])
+        np.testing.assert_allclose(physical_start_params[0], [0.2, -0.2, 0.25, 0.999, 10.0])
 
 
 # --------------- run_sex_bias_fixing_reoptimizations ---------------
@@ -564,7 +565,8 @@ class TestRunBoundaryReoptimization:
         )
 
         assert len(captured_build_calls) == 1
-        assert captured_build_calls[0]["boundary_fixed_param_values"] == {"REUR_sex_bias": 1.0}
+        # The optimal value (1.0) is positive, so it's fixed at +near_one (default 0.999).
+        assert captured_build_calls[0]["boundary_fixed_param_values"] == {"REUR_sex_bias": pytest.approx(0.999)}
         assert captured_build_calls[0]["alternate_implicit_population"] is None
         np.testing.assert_allclose(captured_build_calls[0]["optimal_params"], [0.3, 1.0, 0.3, 0.0, 10.0])
         assert len(captured_run_optimization_calls) == 1

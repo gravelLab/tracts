@@ -601,9 +601,10 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
 
     # Only directly-optimized parameters (present in model_base_params) can be fixed by value; a
     # boundary hit on the implicit population's derived sex-bias parameter is instead addressed by
-    # changing which population is implicit (if possible).
+    # changing which population is implicit (if possible). Fixed at +-near_one rather than the
+    # actual optimal value (which can be less extreme, e.g. 1 - boundary_tol).
     boundary_fixed_param_values = {
-        name: float(value)
+        name: float(np.sign(value)) * driver_spec.optim.near_one
         for name, value in zip(model_param_names, optimal_params)
         if name in optimal_sex_bias_at_boundaries
     }

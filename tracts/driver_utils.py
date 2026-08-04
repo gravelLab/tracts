@@ -204,6 +204,11 @@ class OptimizationConfig(BaseModel):
         sex-bias parameters have an optimal value at their +-1 boundary. Defaults to True.
     boundary_tol: float
             The tolerance for determining if a parameter is at its boundary value. Defaults to 0.1.
+    near_one: float
+        When a sex-bias parameter is at its +-1 boundary and gets fixed by value for the boundary
+        re-optimization (see ``run_boundary_reoptimization``), it is fixed at ``+-near_one`` rather
+        than at its actual (possibly less extreme, e.g. ``1 - boundary_tol``) optimal value.
+        Defaults to 0.999.
     repetitions_likelihood_tolerance: float
         Absolute tolerance used to decide whether a run (among the ``repetitions`` runs from
         different starting parameters) reached a likelihood value close to the best one. A
@@ -226,6 +231,7 @@ class OptimizationConfig(BaseModel):
     reoptimization_likelihood_tolerance: float = Field(default=1e-3, ge=0)
     rerun_optimization_on_boundaries: bool = True
     boundary_tol: float = Field(default=0.1, ge=0)
+    near_one: float = Field(default=0.999, gt=0, lt=1)
     repetitions_likelihood_tolerance: float = Field(default=0.5, ge=0)
 
 
@@ -1441,7 +1447,7 @@ def get_alternate_implicit_population(demographic_model: ParametrizedDemographyS
 
 def _get_params_for_newly_explicit_population(old_demographic_model: ParametrizedDemographySexBiased,
                                               new_demographic_model: ParametrizedDemographySexBiased,
-                                              remainder_params: dict[str, float]) -> tuple[dict[str, float], dict[str, float]]:
+                                              remainder_params: dict[str, float], near_one: float) -> tuple[dict[str, float], dict[str, float]]:
     """
     When switching the implicit population, the population that was previously implicit becomes an
     explicit, directly-optimized parameter in the new demographic model, with no starting value
@@ -1453,8 +1459,9 @@ def _get_params_for_newly_explicit_population(old_demographic_model: Parametrize
     remains free to be optimized). The sex-bias parameter, however, is the very one whose derived
     (remainder) value was at the +-1 boundary that triggered this implicit-population switch in
     the first place: per ``run_boundary_reoptimization``'s "all boundary-hitting parameters must be
-    fixed by value" rule, it must be fixed at that boundary value in the new model, not left free
-    to be resampled/re-optimized from scratch.
+    fixed by value" rule, it must be fixed in the new model rather than left free to be
+    resampled/re-optimized from scratch, at ``+-near_one`` rather than its actual (possibly less
+    extreme) boundary value.
 
     Parameters
     ----------
@@ -1465,13 +1472,16 @@ def _get_params_for_newly_explicit_population(old_demographic_model: Parametrize
     remainder_params: dict[str, float]
         The remainder (derived) parameters computed from the previous optimization's optimal
         parameters, as returned by ``compute_remainder_params``.
+    near_one: float
+        The value (just under 1) to fix the newly-explicit sex-bias parameter at, signed to match
+        which boundary (+1 or -1) it was at. See ``InferenceConfig.optim.near_one``.
 
     Returns
     -------
     tuple[dict[str, float], dict[str, float]]
         A pair ``(start_param_updates, fixed_param_values)``: a dict mapping the newly-explicit
         rate parameter name to its starting value, and a dict fixing the newly-explicit sex-bias
-        parameter name at its previous (boundary) value.
+        parameter name at ``+-near_one``.
     """
     start_param_updates = {}
     fixed_param_values = {}
@@ -1496,7 +1506,7 @@ def _get_params_for_newly_explicit_population(old_demographic_model: Parametrize
 
         sex_bias_value = remainder_params.get(f"{population}_{old_remainder_population}_sex_bias")
         if sex_bias_value is not None and not np.isnan(sex_bias_value):
-            fixed_param_values[f"{new_rate_param}_sex_bias"] = float(sex_bias_value)
+            fixed_param_values[f"{new_rate_param}_sex_bias"] = float(np.sign(sex_bias_value)) * near_one
 
     return start_param_updates, fixed_param_values
 
@@ -1641,13 +1651,14 @@ def build_boundary_reoptimization_model(driver_spec: InferenceConfig, reload_con
         # The population that was previously implicit is now explicit and has no starting value in
         # the driver file (it was never optimized before). Seed its rate from the remainder values
         # computed at the end of the previous optimization, and fix its sex-bias parameter by value
-        # at that same (boundary) value: it was the derived sex-bias hitting the +-1 boundary that
-        # triggered this implicit-population switch, so it must be fixed, not left free to be
-        # resampled/re-optimized from scratch.
+        # at +-near_one: it was the derived sex-bias hitting the +-1 boundary that triggered this
+        # implicit-population switch, so it must be fixed, not left free to be resampled/re-optimized
+        # from scratch.
         new_explicit_start_params, new_explicit_fixed_param_values = _get_params_for_newly_explicit_population(
             old_demographic_model=genetic_model.demographic_model,
             new_demographic_model=demographic_model,
             remainder_params=remainder_params,
+            near_one=driver_spec.optim.near_one,
         )
         if new_explicit_start_params:
             reopt_driver_spec = reopt_driver_spec.model_copy(update={
