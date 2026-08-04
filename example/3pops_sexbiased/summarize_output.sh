@@ -13,6 +13,32 @@ PRINT_PARAMETERS=1
 # ── Likelihood tolerance: warn only if latest run is worse than best by at least this amount ──
 LIKELIHOOD_TOLERANCE=0.1
 
+# ── Date filter: only show results whose latest run is more recent than this date ──
+# Pass via -s/--since YYYY-MM-DD (or YYYYMMDD); omit to be prompted, blank input shows all.
+SINCE_DATE=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -s|--since)
+            SINCE_DATE="$2"
+            shift 2
+            ;;
+        *)
+            echo "Usage: $0 [-s|--since YYYY-MM-DD]" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$SINCE_DATE" ]; then
+    read -r -p "Only show results more recent than (YYYY-MM-DD, blank for all): " SINCE_DATE
+fi
+
+# Normalize to a run-timestamp-comparable string (YYYYMMDD_HHMMSS, start of day).
+SINCE_TS=""
+if [ -n "$SINCE_DATE" ]; then
+    SINCE_TS="$(echo "$SINCE_DATE" | tr -d '-')_000000"
+fi
+
 # ── Summary functions ─────────────────────────────────────────────────────────
 
 get_latest_run() {
@@ -108,6 +134,10 @@ for pop in ACB ASW CLM MXL PEL PUR; do
         latest_run=$(get_latest_run "$out_dir")
         if [ -z "$latest_run" ]; then
             printf "%-8s  %-35s  %-6s  %s\n" "$pop" "$model_name" "N/A" "ERROR: no timestamped run dirs"
+            continue
+        fi
+        run_ts=$(basename "${latest_run%/}")
+        if [ -n "$SINCE_TS" ] && [[ ! "$run_ts" > "$SINCE_TS" ]]; then
             continue
         fi
         n_ind=$(get_num_individuals "$latest_run")
