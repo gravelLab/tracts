@@ -5,7 +5,7 @@ demes:
   - name: EUR
   - name: AFR
   - name: NAT
-  - name: X
+  - name: targetpop
     ancestors: [EUR, NAT, AFR]
     proportions: [REUR, RNAT, RAFR]
     start_time: t
