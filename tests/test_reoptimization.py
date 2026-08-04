@@ -348,7 +348,7 @@ class TestBuildBoundaryReoptimizationModel:
         # The previously-implicit population's (AFR) derived sex-bias was at the +-1 boundary
         # (that's what triggered the implicit-population switch to EUR in the first place); once
         # AFR becomes explicit in the new model, its sex-bias parameter must be fixed by value at
-        # that same boundary value, not left free to be resampled/re-optimized from scratch.
+        # +-near_one (default 0.999), not left free to be resampled/re-optimized from scratch.
         old_model = _make_three_pop_sex_biased_model()  # EUR, NAT explicit; AFR implicit
         genetic_model = GeneticModel(old_model, ad_model_autosomes="DC", ad_model_allosomes="DC")
         driver_spec = _make_real_driver_spec()
@@ -378,15 +378,16 @@ class TestBuildBoundaryReoptimizationModel:
             alternate_implicit_population="EUR",
         )
 
-        assert reopt_driver_spec.optim.fix_parameters_by_value["RAFR_sex_bias"] == pytest.approx(0.97)
+        # The old value (0.97) is positive, so it's fixed at +near_one (default 0.999), not at 0.97.
+        assert reopt_driver_spec.optim.fix_parameters_by_value["RAFR_sex_bias"] == pytest.approx(0.999)
         assert reopt_driver_spec.start_params.RAFR == pytest.approx(0.25)
-        assert reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value["RAFR_sex_bias"] == pytest.approx(0.97)
+        assert reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value["RAFR_sex_bias"] == pytest.approx(0.999)
         # The rate is only seeded as a starting value, not fixed: it should remain free to optimize.
         assert "RAFR" not in reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value
         # RNAT_sex_bias is retained from the old model and free (not fixed): it must carry forward
         # its previous optimal value (-0.2), not reset to 0.
         assert out_model_param_names == ["RNAT", "RNAT_sex_bias", "RAFR", "RAFR_sex_bias", "t"]
-        np.testing.assert_allclose(physical_start_params[0], [0.2, -0.2, 0.25, 0.97, 10.0])
+        np.testing.assert_allclose(physical_start_params[0], [0.2, -0.2, 0.25, 0.999, 10.0])
 
 
 # --------------- run_sex_bias_fixing_reoptimizations ---------------
@@ -503,7 +504,8 @@ class TestRunBoundaryReoptimization:
         reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
                                             autosome_proportions={}, allosome_proportions={})
 
-        result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood = run_boundary_reoptimization(
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
             driver_spec=driver_spec,
             reload_context=reload_context,
             optimal_sex_bias_at_boundaries=["X_AFR_sex_bias"],
@@ -518,6 +520,8 @@ class TestRunBoundaryReoptimization:
         assert result_driver_spec is driver_spec
         assert result_genetic_model is genetic_model
         assert result_optimal_likelihood == pytest.approx(-150.0)
+        assert result_autosome_proportions is reload_context.autosome_proportions
+        assert result_allosome_proportions is reload_context.allosome_proportions
 
     def test_reoptimizes_when_directly_optimized_parameter_at_boundary(self, monkeypatch):
         model = _make_three_pop_sex_biased_model()
@@ -547,7 +551,8 @@ class TestRunBoundaryReoptimization:
         reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
                                             autosome_proportions={}, allosome_proportions={})
 
-        result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood = run_boundary_reoptimization(
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
             driver_spec=driver_spec,
             reload_context=reload_context,
             optimal_sex_bias_at_boundaries=["REUR_sex_bias"],
@@ -560,7 +565,8 @@ class TestRunBoundaryReoptimization:
         )
 
         assert len(captured_build_calls) == 1
-        assert captured_build_calls[0]["boundary_fixed_param_values"] == {"REUR_sex_bias": 1.0}
+        # The optimal value (1.0) is positive, so it's fixed at +near_one (default 0.999).
+        assert captured_build_calls[0]["boundary_fixed_param_values"] == {"REUR_sex_bias": pytest.approx(0.999)}
         assert captured_build_calls[0]["alternate_implicit_population"] is None
         np.testing.assert_allclose(captured_build_calls[0]["optimal_params"], [0.3, 1.0, 0.3, 0.0, 10.0])
         assert len(captured_run_optimization_calls) == 1
@@ -569,6 +575,64 @@ class TestRunBoundaryReoptimization:
         assert result_genetic_model is rebuilt_genetic_model
         assert result_optimal_likelihood == pytest.approx(-90.0)
         np.testing.assert_allclose(result_optimal_params, [0.35, 0.9, 0.3, 0.0, 10.0])
+        # rebuilt_genetic_model's demographic model has the same population order as the original
+        # (no implicit-population switch here), so the observed proportions are unchanged.
+        assert result_autosome_proportions is reload_context.autosome_proportions
+        assert result_allosome_proportions is reload_context.allosome_proportions
+
+    def test_reverts_to_previous_state_when_reoptimization_does_not_improve_likelihood(self, monkeypatch):
+        model = _make_three_pop_sex_biased_model()
+        genetic_model = GeneticModel(model, ad_model_autosomes="DC", ad_model_allosomes="DC")
+        model_param_names, sex_bias_param_names, non_sex_bias_param_names = _three_pop_param_names()
+        driver_spec = _make_real_driver_spec()
+        original_optimal_params = np.array([0.3, 1.0, 0.3, 0.0, 10.0])
+
+        rebuilt_genetic_model = GeneticModel(_make_three_pop_sex_biased_model(), ad_model_autosomes="DC", ad_model_allosomes="DC")
+        rebuilt_driver_spec = _make_real_driver_spec()
+        captured_log_messages = []
+
+        def fake_build_boundary_reoptimization_model(**kwargs):
+            return (rebuilt_driver_spec, rebuilt_genetic_model, model_param_names,
+                    sex_bias_param_names, non_sex_bias_param_names, [np.array([0.3, 1.0, 0.3, 0.0, 10.0])])
+
+        def fake_run_optimization(**kwargs):
+            # Worse (lower) likelihood than the -150.0 passed in below.
+            return np.array([0.35, 0.9, 0.3, 0.0, 10.0]), -200.0
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("Should not report/compute results for a discarded (worse) re-optimization")
+
+        monkeypatch.setattr(driver_module, "get_alternate_implicit_population", lambda **kwargs: None)
+        monkeypatch.setattr(driver_module, "build_boundary_reoptimization_model", fake_build_boundary_reoptimization_model)
+        monkeypatch.setattr(driver_module, "run_optimization", fake_run_optimization)
+        monkeypatch.setattr(driver_module, "_print_and_log", lambda *messages: captured_log_messages.extend(messages))
+        monkeypatch.setattr(driver_module, "_print_optimal_values_and_likelihood", fail_if_called)
+        monkeypatch.setattr(driver_module, "compute_remainder_params", fail_if_called)
+
+        reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
+                                            autosome_proportions=np.array([0.5, 0.3, 0.2]), allosome_proportions=[])
+
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
+            driver_spec=driver_spec,
+            reload_context=reload_context,
+            optimal_sex_bias_at_boundaries=["REUR_sex_bias"],
+            genetic_model=genetic_model,
+            optimal_params=original_optimal_params,
+            optimal_likelihood=-150.0,
+            remainder_params={},
+            population=SimpleNamespace(),
+            likelihood_options=SimpleNamespace(),
+        )
+
+        # The pre-re-optimization state is returned unchanged, not the (worse) rebuilt/re-optimized one.
+        assert result_driver_spec is driver_spec
+        assert result_genetic_model is genetic_model
+        assert result_optimal_params is original_optimal_params
+        assert result_optimal_likelihood == pytest.approx(-150.0)
+        assert result_autosome_proportions is reload_context.autosome_proportions
+        assert result_allosome_proportions is reload_context.allosome_proportions
+        assert any("did not improve" in message for message in captured_log_messages)
 
 
 # --------------- core.py: step-1 sex-bias fixing derives values from p0, not 0 ---------------

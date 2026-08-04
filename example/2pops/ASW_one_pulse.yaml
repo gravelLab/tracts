@@ -26,7 +26,6 @@ optim:
   exclude_tracts_below_cm: 2
   n_reoptimizations: 5
   rerun_optimization_on_boundaries: True
-  boundary_tol: 0.3
 
 output:
   output_directory: ./output_one_pulse/

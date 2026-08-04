@@ -42,7 +42,6 @@ optim:
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
   n_reoptimizations: 5
   rerun_optimization_on_boundaries: True
-  boundary_tol: 0.3
 
 output:
   output_directory: "./output_ppp/{date}/"

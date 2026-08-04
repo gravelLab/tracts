@@ -251,7 +251,8 @@ Optimization
      n_reoptimizations: 5
      reoptimization_likelihood_tolerance: 1e-3
      rerun_optimization_on_boundaries: True
-     boundary_tol: 0.3
+     boundary_tol: 0.1
+     near_one: 0.999
      repetitions_likelihood_tolerance: 0.5
 
 - ``seed``: The random seed.
@@ -268,7 +269,8 @@ Optimization
 - ``n_reoptimizations``: The number of times to repeat fixing the sex-bias parameters at their most recently optimized values and re-running the optimization from the current optimal parameters. This lets the non-sex-bias and sex-bias parameters refine each other iteratively. Defaults to 0 (not run).
 - ``reoptimization_likelihood_tolerance``: Absolute tolerance used to decide whether a re-optimization repetition (see ``n_reoptimizations``) has stopped improving the likelihood, in which case the repetitions stop early. Defaults to ``1e-3``.
 - ``rerun_optimization_on_boundaries``: Whether to re-run the optimization when one or more sex-bias parameters have an optimal value at their +-1 boundary, fixing the boundary-hitting parameters by value (and, if required, changing the implicit population). Defaults to ``True``.
-- ``boundary_tol``: The tolerance used to determine whether an optimized sex-bias parameter's value is at its +-1 boundary. Default is 0.3.
+- ``boundary_tol``: The tolerance used to determine whether an optimized sex-bias parameter's value is at its +-1 boundary. Default is 0.1.
+- ``near_one``: When a sex-bias parameter is at its +-1 boundary and gets fixed by value for the boundary re-optimization (see ``rerun_optimization_on_boundaries``), it is fixed at ``+-near_one`` rather than at its actual (possibly less extreme) optimal value. Default is 0.999.
 - ``repetitions_likelihood_tolerance``: Absolute tolerance used to decide whether a run (among the ``repetitions`` runs from different starting parameters) reached a likelihood value close to the best one; a warning is logged if only one run out of several is found within this tolerance of the best. Defaults to ``0.5``.
 
 
