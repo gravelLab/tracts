@@ -49,7 +49,7 @@ start_params:
 optim:
   repetitions: 10
   seed: 100
-  maximum_iterations: 1000
+  maximum_iterations: 300
   npts: 50
   #fix_parameters_from_ancestry_proportions: ['REUR2', 'RAFR', 'REUR2_sex_bias', 'RAFR_sex_bias']
   exclude_tracts_below_cm: 2
