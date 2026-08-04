@@ -1278,10 +1278,10 @@ class FixedParametersHandler:
         self.current_fixed_parameters.update(new_fixed_params)
         self.current_fixed_parameters = self.order_fixed_param_dict(self.current_fixed_parameters)
         self.params_fixed_by_value_indices = self.get_sorted_indices(self.current_fixed_parameters.keys())
-        self.params_fixed_by_values_values =self.current_fixed_parameters.values()
+        self.params_fixed_by_values_values = list(self.current_fixed_parameters.values())
         self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
-                                         param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]        
-    
+                                         param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]
+
     def release_fixed_parameters(self, freed_params: list[str]):
         """
         Removes parameters from the current set of fixed parameters, and updates the indices of the free parameters accordingly.
@@ -1293,10 +1293,10 @@ class FixedParametersHandler:
         """
         self.current_fixed_parameters = {param_name: value for param_name, value in self.current_fixed_parameters.items() if param_name not in freed_params}
         self.params_fixed_by_value_indices = self.get_sorted_indices(self.current_fixed_parameters.keys())
-        self.params_fixed_by_values_values =self.current_fixed_parameters.values()
+        self.params_fixed_by_values_values = list(self.current_fixed_parameters.values())
         self.free_parameters_indices = [index for index, param_name in enumerate(self.demography.model_base_params) if
                                          param_name not in self.current_fixed_parameters and param_name not in self.params_fixed_by_ancestry]
-        
+
 
     def full_params_objective_func(self, parameters: list[float], units: str | None = None):
         """
