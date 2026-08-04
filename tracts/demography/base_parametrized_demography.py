@@ -13,6 +13,14 @@ from tracts.util import time_to_physical_function, rate_to_physical_function, se
 
 logger = logging.getLogger(__name__)
 
+def softplus(x, beta=10.0):
+    return np.logaddexp(0, beta * x) / beta
+
+def smooth_clip01(x, beta=10.0):
+    """approaches 0 if x<0, 1 if x>1, approx linear in between"""
+    return softplus(x, beta) - softplus(x - 1, beta)
+
+
 class BaseFounderEvent(ABC):
     """
     Base class for founder events. A founder event is an event in which a new population is formed from one or more source populations. The source populations contribute to the new population according to certain proportions, which can be fixed or parametrized.
@@ -161,7 +169,8 @@ class FounderEvent(BaseFounderEvent):
             float_end_time = parametrized_demography.get_param_value(param_name=self.end_time,
                                                                     params=params)
             
-            integer_end_time = math.ceil(float_end_time)
+            
+            
             total_rate = 0
 
             for source_population, rate_param in self.source_populations.items():
@@ -177,11 +186,29 @@ class FounderEvent(BaseFounderEvent):
                                                                 params=params)
                 rate_fraction = rate / total_rate if total_rate != 0 else 0.
 
+
+
                 if source_population not in self.pulse_pops:
 
-                    migration_matrix[integer_end_time - 1, parametrized_demography.population_indices[source_population]] += rate * (integer_end_time - float_end_time)
-                    for t in range(integer_end_time, start_time-1):
-                        migration_matrix[t, parametrized_demography.population_indices[source_population]] += rate
+                    integer_end_time = math.ceil(float_end_time)
+                    
+                    def rate_by_generation_end(t: int, float_end_time:float, rate: float) -> float:
+                        integer_end_time = math.ceil(float_end_time)
+                        if t>= integer_end_time:
+                            return rate
+                        elif t == integer_end_time - 1:
+                            return rate * (integer_end_time - float_end_time)
+                        elif t<= integer_end_time - 2:
+                            return 0
+                    
+                    opt_beta = 5 #This parameter should be selectable by the user via opt_params
+
+                    def rate_by_generation_end_smooth(t: int, float_end_time:float, rate: float, beta = 10) -> float:
+                        return rate*smooth_clip01(t+1-float_end_time, beta = beta)
+
+                    for t in range(integer_end_time - 2, start_time - 1):
+                        migration_matrix[t, parametrized_demography.population_indices[source_population]] += \
+                                                            rate_by_generation_end_smooth(t, float_end_time, rate, beta=opt_beta)
                 else:
                     migration_matrix[start_time-2, parametrized_demography.population_indices[source_population]] += frac_part_start*rate #to ensure continuity of the matrix
 

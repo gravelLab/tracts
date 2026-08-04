@@ -48,7 +48,7 @@ start_params:
 optim:
   repetitions: 20
   seed: 100
-  maximum_iterations: 1000
+  maximum_iterations: 300
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
   exclude_tracts_below_cm: 2
   npts : 50
