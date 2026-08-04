@@ -44,7 +44,6 @@ optim:
   #fix_parameters_from_ancestry_proportions: ['REUR', 'RAFR','REUR_sex_bias', 'RAFR_sex_bias']
   n_reoptimizations: 5
   rerun_optimization_on_boundaries: True
-  boundary_tol: 0.3
 
 output:
   output_filename_format: "MXL_output_{label}"

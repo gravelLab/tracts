@@ -503,7 +503,8 @@ class TestRunBoundaryReoptimization:
         reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
                                             autosome_proportions={}, allosome_proportions={})
 
-        result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood = run_boundary_reoptimization(
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
             driver_spec=driver_spec,
             reload_context=reload_context,
             optimal_sex_bias_at_boundaries=["X_AFR_sex_bias"],
@@ -518,6 +519,8 @@ class TestRunBoundaryReoptimization:
         assert result_driver_spec is driver_spec
         assert result_genetic_model is genetic_model
         assert result_optimal_likelihood == pytest.approx(-150.0)
+        assert result_autosome_proportions is reload_context.autosome_proportions
+        assert result_allosome_proportions is reload_context.allosome_proportions
 
     def test_reoptimizes_when_directly_optimized_parameter_at_boundary(self, monkeypatch):
         model = _make_three_pop_sex_biased_model()
@@ -547,7 +550,8 @@ class TestRunBoundaryReoptimization:
         reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
                                             autosome_proportions={}, allosome_proportions={})
 
-        result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood = run_boundary_reoptimization(
+        (result_driver_spec, result_genetic_model, result_optimal_params, result_optimal_likelihood,
+         result_autosome_proportions, result_allosome_proportions) = run_boundary_reoptimization(
             driver_spec=driver_spec,
             reload_context=reload_context,
             optimal_sex_bias_at_boundaries=["REUR_sex_bias"],
@@ -569,6 +573,10 @@ class TestRunBoundaryReoptimization:
         assert result_genetic_model is rebuilt_genetic_model
         assert result_optimal_likelihood == pytest.approx(-90.0)
         np.testing.assert_allclose(result_optimal_params, [0.35, 0.9, 0.3, 0.0, 10.0])
+        # rebuilt_genetic_model's demographic model has the same population order as the original
+        # (no implicit-population switch here), so the observed proportions are unchanged.
+        assert result_autosome_proportions is reload_context.autosome_proportions
+        assert result_allosome_proportions is reload_context.allosome_proportions
 
 
 # --------------- core.py: step-1 sex-bias fixing derives values from p0, not 0 ---------------

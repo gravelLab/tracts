@@ -20,7 +20,8 @@ from tracts.driver_utils import (
     _build_step2_skip_message,
     _build_reoptimization_intro_message,
     _select_full_data_likelihood,
-    _get_driver_for_reoptimization
+    _get_driver_for_reoptimization,
+    _reorder_ancestry_proportions
 )
 from tracts.logs import initialize_tracts, close_log_file
 
@@ -170,15 +171,16 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                 autosome_proportions=autosome_proportions,
                                                 allosome_proportions=allosome_proportions)
 
-            driver_spec, genetic_model, optimal_params, optimal_likelihood = run_boundary_reoptimization(driver_spec=driver_spec,
-                                                                                                        reload_context=reload_context,
-                                                                                                        optimal_sex_bias_at_boundaries=optimal_sex_bias_at_boundaries,
-                                                                                                        genetic_model=genetic_model,
-                                                                                                        optimal_params=optimal_params,
-                                                                                                        optimal_likelihood=optimal_likelihood,
-                                                                                                        remainder_params=remainder_params,
-                                                                                                        population=pop,
-                                                                                                        likelihood_options=likelihood_options)
+            (driver_spec, genetic_model, optimal_params, optimal_likelihood,
+             autosome_proportions, allosome_proportions) = run_boundary_reoptimization(driver_spec=driver_spec,
+                                                                                        reload_context=reload_context,
+                                                                                        optimal_sex_bias_at_boundaries=optimal_sex_bias_at_boundaries,
+                                                                                        genetic_model=genetic_model,
+                                                                                        optimal_params=optimal_params,
+                                                                                        optimal_likelihood=optimal_likelihood,
+                                                                                        remainder_params=remainder_params,
+                                                                                        population=pop,
+                                                                                        likelihood_options=likelihood_options)
 
             demographic_model = genetic_model.demographic_model
             model_func = genetic_model.model_func
@@ -585,11 +587,16 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
 
     Returns
     -------
-    tuple[InferenceConfig, GeneticModel, np.ndarray, float]
-        The (possibly updated) driver spec and genetic model, and the optimal parameters and
-        likelihood.
+    tuple[InferenceConfig, GeneticModel, np.ndarray, float, np.ndarray, np.ndarray | list]
+        The (possibly updated) driver spec and genetic model, the optimal parameters and
+        likelihood, and ``reload_context.autosome_proportions``/``allosome_proportions``
+        realigned to the (possibly reordered) population order of the returned genetic model's
+        demographic model (see ``_reorder_ancestry_proportions``): switching the implicit
+        population reorders ``demographic_model.population_indices`` (the implicit population is
+        always placed last; see ``ParametrizedDemography(SexBiased).load_from_YAML``).
     """
     demographic_model = genetic_model.demographic_model
+    ancestor_labels_before_reopt = list(demographic_model.population_indices.keys())
     model_param_names, _, _ = get_param_names_by_type(demographic_model)
 
     # Only directly-optimized parameters (present in model_base_params) can be fixed by value; a
@@ -609,7 +616,8 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
         demographic_model=demographic_model, optimal_sex_bias_at_boundaries=optimal_sex_bias_at_boundaries)
 
     if not boundary_fixed_param_values and alternate_implicit_population is None:
-        return driver_spec, genetic_model, optimal_params, optimal_likelihood
+        return (driver_spec, genetic_model, optimal_params, optimal_likelihood,
+                reload_context.autosome_proportions, reload_context.allosome_proportions)
 
     (driver_spec, genetic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names,
      reopt_physical_start_params) = build_boundary_reoptimization_model(driver_spec=driver_spec,
@@ -639,7 +647,13 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
                                         remainder_parameters=remainder_params,
                                         ad_model_allosomes=genetic_model.phase_type_config.ad_model_allosomes)
 
-    return driver_spec, genetic_model, optimal_params, optimal_likelihood
+    autosome_proportions, allosome_proportions = _reorder_ancestry_proportions(
+        old_ancestor_labels=ancestor_labels_before_reopt,
+        new_ancestor_labels=list(demographic_model.population_indices.keys()),
+        autosome_proportions=reload_context.autosome_proportions,
+        allosome_proportions=reload_context.allosome_proportions)
+
+    return driver_spec, genetic_model, optimal_params, optimal_likelihood, autosome_proportions, allosome_proportions
 
 
 def run_model_multi_init(genetic_model: GeneticModel, population: Population,

@@ -203,7 +203,7 @@ class OptimizationConfig(BaseModel):
         Whether to re-run the optimization (see ``run_boundary_reoptimization``) when one or more
         sex-bias parameters have an optimal value at their +-1 boundary. Defaults to True.
     boundary_tol: float
-            The tolerance for determining if a parameter is at its boundary value. Defaults to 0.3.
+            The tolerance for determining if a parameter is at its boundary value. Defaults to 0.1.
     repetitions_likelihood_tolerance: float
         Absolute tolerance used to decide whether a run (among the ``repetitions`` runs from
         different starting parameters) reached a likelihood value close to the best one. A
@@ -225,7 +225,7 @@ class OptimizationConfig(BaseModel):
     n_reoptimizations: int = Field(default=0, ge=0)
     reoptimization_likelihood_tolerance: float = Field(default=1e-3, ge=0)
     rerun_optimization_on_boundaries: bool = True
-    boundary_tol: float = Field(default=0.3, ge=0)
+    boundary_tol: float = Field(default=0.1, ge=0)
     repetitions_likelihood_tolerance: float = Field(default=0.5, ge=0)
 
 
@@ -422,6 +422,45 @@ def get_ancestry_proportions(driver_spec: InferenceConfig, population: Populatio
     else:
         allosome_proportions = []
 
+    return autosome_proportions, allosome_proportions
+
+
+def _reorder_ancestry_proportions(old_ancestor_labels: list[str], new_ancestor_labels: list[str],
+                                  autosome_proportions: np.ndarray, allosome_proportions: np.ndarray | list):
+    """
+    Permutes observed ancestry proportions computed under ``old_ancestor_labels`` so that they line
+    up with ``new_ancestor_labels`` instead. Used when the implicit population changes during
+    boundary re-optimization: this reorders ``demographic_model.population_indices`` (the implicit
+    population is always placed last; see ``ParametrizedDemography(SexBiased).load_from_YAML``), so
+    any previously-computed proportions must be realigned to match wherever they are reused
+    afterwards, whether for display or to fix parameters by ancestry proportion.
+
+    Parameters
+    ----------
+    old_ancestor_labels: list[str]
+        The population order that ``autosome_proportions``/``allosome_proportions`` were computed
+        in (i.e. the ``ancestor_labels`` originally passed to ``get_ancestry_proportions``).
+    new_ancestor_labels: list[str]
+        The population order to realign to.
+    autosome_proportions: np.ndarray
+        Observed autosomal ancestry proportions, in ``old_ancestor_labels`` order.
+    allosome_proportions: np.ndarray | list
+        Observed allosomal ancestry proportions, in ``old_ancestor_labels`` order, or ``[]`` if
+        allosomes are not modelled.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray | list]
+        ``(autosome_proportions, allosome_proportions)`` reordered to match ``new_ancestor_labels``.
+        Returned unchanged if the two label orders are already identical.
+    """
+    if new_ancestor_labels == old_ancestor_labels:
+        return autosome_proportions, allosome_proportions
+
+    reorder_idx = [old_ancestor_labels.index(label) for label in new_ancestor_labels]
+    autosome_proportions = np.asarray(autosome_proportions)[reorder_idx]
+    if len(allosome_proportions) > 0:
+        allosome_proportions = np.asarray(allosome_proportions)[reorder_idx]
     return autosome_proportions, allosome_proportions
 
 
@@ -1625,11 +1664,19 @@ def build_boundary_reoptimization_model(driver_spec: InferenceConfig, reload_con
         optimal_param_values.update(new_explicit_start_params)
         optimal_param_values.update(new_explicit_fixed_param_values)
 
+        # reload_context.autosome_proportions/allosome_proportions were computed against the old
+        # demographic model's population order; realign them to the new model's order.
+        reload_autosome_proportions, reload_allosome_proportions = _reorder_ancestry_proportions(
+            old_ancestor_labels=list(genetic_model.demographic_model.population_indices.keys()),
+            new_ancestor_labels=list(demographic_model.population_indices.keys()),
+            autosome_proportions=reload_context.autosome_proportions,
+            allosome_proportions=reload_context.allosome_proportions)
+
         setup_fixed_parameters(driver_spec=reopt_driver_spec,
                                demographic_model=demographic_model,
                                allosome_label=reload_context.allosome_label,
-                               autosome_proportions=reload_context.autosome_proportions,
-                               allosome_proportions=reload_context.allosome_proportions,
+                               autosome_proportions=reload_autosome_proportions,
+                               allosome_proportions=reload_allosome_proportions,
                                print_details=False)
     else:
         # No structural change: reuse a copy of the current genetic model (which already has the
