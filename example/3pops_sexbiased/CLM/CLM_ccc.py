@@ -16,7 +16,7 @@ from tracts.driver import run_tracts
 
 script_path = Path(sys.argv[0]).resolve()
    
-driver_filename = "CLM_ccp.yaml"
+driver_filename = "CLM_ccc.yaml"
 
 run_tracts(driver_filename = driver_filename, script_dir = script_path.parent)
 
