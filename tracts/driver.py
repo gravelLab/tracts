@@ -1,6 +1,7 @@
 import io
 import contextlib
 import logging
+from dataclasses import replace
 from functools import partial
 from typing import Callable
 import numpy as np
@@ -678,6 +679,14 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
             new_ancestor_labels=list(demographic_model.population_indices.keys()),
             autosome_proportions=autosome_proportions,
             allosome_proportions=allosome_proportions)
+
+        # Keep reload_context's proportions in sync with the current population order: if a later
+        # iteration also switches the implicit population, build_boundary_reoptimization_model
+        # reorders reload_context.autosome_proportions/allosome_proportions assuming they still
+        # match the (just-accepted) genetic_model's population order (which is only true if this
+        # is kept up to date across iterations).
+        reload_context = replace(reload_context, autosome_proportions=autosome_proportions,
+                                 allosome_proportions=allosome_proportions)
 
         # Stop once no sex-bias parameter remains free to fix (all have hit the boundary and been
         # fixed already, over this and/or previous iterations): nothing is left to check or
