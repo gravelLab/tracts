@@ -1322,7 +1322,7 @@ def check_optimal_sex_bias_parameters_at_boundaries(demographic_model: Parametri
     if all_at_boundary:
         _boundary_msg = (
             f"The optimal solution has sex-bias parameter(s) "
-            f"{', '.join(all_at_boundary)} at their \u00b11 boundary. "
+            f"{', '.join(all_at_boundary)} near their \u00b11 boundary. "
             )
         if not driver_spec.optim.rerun_optimization_on_boundaries:
             _boundary_msg+="Re-running the optimization fixing these parameters at their boundary values may yield a better solution. Consider setting driver_spec.optim.rerun_optimization_on_boundaries to TRUE."
