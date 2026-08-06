@@ -201,11 +201,12 @@ class OptimizationConfig(BaseModel):
         to 1e-3.
     rerun_optimization_on_boundaries: bool
         Whether to re-run the optimization (see ``run_boundary_reoptimization``) when one or more
-        sex-bias parameters have an optimal value at their +-1 boundary. Defaults to True.
+        sex-bias parameters have an optimal value near their +-1 boundary. Defaults to True.
     boundary_tol: float
             The tolerance for determining if a parameter is at its boundary value. Defaults to 0.1.
     near_one: float
-        When a sex-bias parameter is at its +-1 boundary and gets fixed by value for the boundary
+        The value to which a sex-bias parameter is fixed when it is near its +-1 boundary. This is used to avoid parameters getting stuck at the boundary.
+        When a sex-bias parameter is near its +-1 boundary and gets fixed by value for the boundary
         re-optimization (see ``run_boundary_reoptimization``), it is fixed at ``+-near_one`` rather
         than at its actual (possibly less extreme, e.g. ``1 - boundary_tol``) optimal value.
         Defaults to 0.999.
@@ -1367,10 +1368,10 @@ def check_optimal_sex_bias_parameters_at_boundaries(demographic_model: Parametri
     if all_at_boundary:
         _boundary_msg = (
             f"The optimal solution has sex-bias parameter(s) "
-            f"{', '.join(all_at_boundary)} at their \u00b11 boundary. "
+            f"{', '.join(all_at_boundary)} near their \u00b11 boundary. "
             )
         if not driver_spec.optim.rerun_optimization_on_boundaries:
-            _boundary_msg+="Re-running the optimization fixing these parameters at their boundary values may yield a better solution. Consider setting driver_spec.optim.rerun_optimization_on_boundaries to TRUE."
+            _boundary_msg+="Re-running the optimization fixing these parameters near their boundary values may yield a better solution. Consider setting driver_spec.optim.rerun_optimization_on_boundaries to TRUE."
         print(_boundary_msg)
         logger.info(_boundary_msg)
     
@@ -1396,15 +1397,23 @@ def get_alternate_implicit_population(demographic_model: ParametrizedDemographyS
     ``optimal_sex_bias_at_boundaries`` is a derived remainder parameter (i.e. corresponds to
     ``demographic_model``'s current implicit population, rather than a directly-optimized
     sex-bias parameter). If so, returns the name of a different source population from the
-    same founder event, whose own sex-bias parameter is not itself at a boundary, that could
-    be used as the implicit population instead.
+    same founder event, whose own sex-bias parameter is neither itself at a boundary nor
+    already fixed by value, that could be used as the implicit population instead.
+
+    A candidate already fixed by value is excluded even though it is not "at a boundary" (fixed
+    parameters are skipped by ``check_optimal_sex_bias_parameters_at_boundaries``, so they never
+    appear in ``optimal_sex_bias_at_boundaries``): switching the implicit population to it would
+    silently discard its fixed value (fixed parameters become non-optimizable once a population
+    is implicit; see ``base_parametrized_demography.set_up_fixed_parameters``) and, if it was
+    fixed by a previous boundary re-optimization iteration, would simply undo that iteration's
+    fix rather than making progress, risking an infinite switch-back-and-forth cycle.
 
     Parameters
     ----------
     demographic_model: ParametrizedDemographySexBiased
         The demographic model whose founder events are inspected.
     optimal_sex_bias_at_boundaries: list[str]
-        Parameter names at their +-1 boundary, as returned by
+        Parameter names near their +-1 boundary, as returned by
         ``check_optimal_sex_bias_parameters_at_boundaries``.
 
     Returns
@@ -1412,8 +1421,8 @@ def get_alternate_implicit_population(demographic_model: ParametrizedDemographyS
     str | None
         The name of an alternate source population to use as the implicit population, or
         None if no boundary-violating parameter corresponds to the current implicit
-        population, or if every other source population in that founder event is also
-        at a boundary.
+        population, or if every other source population in that founder event is either
+        at a boundary or already fixed by value.
     """
     for population in demographic_model.parametrized_populations:
         founder_event = _get_founder_event_with_remainder(demographic_model, population)
@@ -1424,19 +1433,21 @@ def get_alternate_implicit_population(demographic_model: ParametrizedDemographyS
         if remainder_key not in optimal_sex_bias_at_boundaries:
             continue
 
+        user_params_fixed_by_value = demographic_model.parameter_handler.user_params_fixed_by_value
         for source_population, rate_param in founder_event.source_populations.items():
             # rate_param is sex-suffixed here (e.g. "REUR_male", from the male founder event's
             # own source_populations); strip the suffix to match the plain sex-bias parameter
             # names in optimal_sex_bias_at_boundaries (e.g. "REUR_sex_bias").
             base_rate_param = rate_param.removesuffix(SexType.MALE.suffix)
-            if f"{base_rate_param}_sex_bias" not in optimal_sex_bias_at_boundaries:
+            candidate_sex_bias = f"{base_rate_param}_sex_bias"
+            if candidate_sex_bias not in optimal_sex_bias_at_boundaries and candidate_sex_bias not in user_params_fixed_by_value:
                 return source_population
 
         _boundary_msg = (
-            f"The implicit population's ('{founder_event.remainder_population}') sex-bias parameter "
-            f"({remainder_key}) is at the +-1 boundary, but every other source population in the same "
-            "founder event also has its sex-bias parameter at a boundary: no alternate implicit "
-            "population can be chosen."
+            f"The implicit population's sex-bias parameter "
+            f"({remainder_key}) is at the +-1 boundary,\nbut every other source population in the same "
+            "founder event either also has its sex-bias parameter \nat a boundary or is already fixed "
+            "by value: no alternate implicit population can be chosen."
         )
         print(_boundary_msg)
         logger.info(_boundary_msg)
@@ -1648,6 +1659,22 @@ def build_boundary_reoptimization_model(driver_spec: InferenceConfig, reload_con
         reopt_genetic_model = GeneticModel(demographic_model=demographic_model,
                                            phase_type_config=genetic_model.phase_type_config)
 
+        # Switching the implicit population can turn a parameter that was previously explicit and
+        # fixed by value (e.g. by an earlier boundary re-optimization iteration) into a derived
+        # remainder parameter of the newly-implicit population, which can no longer be fixed by
+        # value (it is computed automatically). Drop any such now-stale entries before setting up
+        # the reloaded model's fixed parameters, to avoid a spurious KeyError.
+        stale_fixed_by_value = set(reopt_driver_spec.optim.fix_parameters_by_value) - set(demographic_model.model_base_params)
+        if stale_fixed_by_value:
+            reopt_driver_spec = reopt_driver_spec.model_copy(update={
+                "optim": reopt_driver_spec.optim.model_copy(update={
+                    "fix_parameters_by_value": {
+                        name: value for name, value in reopt_driver_spec.optim.fix_parameters_by_value.items()
+                        if name not in stale_fixed_by_value
+                    },
+                }),
+            })
+
         # The population that was previously implicit is now explicit and has no starting value in
         # the driver file (it was never optimized before). Seed its rate from the remainder values
         # computed at the end of the previous optimization, and fix its sex-bias parameter by value
@@ -1692,10 +1719,25 @@ def build_boundary_reoptimization_model(driver_spec: InferenceConfig, reload_con
     else:
         # No structural change: reuse a copy of the current genetic model (which already has the
         # original ancestry- and value-based fixed parameters set up) instead of reloading, and
-        # just add the new boundary fixes on top.
+        # just add the new boundary fixes on top. Population order is unchanged, so
+        # reload_context's proportions (kept in sync with genetic_model's order by the caller)
+        # can be used as-is, without reordering.
+        #
+        # Uses setup_fixed_parameters (which re-derives user_params_fixed_by_value from
+        # reopt_driver_spec.optim.fix_parameters_by_value, already merged with
+        # boundary_fixed_param_values above) rather than parameter_handler.add_fixed_parameters:
+        # the latter only updates current_fixed_parameters, which has_free_sex_bias_parameters
+        # and check_optimal_sex_bias_parameters_at_boundaries do not consult, and this fix must
+        # be permanent (unlike the transient step-1/step-2 fixing done by add_fixed_parameters in
+        # core.py, which is later released again within the same optimization call).
         reopt_genetic_model = genetic_model.copy()
         demographic_model = reopt_genetic_model.demographic_model
-        demographic_model.parameter_handler.add_fixed_parameters(boundary_fixed_param_values)
+        setup_fixed_parameters(driver_spec=reopt_driver_spec,
+                               demographic_model=demographic_model,
+                               allosome_label=reload_context.allosome_label,
+                               autosome_proportions=reload_context.autosome_proportions,
+                               allosome_proportions=reload_context.allosome_proportions,
+                               print_details=False)
         model_param_names, sex_bias_param_names, non_sex_bias_param_names = get_param_names_by_type(demographic_model)
 
     _print_and_log("\nRe-optimizing with sex-bias parameter(s) "

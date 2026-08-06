@@ -576,7 +576,7 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
         File-location and ancestry-proportion context needed to reload the demographic model from
         the model YAML file, used only if the implicit population is changed.
     optimal_sex_bias_at_boundaries: list[str]
-        Parameter names at their +-1 boundary, as returned by
+        Parameter names near their +-1 boundary, as returned by
         ``check_optimal_sex_bias_parameters_at_boundaries``.
     genetic_model: GeneticModel
         The current genetic model. Its demographic model's parameter names are derived directly
@@ -630,6 +630,12 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
             demographic_model=demographic_model, optimal_sex_bias_at_boundaries=optimal_sex_bias_at_boundaries)
 
         if not boundary_fixed_param_values and alternate_implicit_population is None:
+            _print_and_log(
+                "None of the boundary-hitting sex-bias "
+                f"parameter(s) ({', '.join(optimal_sex_bias_at_boundaries)}) can be fixed by value, "
+                "and no alternate implicit population is available to resolve the boundary hit. "
+                "Stopping boundary re-optimization."
+            )
             break
 
         ancestor_labels_before_reopt = list(demographic_model.population_indices.keys())
@@ -692,6 +698,7 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
         # fixed already, over this and/or previous iterations): nothing is left to check or
         # re-optimize further.
         if not has_free_sex_bias_parameters(demographic_model.parameter_handler, sex_bias_param_names):
+            _print_and_log("All sex-bias parameters have been fixed by value. Boundary re-optimization completed.")
             break
 
         # Check whether fixing the previous boundary-hitters revealed new ones among the remaining
@@ -704,6 +711,7 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
             optimal_params=optimal_params)
 
         if len(optimal_sex_bias_at_boundaries) == 0:
+            _print_and_log("No sex-bias parameters remain at a boundary. Boundary re-optimization completed.")
             break
 
     return driver_spec, genetic_model, optimal_params, optimal_likelihood, autosome_proportions, allosome_proportions
