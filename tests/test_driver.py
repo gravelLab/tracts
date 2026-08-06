@@ -85,6 +85,7 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             TP=2,
         ),
         start_params=SimpleNamespace(),
+        bounds=SimpleNamespace(),
         optim=SimpleNamespace(
             seed=1,
             repetitions=2,
@@ -102,7 +103,8 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             n_reoptimizations=0,
             rerun_optimization_on_boundaries=True,
             reoptimization_likelihood_tolerance=1e-3,
-            repetitions_likelihood_tolerance=0.5
+            repetitions_likelihood_tolerance=0.5,
+            bounds_proximity_tol=0.05,
         ),
         output=SimpleNamespace(
             output_filename_format="test_output_{label}",
@@ -129,10 +131,10 @@ def _make_mock_model():
     """
     model = MagicMock(spec=ParametrizedDemographySexBiased)
     model.model_base_params = OrderedDict([
-        ("t", SimpleNamespace(index=0, type=ParamType.TIME)),
-        ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE)),
-        ("sb_eur", SimpleNamespace(index=2, type=ParamType.SEX_BIAS)),
-        ("sb_afr", SimpleNamespace(index=3, type=ParamType.SEX_BIAS)),
+        ("t", SimpleNamespace(index=0, type=ParamType.TIME, bounds=ParamType.TIME.bounds)),
+        ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE, bounds=ParamType.RATE.bounds)),
+        ("sb_eur", SimpleNamespace(index=2, type=ParamType.SEX_BIAS, bounds=ParamType.SEX_BIAS.bounds)),
+        ("sb_afr", SimpleNamespace(index=3, type=ParamType.SEX_BIAS, bounds=ParamType.SEX_BIAS.bounds)),
     ])
     model.population_indices = OrderedDict([("A", 0), ("B", 1)])
     model.parametrized_populations = ["pop"]
@@ -615,11 +617,11 @@ def _make_mock_model_with_ancestry_fixed():
     """
     model = MagicMock(spec=ParametrizedDemographySexBiased)
     model.model_base_params = OrderedDict([
-        ("t",        SimpleNamespace(index=0, type=ParamType.TIME)),
-        ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE)),
-        ("rate_afr", SimpleNamespace(index=2, type=ParamType.RATE)),
-        ("sb_eur",   SimpleNamespace(index=3, type=ParamType.SEX_BIAS)),
-        ("sb_afr",   SimpleNamespace(index=4, type=ParamType.SEX_BIAS)),
+        ("t",        SimpleNamespace(index=0, type=ParamType.TIME, bounds=ParamType.TIME.bounds)),
+        ("rate_eur", SimpleNamespace(index=1, type=ParamType.RATE, bounds=ParamType.RATE.bounds)),
+        ("rate_afr", SimpleNamespace(index=2, type=ParamType.RATE, bounds=ParamType.RATE.bounds)),
+        ("sb_eur",   SimpleNamespace(index=3, type=ParamType.SEX_BIAS, bounds=ParamType.SEX_BIAS.bounds)),
+        ("sb_afr",   SimpleNamespace(index=4, type=ParamType.SEX_BIAS, bounds=ParamType.SEX_BIAS.bounds)),
     ])
     model.params_fixed_by_ancestry = {"rate_afr"}
     model.population_indices = OrderedDict([("A", 0), ("B", 1)])

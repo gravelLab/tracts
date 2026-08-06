@@ -1,6 +1,7 @@
 from tracts.driver_utils import locate_file_path
 from tracts.driver_utils import parse_chromosomes, parse_start_params, scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
-from tracts.driver_utils import SamplesConfig, InferenceConfig
+from tracts.driver_utils import parse_param_bounds, _print_param_bounds_table, check_optimal_params_near_bounds
+from tracts.driver_utils import SamplesConfig, InferenceConfig, ParamBoundsConfig
 from tracts.driver_utils import load_demographic_model_from_driver
 from tracts.driver_utils import load_population
 from tracts.driver_utils import compute_remainder_params
@@ -357,6 +358,195 @@ class TestParseStartParams:
                 demographic_model=mock_model
             )
 
+
+class TestParseParamBounds:
+    """
+    Tests for parse_param_bounds, which narrows demographic_model.model_base_params[...].bounds
+    in place from a "min:max"-per-parameter bounds config (mirroring parse_start_params's
+    "min:max" parsing), intersecting rather than replacing each parameter's existing bounds.
+    """
+
+    def test_narrows_specified_params_and_leaves_others_untouched(self):
+        model = Mock()
+        model.model_base_params = {
+            'REUR': Mock(bounds=(1e-9, 1 - 1e-9)),
+            't': Mock(bounds=(1, np.inf)),
+        }
+
+        # 't' is not mentioned in param_bounds and must keep its original bounds.
+        param_bounds = Mock(spec=["REUR"], REUR="0.1:0.6")
+
+        parse_param_bounds(param_bounds, model)
+
+        assert model.model_base_params['REUR'].bounds == (0.1, 0.6)
+        assert model.model_base_params['t'].bounds == (1, np.inf)
+
+    def test_accepts_mapping_input(self):
+        model = Mock()
+        model.model_base_params = {'t': Mock(bounds=(1, np.inf))}
+
+        parse_param_bounds({'t': '2:20'}, model)
+
+        assert model.model_base_params['t'].bounds == (2.0, 20.0)
+
+    def test_narrowing_is_intersection_not_replacement(self):
+        """
+        A requested bound wider than the parameter's current bounds does not widen it: only the
+        overlap is kept.
+        """
+        model = Mock()
+        model.model_base_params = {'REUR': Mock(bounds=(0.2, 0.8))}
+
+        parse_param_bounds({'REUR': '0:1'}, model)
+
+        assert model.model_base_params['REUR'].bounds == (0.2, 0.8)
+
+    def test_unknown_parameter_name_raises_key_error(self):
+        model = Mock()
+        model.model_base_params = {'t': Mock(bounds=(1, np.inf))}
+
+        with pytest.raises(KeyError, match="not_a_param"):
+            parse_param_bounds({'not_a_param': '1:2'}, model)
+
+    def test_malformed_bound_raises_value_error(self):
+        model = Mock()
+        model.model_base_params = {'t': Mock(bounds=(1, np.inf))}
+
+        with pytest.raises(ValueError, match="min:max"):
+            parse_param_bounds({'t': 'not-a-range'}, model)
+
+    def test_min_greater_than_or_equal_to_max_raises_value_error(self):
+        model = Mock()
+        model.model_base_params = {'t': Mock(bounds=(1, np.inf))}
+
+        with pytest.raises(ValueError, match="min:max"):
+            parse_param_bounds({'t': '20:2'}, model)
+
+    def test_non_overlapping_bound_raises_value_error(self):
+        model = Mock()
+        model.model_base_params = {'REUR': Mock(bounds=(1e-9, 1 - 1e-9))}
+
+        with pytest.raises(ValueError, match="do not overlap"):
+            parse_param_bounds({'REUR': '2:3'}, model)
+
+    def test_enforced_by_real_model_check_bounds(self):
+        """
+        End-to-end check (real model, not a mock): narrowed bounds are actually read by
+        check_bounds, the bounds component of the violation score the optimizer's constraint
+        function (GeneticModel.outofbounds_fun) is built from.
+        """
+        model = ParametrizedDemography(name="Bounds")
+        model.add_parameter("t", ParamType.TIME)
+        model.add_parameter("REUR", ParamType.RATE)
+        model.finalize()
+
+        parse_param_bounds({'t': '2:20'}, model)
+
+        t_index = model.model_base_params['t'].index
+        reur_index = model.model_base_params['REUR'].index
+        feasible = [0.0, 0.0]
+        feasible[t_index], feasible[reur_index] = 10.0, 0.5
+        assert model.check_bounds(feasible) >= 0
+
+        infeasible = list(feasible)
+        infeasible[t_index] = 25.0  # outside the narrowed (2, 20), inside the original (1, inf)
+        assert model.check_bounds(infeasible) < 0
+
+
+class TestPrintParamBoundsTable:
+    """
+    Tests for _print_param_bounds_table, the table printed/logged once at the start of a run
+    showing each model parameter's effective (post-narrowing) bounds.
+    """
+
+    def test_prints_one_row_per_parameter_in_order(self, capsys):
+        model = Mock()
+        model.model_base_params = {
+            'REUR': Mock(bounds=(0.1, 0.6)),
+            't': Mock(bounds=(2.0, np.inf)),
+        }
+
+        _print_param_bounds_table(demographic_model=model)
+
+        lines = capsys.readouterr().out.splitlines()
+        assert "Parameter bounds" in lines
+        reur_line_index = next(i for i, l in enumerate(lines) if l.startswith("REUR"))
+        t_line_index = next(i for i, l in enumerate(lines) if l.startswith("t "))
+        assert "0.1" in lines[reur_line_index] and "0.6" in lines[reur_line_index]
+        # np.inf must be displayed as "inf", not a raw float representation.
+        assert "inf" in lines[t_line_index]
+        # REUR's row must appear before t's row (model_base_params insertion order).
+        assert reur_line_index < t_line_index
+
+
+class TestCheckOptimalParamsNearBounds:
+    """
+    Tests for check_optimal_params_near_bounds, which flags (and warns about) any final optimal
+    parameter close to its lower/upper admissible bound, as a fraction of the bound's range.
+    Only parameters with finite bounds on both sides are checked.
+    """
+
+    def _model(self, bounds_by_name: dict):
+        model = Mock()
+        model.model_base_params = {name: Mock(bounds=bounds) for name, bounds in bounds_by_name.items()}
+        return model
+
+    def test_no_params_near_bounds_returns_empty_and_prints_nothing(self, capsys):
+        model = self._model({'REUR': (0.0, 1.0), 't': (0.0, 100.0)})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.5, 50.0]), tol=0.05)
+
+        assert result == []
+        assert capsys.readouterr().out == ""
+
+    def test_value_near_lower_bound_is_flagged(self, capsys):
+        model = self._model({'REUR': (0.0, 1.0)})  # margin = 0.05 * 1.0 = 0.05
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.02]), tol=0.05)
+
+        assert result == ['REUR']
+        out = capsys.readouterr().out
+        assert "REUR" in out and "close to their admissible bounds" in out
+
+    def test_value_near_upper_bound_is_flagged(self, capsys):
+        model = self._model({'REUR': (0.0, 1.0)})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.98]), tol=0.05)
+
+        assert result == ['REUR']
+
+    def test_value_well_within_bounds_is_not_flagged(self):
+        model = self._model({'REUR': (0.0, 1.0)})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.5]), tol=0.05)
+
+        assert result == []
+
+    def test_infinite_bound_is_skipped(self):
+        """
+        A parameter with an unbounded side (e.g. TIME's default (1, inf)) is never flagged on
+        that side, even for a value that would otherwise look "close" to a huge but finite bound.
+        """
+        model = self._model({'t': (1.0, np.inf)})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([1.0]), tol=0.05)
+
+        assert result == []
+
+    def test_only_affected_parameters_are_reported(self):
+        model = self._model({'REUR': (0.0, 1.0), 'RNAT': (0.0, 1.0), 't': (1.0, np.inf)})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.01, 0.5, 50.0]), tol=0.05)
+
+        assert result == ['REUR']
+
+
 class TestScaleSelectIndices:
     """
     A class for testing the scale_select_indices function, which is designed to apply a scaling factor to selected indices of an array based on a provided boolean mask.
@@ -560,6 +750,39 @@ class TestConfigModels:
         from tracts.driver_utils import ModelsConfig
         config = ModelsConfig(model_filename='model.yaml', implicit_population='AFR')
         assert config.implicit_population == 'AFR'
+
+    def test_inference_config_bounds_defaults_to_empty(self):
+        """
+        Test that InferenceConfig.bounds defaults to an empty ParamBoundsConfig when the driver
+        file omits a "bounds:" section, so existing driver files without one keep working.
+        """
+        mock_samples = Mock(spec=SamplesConfig)
+        config = InferenceConfig(
+            samples=mock_samples,
+            models={'model_filename': 'model.yaml'},
+            start_params={},
+            optim={'seed': 42},
+            output={'output_filename_format': 'output_{label}.txt'},
+        )
+        assert isinstance(config.bounds, ParamBoundsConfig)
+        assert config.bounds.model_dump() == {}
+
+    def test_inference_config_bounds_explicit(self):
+        """
+        Test that InferenceConfig.bounds accepts a "min:max"-per-parameter mapping, mirroring
+        start_params's format.
+        """
+        mock_samples = Mock(spec=SamplesConfig)
+        config = InferenceConfig(
+            samples=mock_samples,
+            models={'model_filename': 'model.yaml'},
+            start_params={},
+            bounds={'t': '2:20', 'REUR': '0.1:0.6'},
+            optim={'seed': 42},
+            output={'output_filename_format': 'output_{label}.txt'},
+        )
+        assert config.bounds.t == '2:20'
+        assert config.bounds.REUR == '0.1:0.6'
 
 
 class TestLoadModelFromDriver:

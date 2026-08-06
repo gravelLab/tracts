@@ -164,6 +164,22 @@ class StartParamsConfig(BaseModel):
     """
     model_config = ConfigDict(extra="allow")
 
+class ParamBoundsConfig(BaseModel):
+    """
+    Optional lower/upper admissibility bounds for model parameters, specified as ``"min:max"``
+    strings (same syntax as ``start_params`` interval bounds, see ``StartParamsConfig``), e.g.::
+
+        bounds:
+          t: 1:20
+          REUR: 0.1:0.9
+
+    Any parameter not listed here keeps its default bounds (determined by its ``ParamType``: RATE
+    in (0, 1), SEX_BIAS in (-1, 1), TIME in (min_time, max_time), UNTYPED unbounded -- see
+    ``tracts.demography.parameter.ParamType``). A bound given here narrows (intersects with,
+    rather than replaces) that default range: see ``parse_param_bounds``.
+    """
+    model_config = ConfigDict(extra="allow")
+
 class OptimizationConfig(BaseModel):
     """
     Configuration for the optimization process used in the inference.
@@ -215,6 +231,12 @@ class OptimizationConfig(BaseModel):
         different starting parameters) reached a likelihood value close to the best one. A
         warning is logged if only one run out of several is found to be within this tolerance of
         the best. Defaults to 0.5.
+    bounds_proximity_tol: float
+        Relative tolerance, as a fraction of a parameter's admissible range (``upper - lower``,
+        see ``bounds``), used at the end of the run to decide whether a final optimal parameter
+        value is close to its lower or upper bound. Only checked for parameters with finite
+        bounds on both sides (see ``check_optimal_params_near_bounds``); parameters that still
+        have an unbounded (e.g. default ``+inf``) side are skipped. Defaults to 0.05 (5% of the admissible range).
     """
     model_config = ConfigDict(extra="forbid")
     repetitions: int =1
@@ -234,6 +256,7 @@ class OptimizationConfig(BaseModel):
     boundary_tol: float = Field(default=0.1, ge=0)
     near_one: float = Field(default=0.999, gt=0, lt=1)
     repetitions_likelihood_tolerance: float = Field(default=0.5, ge=0)
+    bounds_proximity_tol: float = Field(default=0.05, ge=0, le=0.5)
 
 
 class OutputConfig(BaseModel):
@@ -281,6 +304,10 @@ class InferenceConfig(BaseModel):
         The configuration for the demographic and admixture models used in the inference.
     start_params: StartParamsConfig
         The configuration for the starting parameters used in the optimization.
+    bounds: ParamBoundsConfig
+        Optional per-parameter admissibility bounds, narrowing the default bounds determined by
+        each parameter's type. Defaults to an empty ``ParamBoundsConfig()`` (no narrowing) if
+        omitted from the driver file. See ``ParamBoundsConfig``.
     optim: OptimizationConfig
         The configuration for the optimization process used in the inference.
     output: OutputConfig
@@ -290,6 +317,7 @@ class InferenceConfig(BaseModel):
     samples: SamplesConfig
     models: ModelsConfig
     start_params: StartParamsConfig
+    bounds: ParamBoundsConfig = ParamBoundsConfig()
     optim: OptimizationConfig
     output: OutputConfig
 
@@ -1031,6 +1059,91 @@ def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemogr
     return start_params
 
 
+def parse_param_bounds(param_bounds, demographic_model: ParametrizedDemography) -> None:
+    """
+    Narrows each model parameter's admissible bounds according to the ``"min:max"`` intervals
+    given in ``param_bounds`` (typically ``driver_spec.bounds``), mutating
+    ``demographic_model.model_base_params[name].bounds`` in place.
+
+    Only parameters explicitly present in ``param_bounds`` are affected; any parameter not
+    mentioned keeps its default, type-determined bounds (see ``tracts.demography.parameter.ParamType``).
+    A given bound is intersected with  (not substituted for) the parameter's current bounds, so
+    it can only narrow the admissible region, never widen it beyond what the parameter's type
+    already allows (e.g. a RATE parameter can be narrowed within (0, 1), but not widened past it).
+
+    Parameters
+    ----------
+    param_bounds
+        An object with an entry per parameter to narrow, each value a ``"min:max"`` string (same
+        format as ``start_params`` interval bounds). Accepts a ``Mapping`` or a pydantic model
+        (e.g. ``ParamBoundsConfig``). For either, any key that isn't a parameter of
+        ``demographic_model`` raises, to catch typos. Parameters absent from ``param_bounds``
+        are left unchanged.
+    demographic_model: ParametrizedDemography
+        The demographic model whose parameter bounds are narrowed in place.
+
+    Raises
+    ------
+    KeyError
+        If ``param_bounds`` (given as a ``Mapping`` or pydantic model) specifies a name that is
+        not a parameter of ``demographic_model``.
+    ValueError
+        If a bound is not of the form ``"min:max"``, or if the requested interval does not
+        overlap the parameter's current (type-determined) bounds.
+
+    Notes
+    -----
+    ``param_bounds`` also accepts any other attribute-style object (mirroring
+    ``parse_start_params``'s flexibility, mainly for testing): in that case
+    only names that match an actual model parameter are read, and other attributes present on
+    the object are ignored, since there is no reliable way to enumerate "all" attributes of an
+    arbitrary object.
+    """
+    if isinstance(param_bounds, Mapping):
+        bound_values = dict(param_bounds)
+    else:
+        model_dump = getattr(param_bounds, "model_dump", None)
+        bound_values = dict(model_dump()) if callable(model_dump) else None
+
+    if bound_values is not None:
+        unknown_names = [name for name in bound_values if name not in demographic_model.model_base_params]
+        if unknown_names:
+            raise KeyError(
+                f"bounds specifies parameter(s) {', '.join(unknown_names)}, which are not parameters "
+                f"of this model. Model parameters are: {', '.join(demographic_model.model_base_params.keys())}."
+            )
+    else:
+        # Attribute-style object: only look up names that are actual model parameters (mirroring
+        # parse_start_params's get_start_param), since arbitrary objects (e.g. Mock, in tests)
+        # cannot be safely enumerated for "unknown" extra attributes.
+        missing_attr = object()
+        bound_values = {}
+        for param_name in demographic_model.model_base_params:
+            value = inspect.getattr_static(param_bounds, param_name, missing_attr)
+            if value is not missing_attr:
+                bound_values[param_name] = value
+
+    for param_name, user_value in bound_values.items():
+        try:
+            lower, upper = (float(bound) for bound in user_value.split(':'))
+            assert lower < upper
+        except Exception as e:
+            raise ValueError(
+                f"bounds for parameter '{param_name}' must be specified as \"min:max\" with min < max, "
+                f"got {user_value!r}."
+            ) from e
+
+        param_object = demographic_model.model_base_params[param_name]
+        default_lower, default_upper = param_object.bounds
+        new_lower, new_upper = max(lower, default_lower), min(upper, default_upper)
+        if new_lower >= new_upper:
+            raise ValueError(
+                f"bounds for parameter '{param_name}' ({lower}:{upper}) do not overlap its "
+                f"admissible range ({default_lower}:{default_upper})."
+            )
+        param_object.bounds = (new_lower, new_upper)
+
+
 def collapse_identical_start_params(start_params: list[np.ndarray], step_label: str) -> list[np.ndarray]:
     """
     Collapse repeated identical starting-parameter sets to a single repetition.
@@ -1213,6 +1326,61 @@ def check_final_parameters(demographic_model: ParametrizedDemography | Parametri
         )
         print(founding_rate_msg)
         logger.warning(founding_rate_msg)
+
+
+def check_optimal_params_near_bounds(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased,
+                                     optimal_params: np.ndarray, tol: float) -> list[str]:
+    """
+    Checks whether any of the final optimal parameters is close to its lower or upper admissible
+    bound (see ``bounds``/``parse_param_bounds``), which may indicate that the true optimum lies
+    outside the specified range. If so, prints/logs a message recommending a re-run starting from
+    these optimal values (see ``start_params``) with the admissible range widened for the
+    affected parameter(s) (see ``bounds``).
+
+    Only parameters with finite bounds on both sides are checked: a parameter whose bound is
+    still unbounded on a given side (e.g. a TIME parameter's default ``+inf`` upper bound) cannot
+    meaningfully be "close" to that side, so it is skipped there. Closeness is relative to the
+    parameter's admissible range (``upper - lower``), not absolute, since parameters can differ
+    by orders of magnitude in scale.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased
+        The demographic model whose parameters' bounds are checked against.
+    optimal_params: np.ndarray
+        The final optimal parameters in physical units, as returned by the optimization process,
+        in the order given by ``demographic_model.model_base_params``.
+    tol: float
+        Relative tolerance, as a fraction of a parameter's admissible range, within which a value
+        counts as "close" to a bound. See ``OptimizationConfig.bounds_proximity_tol``.
+
+    Returns
+    -------
+    list[str]
+        The names of the parameters found close to one of their bounds (possibly empty).
+    """
+    near_bound_params = []
+    for param_name, value in zip(demographic_model.model_base_params, optimal_params):
+        lower, upper = demographic_model.model_base_params[param_name].bounds
+        if not (np.isfinite(lower) and np.isfinite(upper)):
+            continue
+        margin = tol * (upper - lower)
+        if value - lower < margin or upper - value < margin:
+            near_bound_params.append(param_name)
+
+    if near_bound_params:
+        near_bound_msg = (
+            f"The optimal value(s) of parameter(s) {', '.join(near_bound_params)} are close to "
+            "their admissible bounds. This may mean the true optimum lies outside the specified "
+            "range. Consider re-running the optimization starting from these optimal values "
+            "(see start_params) after widening the admissible bounds (see bounds) for these "
+            "parameter(s)."
+        )
+        print(near_bound_msg)
+        logger.warning(near_bound_msg)
+
+    return near_bound_params
+
 
 def _print_optimal_values_and_likelihood(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, 
                                         optimal_params: np.ndarray, optimal_likelihood: float, 
@@ -1445,7 +1613,7 @@ def get_alternate_implicit_population(demographic_model: ParametrizedDemographyS
 
         _boundary_msg = (
             f"The implicit population's sex-bias parameter "
-            f"({remainder_key}) is at the +-1 boundary,\nbut every other source population in the same "
+            f"({remainder_key}) is near the +-1 boundary,\nbut every other source population in the same "
             "founder event either also has its sex-bias parameter \nat a boundary or is already fixed "
             "by value: no alternate implicit population can be chosen."
         )
@@ -2660,6 +2828,46 @@ def _summarize_step_results(params_found: list[np.ndarray], likelihoods: list[fl
             logger.warning(warning_message)
 
     return optimal_params, float(optimal_likelihood)
+
+
+def _print_param_bounds_table(demographic_model: ParametrizedDemography) -> None:
+    """
+    Prints and logs a table of each model parameter's effective admissibility bounds (i.e. after
+    any narrowing from the driver file's ``bounds`` section via ``parse_param_bounds`` has already
+    been applied to ``demographic_model.model_base_params[...].bounds``). Shown once per run,
+    before the starting-parameters table.
+
+    Parameters
+    ----------
+    demographic_model: ParametrizedDemography
+        The demographic model whose parameters' current bounds are reported.
+    """
+    param_names = list(demographic_model.model_base_params.keys())
+    name_col_width = max((len(name) for name in param_names), default=5)
+    bound_col_width = 12
+
+    title_message = "Parameter bounds"
+    print(title_message)
+    logger.info(title_message)
+
+    table_header = f"{'Parameter':<{name_col_width}} | {'Lower bound':>{bound_col_width}} | {'Upper bound':>{bound_col_width}}"
+    table_line = "-" * len(table_header)
+
+    for l in (table_line, table_header, table_line):
+        print(l)
+        logger.info(l)
+
+    def _format_bound(value: float) -> str:
+        return "inf" if np.isinf(value) else f"{value:.4g}"
+
+    for name in param_names:
+        lower, upper = demographic_model.model_base_params[name].bounds
+        row = f"{name:<{name_col_width}} | {_format_bound(lower):>{bound_col_width}} | {_format_bound(upper):>{bound_col_width}}"
+        print(row)
+        logger.info(row)
+
+    print(table_line)
+    logger.info(table_line)
 
 
 def _print_step_header_block(parameter_handler: FixedParametersHandler, start_params_list: list[np.ndarray] | None = None,
