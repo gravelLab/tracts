@@ -270,7 +270,7 @@ class TestBuildBoundaryReoptimizationModel:
         genetic_model = GeneticModel(model, ad_model_autosomes="DC", ad_model_allosomes="DC")
         model_param_names, sex_bias_param_names, non_sex_bias_param_names = _three_pop_param_names()
         reload_context = ModelReloadContext(script_dir=".", driver_path="dummy_driver.yaml", allosome_label="X",
-                                            autosome_proportions={}, allosome_proportions={})
+                                            autosome_proportions=[0.5, 0.3, 0.2], allosome_proportions=[0.5, 0.3, 0.2])
 
         # A feasible parameter set for this model, with REUR_sex_bias at its +-1 boundary (the
         # value it will be fixed at) -- see also the module-level note on choosing feasible values.
