@@ -22,7 +22,8 @@ from tracts.driver_utils import (
     _build_reoptimization_intro_message,
     _select_full_data_likelihood,
     _get_driver_for_reoptimization,
-    _reorder_ancestry_proportions
+    _reorder_ancestry_proportions,
+    _print_param_bounds_table
 )
 from tracts.logs import initialize_tracts, close_log_file
 
@@ -70,6 +71,9 @@ def run_tracts(driver_filename: str, script_dir: str):
                                                                                                                                 allosome_label=allosome_label)
         parameter_handler = demographic_model.parameter_handler
 
+        # ------ Narrow parameter bounds if specified in the driver -------
+        parse_param_bounds(driver_spec.bounds, demographic_model)
+
         #----- Validate that the population labels in the data correspond to the model population labels -------
         check_population_labels(demographic_model=demographic_model,
                                 population=pop,
@@ -109,6 +113,9 @@ def run_tracts(driver_filename: str, script_dir: str):
 
         # Show time-admissibility warnings only during optimization and final reporting.
         parameter_handler.enable_time_param_logging = False
+
+        # ------ Print parameter bounds table ------
+        _print_param_bounds_table(demographic_model=demographic_model)
 
         # ------ Compute starting parameters in physical units ------
         physical_start_params = compute_physical_start_params(driver_spec=driver_spec,
@@ -189,6 +196,11 @@ def run_tracts(driver_filename: str, script_dir: str):
         # ------ Check for founding migration rates > 1 in the final parameters ------
         check_final_parameters(demographic_model=demographic_model,
                                optimal_params=optimal_params)
+
+        # ------ Check whether any optimal parameter is close to its admissible bounds ------
+        check_optimal_params_near_bounds(demographic_model=demographic_model,
+                                         optimal_params=optimal_params,
+                                         tol=driver_spec.optim.bounds_proximity_tol)
 
         # ------ Compute and print ancestry proportions predicted by the model ------
         autosomal_predicted_ancestries, allosomal_predicted_ancestries = get_predicted_ancestry_proportions(demographic_model=demographic_model,
