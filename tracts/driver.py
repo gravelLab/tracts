@@ -723,7 +723,7 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
             optimal_params=optimal_params)
 
         if len(optimal_sex_bias_at_boundaries) == 0:
-            _print_and_log("No sex-bias parameters remain at a boundary. Boundary re-optimization completed.")
+            _print_and_log("No free sex-bias parameters remain at a boundary. Boundary re-optimization completed.")
             break
 
     return driver_spec, genetic_model, optimal_params, optimal_likelihood, autosome_proportions, allosome_proportions

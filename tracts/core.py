@@ -108,6 +108,7 @@ def _compute_objective(
         if np.isfinite(out) and out < best_state['objective']:
             best_state['objective'] = out
             best_state['params'] = parameters.copy()
+            best_state['loglik'] = None  # penalty state has no per-component breakdown
         return out
 
     try:
@@ -134,6 +135,7 @@ def _compute_objective(
         if np.isfinite(out) and out < best_state['objective']:
             best_state['objective'] = out
             best_state['params'] = parameters.copy()
+            best_state['loglik'] = None  # penalty state has no per-component breakdown
         return out
 
     if loglik.autosomes is not None:
@@ -148,6 +150,7 @@ def _compute_objective(
     if np.isfinite(obj) and obj < best_state['objective']:
         best_state['objective'] = obj
         best_state['params'] = parameters.copy()
+        best_state['loglik'] = loglik  # per-component breakdown, for the final flush
     return obj
 
 
@@ -221,7 +224,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, genetic
 
     local_genetic_model = genetic_model.copy()
     local_parameter_handler = local_genetic_model.parameter_handler
-    _best_state = {'objective': np.inf, 'params': None}
+    _best_state = {'objective': np.inf, 'params': None, 'loglik': None}
     _likelihood_options = likelihood_options.with_overrides(include_allosomes=ad_model_allosomes is not None)
 
     def objective_function(parameters):
@@ -381,7 +384,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
 
     # ------------ Set up fixed parameters for the upcoming optimization step ------------
 
-    _best_state = {'objective': np.inf, 'params': None}
+    _best_state = {'objective': np.inf, 'params': None, 'loglik': None}
 
     local_genetic_model = genetic_model.copy()
     local_parameter_handler = local_genetic_model.parameter_handler
@@ -530,6 +533,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
 
         _best_state['objective'] = np.inf
         _best_state['params'] = None
+        _best_state['loglik'] = None
 
         reduced_objective_allosomes = lambda x: reduced_objective_function(x, include_autosomes=autosomes_in_step_2, include_allosomes=True)
 
