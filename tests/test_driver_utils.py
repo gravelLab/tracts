@@ -550,6 +550,17 @@ class TestCheckOptimalParamsNearBounds:
 
         assert result == ['t']
 
+    def test_one_sided_narrowing_with_infinite_span_is_not_flagged(self):
+        # TIME narrowed on the lower side only, leaving the upper unbounded (e.g. "2:inf"): the
+        # admissible range is infinite, so the relative margin is undefined and nothing is flagged,
+        # even for a value sitting right at the narrowed lower bound.
+        model = self._model({'t': (ParamType.TIME, (2.0, np.inf))})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([2.0]), tol=0.05)
+
+        assert result == []
+
     def test_value_within_user_narrowed_bounds_is_not_flagged(self):
         model = self._model({'REUR': (ParamType.RATE, (0.1, 0.6))})
 
