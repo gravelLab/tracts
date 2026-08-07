@@ -139,6 +139,8 @@ def _make_mock_model():
     model.population_indices = OrderedDict([("A", 0), ("B", 1)])
     model.parametrized_populations = ["pop"]
     model.founder_events = {}
+    model.min_time = 1
+    model.max_time = np.inf
     model.parameter_handler = SimpleNamespace(
         to_physical_params_functions={},
         to_optimizer_params_functions={},
@@ -627,6 +629,8 @@ def _make_mock_model_with_ancestry_fixed():
     model.population_indices = OrderedDict([("A", 0), ("B", 1)])
     model.parametrized_populations = ["pop"]
     model.founder_events = {}
+    model.min_time = 1
+    model.max_time = np.inf
     model.parameter_handler = SimpleNamespace(
         to_physical_params_functions={},
         to_optimizer_params_functions={},

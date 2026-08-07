@@ -234,9 +234,10 @@ class OptimizationConfig(BaseModel):
     bounds_proximity_tol: float
         Relative tolerance, as a fraction of a parameter's admissible range (``upper - lower``,
         see ``bounds``), used at the end of the run to decide whether a final optimal parameter
-        value is close to its lower or upper bound. Only checked for parameters with finite
-        bounds on both sides (see ``check_optimal_params_near_bounds``); parameters that still
-        have an unbounded (e.g. default ``+inf``) side are skipped. Defaults to 0.05 (5% of the admissible range).
+        value is close to a bound. Only bounds that the user narrowed below their default,
+        type-determined value (via ``bounds``) are checked, and only on the narrowed side (see
+        ``check_optimal_params_near_bounds``): a parameter sitting at its natural type boundary
+        (e.g. a sex-bias parameter at +-1) is not flagged. Defaults to 0.05 (5% of the admissible range).
     """
     model_config = ConfigDict(extra="forbid")
     repetitions: int =1
@@ -571,9 +572,6 @@ def setup_fixed_parameters(driver_spec: InferenceConfig, demographic_model: Para
                                                     user_params_to_fix_by_value=driver_spec.optim.fix_parameters_by_value) 
     else: # No parameters to fix 
         demographic_model.set_up_fixed_parameters([],{})
-
-    if print_details:
-        print(f"Model parameters: {', '.join(demographic_model.model_base_params.keys())}") # Print model parameters
 
     if len(driver_spec.optim.fix_parameters_from_ancestry_proportions) > 0:
         ancestry_fixed_params = ", ".join(driver_spec.optim.fix_parameters_from_ancestry_proportions)
@@ -1328,20 +1326,36 @@ def check_final_parameters(demographic_model: ParametrizedDemography | Parametri
         logger.warning(founding_rate_msg)
 
 
+def _default_param_bounds(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased, param) -> tuple[float, float]:
+    """
+    Returns the default (pre-narrowing) admissible bounds for ``param``, i.e. the bounds it would
+    have without any user-specified narrowing from the driver's ``bounds`` section. These come
+    from the parameter's type (see ``tracts.demography.parameter.ParamType``), except TIME
+    parameters, whose default bounds are the model's ``(min_time, max_time)`` (see
+    ``BaseParametrizedDemography.add_parameter``).
+    """
+    if param.type == ParamType.TIME:
+        return (demographic_model.min_time, demographic_model.max_time)
+    return param.type.bounds
+
+
 def check_optimal_params_near_bounds(demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased,
                                      optimal_params: np.ndarray, tol: float) -> list[str]:
     """
-    Checks whether any of the final optimal parameters is close to its lower or upper admissible
+    Checks whether any of the final optimal parameters is close to a *user-narrowed* admissible
     bound (see ``bounds``/``parse_param_bounds``), which may indicate that the true optimum lies
-    outside the specified range. If so, prints/logs a message recommending a re-run starting from
-    these optimal values (see ``start_params``) with the admissible range widened for the
-    affected parameter(s) (see ``bounds``).
+    outside the range the user specified. If so, prints/logs a message recommending a re-run
+    starting from these optimal values (see ``start_params``) with the admissible range widened
+    for the affected parameter(s) (see ``bounds``).
 
-    Only parameters with finite bounds on both sides are checked: a parameter whose bound is
-    still unbounded on a given side (e.g. a TIME parameter's default ``+inf`` upper bound) cannot
-    meaningfully be "close" to that side, so it is skipped there. Closeness is relative to the
-    parameter's admissible range (``upper - lower``), not absolute, since parameters can differ
-    by orders of magnitude in scale.
+    Only bounds that the user explicitly narrowed below their default (type-determined) value are
+    checked, and only on the narrowed side: a parameter sitting at its natural type boundary (e.g.
+    a sex-bias parameter landing at +-1, or a time parameter at its default lower bound) is *not*
+    flagged, since that boundary was not something the user restricted. (A sex-bias parameter at a
+    +-1 boundary is instead handled by the boundary re-optimization, see
+    ``check_optimal_sex_bias_parameters_at_boundaries``.) Closeness is relative to the parameter's
+    (narrowed) admissible range (``upper - lower``), not absolute, since parameters can differ by
+    orders of magnitude in scale.
 
     Parameters
     ----------
@@ -1357,27 +1371,37 @@ def check_optimal_params_near_bounds(demographic_model: ParametrizedDemography |
     Returns
     -------
     list[str]
-        The names of the parameters found close to one of their bounds (possibly empty).
+        The names of the parameters found close to a user-narrowed bound (possibly empty).
     """
     near_bound_params = []
     for param_name, value in zip(demographic_model.model_base_params, optimal_params):
-        lower, upper = demographic_model.model_base_params[param_name].bounds
-        if not (np.isfinite(lower) and np.isfinite(upper)):
+        param = demographic_model.model_base_params[param_name]
+        lower, upper = param.bounds
+        default_lower, default_upper = _default_param_bounds(demographic_model, param)
+
+        # Only consider a side the user actually narrowed below the default (and hence made finite).
+        lower_narrowed = np.isfinite(lower) and lower > default_lower
+        upper_narrowed = np.isfinite(upper) and upper < default_upper
+        if not (lower_narrowed or upper_narrowed):
             continue
+
+        # A user-narrowed side implies both bounds are finite (bounds are given as ``min:max``),
+        # so the admissible range is finite here.
         margin = tol * (upper - lower)
-        if value - lower < margin or upper - value < margin:
+        near_lower = lower_narrowed and (value - lower < margin)
+        near_upper = upper_narrowed and (upper - value < margin)
+        if near_lower or near_upper:
             near_bound_params.append(param_name)
 
     if near_bound_params:
         near_bound_msg = (
             f"The optimal value(s) of parameter(s) {', '.join(near_bound_params)} are close to "
-            "their admissible bounds. This may mean the true optimum lies outside the specified "
-            "range. Consider re-running the optimization starting from these optimal values "
-            "(see start_params) after widening the admissible bounds (see bounds) for these "
-            "parameter(s)."
+            "the admissible bounds specified by the user. This may mean the true optimum lies outside the "
+            "specified range. Consider re-running the optimization starting from these optimal "
+            "values (see start_params) after widening the admissible bounds (see bounds) for these "
+            "parameter(s).\n"
         )
-        print(near_bound_msg)
-        logger.warning(near_bound_msg)
+        _print_and_log(near_bound_msg)
 
     return near_bound_params
 
@@ -1696,10 +1720,12 @@ def compute_physical_start_params(driver_spec: InferenceConfig, demographic_mode
     """
     Computes physical starting parameters to optimize from. When
     ``driver_spec.optim.two_steps_optimization`` is True, only non-sex-bias parameters are
-    sampled (sex-bias parameters are fixed at 0, or at any user-provided fixed value), matching
-    step 1's parameter subset, and identical starting points are collapsed into one (see
-    ``collapse_identical_start_params``). Otherwise, all parameters are sampled/fixed according
-    to ``driver_spec.optim.fix_parameters_by_value`` alone.
+    sampled (sex-bias parameters are fixed at the midpoint of their admissible bounds -- 0 with
+    the default ``(-1, 1)`` bounds, or the midpoint of a user-narrowed range that may exclude 0,
+    see ``bounds``; or at any user-provided fixed value), matching step 1's parameter subset, and
+    identical starting points are collapsed into one (see ``collapse_identical_start_params``).
+    Otherwise, all parameters are sampled/fixed according to
+    ``driver_spec.optim.fix_parameters_by_value`` alone.
 
     Parameters
     ----------
@@ -1722,14 +1748,23 @@ def compute_physical_start_params(driver_spec: InferenceConfig, demographic_mode
         The physical starting parameters to optimize from.
     """
     if driver_spec.optim.two_steps_optimization:
-        zeroed_sex_bias = {name: 0.0 for name in sex_bias_param_names if name not in driver_spec.optim.fix_parameters_by_value.keys()}
+        # Fix free sex-bias parameters at the midpoint of their admissible bounds for step 1's
+        # non-sex-bias optimization. With the default sex-bias bounds (-1, 1) the midpoint is 0
+        # (the historical default); with user-narrowed bounds (see ``bounds``) that exclude 0, the
+        # midpoint keeps the fixed value inside the admissible range, so feasible starting
+        # parameters can still be sampled.
+        midpoint_sex_bias = {
+            name: float(np.mean(demographic_model.model_base_params[name].bounds))
+            for name in sex_bias_param_names
+            if name not in driver_spec.optim.fix_parameters_by_value.keys()
+        }
         physical_start_params = parse_start_params(
             start_param_bounds=driver_spec.start_params,
             repetitions=driver_spec.optim.repetitions,
             seed=driver_spec.optim.seed,
             demographic_model=demographic_model,
             sample_param_names=set(non_sex_bias_param_names),
-            fixed_param_values=zeroed_sex_bias | driver_spec.optim.fix_parameters_by_value,
+            fixed_param_values=midpoint_sex_bias | driver_spec.optim.fix_parameters_by_value,
         )
         return collapse_identical_start_params(physical_start_params, step_label)
 
@@ -2846,7 +2881,7 @@ def _print_param_bounds_table(demographic_model: ParametrizedDemography) -> None
     name_col_width = max((len(name) for name in param_names), default=5)
     bound_col_width = 12
 
-    title_message = "Parameter bounds"
+    title_message = "Model parameters and bounds:"
     print(title_message)
     logger.info(title_message)
 

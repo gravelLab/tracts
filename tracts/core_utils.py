@@ -125,10 +125,28 @@ def _flush_final_result(best_state: dict, parameter_handler, verbose_log: int, v
         ))
     finally:
         parameter_handler.enable_time_param_logging = prev_time_param_logging
-    if needs_log:
-        logger.info("iter=%-6d | obj=%-12g | params=%s", counter, -best_state['objective'], param_str)
-    if needs_screen:
-        eprint('%-8i, %-12g, %s, %s' % (counter, -best_state['objective'], param_str, note))
+
+    loglik = best_state.get('loglik')
+    if loglik is not None:
+        # One row per computed component, matching the per-iteration reporting.
+        rows = [
+            (value, component_note)
+            for value, component_note in (
+                (loglik.autosomes, 'Autosomes'),
+                (loglik.female_allosomes, 'Female allosomes'),
+                (loglik.male_allosomes, 'Male allosomes'),
+            )
+            if value is not None
+        ]
+    else:
+        # No per-component breakdown (e.g. penalty state): fall back to a single summed row.
+        rows = [(-best_state['objective'], note)]
+
+    for value, row_note in rows:
+        if needs_log:
+            logger.info("iter=%-6d | obj=%-12g | params=%s %s", counter, value, param_str, row_note)
+        if needs_screen:
+            eprint('%-8i, %-12g, %s, %s' % (counter, value, param_str, row_note))
 
 
 def _print_step2_header(step_1: bool, autosomes_in_step_2: bool, free_sex_bias_parameters,

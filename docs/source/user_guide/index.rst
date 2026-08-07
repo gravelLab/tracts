@@ -284,7 +284,7 @@ Optimization
 - ``boundary_tol``: The tolerance used to determine whether an optimized sex-bias parameter's value is at its +-1 boundary. Default is 0.1.
 - ``near_one``: When a sex-bias parameter is at its +-1 boundary and gets fixed by value for the boundary re-optimization (see ``rerun_optimization_on_boundaries``), it is fixed at ``+-near_one`` rather than at its actual (possibly less extreme) optimal value. Default is 0.999.
 - ``repetitions_likelihood_tolerance``: Absolute tolerance used to decide whether a run (among the ``repetitions`` runs from different starting parameters) reached a likelihood value close to the best one; a warning is logged if only one run out of several is found within this tolerance of the best. Defaults to ``0.5``.
-- ``bounds_proximity_tol``: At the end of the run, checks whether any final optimal parameter value is close to its lower or upper admissible bound (see ``bounds``), as a fraction of that parameter's admissible range; parameters with an unbounded side (e.g. the default upper bound for time parameters) are skipped. If so, prints and logs a warning recommending a re-run starting from these optimal values (see ``start_params``) with the admissible bounds (see ``bounds``) widened for the affected parameter(s). Defaults to ``0.05`` (5% of the admissible range).
+- ``bounds_proximity_tol``: At the end of the run, checks whether any final optimal parameter value is close to its bound if narrowed by the user. Defaults to ``0.05`` (5% of the admissible range).
 
 
 .. admonition:: Using ``fix_parameters_from_ancestry_proportions``

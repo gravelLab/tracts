@@ -9,6 +9,7 @@ from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parameter import ParamType
 from pathlib import Path
+from types import SimpleNamespace
 import pytest
 from unittest.mock import Mock, patch
 import numpy as np
@@ -469,7 +470,7 @@ class TestPrintParamBoundsTable:
         _print_param_bounds_table(demographic_model=model)
 
         lines = capsys.readouterr().out.splitlines()
-        assert "Parameter bounds" in lines
+        assert "Model parameters and bounds:" in lines
         reur_line_index = next(i for i, l in enumerate(lines) if l.startswith("REUR"))
         t_line_index = next(i for i, l in enumerate(lines) if l.startswith("t "))
         assert "0.1" in lines[reur_line_index] and "0.6" in lines[reur_line_index]
@@ -481,70 +482,173 @@ class TestPrintParamBoundsTable:
 
 class TestCheckOptimalParamsNearBounds:
     """
-    Tests for check_optimal_params_near_bounds, which flags (and warns about) any final optimal
-    parameter close to its lower/upper admissible bound, as a fraction of the bound's range.
-    Only parameters with finite bounds on both sides are checked.
+    Tests for check_optimal_params_near_bounds, which flags (and warns about) a final optimal
+    parameter only when it is close to a bound the user *narrowed* below the default (type-
+    determined) one -- and only on the narrowed side. A parameter sitting at its natural type
+    boundary (e.g. a sex-bias parameter at +-1) is not flagged.
     """
 
-    def _model(self, bounds_by_name: dict):
+    # Default (pre-narrowing) bounds, mirroring tracts.demography.parameter.ParamType.
+    _RATE_DEFAULT = ParamType.RATE.bounds        # (1e-9, 1 - 1e-9)
+    _SEX_BIAS_DEFAULT = ParamType.SEX_BIAS.bounds  # (-1, 1)
+
+    def _model(self, params: dict, min_time: float = 1.0, max_time: float = np.inf):
+        """params maps name -> (ParamType, bounds tuple)."""
         model = Mock()
-        model.model_base_params = {name: Mock(bounds=bounds) for name, bounds in bounds_by_name.items()}
+        model.min_time = min_time
+        model.max_time = max_time
+        model.model_base_params = {
+            name: SimpleNamespace(type=param_type, bounds=bounds)
+            for name, (param_type, bounds) in params.items()
+        }
         return model
 
-    def test_no_params_near_bounds_returns_empty_and_prints_nothing(self, capsys):
-        model = self._model({'REUR': (0.0, 1.0), 't': (0.0, 100.0)})
+    def test_param_at_default_type_boundary_is_not_flagged(self, capsys):
+        # Sex-bias parameter landing exactly at its natural +1 boundary (not user-narrowed).
+        model = self._model({'sb': (ParamType.SEX_BIAS, self._SEX_BIAS_DEFAULT)})
 
         result = check_optimal_params_near_bounds(
-            demographic_model=model, optimal_params=np.array([0.5, 50.0]), tol=0.05)
+            demographic_model=model, optimal_params=np.array([1.0]), tol=0.05)
 
         assert result == []
         assert capsys.readouterr().out == ""
 
-    def test_value_near_lower_bound_is_flagged(self, capsys):
-        model = self._model({'REUR': (0.0, 1.0)})  # margin = 0.05 * 1.0 = 0.05
+    def test_rate_at_default_bounds_is_not_flagged(self):
+        model = self._model({'REUR': (ParamType.RATE, self._RATE_DEFAULT)})
 
         result = check_optimal_params_near_bounds(
-            demographic_model=model, optimal_params=np.array([0.02]), tol=0.05)
-
-        assert result == ['REUR']
-        out = capsys.readouterr().out
-        assert "REUR" in out and "close to their admissible bounds" in out
-
-    def test_value_near_upper_bound_is_flagged(self, capsys):
-        model = self._model({'REUR': (0.0, 1.0)})
-
-        result = check_optimal_params_near_bounds(
-            demographic_model=model, optimal_params=np.array([0.98]), tol=0.05)
-
-        assert result == ['REUR']
-
-    def test_value_well_within_bounds_is_not_flagged(self):
-        model = self._model({'REUR': (0.0, 1.0)})
-
-        result = check_optimal_params_near_bounds(
-            demographic_model=model, optimal_params=np.array([0.5]), tol=0.05)
+            demographic_model=model, optimal_params=np.array([0.9999]), tol=0.05)
 
         assert result == []
 
-    def test_infinite_bound_is_skipped(self):
-        """
-        A parameter with an unbounded side (e.g. TIME's default (1, inf)) is never flagged on
-        that side, even for a value that would otherwise look "close" to a huge but finite bound.
-        """
-        model = self._model({'t': (1.0, np.inf)})
+    def test_time_at_default_lower_bound_is_not_flagged(self):
+        # TIME default (min_time, inf): neither side narrowed, so a value at min_time is not flagged.
+        model = self._model({'t': (ParamType.TIME, (1.0, np.inf))})
 
         result = check_optimal_params_near_bounds(
             demographic_model=model, optimal_params=np.array([1.0]), tol=0.05)
 
         assert result == []
 
-    def test_only_affected_parameters_are_reported(self):
-        model = self._model({'REUR': (0.0, 1.0), 'RNAT': (0.0, 1.0), 't': (1.0, np.inf)})
+    def test_value_near_user_narrowed_lower_bound_is_flagged(self, capsys):
+        # RATE narrowed to (0.1, 0.6): margin = 0.05 * 0.5 = 0.025.
+        model = self._model({'REUR': (ParamType.RATE, (0.1, 0.6))})
 
         result = check_optimal_params_near_bounds(
-            demographic_model=model, optimal_params=np.array([0.01, 0.5, 50.0]), tol=0.05)
+            demographic_model=model, optimal_params=np.array([0.11]), tol=0.05)
 
         assert result == ['REUR']
+        out = capsys.readouterr().out
+        assert "REUR" in out and "close to the admissible bounds specified by the user" in out
+
+    def test_value_near_user_narrowed_upper_bound_is_flagged(self):
+        # TIME narrowed to (2, 20): margin = 0.05 * 18 = 0.9.
+        model = self._model({'t': (ParamType.TIME, (2.0, 20.0))})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([19.5]), tol=0.05)
+
+        assert result == ['t']
+
+    def test_value_within_user_narrowed_bounds_is_not_flagged(self):
+        model = self._model({'REUR': (ParamType.RATE, (0.1, 0.6))})
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.35]), tol=0.05)
+
+        assert result == []
+
+    def test_only_the_narrowed_side_is_checked(self):
+        # Lower narrowed (0.1 > default ~0), upper left at default (~1): a value near the default
+        # upper must not be flagged; a value near the narrowed lower must be.
+        model = self._model({'REUR': (ParamType.RATE, (0.1, self._RATE_DEFAULT[1]))})
+
+        near_default_upper = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.999]), tol=0.05)
+        assert near_default_upper == []
+
+        near_narrowed_lower = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.12]), tol=0.05)
+        assert near_narrowed_lower == ['REUR']
+
+    def test_only_affected_parameters_are_reported(self):
+        model = self._model({
+            'REUR': (ParamType.RATE, (0.1, 0.6)),          # narrowed; value near lower -> flagged
+            'RNAT': (ParamType.RATE, (0.1, 0.6)),          # narrowed; value mid-range -> not flagged
+            'sb':   (ParamType.SEX_BIAS, self._SEX_BIAS_DEFAULT),  # default; at +1 -> not flagged
+            't':    (ParamType.TIME, (1.0, np.inf)),       # default; not flagged
+        })
+
+        result = check_optimal_params_near_bounds(
+            demographic_model=model, optimal_params=np.array([0.11, 0.35, 1.0, 50.0]), tol=0.05)
+
+        assert result == ['REUR']
+
+
+class TestComputePhysicalStartParamsSexBiasMidpoint:
+    """
+    In two-step optimization, compute_physical_start_params fixes free sex-bias parameters for
+    step 1 at the midpoint of their admissible bounds (0 for the default (-1, 1) bounds), so that
+    a user-narrowed bound excluding 0 still yields feasible starting parameters.
+    """
+
+    def _driver_spec(self, fix_by_value=None):
+        return SimpleNamespace(
+            start_params=SimpleNamespace(),
+            optim=SimpleNamespace(
+                two_steps_optimization=True,
+                repetitions=1,
+                seed=1,
+                fix_parameters_by_value=fix_by_value or {},
+            ),
+        )
+
+    def _model(self, sex_bias_bounds: dict):
+        model = Mock()
+        model.model_base_params = {
+            name: SimpleNamespace(type=ParamType.SEX_BIAS, bounds=bounds)
+            for name, bounds in sex_bias_bounds.items()
+        }
+        return model
+
+    def test_narrowed_sex_bias_uses_midpoint_default_uses_zero(self):
+        model = self._model({"sb_narrow": (0.2, 0.8), "sb_default": (-1, 1)})
+        captured = {}
+
+        def fake_parse_start_params(**kwargs):
+            captured.update(kwargs)
+            return [np.array([0.0])]
+
+        with patch.object(driver_utils, "parse_start_params", side_effect=fake_parse_start_params), \
+             patch.object(driver_utils, "collapse_identical_start_params", side_effect=lambda sp, label: sp):
+            driver_utils.compute_physical_start_params(
+                driver_spec=self._driver_spec(),
+                demographic_model=model,
+                sex_bias_param_names=["sb_narrow", "sb_default"],
+                non_sex_bias_param_names=[],
+            )
+
+        assert captured["fixed_param_values"] == {"sb_narrow": 0.5, "sb_default": 0.0}
+
+    def test_user_fixed_sex_bias_is_not_overridden_by_midpoint(self):
+        model = self._model({"sb_narrow": (0.2, 0.8), "sb_fixed": (-1, 1)})
+        captured = {}
+
+        def fake_parse_start_params(**kwargs):
+            captured.update(kwargs)
+            return [np.array([0.0])]
+
+        with patch.object(driver_utils, "parse_start_params", side_effect=fake_parse_start_params), \
+             patch.object(driver_utils, "collapse_identical_start_params", side_effect=lambda sp, label: sp):
+            driver_utils.compute_physical_start_params(
+                driver_spec=self._driver_spec(fix_by_value={"sb_fixed": 0.9}),
+                demographic_model=model,
+                sex_bias_param_names=["sb_narrow", "sb_fixed"],
+                non_sex_bias_param_names=[],
+            )
+
+        # sb_fixed keeps its user-specified value; only sb_narrow gets the midpoint default.
+        assert captured["fixed_param_values"] == {"sb_narrow": 0.5, "sb_fixed": 0.9}
 
 
 class TestScaleSelectIndices:

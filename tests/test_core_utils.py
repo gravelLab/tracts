@@ -4,6 +4,7 @@ optimization functions.
 """
 
 import logging
+from types import SimpleNamespace
 import pytest
 from unittest.mock import MagicMock
 
@@ -229,6 +230,42 @@ class TestFlushFinalResult:
         core_utils._flush_final_result(best_state, handler, verbose_log=0, verbose_screen=3, counter=4)
         err = capsys.readouterr().err
         assert "2" in err  # -best_state['objective'] == 2.0
+
+    def test_breakdown_reports_female_and_male_allosomes_separately(self, capsys):
+        # Step-2-style breakdown: no autosomes, separate female/male allosomal log-likelihoods.
+        loglik = SimpleNamespace(autosomes=None, female_allosomes=-225.8, male_allosomes=-156.4)
+        best_state = {"params": [1.0], "objective": 382.2, "loglik": loglik}
+        handler = self._make_handler()
+        core_utils._flush_final_result(best_state, handler, verbose_log=0, verbose_screen=3,
+                                       counter=4, note="Allosomes")
+        lines = [l for l in capsys.readouterr().err.splitlines() if l.strip()]
+        # One row per computed component, not a single summed "Allosomes" row.
+        assert len(lines) == 2
+        assert "Female allosomes" in lines[0] and "-225.8" in lines[0]
+        assert "Male allosomes" in lines[1] and "-156.4" in lines[1]
+        # The summed note is not used when a breakdown is present.
+        assert not any(line.rstrip().endswith("Allosomes") and "allosomes" not in line for line in lines)
+
+    def test_breakdown_reports_all_three_components(self, caplog):
+        loglik = SimpleNamespace(autosomes=-532.6, female_allosomes=-225.8, male_allosomes=-156.4)
+        best_state = {"params": [1.0], "objective": 914.8, "loglik": loglik}
+        handler = self._make_handler()
+        with caplog.at_level(logging.INFO, logger="tracts.core_utils"):
+            core_utils._flush_final_result(best_state, handler, verbose_log=3, verbose_screen=0, counter=4)
+        messages = [r.message for r in caplog.records]
+        assert len(messages) == 3
+        assert "Autosomes" in messages[0]
+        assert "Female allosomes" in messages[1]
+        assert "Male allosomes" in messages[2]
+
+    def test_none_breakdown_falls_back_to_summed_note(self, capsys):
+        best_state = {"params": [1.0], "objective": -2.0, "loglik": None}
+        handler = self._make_handler()
+        core_utils._flush_final_result(best_state, handler, verbose_log=0, verbose_screen=3,
+                                       counter=4, note="Allosomes")
+        lines = [l for l in capsys.readouterr().err.splitlines() if l.strip()]
+        assert len(lines) == 1
+        assert "Allosomes" in lines[0] and "2" in lines[0]
 
 
 # --------------- _print_step2_header ---------------

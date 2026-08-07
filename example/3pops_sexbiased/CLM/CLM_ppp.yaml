@@ -34,7 +34,7 @@ start_params:
 optim:
   repetitions: 5
   seed: 10
-  maximum_iterations: 300
+  maximum_iterations: 1000
   npts: 50
   #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
   exclude_tracts_below_cm: 2
