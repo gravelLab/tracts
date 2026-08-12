@@ -56,12 +56,12 @@ The following model is written in the file ``ppp.yaml``.
    description: Represents a population X founded a generations ago by EUR, NAT, and AFR.
    time_units: generations
    demes:
-     - name: EUR
-     - name: AFR
-     - name: NAT
-     - name: X
+      - name: EUR
+      - name: AFR
+      - name: NAT
+      - name: X
    ancestors: [EUR, NAT, AFR]
-   proportions: [REUR,RNAT,1-REUR-RNAT]
+   proportions: [REUR, RNAT, RAFR]
    start_time: t
 
 Two pulses model
@@ -75,19 +75,19 @@ The following model is written in the file ``ppp_pxx.yaml``.
    description: A population X founded a generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
    time_units: generations
    demes:
-     - name: EUR
-     - name: AFR
-     - name: NAT
-     - name: X
+      - name: EUR
+      - name: AFR
+      - name: NAT
+      - name: X
    ancestors: [EUR, NAT, AFR]
-   proportions: [REUR,RNAT,1-REUR-RNAT]
+   proportions: [REUR, RNAT, RAFR]
    start_time: t1
 
    pulses:
-     - sources: [EUR]
-       dest: X
-       proportions: [REUR2]
-       time: t2
+      - sources: [EUR]
+        dest: X
+        proportions: [REUR2]
+        time: t2
 
 
 Three pulses model
@@ -102,43 +102,45 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
    then subsequent EUR migration.
    time_units: generations
    demes:
-     - name: EUR
-     - name: NAT
-     - name: X
+      - name: EUR
+      - name: NAT
+      - name: targetpop
    ancestors: [EUR, NAT]
-   proportions: [REUR,1-REUR]
+   proportions: [REUR, RNAT]
    start_time: t1
 
    pulses:
-     - sources: [AFR]
-       dest: X
-       proportions: [RAFR]
-       time: t2
-     - sources: [EUR]
-       dest: X
-       proportions: [REUR2]
-       time: t3
+      - sources: [AFR]
+        dest: targetpop
+        proportions: [RAFR]
+        time: t2
+
+      - sources: [EUR]
+        dest: targetpop
+        proportions: [REUR2]
+        time: t3
    
  
 Continuous pulse model
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The following model is written in the file ``ccc.yaml``.
+The following model is written in the file ``ccp.yaml``.
 
 .. code-block:: yaml
 
-   model_name: One_Pulse
-   description: Represents a population X founded with a continuous event.
+   model_name: Continuous_pulse_AFR
+   description: Represents a population X founded with a discrete event (AFR) and continuous event (EUR, NAT).
    time_units: generations
    demes:
-     - name: EUR
-     - name: NAT
-     - name: AFR
-     - name: X
+      - name: EUR
+      - name: NAT
+      - name: AFR
+      - name: X
    ancestors: [EUR, NAT, AFR]
-   proportions: [REUR, RNAT,RAFR]
+   proportions: [REUR, RNAT, RAFR]
    start_time: t1
-   end_time: t2  
+   end_time: t2
+   pulse_pops: [AFR]
    
    
 .. toctree::

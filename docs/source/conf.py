@@ -77,7 +77,9 @@ html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
     "logo": {
-        "text": "tracts",
+        "image_light": "_static/logo/tracts-logo-light.svg",
+        "image_dark": "_static/logo/tracts-logo-dark.svg",
+        "alt_text": "tracts",
     },
     "github_url": "https://github.com/gravellab/tracts",
     "navbar_start": ["navbar-logo"],
@@ -89,6 +91,8 @@ html_theme_options = {
 }
 
 html_static_path = ["_static"]
+
+html_favicon = "_static/logo/tracts-favicon.ico"
 
 html_css_files = [
     "custom.css",

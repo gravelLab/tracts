@@ -1,3 +1,5 @@
+.. _user-guide:
+
 User guide
 ==========
 
@@ -5,8 +7,6 @@ User guide
 including sex-biased migration and recombination, enabling modeling for autosomes and the X chromosome.
 
 A typical workflow consists of four steps:
-
-.. _user-guide:
 
 .. grid:: 1 2 2 2
    :gutter: 3
@@ -331,11 +331,6 @@ Once the :ref:`driver file<driver-file>` is ready, the inference can be run usin
 
 - ``driver_filename``: The name of the :ref:`driver file <driver-file>`.
 - ``script_dir``: The path to the folder where ``driver_filename`` is located.
-
-The software displays the initial parameters to be optimized, along with the ancestry proportions estimated from the sample. It then performs a two-stage optimization:
-
-- First, the parameters unrelated to sex bias are optimized using only autosomal tracts. In this stage, the ``ad_model_autosomes`` admixture model specified in the :ref:`driver file<driver-file>` is considered.
-- Next, these non–sex-bias parameters are fixed, and only the sex-bias parameters are optimized using (autosomal and) allosomal tracts. In this stage, the ``ad_model_allosomes`` admixture model specified in the :ref:`driver file<driver-file>` is considered.
 
 
 Outputs

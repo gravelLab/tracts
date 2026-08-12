@@ -1385,9 +1385,6 @@ def check_optimal_params_near_bounds(demographic_model: ParametrizedDemography |
         if not (lower_narrowed or upper_narrowed):
             continue
 
-        # The margin is a fraction of the admissible range, so the range must be finite. It can be
-        # infinite when the user narrowed only one side and left the other unbounded (e.g. a bound
-        # like "2:inf"); a relative proximity is undefined then, so skip rather than always flag.
         span = upper - lower
         if not np.isfinite(span):
             continue

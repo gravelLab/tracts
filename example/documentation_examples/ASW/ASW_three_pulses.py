@@ -44,13 +44,15 @@ To implement this example, we use the following driver file:
      RAFR_sex_bias: -0.2:0.2
 
    optim:
-    repetitions: 5
-    seed: 100
-    maximum_iterations: 1000
-    npts: 50
-    exclude_tracts_below_cm: 2
-    unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
-
+     repetitions: 5
+     seed: 100
+     maximum_iterations: 1000
+     npts: 50
+     exclude_tracts_below_cm: 2
+     unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
+     n_reoptimizations: 5
+     rerun_optimization_on_boundaries: True
+   
    output:
     output_directory: ./output_three_pulses/
     output_filename_format: "ASW_test_output_{label}"
