@@ -34,8 +34,6 @@ optim:
 
 output:
   output_directory: ./output_two_pulse_sex_bias/
-  output_filename_format: "two_pulse_sex_bias_{label}"
-  log_filename: 'two_pulse_sex_bias.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

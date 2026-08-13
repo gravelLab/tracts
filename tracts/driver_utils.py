@@ -268,10 +268,10 @@ class OutputConfig(BaseModel):
     ----------
     output_directory: str | None
         The directory where the output files will be saved. 
-    output_filename_format: str
-        The format of the output filenames.
+    output_filename_format: str, Optional
+        The format of the output filenames. If not specified, defaults to "{driver_stem}_{{label}}", where ``driver_stem`` is the name of the driver yaml file, without its extension.
     log_filename : str, Optional
-        The filename of the log file to write to. If None, no log file will be created. Defaults to "tracts.log".
+        The filename of the log file to write to. If not specified, defaults to "{driver_stem}.log", where ``driver_stem`` is the name of the driver yaml file, without its extension.
     verbose_log: int
         The verbosity level for logging. Defaults to 1.
     verbose_screen: int
@@ -285,8 +285,8 @@ class OutputConfig(BaseModel):
     """
     model_config = ConfigDict(extra="forbid")
     output_directory: str|None= None
-    output_filename_format: str
-    log_filename: Optional[str] = "tracts.log"
+    output_filename_format: Optional[str] = None
+    log_filename: Optional[str] = None
     verbose_log: int = 1
     verbose_screen: int = 30
     log_scale: bool = True
@@ -368,7 +368,15 @@ def load_driver_file(driver_path: str) -> InferenceConfig:
     if missing:
         raise ValueError(f"Missing required driver parameters: {', '.join(missing)}")
 
-    return InferenceConfig.model_validate(driver_spec)
+    inference_config = InferenceConfig.model_validate(driver_spec)
+
+    if inference_config.output.output_filename_format is None:
+        inference_config.output.output_filename_format = f"{Path(driver_path).stem}_{{label}}"
+
+    if inference_config.output.log_filename is None:
+        inference_config.output.log_filename = f"{Path(driver_path).stem}.log"
+
+    return inference_config
 
 
 def get_admixture_models(driver_spec: InferenceConfig):

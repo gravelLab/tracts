@@ -48,8 +48,6 @@ optim:
 
 output:
   output_directory: ./output_ppp_popphased/{date}/
-  output_filename_format: "ACB_output_{label}"
-  log_filename: 'ACB_ppp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

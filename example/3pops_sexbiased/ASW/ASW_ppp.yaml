@@ -44,8 +44,6 @@ optim:
   rerun_optimization_on_boundaries: True
 
 output:
-  output_filename_format: "ASW_{label}"
-  log_filename: "ASW_ppp.log"
   output_directory: ./output_ppp/{date}/
   verbose_log: 1
   verbose_screen: 30

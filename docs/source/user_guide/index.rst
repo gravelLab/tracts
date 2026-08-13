@@ -300,8 +300,8 @@ Output
 
    output:
      output_directory: ./output_files/
-     output_filename_format: "filename_{label}"
-     log_filename: 'my_example.log'
+     output_filename_format: "myexample_{label}"
+     log_filename: "myexample.log"
      verbose_log: 1
      verbose_screen: 1
      log_scale: True
@@ -309,8 +309,8 @@ Output
      sum_female_and_male_allosome_tracts: True
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
-- ``output_filename_format``: The file name format for the output files.
-- ``log_filename``: The name of the log file where execution details are recorded. If not specified, a default filename (``tracts.log``) is used.
+- ``output_filename_format``: The file name format for the output files. If not specified, defaults to ``"{driver_filename}_{label}"``, where ``driver_filename`` is the name of the driver yaml file, without its extension.
+- ``log_filename``: The name of the log file where execution details are recorded. If not specified, defaults to ``"{driver_filename}.log"``, where ``driver_filename`` is the name of the driver yaml file, without its extension.
 - ``verbose_log``: Controls the level of detail reported in the log file during execution. If greater than zero, logs optimization status every ``verbose`` steps.
 - ``verbose_screen``: Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every ``verbose`` steps.
 - ``log_scale``: Whether the tract length distributions are depicted in log-scaled counts. Default is ``True``.
