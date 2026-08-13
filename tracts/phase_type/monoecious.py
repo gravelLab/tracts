@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 import scipy
 from tracts.util import all_same_sign
-from .base_phase_type import PhaseTypeDistribution, get_survival_factors
+from .base_phase_type import PhaseTypeDistribution, get_survival_factors, _GenerationZeroContributionWarning
 logger = logging.getLogger(__name__)
 
 
@@ -74,7 +74,8 @@ class PhTMonoecious(PhaseTypeDistribution):
         if np.sum(np.abs(self.migration_matrix[0, :])) > 0:
             warnings.warn(
                 'Source populations cannot contribute to the admixted population at generation 0. '
-                'Contributions at generation 0 will be ignored.')
+                'Contributions at generation 0 will be ignored.',
+                category=_GenerationZeroContributionWarning)
             self.migration_matrix[0, :] = 0
 
         # Check for migration contributions in (0,1)

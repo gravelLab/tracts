@@ -23,7 +23,9 @@ from tracts.driver_utils import (
     _select_full_data_likelihood,
     _get_driver_for_reoptimization,
     _reorder_ancestry_proportions,
-    _print_param_bounds_table
+    _print_param_bounds_table,
+    _run_with_generation_zero_warning_reporting,
+    _report_generation_zero_warning_for_optimal_params,
 )
 from tracts.logs import initialize_tracts, close_log_file
 
@@ -290,23 +292,27 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
         """
         Runs one optimization stage (single-step, or step 1 / step 2 of a two-step run)
         over all of ``start_params``, sharing the setup common to every stage of this run
-        (``genetic_model``, ``population``, iteration/verbosity settings).
+        (``genetic_model``, ``population``, iteration/verbosity settings). Warnings raised on
+        individual objective-function evaluations within the stage (e.g. a
+        ``_GenerationZeroContributionWarning``) are caught and reported once for the whole
+        stage — see :func:`~tracts.driver_utils._run_with_generation_zero_warning_reporting`.
         """
-        return _normalize_multi_init_result(run_model_multi_init(genetic_model=genetic_model,
-                                                                population=population,
-                                                                start_params_list=start_params,
-                                                                population_dict=demographic_model.population_indices.items(),
-                                                                likelihood_options=stage_likelihood_options,
-                                                                max_iter=driver_spec.optim.maximum_iterations,
-                                                                exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
-                                                                npts=driver_spec.optim.npts,
-                                                                two_steps_optimization=two_steps_optimization,
-                                                                autosomes_in_step_2=autosomes_in_step_2,
-                                                                steps=steps,
-                                                                start_params_title=start_params_title,
-                                                                print_start_params_table=False,
-                                                                print_run_number=print_run_details)
-        )
+        return _run_with_generation_zero_warning_reporting(lambda: _normalize_multi_init_result(
+            run_model_multi_init(genetic_model=genetic_model,
+                                population=population,
+                                start_params_list=start_params,
+                                population_dict=demographic_model.population_indices.items(),
+                                likelihood_options=stage_likelihood_options,
+                                max_iter=driver_spec.optim.maximum_iterations,
+                                exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
+                                npts=driver_spec.optim.npts,
+                                two_steps_optimization=two_steps_optimization,
+                                autosomes_in_step_2=autosomes_in_step_2,
+                                steps=steps,
+                                start_params_title=start_params_title,
+                                print_start_params_table=False,
+                                print_run_number=print_run_details)
+        ))
 
     # ------ Convert starting parameters to optimizer units ------
     optimizer_start_params = [parameter_handler.convert_to_optimizer_params(params) for params in physical_start_params]
@@ -342,6 +348,11 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                                     param_names=model_param_names,
                                                                     likelihood_tolerance=driver_spec.optim.repetitions_likelihood_tolerance)
 
+        _report_generation_zero_warning_for_optimal_params(genetic_model=genetic_model,
+                                                            optimal_params=optimal_params,
+                                                            include_autosomes=True,
+                                                            include_allosomes=ad_model_allosomes is not None)
+
     else: # Performs two-steps optimization with multiple starting parameters
 
         # ------ Step 1: optimize non-sex-bias parameters on autosomal data ------
@@ -369,6 +380,12 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                                                     param_names=model_param_names,
                                                                                     step_label="Step 1",
                                                                                     likelihood_tolerance=driver_spec.optim.repetitions_likelihood_tolerance)
+
+        _report_generation_zero_warning_for_optimal_params(genetic_model=genetic_model,
+                                                            optimal_params=optimal_params_step_1,
+                                                            include_autosomes=True,
+                                                            include_allosomes=False,
+                                                            step_label="Step 1")
 
         if ad_model_allosomes is None:
             logger.info("No allosomal data provided. Skipping Step 2 and using Step 1 results.")
@@ -438,6 +455,12 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                                             step_label="Step 2",
                                                                             likelihood_tolerance=driver_spec.optim.repetitions_likelihood_tolerance)
 
+                _report_generation_zero_warning_for_optimal_params(genetic_model=genetic_model,
+                                                                    optimal_params=optimal_params,
+                                                                    include_autosomes=driver_spec.optim.use_autosomes_for_sex_bias,
+                                                                    include_allosomes=True,
+                                                                    step_label="Step 2")
+
                 if print_run_details:
                     _print_and_log("Selecting best parameters from step 2.")
 
@@ -471,6 +494,12 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                                             param_names=model_param_names,
                                                                             step_label="Step 2",
                                                                             likelihood_tolerance=driver_spec.optim.repetitions_likelihood_tolerance)
+
+                _report_generation_zero_warning_for_optimal_params(genetic_model=genetic_model,
+                                                                    optimal_params=optimal_params,
+                                                                    include_autosomes=driver_spec.optim.use_autosomes_for_sex_bias,
+                                                                    include_allosomes=True,
+                                                                    step_label="Step 2")
 
                 optimal_likelihood = _select_full_data_likelihood(likelihoods_step_2=likelihoods_step_2,
                                                                   full_likelihoods_step_2=full_likelihoods_step_2,

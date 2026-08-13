@@ -2,6 +2,7 @@ import numbers
 import os
 import sys
 import inspect
+import warnings
 from dataclasses import dataclass
 from collections.abc import Mapping
 from pathlib import Path
@@ -16,6 +17,7 @@ from tracts.population import Population
 from tracts.genetic_model import GeneticModel
 from tracts.phase_type import hybrid_pedigree as HP
 from tracts.phase_type import PhTMonoecious, PhTDioecious
+from tracts.phase_type.base_phase_type import _GenerationZeroContributionWarning
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parametrized_demography_sex_biased import SexType
@@ -3286,6 +3288,82 @@ def _print_and_log(*messages: str) -> None:
     for message in messages:
         print(message)
         logger.info(message)
+
+
+def _run_with_generation_zero_warning_reporting(run_fn: Callable):
+    """
+    Calls ``run_fn()`` (with no arguments) inside a ``warnings.catch_warnings(record=True)`` block, so that any
+    ``_GenerationZeroContributionWarning`` it raises (see :mod:`tracts.phase_type.base_phase_type`) — which can
+    fire on every objective-function evaluation during an optimization stage — is caught instead of printed
+    individually, and reported once as a single consolidated message via :func:`_print_and_log` if it occurred
+    at all. Any other warning raised by ``run_fn`` is forwarded to the logger instead of being silently dropped.
+
+    Parameters
+    ----------
+    run_fn: Callable
+        A zero-argument callable to run under warning capture (e.g. a ``lambda`` wrapping the real call).
+
+    Returns
+    -------
+    The return value of ``run_fn()``.
+    """
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        result = run_fn()
+
+    generation_zero_count = 0
+    for caught in caught_warnings:
+        if issubclass(caught.category, _GenerationZeroContributionWarning):
+            generation_zero_count += 1
+        else:
+            logger.warning(str(caught.message))
+
+    if generation_zero_count > 0:
+        _print_and_log(
+            f"Warning: {generation_zero_count} parameter evaluation(s) during this optimization "
+            "stage had source populations contributing to the admixed population at generation 0; "
+            "these contributions were ignored."
+        )
+
+    return result
+
+
+def _report_generation_zero_warning_for_optimal_params(genetic_model: GeneticModel, optimal_params: np.ndarray,
+                                                        include_autosomes: bool, include_allosomes: bool,
+                                                        step_label: str | None = None) -> None:
+    """
+    Checks whether the phase-type model(s) built from ``optimal_params`` (physical units) would raise a
+    ``_GenerationZeroContributionWarning`` (see :meth:`~tracts.genetic_model.GeneticModel.check_generation_zero_migration_warning`),
+    and if so, reports it via :func:`_print_and_log`. Complements
+    :func:`_run_with_generation_zero_warning_reporting` by flagging when this affects not just some
+    evaluations seen during optimization, but the step's final optimal parameters specifically.
+
+    Parameters
+    ----------
+    genetic_model: GeneticModel
+        The genetic model whose ``demographic_model`` computes the migration matrices for ``optimal_params``.
+    optimal_params: np.ndarray
+        The optimal parameters (physical units) found for this step.
+    include_autosomes: bool
+        Whether the autosomal phase-type model should be checked, matching whether autosomal data was
+        included in this step's likelihood.
+    include_allosomes: bool
+        Whether the allosomal phase-type model should be checked, matching whether allosomal data was
+        included in this step's likelihood.
+    step_label: str | None
+        An optional label for the step (e.g. ``"Step 1"``), used in the reported message. Defaults to None.
+    """
+    matrices = genetic_model.demographic_model.get_migration_matrices(optimal_params)
+    male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices, include_allosomes=include_allosomes)
+    if genetic_model.check_generation_zero_migration_warning(
+        male_matrix=male_matrix, female_matrix=female_matrix,
+        include_autosomes=include_autosomes, include_allosomes=include_allosomes,
+    ):
+        step_note = f" for {step_label}" if step_label else ""
+        _print_and_log(
+            f"Warning: the optimal parameters found{step_note} also have source populations contributing "
+            "to the admixed population at generation 0; these contributions are ignored."
+        )
 
 
 def _build_reoptimization_intro_message(n_reoptimizations: int) -> str:

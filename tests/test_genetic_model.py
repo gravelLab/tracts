@@ -348,6 +348,114 @@ class TestGeneticModelLoglik:
         assert result.male_allosomes == -2.0
 
 
+# --------------- GeneticModel.split_migration_matrices ---------------
+
+class TestGeneticModelSplitMigrationMatrices:
+
+    def test_include_allosomes_true_unpacks_male_and_female(self):
+        dem = _make_demography()
+        model = GeneticModel(dem)
+        male = np.array([[0.1, 0.2]])
+        female = np.array([[0.3, 0.4]])
+
+        result_male, result_female = model.split_migration_matrices(
+            {"male": male, "female": female}, include_allosomes=True
+        )
+
+        np.testing.assert_array_equal(result_male, male)
+        np.testing.assert_array_equal(result_female, female)
+
+    def test_include_allosomes_false_averages_all_matrices(self):
+        dem = _make_demography()
+        model = GeneticModel(dem)
+        matrix_a = np.array([[0.0, 0.2]])
+        matrix_b = np.array([[0.4, 0.6]])
+
+        male, female = model.split_migration_matrices(
+            {"a": matrix_a, "b": matrix_b}, include_allosomes=False
+        )
+
+        expected = np.array([[0.2, 0.4]])
+        np.testing.assert_allclose(male, expected)
+        np.testing.assert_allclose(female, expected)
+        assert male is female
+
+
+# --------------- GeneticModel.check_generation_zero_migration_warning ---------------
+
+class TestGeneticModelCheckGenerationZeroMigrationWarning:
+
+    def test_true_when_autosome_model_has_generation_zero_contribution(self):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes=None)
+        # Row 0 (generation 0) has a nonzero contribution.
+        matrix = np.array([[0.1, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+
+        assert model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=True, include_allosomes=False
+        ) is True
+
+    def test_false_when_no_generation_zero_contribution(self):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes=None)
+        matrix = np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+
+        assert model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=True, include_allosomes=False
+        ) is False
+
+    def test_does_not_mutate_input_matrices(self):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes=None)
+        matrix = np.array([[0.1, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+        original = matrix.copy()
+
+        model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=True, include_allosomes=False
+        )
+
+        np.testing.assert_array_equal(matrix, original)
+
+    def test_false_when_component_not_included(self):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes=None)
+        matrix = np.array([[0.1, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+
+        # Contribution exists, but autosomes are not being checked.
+        assert model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=False, include_allosomes=False
+        ) is False
+
+    def test_false_for_hybrid_pedigree_autosomes(self):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="H-DC", ad_model_allosomes=None)
+        matrix = np.array([[0.1, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+
+        # Hybrid-pedigree models don't go through PhTMonoecious/PhTDioecious, so no warning is possible.
+        assert model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=True, include_allosomes=False
+        ) is False
+
+    def test_true_when_allosome_model_has_generation_zero_contribution(self):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes="DC")
+        matrix = np.array([[0.1, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+
+        assert model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=False, include_allosomes=True
+        ) is True
+
+    def test_does_not_raise_other_warnings_uncaught(self, recwarn):
+        dem = _make_demography()
+        model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes=None)
+        matrix = np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.5], [0.6, 0.4]])
+
+        model.check_generation_zero_migration_warning(
+            male_matrix=matrix, female_matrix=matrix, include_autosomes=True, include_allosomes=False
+        )
+        assert len(recwarn) == 0
+
+
 # --------------- GeneticModel.copy ---------------
 
 class TestGeneticModelCopy:
