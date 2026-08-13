@@ -1418,3 +1418,18 @@ class TestReportGenerationZeroWarningForOptimalParams:
         _, kwargs = genetic_model.check_generation_zero_migration_warning.call_args
         assert kwargs["include_autosomes"] is True
         assert kwargs["include_allosomes"] is True
+
+    def test_swallows_exceptions_instead_of_raising(self, capsys):
+        # A stubbed/mocked demographic model (as used in some driver-orchestration tests) may not
+        # construct a migration matrix valid enough for real PhT model validation; this check must
+        # not be allowed to break the optimization run it is merely reporting on.
+        genetic_model = Mock()
+        genetic_model.demographic_model.get_migration_matrices.side_effect = Exception("invalid matrix")
+
+        _report_generation_zero_warning_for_optimal_params(
+            genetic_model=genetic_model, optimal_params=np.array([1.0]),
+            include_autosomes=True, include_allosomes=False,
+        )  # must not raise
+
+        captured = capsys.readouterr()
+        assert captured.out == ""

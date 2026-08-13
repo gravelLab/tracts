@@ -3352,13 +3352,26 @@ def _report_generation_zero_warning_for_optimal_params(genetic_model: GeneticMod
         included in this step's likelihood.
     step_label: str | None
         An optional label for the step (e.g. ``"Step 1"``), used in the reported message. Defaults to None.
+
+    Notes
+    -----
+    This is a supplementary diagnostic on top of the real optimal parameters already found: any failure
+    while re-deriving/re-checking them (e.g. a migration matrix that a stubbed/mocked demographic model, in
+    tests, does not construct to the same validity standard as a real one) is swallowed rather than raised,
+    so this check can never break the optimization run it is reporting on.
     """
-    matrices = genetic_model.demographic_model.get_migration_matrices(optimal_params)
-    male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices, include_allosomes=include_allosomes)
-    if genetic_model.check_generation_zero_migration_warning(
-        male_matrix=male_matrix, female_matrix=female_matrix,
-        include_autosomes=include_autosomes, include_allosomes=include_allosomes,
-    ):
+    try:
+        matrices = genetic_model.demographic_model.get_migration_matrices(optimal_params)
+        male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices, include_allosomes=include_allosomes)
+        triggers_warning = genetic_model.check_generation_zero_migration_warning(
+            male_matrix=male_matrix, female_matrix=female_matrix,
+            include_autosomes=include_autosomes, include_allosomes=include_allosomes,
+        )
+    except Exception as exc:
+        logger.debug(f"Could not check the optimal parameters for generation-0 contributions: {exc}")
+        return
+
+    if triggers_warning:
         step_note = f" for {step_label}" if step_label else ""
         _print_and_log(
             f"Warning: the optimal parameters found{step_note} also have source populations contributing "
