@@ -6,11 +6,15 @@ from tracts.driver_utils import load_demographic_model_from_driver
 from tracts.driver_utils import load_population
 from tracts.driver_utils import compute_remainder_params
 from tracts.driver_utils import _fill_missing_populations_with_zeros
+from tracts.driver_utils import _run_with_generation_zero_warning_reporting
+from tracts.driver_utils import _report_generation_zero_warning_for_optimal_params
+from tracts.phase_type.base_phase_type import _GenerationZeroContributionWarning
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parameter import ParamType
 from pathlib import Path
 from types import SimpleNamespace
+import warnings
 import pytest
 from unittest.mock import Mock, patch
 import numpy as np
@@ -1296,5 +1300,136 @@ class TestFillMissingPopulationsWithZeros:
 
     def test_no_message_when_nothing_missing(self, capsys):
         _fill_missing_populations_with_zeros({"EUR": [0.0]}, ["EUR"], n_counts=1, data_label="autosome data")
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+
+class TestRunWithGenerationZeroWarningReporting:
+    """
+    Tests for _run_with_generation_zero_warning_reporting, used to catch
+    _GenerationZeroContributionWarning raised on individual objective-function evaluations during an
+    optimization stage (which would otherwise print once per evaluation) and report it once, as a
+    single consolidated message, after the stage completes.
+    """
+
+    def test_returns_run_fn_result(self):
+        assert _run_with_generation_zero_warning_reporting(lambda: 42) == 42
+
+    def test_prints_one_consolidated_message_with_count(self, capsys):
+        def run_fn():
+            for _ in range(3):
+                warnings.warn("gen0", category=_GenerationZeroContributionWarning)
+            return "done"
+
+        result = _run_with_generation_zero_warning_reporting(run_fn)
+
+        assert result == "done"
+        captured = capsys.readouterr()
+        assert captured.out.count("generation 0") == 1
+        assert "3" in captured.out
+
+    def test_no_message_when_warning_never_raised(self, capsys):
+        _run_with_generation_zero_warning_reporting(lambda: None)
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+    def test_warning_does_not_propagate_past_the_wrapper(self):
+        # It must be genuinely caught (not just printed once): callers wrapping this in their own
+        # catch_warnings should see nothing escape.
+        with warnings.catch_warnings(record=True) as outer:
+            warnings.simplefilter("always")
+            _run_with_generation_zero_warning_reporting(
+                lambda: warnings.warn("gen0", category=_GenerationZeroContributionWarning)
+            )
+        assert len(outer) == 0
+
+    def test_other_warnings_are_forwarded_to_the_logger(self):
+        def run_fn():
+            warnings.warn("something unrelated", category=UserWarning)
+            return None
+        
+        with patch.object(driver_utils.logger, "warning") as mock_warning:
+            _run_with_generation_zero_warning_reporting(run_fn)
+
+        mock_warning.assert_called_once()
+        assert "something unrelated" in mock_warning.call_args.args[0]
+
+    def test_other_warnings_do_not_trigger_generation_zero_message(self, capsys):
+        _run_with_generation_zero_warning_reporting(
+            lambda: warnings.warn("something unrelated", category=UserWarning)
+        )
+        captured = capsys.readouterr()
+        assert "generation 0" not in captured.out
+
+
+class TestReportGenerationZeroWarningForOptimalParams:
+    """
+    Tests for _report_generation_zero_warning_for_optimal_params, used to additionally flag when a
+    step's final optimal parameters (not just some evaluations seen during optimization) have source
+    populations contributing to the admixed population at generation 0.
+    """
+
+    def _make_genetic_model_mock(self, check_result: bool):
+        genetic_model = Mock()
+        genetic_model.demographic_model.get_migration_matrices.return_value = {"a": np.zeros((2, 2))}
+        genetic_model.split_migration_matrices.return_value = (np.zeros((2, 2)), np.zeros((2, 2)))
+        genetic_model.check_generation_zero_migration_warning.return_value = check_result
+        return genetic_model
+
+    def test_prints_message_when_warning_would_fire(self, capsys):
+        genetic_model = self._make_genetic_model_mock(check_result=True)
+        _report_generation_zero_warning_for_optimal_params(
+            genetic_model=genetic_model, optimal_params=np.array([1.0]),
+            include_autosomes=True, include_allosomes=False, step_label="Step 1",
+        )
+        captured = capsys.readouterr()
+        assert "Step 1" in captured.out
+        assert "generation 0" in captured.out
+
+    def test_no_message_when_warning_would_not_fire(self, capsys):
+        genetic_model = self._make_genetic_model_mock(check_result=False)
+        _report_generation_zero_warning_for_optimal_params(
+            genetic_model=genetic_model, optimal_params=np.array([1.0]),
+            include_autosomes=True, include_allosomes=False,
+        )
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+    def test_message_omits_step_label_when_none(self, capsys):
+        genetic_model = self._make_genetic_model_mock(check_result=True)
+        _report_generation_zero_warning_for_optimal_params(
+            genetic_model=genetic_model, optimal_params=np.array([1.0]),
+            include_autosomes=True, include_allosomes=False, step_label=None,
+        )
+        captured = capsys.readouterr()
+        assert "None" not in captured.out
+
+    def test_passes_optimal_params_and_flags_through(self):
+        genetic_model = self._make_genetic_model_mock(check_result=False)
+        optimal_params = np.array([1.0, 2.0])
+
+        _report_generation_zero_warning_for_optimal_params(
+            genetic_model=genetic_model, optimal_params=optimal_params,
+            include_autosomes=True, include_allosomes=True,
+        )
+
+        genetic_model.demographic_model.get_migration_matrices.assert_called_once_with(optimal_params)
+        genetic_model.split_migration_matrices.assert_called_once()
+        _, kwargs = genetic_model.check_generation_zero_migration_warning.call_args
+        assert kwargs["include_autosomes"] is True
+        assert kwargs["include_allosomes"] is True
+
+    def test_swallows_exceptions_instead_of_raising(self, capsys):
+        # A stubbed/mocked demographic model (as used in some driver-orchestration tests) may not
+        # construct a migration matrix valid enough for real PhT model validation; this check must
+        # not be allowed to break the optimization run it is merely reporting on.
+        genetic_model = Mock()
+        genetic_model.demographic_model.get_migration_matrices.side_effect = Exception("invalid matrix")
+
+        _report_generation_zero_warning_for_optimal_params(
+            genetic_model=genetic_model, optimal_params=np.array([1.0]),
+            include_autosomes=True, include_allosomes=False,
+        )  # must not raise
+
         captured = capsys.readouterr()
         assert captured.out == ""

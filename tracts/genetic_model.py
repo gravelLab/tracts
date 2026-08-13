@@ -12,12 +12,14 @@ optimization functions (:func:`~tracts.core._compute_objective`,
 """
 from __future__ import annotations
 import copy
+import warnings
 from dataclasses import dataclass
 import numpy as np
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.phase_type import hybrid_pedigree as HP
 from tracts.phase_type import PhTMonoecious, PhTDioecious
+from tracts.phase_type.base_phase_type import _GenerationZeroContributionWarning
 from tracts.tracts_data import TractsData
 from tracts.likelihood_options import LikelihoodOptions
 
@@ -326,17 +328,7 @@ class GeneticModel:
                     cutoff=0,
                 )
             else:
-                if config.ad_model_autosomes == 'M':
-                    autosome_model = PhTMonoecious(migration_matrix=0.5 * (female_matrix + male_matrix), rho=1)
-                else:
-                    assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
-                    autosome_model = PhTDioecious(
-                        migration_matrix_f=female_matrix,
-                        migration_matrix_m=male_matrix,
-                        rho_f=config.rho_f,
-                        rho_m=config.rho_m,
-                        sex_model=config.ad_model_autosomes,
-                    )
+                autosome_model = self._build_autosome_model(female_matrix=female_matrix, male_matrix=male_matrix)
                 result.autosomes = autosome_model.loglik(
                     bins=tracts_data.autosome_bins,
                     Ls=tracts_data.population.Ls,
@@ -379,27 +371,16 @@ class GeneticModel:
                     cutoff=0,
                 )
             else:
-                result.female_allosomes = PhTDioecious(
-                    migration_matrix_f=female_matrix,
-                    migration_matrix_m=male_matrix,
-                    rho_f=config.rho_f,
-                    rho_m=config.rho_m,
-                    sex_model=config.ad_model_allosomes,
-                    X_chromosome=True,
+                result.female_allosomes = self._build_female_allosome_model(
+                    female_matrix=female_matrix, male_matrix=male_matrix
                 ).loglik(
                     bins=tracts_data.allosome_bins,
                     Ls=[tracts_data.allosome_length],
                     data=[mat for mat in tracts_data.female_data_mapped],
                     num_samples=tracts_data.num_females,
                 )
-                result.male_allosomes = PhTDioecious(
-                    migration_matrix_f=female_matrix,
-                    migration_matrix_m=male_matrix,
-                    rho_f=config.rho_f,
-                    rho_m=config.rho_m,
-                    sex_model=config.ad_model_allosomes,
-                    X_chromosome=True,
-                    X_chromosome_male=True,
+                result.male_allosomes = self._build_male_allosome_model(
+                    female_matrix=female_matrix, male_matrix=male_matrix
                 ).loglik(
                     bins=tracts_data.allosome_bins,
                     Ls=[tracts_data.allosome_length],
@@ -408,6 +389,90 @@ class GeneticModel:
                 )
 
         return result
+
+    def _build_autosome_model(self, female_matrix: np.ndarray, male_matrix: np.ndarray):
+        """
+        Constructs the Monoecious or Dioecious phase-type model used for the autosomal component
+        of :meth:`loglik`, given ``self.phase_type_config.ad_model_autosomes``. Only called when
+        ``not self.phase_type_config.uses_hybrid_pedigree_autosomes``.
+        """
+        config = self.phase_type_config
+        if config.ad_model_autosomes == 'M':
+            return PhTMonoecious(migration_matrix=0.5 * (female_matrix + male_matrix), rho=1)
+        assert male_matrix.shape[0] < 20, "PhTDioecious currently only supports less than 20 generations for autosomes."
+        return PhTDioecious(
+            migration_matrix_f=female_matrix,
+            migration_matrix_m=male_matrix,
+            rho_f=config.rho_f,
+            rho_m=config.rho_m,
+            sex_model=config.ad_model_autosomes,
+        )
+
+    def _build_female_allosome_model(self, female_matrix: np.ndarray, male_matrix: np.ndarray) -> PhTDioecious:
+        """
+        Constructs the Dioecious phase-type model used for the female allosomal component of
+        :meth:`loglik`. Only called when ``not self.phase_type_config.uses_hybrid_pedigree_allosomes``.
+        """
+        config = self.phase_type_config
+        return PhTDioecious(
+            migration_matrix_f=female_matrix,
+            migration_matrix_m=male_matrix,
+            rho_f=config.rho_f,
+            rho_m=config.rho_m,
+            sex_model=config.ad_model_allosomes,
+            X_chromosome=True,
+        )
+
+    def _build_male_allosome_model(self, female_matrix: np.ndarray, male_matrix: np.ndarray) -> PhTDioecious:
+        """
+        Constructs the Dioecious phase-type model used for the male allosomal component of
+        :meth:`loglik`. Only called when ``not self.phase_type_config.uses_hybrid_pedigree_allosomes``.
+        """
+        config = self.phase_type_config
+        return PhTDioecious(
+            migration_matrix_f=female_matrix,
+            migration_matrix_m=male_matrix,
+            rho_f=config.rho_f,
+            rho_m=config.rho_m,
+            sex_model=config.ad_model_allosomes,
+            X_chromosome=True,
+            X_chromosome_male=True,
+        )
+
+    def split_migration_matrices(self, matrices: dict, include_allosomes: bool) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Splits ``matrices`` (as returned by :meth:`model_func`/``demographic_model.get_migration_matrices``)
+        into ``(male_matrix, female_matrix)``. When ``include_allosomes`` is True, ``matrices`` must contain
+        exactly the male and female matrices. Otherwise, all matrices in ``matrices`` are averaged into a
+        single autosome-only matrix, used for both.
+        """
+        matrix_list = list(matrices.values())
+        if include_allosomes:
+            male_matrix, female_matrix = matrix_list
+        else:
+            avg_matrix = np.mean(matrix_list, axis=0)
+            male_matrix = female_matrix = avg_matrix
+        return male_matrix, female_matrix
+
+    def check_generation_zero_migration_warning(self, male_matrix: np.ndarray, female_matrix: np.ndarray,
+                                                include_autosomes: bool = True, include_allosomes: bool = False) -> bool:
+        """
+        Returns whether constructing the phase-type model(s) that :meth:`loglik` would use for
+        ``male_matrix``/``female_matrix`` raises a ``_GenerationZeroContributionWarning`` (i.e. a nonzero
+        source-population contribution at generation 0, which the model silently ignores). Does not compute
+        the likelihood itself, and does not mutate ``male_matrix``/``female_matrix``.
+
+        Used to report this warning once for a step's optimal parameters, rather than on every
+        objective-function evaluation during optimization — see :func:`~tracts.driver.run_optimization`.
+        """
+        config = self.phase_type_config
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            if include_autosomes and not config.uses_hybrid_pedigree_autosomes:
+                self._build_autosome_model(female_matrix=female_matrix.copy(), male_matrix=male_matrix.copy())
+            if include_allosomes and not config.uses_hybrid_pedigree_allosomes:
+                self._build_female_allosome_model(female_matrix=female_matrix.copy(), male_matrix=male_matrix.copy())
+        return any(issubclass(w.category, _GenerationZeroContributionWarning) for w in caught)
 
     # ------------------ Copying ------------------
 

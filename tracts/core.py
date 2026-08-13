@@ -113,13 +113,7 @@ def _compute_objective(
 
     try:
         matrices = local_genetic_model.model_func(parameters)
-        matrix_list = [matrix for matrix in matrices.values()]
-        if include_allosomes:
-            [male_matrix, female_matrix] = matrix_list
-        else:
-            avg_matrix = np.mean(matrix_list, axis=0)
-            male_matrix = avg_matrix
-            female_matrix = avg_matrix
+        male_matrix, female_matrix = local_genetic_model.split_migration_matrices(matrices, include_allosomes)
 
         loglik = local_genetic_model.loglik(
             male_matrix=male_matrix,
