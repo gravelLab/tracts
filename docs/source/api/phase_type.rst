@@ -9,3 +9,4 @@ Phase-type models
    tracts.phase_type.monoecious
    tracts.phase_type.dioecious
    tracts.phase_type.hybrid_pedigree
+   tracts.phase_type.plot

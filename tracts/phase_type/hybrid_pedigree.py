@@ -616,8 +616,8 @@ def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndar
                                         for l in densities_list if
                                         np.isin(l[2], prob_list_m[:, 0])]), axis=0)     
         
-        scale_f = t0_proportions_f[whichpop] * L / Exp_f if freq else 1
-        scale_m = t0_proportions_m[whichpop] * L / Exp_m if freq else 1
+        scale_f = t0_proportions_f[whichpop] * L / Exp_f if freq else 0.5
+        scale_m = t0_proportions_m[whichpop] * L / Exp_m if freq else 0.5
         final_density = density_f * scale_f + density_m * scale_m
 
     if density:

@@ -280,6 +280,8 @@ class OutputConfig(BaseModel):
         Whether to use log scale to plot the tract length distribution. Defaults to True.
     plot_migration_matrices: bool
         Whether to plot the final mean migration matrix together with the sex-bias values per pulse.
+    sum_female_and_male_allosome_tracts: bool
+        Whether to sum female and male allosomal tract length distributions and produce a single allosomal output (plot and tract distribution files) instead of separate ones for each sex. Defaults to True.
     """
     model_config = ConfigDict(extra="forbid")
     output_directory: str|None= None
@@ -289,6 +291,7 @@ class OutputConfig(BaseModel):
     verbose_screen: int = 30
     log_scale: bool = True
     plot_migration_matrices: bool = True
+    sum_female_and_male_allosome_tracts: bool = True
 
 class InferenceConfig(BaseModel):
     """
@@ -2227,7 +2230,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                     genetic_model: GeneticModel,
                                     driver_spec: InferenceConfig,
                                     output_dir: Path,
-                                    driver_path: str|None = None
+                                    driver_path: str|None = None,
+                                    sum_female_and_male_allosome_tracts: bool = True,
                                     ):
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model. Also saves
@@ -2249,6 +2253,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The directory to which output files will be written.
     driver_path: str | None
         The path to the driver yaml file. If None, no driver file will be copied to the output directory. Defaults to None.
+    sum_female_and_male_allosome_tracts: bool
+        Whether to sum female and male allosomal tract length distributions and produce a single allosomal plot. Defaults to True.
     """
     demographic_model = genetic_model.demographic_model
     ad_model_autosomes = genetic_model.phase_type_config.ad_model_autosomes
@@ -2444,32 +2450,50 @@ def output_simulation_data_sex_biased(sample_population: Population,
         # Save allosome results
         with open(output_dir / output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
             fbins.write("\t".join(map(str, allosome_bins)))
-        with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
-            for population in demographic_model.population_indices.keys():
-                try:
+
+        # Fill in missing populations with zero counts, so that female/male data are aligned on the same set of populations.
+        for population in demographic_model.population_indices.keys():
+            if population not in female_data:
+                female_data[population] = np.zeros(len(allosome_bins)).tolist()
+                print(f'Population {population} not found in female allosome data.')
+            if population not in male_data:
+                male_data[population] = np.zeros(len(allosome_bins)).tolist()
+                print(f'Population {population} not found in male allosome data.')
+
+        if sum_female_and_male_allosome_tracts:
+            allosome_data_combined = {
+                population: np.asarray(male_data[population]) + np.asarray(female_data[population])
+                for population in demographic_model.population_indices.keys()
+            }
+            allosome_predicted_combined = {
+                population: num_males * np.asarray(male_predicted[population]) + num_females * np.asarray(female_predicted[population])
+                for population in demographic_model.population_indices.keys()
+            }
+            with open(output_dir / output_filename_format.format(label='allosome_sample_tract_distribution'), 'w') as fdat:
+                for population in demographic_model.population_indices.keys():
+                    fdat.write("\t".join(map(str, allosome_data_combined[population])) + "\n")
+            with open(output_dir / output_filename_format.format(label='allosome_predicted_tract_distribution'), 'w') as fpred2:
+                for population in demographic_model.population_indices.keys():
+                    fpred2.write("\t".join(map(str, allosome_predicted_combined[population])) + "\n")
+        else:
+            with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
+                for population in demographic_model.population_indices.keys():
                     fdat.write("\t".join(map(str, female_data[population])) + "\n")
-                except KeyError:
-                    female_data[population] = np.zeros(len(allosome_bins)).tolist()
-                    print(f'Population {population} not found in female allosome data.')
-        with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
-            for population in demographic_model.population_indices.keys():
-                try:
+            with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
+                for population in demographic_model.population_indices.keys():
                     fdat.write("\t".join(map(str, male_data[population])) + "\n")
-                except KeyError:
-                    male_data[population] = np.zeros(len(allosome_bins)).tolist()
-                    print(f'Population {population} not found in male allosome data.')           
-        with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
-            for pop, pop_num in demographic_model.population_indices.items():
-                fpred2.write("\t".join(map(
-                    str,
-                    [num_females * num_tracts for num_tracts in female_predicted[pop]]))
-                            + "\n")
-        with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
-            for pop, pop_num in demographic_model.population_indices.items():
-                fpred2.write("\t".join(map(
-                    str,
-                    [num_males * num_tracts for num_tracts in male_predicted[pop]]))
-                            + "\n")
+            with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
+                for pop, pop_num in demographic_model.population_indices.items():
+                    fpred2.write("\t".join(map(
+                        str,
+                        [num_females * num_tracts for num_tracts in female_predicted[pop]]))
+                                + "\n")
+            with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
+                for pop, pop_num in demographic_model.population_indices.items():
+                    fpred2.write("\t".join(map(
+                        str,
+                        [num_males * num_tracts for num_tracts in male_predicted[pop]]))
+                                + "\n")
 
     # ------ Save optimal parameters -------
     param_names = list(demographic_model.model_base_params.keys())
@@ -2693,38 +2717,58 @@ def output_simulation_data_sex_biased(sample_population: Population,
     )
 
     if ad_model_allosomes is not None:
-    
-        # --- Produce plot for allosomes in male individuals ---
-        _plot_panel(
-            xbins=allosome_bins,
-            observed_dict=male_data,
-            predicted_dict=male_predicted,
-            scale_factor=num_males,
-            title="Male X-chromosome tract length distributions",
-            ylabel="Count",
-            output_path=os.path.join(
-                output_dir,
-                output_filename_format.format(label="male_allosomes_all_populations.pdf")
-            ),
-            subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
-        )
 
-        # --- Produce plot for allosomes in female individuals ---
-        _plot_panel(
-            xbins=allosome_bins,
-            observed_dict=female_data,
-            predicted_dict=female_predicted,
-            scale_factor=num_females,
-            title="Female X-chromosome tract length distributions",
-            ylabel="Count",
-            output_path=os.path.join(
-                output_dir,
+        if sum_female_and_male_allosome_tracts:
+
+            # --- Produce plot for allosomes (female and male tracts summed) ---
+            # observed and predicted counts are already combined and scaled, so no further scaling is applied here.
+            _plot_panel(
+                    xbins=allosome_bins,
+                    observed_dict=allosome_data_combined,
+                    predicted_dict=allosome_predicted_combined,
+                    scale_factor=1,
+                    title="X-chromosome tract length distributions",
+                    ylabel="Count",
+                    output_path=os.path.join(
+                        output_dir,
+                        output_filename_format.format(label="allosomes_all_populations.pdf")
+                        ),
+                    subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
+                    )
+
+        else:
+    
+            # --- Produce plot for allosomes in male individuals ---
+            _plot_panel(
+                xbins=allosome_bins,
+                observed_dict=male_data,
+                predicted_dict=male_predicted,
+                scale_factor=num_males,
+                title="Male X-chromosome tract length distributions",
+                ylabel="Count",
+                output_path=os.path.join(
+                    output_dir,
+                    output_filename_format.format(label="male_allosomes_all_populations.pdf")
+                ),
+                subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
+                )
+
+            # --- Produce plot for allosomes in female individuals ---
+            _plot_panel(
+                xbins=allosome_bins,
+                observed_dict=female_data,
+                predicted_dict=female_predicted,
+                scale_factor=num_females,
+                title="Female X-chromosome tract length distributions",
+                ylabel="Count",
+                output_path=os.path.join(
+                    output_dir,
                 output_filename_format.format(label="female_allosomes_all_populations.pdf")
-            ),
-            subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
-        )
+                ),
+                subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
+                )
+        
 
-    
     # Final message
     print('Results saved to : ' + str(output_dir))
     logger.info('Results saved to : ' + str(output_dir))

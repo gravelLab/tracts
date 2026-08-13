@@ -45,8 +45,6 @@ def _finalize(fig, ax, xlabel, ylabel, xlim, handles, labels, legend):
 
 
 
-
-
 def plot_tractlength_density(bins: npt.ArrayLike, curves: dict[str, npt.ArrayLike], L: float,
                             xlabel: str="Tract length", ylabel: str="Density", ax: plt.Axes=None,
                             legend: bool=True, model_styles: dict | None=None, figsize: tuple[float, float]=(5, 4)):

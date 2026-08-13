@@ -224,7 +224,8 @@ def run_tracts(driver_filename: str, script_dir: str):
                                         genetic_model=genetic_model,
                                         driver_spec=driver_spec,
                                         output_dir=output_dir,
-                                        driver_path=driver_path
+                                        driver_path=driver_path,
+                                        sum_female_and_male_allosome_tracts=driver_spec.output.sum_female_and_male_allosome_tracts
                                         )
     finally:
         close_log_file(log_filename=log_full_path)
