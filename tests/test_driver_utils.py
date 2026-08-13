@@ -14,7 +14,6 @@ from tracts.demography.parametrized_demography_sex_biased import ParametrizedDem
 from tracts.demography.parameter import ParamType
 from pathlib import Path
 from types import SimpleNamespace
-import logging
 import warnings
 import pytest
 from unittest.mock import Mock, patch
@@ -1344,15 +1343,16 @@ class TestRunWithGenerationZeroWarningReporting:
             )
         assert len(outer) == 0
 
-    def test_other_warnings_are_forwarded_to_the_logger(self, caplog):
+    def test_other_warnings_are_forwarded_to_the_logger(self):
         def run_fn():
             warnings.warn("something unrelated", category=UserWarning)
             return None
-
-        with caplog.at_level(logging.WARNING, logger="tracts.driver_utils"):
+        
+        with patch.object(driver_utils.logger, "warning") as mock_warning:
             _run_with_generation_zero_warning_reporting(run_fn)
 
-        assert any("something unrelated" in record.message for record in caplog.records)
+        mock_warning.assert_called_once()
+        assert "something unrelated" in mock_warning.call_args.args[0]
 
     def test_other_warnings_do_not_trigger_generation_zero_message(self, capsys):
         _run_with_generation_zero_warning_reporting(
