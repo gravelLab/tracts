@@ -537,19 +537,21 @@ def run_sex_bias_fixing_reoptimizations(driver_spec, model_param_names: list[str
         _print_and_log(f"\nRe-optimization {_i + 1}/{driver_spec.optim.n_reoptimizations}: "
                        f"re-optimizing starting from the current optimal parameters (likelihood = {optimal_likelihood:.6f}).")
 
-        optimal_params, optimal_likelihood_new = run_reoptimization([optimal_params])
+        new_params, optimal_likelihood_new = run_reoptimization([optimal_params])
 
-        if optimal_likelihood_new < optimal_likelihood:
-            _print_and_log(f"Likelihood decreased from {optimal_likelihood:.6f} to {optimal_likelihood_new:.6f} after re-optimizing. "
-                           f"Stopping re-optimization and keeping the previous optimal parameters.")
-            break
-        elif np.isclose(optimal_likelihood_new, optimal_likelihood, atol=driver_spec.optim.reoptimization_likelihood_tolerance):
+        if np.isclose(optimal_likelihood_new, optimal_likelihood, atol=driver_spec.optim.reoptimization_likelihood_tolerance):
             _print_and_log(f"No further improvement in likelihood after { _i + 1 } repetitions. Re-optimization completed.")
+            optimal_params = new_params
             optimal_likelihood = optimal_likelihood_new
             convergence = True
             break
+        elif optimal_likelihood_new < optimal_likelihood:
+            _print_and_log(f"Likelihood decreased from {optimal_likelihood:.6f} to {optimal_likelihood_new:.6f} after re-optimizing. "
+                           f"Stopping re-optimization and keeping the previous optimal parameters.")
+            break
         else:
             _print_and_log(f"Change in likelihood from {optimal_likelihood:.6f} to {optimal_likelihood_new:.6f} after re-optimizing.")
+            optimal_params = new_params
             optimal_likelihood = optimal_likelihood_new
 
     if not convergence:

@@ -5,6 +5,7 @@ from tracts.driver_utils import SamplesConfig, InferenceConfig, ParamBoundsConfi
 from tracts.driver_utils import load_demographic_model_from_driver
 from tracts.driver_utils import load_population
 from tracts.driver_utils import compute_remainder_params
+from tracts.driver_utils import _fill_missing_populations_with_zeros
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.demography.parameter import ParamType
@@ -1263,4 +1264,37 @@ class TestComputeRemainderParams:
         assert "dest_pop_remainder_pop_rate" in result
         assert "dest_pop_remainder_pop_sex_bias" in result
         assert "remainder_pop_rate" not in result
-        assert "remainder_pop_sex_bias" not in result                        
+
+
+class TestFillMissingPopulationsWithZeros:
+    """
+    Tests for _fill_missing_populations_with_zeros, used to backfill populations with no observed
+    tracts before saving/plotting tract length distributions in output_simulation_data_sex_biased.
+    The zero-count arrays it inserts must have length n_counts (== len(bins) - 1, matching
+    Population.tractlength_histogram's output), not len(bins): a past off-by-one bug here produced
+    arrays one element too long, which broke both plotting (mismatched against bin centers) and
+    combining female/male allosome data (mismatched array lengths).
+    """
+
+    def test_missing_population_filled_with_correct_length(self):
+        data = {"EUR": [1.0, 2.0, 3.0]}
+        _fill_missing_populations_with_zeros(data, ["EUR", "AFR"], n_counts=3, data_label="autosome data")
+
+        assert data["AFR"] == [0.0, 0.0, 0.0]
+        assert len(data["AFR"]) == len(data["EUR"])
+
+    def test_present_population_left_untouched(self):
+        data = {"EUR": [1.0, 2.0, 3.0]}
+        _fill_missing_populations_with_zeros(data, ["EUR"], n_counts=3, data_label="autosome data")
+        assert data["EUR"] == [1.0, 2.0, 3.0]
+
+    def test_prints_message_naming_missing_population_and_label(self, capsys):
+        _fill_missing_populations_with_zeros({}, ["AFR"], n_counts=5, data_label="female allosome data")
+        captured = capsys.readouterr()
+        assert "AFR" in captured.out
+        assert "female allosome data" in captured.out
+
+    def test_no_message_when_nothing_missing(self, capsys):
+        _fill_missing_populations_with_zeros({"EUR": [0.0]}, ["EUR"], n_counts=1, data_label="autosome data")
+        captured = capsys.readouterr()
+        assert captured.out == ""

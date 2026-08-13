@@ -2111,7 +2111,54 @@ def compute_remainder_params(demographic_model: ParametrizedDemography | Paramet
     return result
 
 
-def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list, output_path: str):
+def _fill_missing_populations_with_zeros(data: dict, population_names, n_counts: int, data_label: str) -> None:
+    """
+    Fills in any population from ``population_names`` missing from ``data`` (e.g. because it has no observed
+    tracts) with a zero-count array of length ``n_counts``, so that every population ends up present and all
+    per-population arrays in ``data`` have the same length. ``n_counts`` must match the length of the tract
+    length histograms already present in ``data``, i.e. ``len(bins) - 1`` (see
+    :func:`~tracts.population.Population.tractlength_histogram`), not ``len(bins)``. Modifies ``data`` in
+    place; prints a message for each missing population found.
+
+    Parameters
+    ----------
+    data: dict
+        A dictionary mapping population names to tract length histogram counts.
+    population_names: Iterable[str]
+        The population names that must be present in ``data``.
+    n_counts: int
+        The length of the zero-count array to use for any missing population, i.e. ``len(bins) - 1``.
+    data_label: str
+        A human-readable label for ``data``, used in the printed message (e.g. ``'autosome data'``).
+    """
+    for population in population_names:
+        if population not in data:
+            data[population] = np.zeros(n_counts).tolist()
+            print(f'Population {population} not found in {data_label}.')
+
+
+def _readable_text_color(rgba: tuple) -> str:
+    """
+    Returns 'white' or 'black', whichever gives better contrast against a background color ``rgba`` (as
+    returned by a matplotlib colormap), based on its perceptual luminance. Used to keep cell-value annotations
+    legible in :func:`~tracts.driver_utils._plot_migration_matrices`, whose colormaps span from light colors
+    (e.g. white) to dark ones (e.g. blue, green), where fixed black text becomes hard to read.
+    """
+    r, g, b = rgba[:3]
+    luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return "white" if luminance < 0.5 else "black"
+
+
+def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list, output_path: str,
+                            title_mean: str = "Mean migration matrix", title_sex_bias: str = "Sex-bias in migration",
+                            title_fontsize: float | None = None, tick_fontsize: float | None = None,
+                            annot_fontsize: float | None = None):
+    """
+    See :func:`~tracts.driver_utils.output_simulation_data_sex_biased` and :mod:`tracts.plot` for usage. The
+    ``title_fontsize``, ``tick_fontsize`` and ``annot_fontsize`` parameters default to an adaptive font size
+    computed from the number of populations/generations, matching the size of the matrices being plotted, if
+    left as None.
+    """
 
     mean_matrix = (migration_matrix_f[1:,:] + migration_matrix_m[1:,:]) / 2
     denom_matrix = 2 * np.minimum(mean_matrix, 1 - mean_matrix)
@@ -2132,10 +2179,10 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     fig = Figure()
     ax1, ax2 = fig.subplots(1, 2)
 
-    # Adaptive fonts
-    font_scale = max(7, min(12, 12 - 0.4 * n_cols))
-    tick_font = max(6, min(10, 10 - 0.3 * n_cols))
-    annot_font = max(5, min(9, 9 - 0.3 * max(n_rows, n_cols)))
+    # Adaptive fonts (used whenever the corresponding *_fontsize argument is left as None)
+    font_scale = title_fontsize if title_fontsize is not None else max(7, min(12, 12 - 0.4 * n_cols))
+    tick_font = tick_fontsize if tick_fontsize is not None else max(6, min(10, 10 - 0.3 * n_cols))
+    annot_font = annot_fontsize if annot_fontsize is not None else max(5, min(9, 9 - 0.3 * max(n_rows, n_cols)))
 
     x_ticks = np.arange(n_cols)
     y_ticks = np.arange(n_rows)
@@ -2157,10 +2204,11 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
                     f"{mean_matrix[i, j]:.3f}",
                     ha="center",
                     va="center",
-                    fontsize=annot_font
+                    fontsize=annot_font,
+                    color=_readable_text_color(cmap_mean(np.clip(mean_matrix[i, j], 0, 1))),
                 )
 
-    ax1.set_title("Mean migration matrix", fontsize=font_scale, pad=10)
+    ax1.set_title(title_mean, fontsize=font_scale, pad=10)
     ax1.set_xticks(x_ticks)
     ax1.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2))
     ax1.set_xlabel("Ancestral population", fontsize=font_scale)
@@ -2192,10 +2240,11 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
                     f"{sex_bias_matrix[i, j]:.3f}",
                     ha="center",
                     va="center",
-                    fontsize=annot_font
+                    fontsize=annot_font,
+                    color=_readable_text_color(cmap_bias(norm_bias(sex_bias_matrix[i, j]))),
                 )
 
-    ax2.set_title("Sex bias in migration", fontsize=font_scale, pad=10)
+    ax2.set_title(title_sex_bias, fontsize=font_scale, pad=10)
     ax2.set_xticks(x_ticks)
     ax2.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2))
     ax2.set_xlabel("Ancestral population", fontsize=font_scale)
@@ -2213,7 +2262,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
         fraction=0.05
     )
 
-    cbar2.set_label("Sex bias", fontsize=font_scale, labelpad=8)
+    cbar2.set_label("Sex-bias", fontsize=font_scale, labelpad=8)
     cbar2.set_ticks([-1, 0, 1])
     cbar2.set_ticklabels([
         "-1 (male-only)",
@@ -2230,6 +2279,257 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     png_path = os.path.splitext(output_path)[0] + ".png"
     fig.savefig(png_path, dpi=300, bbox_inches="tight")
+
+
+def get_population_colors(pop_names: list) -> dict:
+    """
+    Assigns a colorblind-friendly color to each population, for use in output plots.
+
+    Parameters
+    ----------
+    pop_names: list
+        The list of population names to assign colors to.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping each population name to its assigned color.
+    """
+    n_pops = len(pop_names)
+
+    # Colorblind-friendly palette
+    okabe_ito = [
+        "#000000",  # black
+        "#E69F00",  # orange
+        "#56B4E9",  # sky blue
+        "#009E73",  # bluish green
+        "#F0E442",  # yellow
+        "#0072B2",  # blue
+        "#D55E00",  # vermillion
+        "#CC79A7",  # reddish purple
+    ]
+    if n_pops <= len(okabe_ito):
+        colors = okabe_ito[:n_pops]
+    else:
+        # fallback if there are more populations than Okabe-Ito colors
+        cmap = plt.get_cmap("tab20")
+        colors = [cmap(i) for i in range(n_pops)]
+    return {pop: colors[i] for i, pop in enumerate(pop_names)}
+
+
+def _bin_centers(bins: np.ndarray) -> np.ndarray:
+    return 0.5 * (bins[:-1] + bins[1:])
+
+
+def _plot_panel(
+    xbins: np.ndarray,
+    observed_dict: dict,
+    predicted_dict: dict,
+    scale_factor: float,
+    title: str,
+    ylabel: str,
+    output_path: str,
+    pop_names: list,
+    pop_colors: dict,
+    log_scale: bool = True,
+    xlabel: str="Tract Length (M)",
+    alpha_ci: float=0.05,
+    subtitle: str | None = None,
+    title_fontsize: float = 14,
+    subtitle_fontsize: float = 10,
+    label_fontsize: float = 12,
+    tick_fontsize: float = 10,
+    legend_fontsize: float = 10):
+    """
+    Plots observed tract counts (as points) against the predicted tract length distribution (as a step function,
+    with a shaded Poisson prediction interval), for every population in ``pop_names``. Used to produce the
+    ``_autosomes_all_populations``, ``_allosomes_all_populations``, ``_female_allosomes_all_populations`` and
+    ``_male_allosomes_all_populations`` output plots, both when producing them directly from a simulation
+    (:func:`~tracts.driver_utils.output_simulation_data_sex_biased`) and when re-plotting them from a previously
+    produced output directory (:mod:`tracts.plot`).
+
+    Parameters
+    ----------
+    xbins: np.ndarray
+        The bin edges for the tract length distribution.
+    observed_dict: dict
+        A dictionary mapping each population in ``pop_names`` to its observed tract counts per bin.
+    predicted_dict: dict
+        A dictionary mapping each population in ``pop_names`` to its predicted tract counts per bin, on the
+        per-individual (haploid genome) scale. Multiplied by ``scale_factor`` to obtain the predicted counts.
+    scale_factor: float
+        The factor by which to scale ``predicted_dict`` values to obtain predicted counts. Set to 1 if
+        ``predicted_dict`` is already on the count scale.
+    title: str
+        The title of the plot.
+    ylabel: str
+        The label for the y-axis.
+    output_path: str
+        The path (including file name) at which to save the plot, in PDF format. A PNG version is also saved
+        at the same path, with the extension replaced.
+    pop_names: list
+        The list of population names to plot, in the order in which they should appear in the legend.
+    pop_colors: dict
+        A dictionary mapping each population in ``pop_names`` to its plotting color, as produced by
+        :func:`~tracts.driver_utils.get_population_colors`.
+    log_scale: bool
+        Whether to use log scale for the y-axis. Defaults to True.
+    xlabel: str
+        The label for the x-axis. Defaults to "Tract Length (M)".
+    alpha_ci: float
+        The significance level used to compute the Poisson prediction interval shown around the predicted
+        counts. Defaults to 0.05.
+    subtitle: str | None
+        An optional subtitle to display below the title. Defaults to None.
+    title_fontsize: float
+        The font size of the title. Defaults to 14.
+    subtitle_fontsize: float
+        The font size of the subtitle. Defaults to 10.
+    label_fontsize: float
+        The font size of the x- and y-axis labels. Defaults to 12.
+    tick_fontsize: float
+        The font size of the tick labels. Defaults to 10.
+    legend_fontsize: float
+        The font size of the legend text and titles. Defaults to 10.
+    """
+
+    fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
+
+    x_centers = _bin_centers(xbins)
+    population_handles = []
+
+    for pop in pop_names:
+        color = pop_colors[pop]
+
+        # Observed data as points
+        y_obs = np.asarray(observed_dict[pop], dtype=float)
+        ax.scatter(
+            x_centers,
+            y_obs,
+            s=30,
+            color=color,
+            alpha=0.95,
+            edgecolor="white",
+            linewidth=0.6,
+            zorder=3,
+        )
+
+        # Predicted mean counts per bin
+        y_pred_bin = scale_factor * np.asarray(predicted_dict[pop], dtype=float)
+
+        # Poisson prediction interval per bin
+        y_low_bin = np.asarray(poisson.ppf(alpha_ci / 2, y_pred_bin), dtype=float)
+        y_high_bin = np.asarray(poisson.ppf(1 - alpha_ci / 2, y_pred_bin), dtype=float)
+
+        # Extend to length K+1 for step plotting
+        y_pred_step = np.r_[y_pred_bin, y_pred_bin[-1]]
+        y_low_step = np.r_[y_low_bin, y_low_bin[-1]]
+        y_high_step = np.r_[y_high_bin, y_high_bin[-1]]
+
+        # Step line
+        ax.step(
+            xbins,
+            y_pred_step,
+            where="post",
+            color=color,
+            lw=2.2,
+            alpha=0.95,
+            zorder=2,
+        )
+
+        # Shadow for prediction interval
+        ax.fill_between(
+            xbins,
+            y_low_step,
+            y_high_step,
+            step="post",
+            color=color,
+            alpha=0.18,
+            linewidth=0,
+            zorder=1,
+        )
+
+        # One legend entry per population
+        population_handles.append(
+            Line2D(
+                [0], [0],
+                color=color,
+                lw=2.2,
+                marker='o',
+                markersize=6,
+                markerfacecolor=color,
+                markeredgecolor="white",
+                label=pop
+            )
+        )
+
+    # Main styling — both anchored to axes x=0.5 so they share the same centre
+    ax.text(0.5, 1.08, title, transform=ax.transAxes,
+            ha='center', va='bottom', clip_on=False,
+            fontsize=title_fontsize, fontweight='bold', fontfamily='DejaVu Sans')
+    if subtitle is not None:
+        ax.text(0.5, 1.01, subtitle, transform=ax.transAxes,
+                ha='center', va='bottom', clip_on=False,
+                fontsize=subtitle_fontsize, color='0.4')
+    ax.set_xlabel(xlabel, fontsize=label_fontsize)
+    ax.set_ylabel(ylabel, fontsize=label_fontsize)
+    if log_scale:
+        ax.set_yscale("log") # Log-scale
+        ax.set_ylim(bottom=0.5)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(alpha=0.25, linewidth=0.8)
+    ax.tick_params(axis="both", labelsize=tick_fontsize)
+
+    # Legend 1: populations by color
+    legend_pop = ax.legend(
+        handles=population_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.16),
+        frameon=False,
+        fontsize=legend_fontsize,
+        ncol=min(len(pop_names), 4),
+        title="Source population",
+        title_fontsize=legend_fontsize,
+    )
+
+    # Legend 2: glyph meaning
+    glyph_handles = [
+        Line2D(
+            [0], [0],
+            linestyle="None",
+        marker='o',
+        color='0.35',
+        markerfacecolor='0.35',
+        markeredgecolor="white",
+        markersize=6,
+        label="Observed"
+    ),
+    Line2D(
+        [0], [0],
+        linestyle='-',
+        color='0.35',
+        lw=2.2,
+        label="Predicted"
+    ),
+    ]
+
+    ax.legend(
+        handles=glyph_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.29),
+        frameon=False,
+        fontsize=legend_fontsize,
+        ncol=2,
+    )
+
+    ax.add_artist(legend_pop)
+
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    # Also save a PNG version
+    png_path = os.path.splitext(output_path)[0] + ".png"
+    fig.savefig(png_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 
 def output_simulation_data_sex_biased(sample_population: Population,
@@ -2354,13 +2654,11 @@ def output_simulation_data_sex_biased(sample_population: Population,
     # Save autosome results
     with open(output_dir / output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
         fbins.write("\t".join(map(str, autosome_bins)))
+    _fill_missing_populations_with_zeros(autosome_data, demographic_model.population_indices.keys(),
+                                        len(autosome_bins) - 1, 'autosome data')
     with open(output_dir / output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
         for population in demographic_model.population_indices.keys():
-            try:
-                fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
-            except KeyError:
-                autosome_data[population] = np.zeros(len(autosome_bins)).tolist()
-                print(f'Population {population} not found in autosome data.')
+            fdat.write("\t".join(map(str, autosome_data[population])) + "\n")
     with open(output_dir / output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
         for line in female_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
@@ -2460,13 +2758,10 @@ def output_simulation_data_sex_biased(sample_population: Population,
             fbins.write("\t".join(map(str, allosome_bins)))
 
         # Fill in missing populations with zero counts, so that female/male data are aligned on the same set of populations.
-        for population in demographic_model.population_indices.keys():
-            if population not in female_data:
-                female_data[population] = np.zeros(len(allosome_bins)).tolist()
-                print(f'Population {population} not found in female allosome data.')
-            if population not in male_data:
-                male_data[population] = np.zeros(len(allosome_bins)).tolist()
-                print(f'Population {population} not found in male allosome data.')
+        _fill_missing_populations_with_zeros(female_data, demographic_model.population_indices.keys(),
+                                            len(allosome_bins) - 1, 'female allosome data')
+        _fill_missing_populations_with_zeros(male_data, demographic_model.population_indices.keys(),
+                                            len(allosome_bins) - 1, 'male allosome data')
 
         if sum_female_and_male_allosome_tracts:
             allosome_data_combined = {
@@ -2517,187 +2812,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
         f.write(f"likelihood {optimal_likelihood:>12.6g}\n")
 
     # ------ Produce and display plots -------
-    
-    n_pops = len(pop_names)
 
-    # Colorblind-friendly palette
-    okabe_ito = [
-        "#000000",  # black
-        "#E69F00",  # orange
-        "#56B4E9",  # sky blue
-        "#009E73",  # bluish green
-        "#F0E442",  # yellow
-        "#0072B2",  # blue
-        "#D55E00",  # vermillion
-        "#CC79A7",  # reddish purple
-    ]
-    if n_pops <= len(okabe_ito):
-        colors = okabe_ito[:n_pops]
-    else:
-        # fallback if there are more populations than Okabe-Ito colors
-        cmap = plt.get_cmap("tab20")
-        colors = [cmap(i) for i in range(n_pops)]
-    pop_colors = {pop: colors[i] for i, pop in enumerate(pop_names)}
+    pop_colors = get_population_colors(pop_names)
 
-    
-    fig, ax = plot_admixture(ancestry_per_individual, pop_names, colors, ax=None)
+    fig, ax = plot_admixture(ancestry_per_individual, pop_names, [pop_colors[pop] for pop in pop_names], ax=None)
     admixture_file_path = output_dir / output_filename_format.format(label="admixture_plot.pdf")
     fig.savefig(admixture_file_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
-
-
-    def _bin_centers(bins):
-        return 0.5 * (bins[:-1] + bins[1:])
-
-    def _plot_panel(
-        xbins: np.ndarray,
-        observed_dict: dict,
-        predicted_dict: dict,
-        scale_factor: float,
-        title: str,
-        ylabel: str,
-        output_path: str,
-        xlabel: str="Tract Length (M)",
-        alpha_ci: float=0.05,
-        subtitle: str | None = None):
-
-        fig, ax = plt.subplots(figsize=(8.4, 5.8), constrained_layout=True)
-
-        x_centers = _bin_centers(xbins)
-        population_handles = []
-
-        for pop in pop_names:
-            color = pop_colors[pop]
-
-            # Observed data as points
-            y_obs = np.asarray(observed_dict[pop], dtype=float)
-            ax.scatter(
-                x_centers,
-                y_obs,
-                s=30,
-                color=color,
-                alpha=0.95,
-                edgecolor="white",
-                linewidth=0.6,
-                zorder=3,
-            )
-
-            # Predicted mean counts per bin
-            y_pred_bin = scale_factor * np.asarray(predicted_dict[pop], dtype=float)
-
-            # Poisson prediction interval per bin
-            y_low_bin = np.asarray(poisson.ppf(alpha_ci / 2, y_pred_bin), dtype=float)
-            y_high_bin = np.asarray(poisson.ppf(1 - alpha_ci / 2, y_pred_bin), dtype=float)
-
-            # Extend to length K+1 for step plotting
-            y_pred_step = np.r_[y_pred_bin, y_pred_bin[-1]]
-            y_low_step = np.r_[y_low_bin, y_low_bin[-1]]
-            y_high_step = np.r_[y_high_bin, y_high_bin[-1]]
-
-            # Step line
-            ax.step(
-                xbins,
-                y_pred_step,
-                where="post",
-                color=color,
-                lw=2.2,
-                alpha=0.95,
-                zorder=2,
-            )
-
-            # Shadow for prediction interval
-            ax.fill_between(
-                xbins,
-                y_low_step,
-                y_high_step,
-                step="post",
-                color=color,
-                alpha=0.18,
-                linewidth=0,
-                zorder=1,
-            )
-
-            # One legend entry per population
-            population_handles.append(
-                Line2D(
-                    [0], [0],
-                    color=color,
-                    lw=2.2,
-                    marker='o',
-                    markersize=6,
-                    markerfacecolor=color,
-                    markeredgecolor="white",
-                    label=pop
-                )
-            )
-
-        # Main styling — both anchored to axes x=0.5 so they share the same centre
-        ax.text(0.5, 1.08, title, transform=ax.transAxes,
-                ha='center', va='bottom', clip_on=False,
-                fontsize=14, fontweight='bold', fontfamily='DejaVu Sans')
-        if subtitle is not None:
-            ax.text(0.5, 1.01, subtitle, transform=ax.transAxes,
-                    ha='center', va='bottom', clip_on=False,
-                    fontsize=10, color='0.4')
-        ax.set_xlabel(xlabel, fontsize=12)
-        ax.set_ylabel(ylabel, fontsize=12)
-        if log_scale:
-            ax.set_yscale("log") # Log-scale
-            ax.set_ylim(bottom=0.5)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.grid(alpha=0.25, linewidth=0.8)
-        ax.tick_params(axis="both", labelsize=10)
-
-        # Legend 1: populations by color
-        legend_pop = ax.legend(
-            handles=population_handles,
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.16),
-            frameon=False,
-            fontsize=10,
-            ncol=min(len(pop_names), 4),
-            title="Source population",
-            title_fontsize=10,
-        )
-
-        # Legend 2: glyph meaning
-        glyph_handles = [
-            Line2D(
-                [0], [0],
-                linestyle="None",
-            marker='o',
-            color='0.35',
-            markerfacecolor='0.35',
-            markeredgecolor="white",
-            markersize=6,
-            label="Observed"
-        ),
-        Line2D(
-            [0], [0],
-            linestyle='-',
-            color='0.35',
-            lw=2.2,
-            label="Predicted"
-        ),
-        ]
-
-        legend_glyph = ax.legend(
-            handles=glyph_handles,
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.29),
-            frameon=False,
-            fontsize=10,
-            ncol=2,
-        )
-
-        ax.add_artist(legend_pop)
-
-        fig.savefig(output_path, dpi=300, bbox_inches="tight")
-        # Also save a PNG version
-        png_path = os.path.splitext(output_path)[0] + ".png"
-        fig.savefig(png_path, dpi=300, bbox_inches="tight")
-        plt.close(fig)
 
     # --- Produce migration matrices plot
     if driver_spec.output.plot_migration_matrices:
@@ -2721,6 +2842,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
             output_dir,
             output_filename_format.format(label="autosomes_all_populations.pdf")
         ),
+        pop_names=pop_names,
+        pop_colors=pop_colors,
+        log_scale=log_scale,
         subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
     )
 
@@ -2741,6 +2865,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
                         output_dir,
                         output_filename_format.format(label="allosomes_all_populations.pdf")
                         ),
+                    pop_names=pop_names,
+                    pop_colors=pop_colors,
+                    log_scale=log_scale,
                     subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
                     )
 
@@ -2758,6 +2885,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
                     output_dir,
                     output_filename_format.format(label="male_allosomes_all_populations.pdf")
                 ),
+                pop_names=pop_names,
+                pop_colors=pop_colors,
+                log_scale=log_scale,
                 subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
                 )
 
@@ -2773,6 +2903,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
                     output_dir,
                 output_filename_format.format(label="female_allosomes_all_populations.pdf")
                 ),
+                pop_names=pop_names,
+                pop_colors=pop_colors,
+                log_scale=log_scale,
                 subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
                 )
         
@@ -2783,20 +2916,34 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
 
 
-def plot_admixture(ancestry_per_individual, labels, colors, ax=None):
+def plot_admixture(ancestry_per_individual, labels, colors, ax=None, title: str | None = None,
+                    title_fontsize: float = 14, label_fontsize: float = 10, tick_fontsize: float = 6,
+                    legend_fontsize: float = 10):
     """
     Stacked bar chart of ancestry proportions in ADMIXTURE style. AI-generated with review.
 
     Parameters
     ----------
     ancestry_per_individual : dict
-        {individual: [prop_1, ..., prop_n]}
+        {individual: [prop_1, ..., prop_n]}, where each ``individual`` is either an
+        :class:`~tracts.indiv.Indiv`-like object (with a ``.name`` attribute) or a plain string
+        (e.g. when re-plotting from a saved ``ancestry_per_individual`` output file, see :mod:`tracts.plot`).
     labels : list[str]
         Population name for each proportion column.
     colors : list[str]
         Hex colour for each population.
     ax : matplotlib.axes.Axes, optional
         Axes to draw on; a new figure is created if None.
+    title : str | None
+        An optional title for the plot. Defaults to None (no title).
+    title_fontsize : float
+        The font size of the title, if given. Defaults to 14.
+    label_fontsize : float
+        The font size of the y-axis label. Defaults to 10.
+    tick_fontsize : float
+        The font size of the per-individual x-axis tick labels. Defaults to 6.
+    legend_fontsize : float
+        The font size of the legend. Defaults to 10.
 
     Returns
     -------
@@ -2808,8 +2955,8 @@ def plot_admixture(ancestry_per_individual, labels, colors, ax=None):
     order = np.argsort(props[:, sort_pop])[::-1]
     individuals = [individuals[i] for i in order]
     props = props[order]
-    ind_names = [ind.name for ind in individuals]
-    
+    ind_names = [getattr(ind, "name", ind) for ind in individuals]
+
     x = np.arange(len(individuals))
 
     if ax is None:
@@ -2825,9 +2972,11 @@ def plot_admixture(ancestry_per_individual, labels, colors, ax=None):
     ax.set_xlim(-0.5, len(individuals) - 0.5)
     ax.set_ylim(0, 1)
     ax.set_xticks(x)
-    ax.set_xticklabels(ind_names, rotation=90, fontsize=6)
-    ax.set_ylabel("Ancestry proportion")
-    ax.legend(loc="upper right", bbox_to_anchor=(1.12, 1), frameon=False)
+    ax.set_xticklabels(ind_names, rotation=90, fontsize=tick_fontsize)
+    ax.set_ylabel("Ancestry proportion", fontsize=label_fontsize)
+    if title is not None:
+        ax.set_title(title, fontsize=title_fontsize)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.12, 1), frameon=False, fontsize=legend_fontsize)
     fig.tight_layout()
     return fig, ax
 
