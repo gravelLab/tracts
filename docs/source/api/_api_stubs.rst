@@ -10,6 +10,7 @@
    tracts.haploid
    tracts.indiv
    tracts.likelihood_options
+   tracts.plot
    tracts.population
    tracts.tract
    tracts.tracts_data

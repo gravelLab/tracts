@@ -43,8 +43,6 @@ optim:
 
 output:
   output_directory: ./output_ppp_pxx_trios/
-  output_filename_format: "ASW_output_trios_{label}"
-  log_filename: 'ASW_two_pulses_trios.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

@@ -52,8 +52,6 @@ optim:
 
 output:
   output_directory: ./output_ppp_pxx_popphased/{date}/
-  output_filename_format: "ACB_output_{label}"
-  log_filename: 'ACB_two_pulse.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

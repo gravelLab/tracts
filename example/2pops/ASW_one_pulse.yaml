@@ -29,8 +29,6 @@ optim:
 
 output:
   output_directory: ./output_one_pulse/
-  output_filename_format: "one_pulse_{label}"
-  log_filename: 'one_pulse.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

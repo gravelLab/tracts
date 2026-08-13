@@ -45,8 +45,6 @@ optim:
 
 output:
   output_directory: "./output_ppp/{date}/"
-  output_filename_format: "PUR_{label}"
-  log_filename: 'PUR_ppp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

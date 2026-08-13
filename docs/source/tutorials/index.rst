@@ -13,16 +13,6 @@ At each stage of simplification, the state space is reduced by grouping states i
   
   
 Once the model is chosen, the corresponding transition probabilities are computed. Then, by setting the states corresponding to the population of interest as absorbing, we obtain a Phase-Type distribution that characterizes tract lengths. In this tutorial, we provide code illustrating how to use the functions in ``tracts 2.0`` to build an admixture model and compute the corresponding Phase-Type densities or histograms. 
-
-
-
-  
-.. figure:: phasetype.png
-   :width: 600px
-   :align: center
-  
-  
-  
   
   
 .. grid:: 1 2 2 2

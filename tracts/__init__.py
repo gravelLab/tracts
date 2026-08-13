@@ -15,3 +15,10 @@ from tracts import logs
 from tracts.legacy import legacy
 from tracts import driver, driver_utils
 from tracts.driver import run_tracts
+from tracts import plot
+from tracts.plot import (
+    plot_admixture_from_output,
+    plot_migration_matrices_from_output,
+    plot_tract_length_distributions_from_output,
+    plot_all_from_output_directories,
+)

@@ -37,8 +37,6 @@ optim:
 
 output:
   output_directory: ./output_PUR/
-  output_filename_format: "PUR_{label}"
-  log_filename: 'PUR.log'
   verbose_log: 1
   verbose_screen: 1
   log_scale: True
