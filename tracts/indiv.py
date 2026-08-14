@@ -1,3 +1,8 @@
+"""
+Defines :class:`Indiv`, a diploid individual built from a pair of :class:`~tracts.haploid.Haploid` genomes
+(one per haplotype file). Collected into a :class:`~tracts.population.Population` for inference.
+"""
+
 from tracts.haploid import Haploid
 from tracts.chromosome import Chropair, Chrom
 import tkinter as tk

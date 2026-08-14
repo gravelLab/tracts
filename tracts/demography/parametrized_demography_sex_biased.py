@@ -1,3 +1,10 @@
+"""
+Defines :class:`ParametrizedDemographySexBiased`, a demographic model with independent male/female
+migration rates (used when allosomes are present in the sample), parametrized via a mean rate and a
+sex-bias parameter per event (see :class:`SexType`). Extends
+:class:`~tracts.demography.parametrized_demography.ParametrizedDemography`.
+"""
+
 from __future__ import annotations
 import os
 from pathlib import Path
@@ -39,7 +46,7 @@ class SexType(Enum):
 
         Returns
         -------
-        Callable[[str, str], Callable[[BaseParametrizedDemography, list[float]], float]]
+        Callable[[str,str],Callable[[BaseParametrizedDemography,list[float]],float]]
             A function that takes in the overall rate parameter and the sex bias parameter and returns a function to compute the corresponding rate for that sex in a demography.
         """
         return (lambda rate_param, sex_bias_param:
@@ -220,7 +227,7 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
         
         Returns
         -------
-        proportions : dict[str, numpy.ndarray]
+        proportions : dict[str,numpy.ndarray]
             A dictionary where the keys are the names of the populations and chromosome types and the values are the corresponding ancestry proportions as numpy arrays.
         """
         proportions={}

@@ -1,6 +1,13 @@
+"""
+Defines :class:`PhTDioecious`, the :class:`~tracts.phase_type.base_phase_type.PhaseTypeDistribution`
+subclass implementing the Dioecious Fine (DF) and Dioecious Coarse (DC) Markov approximations
+(independent male/female migration and recombination rates, including on the X chromosome).
+"""
+from __future__ import annotations
+
 import itertools
 import warnings
-import logging 
+import logging
 import numpy as np
 import numpy.typing as npt
 import scipy

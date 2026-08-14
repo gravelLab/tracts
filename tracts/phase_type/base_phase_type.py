@@ -1,7 +1,16 @@
+"""
+Defines :class:`PhaseTypeDistribution`, the abstract base class for computing tract length densities and
+histograms from migration matrices under a phase-type Markov approximation. Subclassed by
+:class:`~tracts.phase_type.monoecious.PhTMonoecious` (unbiased migration) and
+:class:`~tracts.phase_type.dioecious.PhTDioecious` (sex-biased migration); see also
+:mod:`tracts.phase_type.hybrid_pedigree` for the hybrid-pedigree refinements built on top of the latter.
+"""
+from __future__ import annotations
+
 import itertools
 import warnings
 from abc import ABC, abstractmethod
-import logging 
+import logging
 import numpy as np
 from numpy.exceptions import ComplexWarning
 import numpy.typing as npt

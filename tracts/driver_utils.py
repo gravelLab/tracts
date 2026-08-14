@@ -1,3 +1,11 @@
+"""
+Helper functions and driver-file configuration classes (``SamplesConfig``, ``ModelsConfig``,
+``OptimizationConfig``, ``OutputConfig``, ``InferenceConfig``, etc., all `pydantic` models) supporting
+:mod:`tracts.driver`'s :func:`~tracts.driver.run_tracts` pipeline: loading and validating the driver YAML
+file, loading the population and demographic model it specifies, and producing the output files and plots
+(:func:`output_simulation_data_sex_biased`) once optimization is complete.
+"""
+
 import numbers
 import os
 import sys
@@ -282,8 +290,6 @@ class OutputConfig(BaseModel):
         Whether to use log scale to plot the tract length distribution. Defaults to True.
     plot_migration_matrices: bool
         Whether to plot the final mean migration matrix together with the sex-bias values per pulse.
-    sum_female_and_male_allosome_tracts: bool
-        Whether to sum female and male allosomal tract length distributions and produce a single allosomal output (plot and tract distribution files) instead of separate ones for each sex. Defaults to True.
     """
     model_config = ConfigDict(extra="forbid")
     output_directory: str|None= None
@@ -293,7 +299,6 @@ class OutputConfig(BaseModel):
     verbose_screen: int = 30
     log_scale: bool = True
     plot_migration_matrices: bool = True
-    sum_female_and_male_allosome_tracts: bool = True
 
 class InferenceConfig(BaseModel):
     """
@@ -391,8 +396,8 @@ def get_admixture_models(driver_spec: InferenceConfig):
         The configuration for the inference process, as specified in the driver file.
 
     Returns
-    -------
-    tuple[str, str | None, str | None]
+    ----------
+    tuple[str,str | None,str | None]
         A tuple containing the admixture model for autosomes, the admixture model for allosomes (or None if no allosomes are specified), and the allosome label (or None if no allosomes are specified).
     """
 
@@ -449,8 +454,8 @@ def get_ancestry_proportions(driver_spec: InferenceConfig, population: Populatio
         The label for the allosome to use when calculating allosome ancestry proportions. Only used if allosomes are specified in the driver file.
 
     Returns
-    -------
-    tuple[list[float], list[float]]
+    ----------
+    tuple[list[float],list[float]]
         A tuple ``(autosome_proportions, allosome_proportions)``, where ``autosome_proportions`` are the ancestry proportions calculated from autosomal data,
         averaged across all individuals in the population, and ``allosome_proportions`` are the corresponding proportions calculated from allosomal data.
         If ``driver_spec.samples.allosomes`` is empty, ``allosome_proportions`` is an empty list.
@@ -499,7 +504,7 @@ def _reorder_ancestry_proportions(old_ancestor_labels: list[str], new_ancestor_l
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray | list]
+    tuple[np.ndarray,np.ndarray | list]
         ``(autosome_proportions, allosome_proportions)`` reordered to match ``new_ancestor_labels``.
         Returned unchanged if the two label orders are already identical.
     """
@@ -635,7 +640,7 @@ def parse_individual_filenames(
 
     Returns
     -------
-    dict[str, list[str]]
+    dict[str,list[str]]
         A dictionary mapping individual names to a list of file paths.
 
     """
@@ -768,7 +773,7 @@ def get_param_names_by_type(demographic_model: ParametrizedDemography | Parametr
 
     Returns
     -------
-    tuple[list[str], list[str], list[str]]
+    tuple[list[str],list[str],list[str]]
         A tuple ``(model_param_names, sex_bias_param_names, non_sex_bias_param_names)``, where:
 
         * ``model_param_names`` is the list of all parameter names, in the order given by
@@ -836,7 +841,7 @@ def load_demographic_model_from_driver(driver_spec: InferenceConfig, script_dir:
 
     Returns
     -------
-    tuple[ParametrizedDemography | ParametrizedDemographySexBiased, list[str], list[str], list[str]]
+    tuple[ParametrizedDemography | ParametrizedDemographySexBiased,list[str],list[str],list[str]]
         A tuple ``(demographic_model, model_param_names, sex_bias_param_names, non_sex_bias_param_names)``, where:
 
         * ``demographic_model`` is the loaded demographic model, which can be either a ``ParametrizedDemography`` or a ``ParametrizedDemographySexBiased`` depending on whether allosomal admixture is modelled.
@@ -1269,8 +1274,8 @@ def get_predicted_ancestry_proportions(demographic_model: ParametrizedDemography
         The final optimal parameters in optimizer units, as returned by the optimization process.
     
     Returns
-    -------
-    tuple[np.ndarray | None, np.ndarray | None]
+    ----------
+    tuple[np.ndarray | None,np.ndarray | None]
         A tuple containing the predicted autosome proportions and predicted allosome proportions, respectively. Each is an array of proportions corresponding to the populations in the model. If no autosomal or allosomal proportions are predicted, the corresponding value in the tuple will be None.
     """
 
@@ -1551,7 +1556,7 @@ def check_optimal_sex_bias_parameters_at_boundaries(demographic_model: Parametri
         The final optimal parameters in physical units, as returned by the optimization process.
 
     Returns
-    -------
+    ----------
     list[str]
         A list of parameter names that have optimal values at the boundary of the feasible region.
     """    
@@ -1840,8 +1845,8 @@ def build_boundary_reoptimization_model(driver_spec: InferenceConfig, reload_con
         If None, the current implicit population is kept. Defaults to None.
 
     Returns
-    -------
-    tuple[InferenceConfig, GeneticModel, list[str], list[str], list[str], list[np.ndarray]]
+    ----------
+    tuple[InferenceConfig,GeneticModel,list[str],list[str],list[str],list[np.ndarray]]
         The new driver spec; the new genetic model built from it; the model, sex-bias, and
         non-sex-bias parameter names; and the physical starting parameters to optimize from.
     """
@@ -1987,13 +1992,13 @@ def get_time_scaled_model_func(demographic_model: ParametrizedDemography) -> Cal
 
     Returns
     -------
-    Callable[[np.ndarray], dict[str, np.ndarray]]
+    Callable[[np.ndarray],dict[str,np.ndarray]]
         A function that takes in optimizer parameters, converts them to physical parameters, and returns the migration matrices for those parameters.
     """
     return lambda params: demographic_model.get_migration_matrices(demographic_model.parameter_handler.convert_to_physical_params(params))
 
 
-def get_time_scaled_model_bounds(demographic_model: ParametrizedDemography, verbose = False):
+def get_time_scaled_model_bounds(demographic_model: ParametrizedDemography, verbose = False) -> Callable[[np.ndarray], float]:
     """
     Computes a function that takes in optimizer parameters, converts them to physical parameters using the model's parameter handler, and returns the violation score for those parameters.
     This is necessary because some optimizers may require parameters to be on a different scale (e.g. log scale) than the physical parameters used in the model, so this function serves as a wrapper to apply the necessary transformations before passing parameters to the model.
@@ -2007,13 +2012,13 @@ def get_time_scaled_model_bounds(demographic_model: ParametrizedDemography, verb
 
     Returns
     -------
-    Callable[[np.ndarray], float]
+    Callable[[np.ndarray],float]
         A function that takes in optimizer parameters, converts them to physical parameters, and returns the violation score for those parameters.
     """
     return lambda params: demographic_model.get_violation_score(demographic_model.parameter_handler.convert_to_physical_params(params), verbose = verbose)
 
 
-def scale_select_indices(arr, indices_to_scale, scaling_factor=1):
+def _scale_select_indices(arr, indices_to_scale, scaling_factor=1):
     if len(indices_to_scale) != len(arr):
         raise ValueError(
             f'Length of array ({len(arr)}) was not equal to length of indices_to_scale ({len(indices_to_scale)}).')
@@ -2037,10 +2042,10 @@ def compute_remainder_params(demographic_model: ParametrizedDemography | Paramet
 
     .. math::
 
-        r_k^{\\text{male/female}} = 1 - \\sum_{i \\neq k} r_i^{\\text{male/female}}
+        r_k^{\text{male/female}} = 1 - \sum_{i \neq k} r_i^{\text{male/female}}
 
-        s_k = \\frac{r_k^{\\text{female}} - r_k^{\\text{male}}}
-                     {2\\,\\min(r_k,\\,1-r_k)}
+        s_k = \frac{r_k^{\text{female}} - r_k^{\text{male}}}
+                     {2\,\min(r_k,\,1-r_k)}
 
     Parameters
     ----------
@@ -2056,7 +2061,7 @@ def compute_remainder_params(demographic_model: ParametrizedDemography | Paramet
 
     Returns
     -------
-    dict[str, float]
+    dict[str,float]
         For each parametrized population that has a remainder ancestry:
 
         * ``'{dest_pop}_{remainder_pop}_rate'`` — always present; the mean founding rate
@@ -2143,7 +2148,7 @@ def _readable_text_color(rgba: tuple) -> str:
     """
     Returns 'white' or 'black', whichever gives better contrast against a background color ``rgba`` (as
     returned by a matplotlib colormap), based on its perceptual luminance. Used to keep cell-value annotations
-    legible in :func:`~tracts.driver_utils._plot_migration_matrices`, whose colormaps span from light colors
+    legible in ``_plot_migration_matrices``, whose colormaps span from light colors
     (e.g. white) to dark ones (e.g. blue, green), where fixed black text becomes hard to read.
     """
     r, g, b = rgba[:3]
@@ -2541,11 +2546,14 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                     driver_spec: InferenceConfig,
                                     output_dir: Path,
                                     driver_path: str|None = None,
-                                    sum_female_and_male_allosome_tracts: bool = True,
                                     ):
     """
     Creates output graphs to compare data and the theoretical tract length distribution inferred by the model. Also saves
     migration matrices, tract length distributions, and optimal parameters to output files.
+    If allosomes are present in the sample, female, male and summed allosomal tract length distributions (and
+    predictions) are all saved to output files, but only the summed distribution is plotted by default; use
+    :func:`tracts.plot.plot_tract_length_distributions_from_output` to (re-)plot the female/male distributions
+    separately from the saved output files.
     For details on the output files and graphs produced, see online documentation.
 
     Parameters
@@ -2563,8 +2571,6 @@ def output_simulation_data_sex_biased(sample_population: Population,
         The directory to which output files will be written.
     driver_path: str | None
         The path to the driver yaml file. If None, no driver file will be copied to the output directory. Defaults to None.
-    sum_female_and_male_allosome_tracts: bool
-        Whether to sum female and male allosomal tract length distributions and produce a single allosomal plot. Defaults to True.
     """
     demographic_model = genetic_model.demographic_model
     ad_model_autosomes = genetic_model.phase_type_config.ad_model_autosomes
@@ -2765,40 +2771,38 @@ def output_simulation_data_sex_biased(sample_population: Population,
         _fill_missing_populations_with_zeros(male_data, demographic_model.population_indices.keys(),
                                             len(allosome_bins) - 1, 'male allosome data')
 
-        if sum_female_and_male_allosome_tracts:
-            allosome_data_combined = {
-                population: np.asarray(male_data[population]) + np.asarray(female_data[population])
-                for population in demographic_model.population_indices.keys()
-            }
-            allosome_predicted_combined = {
-                population: num_males * np.asarray(male_predicted[population]) + num_females * np.asarray(female_predicted[population])
-                for population in demographic_model.population_indices.keys()
-            }
-            with open(output_dir / output_filename_format.format(label='allosome_sample_tract_distribution'), 'w') as fdat:
-                for population in demographic_model.population_indices.keys():
-                    fdat.write("\t".join(map(str, allosome_data_combined[population])) + "\n")
-            with open(output_dir / output_filename_format.format(label='allosome_predicted_tract_distribution'), 'w') as fpred2:
-                for population in demographic_model.population_indices.keys():
-                    fpred2.write("\t".join(map(str, allosome_predicted_combined[population])) + "\n")
-        else:
-            with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
-                for population in demographic_model.population_indices.keys():
-                    fdat.write("\t".join(map(str, female_data[population])) + "\n")
-            with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
-                for population in demographic_model.population_indices.keys():
-                    fdat.write("\t".join(map(str, male_data[population])) + "\n")
-            with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
-                for pop, pop_num in demographic_model.population_indices.items():
-                    fpred2.write("\t".join(map(
-                        str,
-                        [num_females * num_tracts for num_tracts in female_predicted[pop]]))
-                                + "\n")
-            with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
-                for pop, pop_num in demographic_model.population_indices.items():
-                    fpred2.write("\t".join(map(
-                        str,
-                        [num_males * num_tracts for num_tracts in male_predicted[pop]]))
-                                + "\n")
+        allosome_data_combined = {
+            population: np.asarray(male_data[population]) + np.asarray(female_data[population])
+            for population in demographic_model.population_indices.keys()
+        }
+        allosome_predicted_combined = {
+            population: num_males * np.asarray(male_predicted[population]) + num_females * np.asarray(female_predicted[population])
+            for population in demographic_model.population_indices.keys()
+        }
+        with open(output_dir / output_filename_format.format(label='allosome_sample_tract_distribution'), 'w') as fdat:
+            for population in demographic_model.population_indices.keys():
+                fdat.write("\t".join(map(str, allosome_data_combined[population])) + "\n")
+        with open(output_dir / output_filename_format.format(label='allosome_predicted_tract_distribution'), 'w') as fpred2:
+            for population in demographic_model.population_indices.keys():
+                fpred2.write("\t".join(map(str, allosome_predicted_combined[population])) + "\n")
+        with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
+            for population in demographic_model.population_indices.keys():
+                fdat.write("\t".join(map(str, female_data[population])) + "\n")
+        with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
+            for population in demographic_model.population_indices.keys():
+                fdat.write("\t".join(map(str, male_data[population])) + "\n")
+        with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
+            for pop, pop_num in demographic_model.population_indices.items():
+                fpred2.write("\t".join(map(
+                    str,
+                    [num_females * num_tracts for num_tracts in female_predicted[pop]]))
+                            + "\n")
+        with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
+            for pop, pop_num in demographic_model.population_indices.items():
+                fpred2.write("\t".join(map(
+                    str,
+                    [num_males * num_tracts for num_tracts in male_predicted[pop]]))
+                            + "\n")
 
     # ------ Save optimal parameters -------
     param_names = list(demographic_model.model_base_params.keys())
@@ -2852,65 +2856,28 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     if ad_model_allosomes is not None:
 
-        if sum_female_and_male_allosome_tracts:
-
-            # --- Produce plot for allosomes (female and male tracts summed) ---
-            # observed and predicted counts are already combined and scaled, so no further scaling is applied here.
-            _plot_panel(
-                    xbins=allosome_bins,
-                    observed_dict=allosome_data_combined,
-                    predicted_dict=allosome_predicted_combined,
-                    scale_factor=1,
-                    title="X-chromosome tract length distributions",
-                    ylabel="Count",
-                    output_path=os.path.join(
-                        output_dir,
-                        output_filename_format.format(label="allosomes_all_populations.pdf")
-                        ),
-                    pop_names=pop_names,
-                    pop_colors=pop_colors,
-                    log_scale=log_scale,
-                    subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
-                    )
-
-        else:
-    
-            # --- Produce plot for allosomes in male individuals ---
-            _plot_panel(
+        # --- Produce plot for allosomes (female and male tracts summed) ---
+        # Female, male and summed allosomal tract distributions are all saved to output files above; only the
+        # summed distribution is plotted here by default. Use
+        # tracts.plot.plot_tract_length_distributions_from_output to (re-)plot the female/male distributions
+        # separately from the saved output files.
+        # observed and predicted counts are already combined and scaled, so no further scaling is applied here.
+        _plot_panel(
                 xbins=allosome_bins,
-                observed_dict=male_data,
-                predicted_dict=male_predicted,
-                scale_factor=num_males,
-                title="Male X-chromosome tract length distributions",
+                observed_dict=allosome_data_combined,
+                predicted_dict=allosome_predicted_combined,
+                scale_factor=1,
+                title="X-chromosome tract length distributions",
                 ylabel="Count",
                 output_path=os.path.join(
                     output_dir,
-                    output_filename_format.format(label="male_allosomes_all_populations.pdf")
-                ),
+                    output_filename_format.format(label="allosomes_all_populations.pdf")
+                    ),
                 pop_names=pop_names,
                 pop_colors=pop_colors,
                 log_scale=log_scale,
                 subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
                 )
-
-            # --- Produce plot for allosomes in female individuals ---
-            _plot_panel(
-                xbins=allosome_bins,
-                observed_dict=female_data,
-                predicted_dict=female_predicted,
-                scale_factor=num_females,
-                title="Female X-chromosome tract length distributions",
-                ylabel="Count",
-                output_path=os.path.join(
-                    output_dir,
-                output_filename_format.format(label="female_allosomes_all_populations.pdf")
-                ),
-                pop_names=pop_names,
-                pop_colors=pop_colors,
-                log_scale=log_scale,
-                subtitle=f"Log-likelihood: {optimal_likelihood:.6g}"
-                )
-        
 
     # Final message
     print('Results saved to : ' + str(output_dir))
@@ -2918,7 +2885,8 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
 
 
-def plot_admixture(ancestry_per_individual, labels, colors, ax=None, title: str | None = None,
+
+def plot_admixture(ancestry_per_individual: dict[str, list[float]], labels: list[str], colors: list[str], ax=None, title: str | None = None,
                     title_fontsize: float = 14, label_fontsize: float = 10, tick_fontsize: float = 6,
                     legend_fontsize: float = 10):
     """
@@ -2926,7 +2894,7 @@ def plot_admixture(ancestry_per_individual, labels, colors, ax=None, title: str 
 
     Parameters
     ----------
-    ancestry_per_individual : dict
+    ancestry_per_individual : dict[str, list[float]]
         {individual: [prop_1, ..., prop_n]}, where each ``individual`` is either an
         :class:`~tracts.indiv.Indiv`-like object (with a ``.name`` attribute) or a plain string
         (e.g. when re-plotting from a saved ``ancestry_per_individual`` output file, see :mod:`tracts.plot`).

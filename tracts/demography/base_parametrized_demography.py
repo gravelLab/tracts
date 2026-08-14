@@ -1,3 +1,12 @@
+"""
+Defines :class:`BaseParametrizedDemography`, the abstract base class for a parametrized demographic
+model (a named set of populations, founder/migration events and parameters), together with the founder
+and migration event base classes it is built from, and :class:`FixedParametersHandler` for fixing a
+subset of parameters by value or from observed ancestry proportions. Subclassed by
+:class:`~tracts.demography.parametrized_demography.ParametrizedDemography` and
+:class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased`.
+"""
+
 from __future__ import annotations
 import math
 import numbers
@@ -332,7 +341,7 @@ class BaseParametrizedDemography(ABC):
 
         Returns
         -------
-        dict[str, str]
+        dict[str,str]
             A dict of the names of the parameters that are fixed by ancestry proportions and their corresponding values.
         """
         return self.parameter_handler.params_fixed_by_ancestry
@@ -344,7 +353,7 @@ class BaseParametrizedDemography(ABC):
 
         Returns
         -------
-        dict[str, str]
+        dict[str,str]
             A dict of the names of the parameters that are fixed by user-defined values and their corresponding values.
         """
         return self.parameter_handler.user_params_fixed_by_value
@@ -368,7 +377,7 @@ class BaseParametrizedDemography(ABC):
 
         Returns
         -------
-        list[tuple[float, float]]
+        list[tuple[float,float]]
             A list of tuples representing the bounds for the free parameters of the model. The order of the bounds corresponds to the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         """
         return [param.bounds for param in self.model_base_params.values()]
@@ -406,7 +415,7 @@ class BaseParametrizedDemography(ABC):
 
         Returns
         -------
-        dict[str, np.ndarray]
+        dict[str,np.ndarray]
             A dict mapping sample population names to their corresponding ancestry proportions resulting from the migration events represented by the migration matrices.
         """        
         return {sample_pop: self.proportions_from_matrix(migration_matrix=matrix) for sample_pop, matrix in migration_matrices.items()} 
@@ -514,7 +523,7 @@ class BaseParametrizedDemography(ABC):
 
         Returns
         -------
-        tuple[float, int]
+        tuple[float,int]
             A tuple of the form (time, population_index) representing the index in the migration matrix corresponding to the given time parameter and population name.
         """
 
@@ -751,7 +760,7 @@ class BaseParametrizedDemography(ABC):
         
         Returns
         -------
-        tuple[dict[str, str], str]
+        tuple[dict[str,str],str]
             A tuple of the form (``source_populations``, ``remainder_population``), where ``source_populations`` is a dict mapping the names of the ancestor populations with parametrized proportions to their corresponding proportion parameters, and ``remainder_population`` is the name of the ancestor population whose proportion is equal to 1 minus the sum of the other proportions.
         """
         #TODO: Add support for constants in proportions.
@@ -1017,7 +1026,7 @@ class FixedParametersHandler:
 
         Returns
         -------
-        dict[str, float]
+        dict[str,float]
             A dictionary mapping parameter names to their fixed values, ordered by the order of the parameters in :py:attr:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography.model_base_params`.
         """
     

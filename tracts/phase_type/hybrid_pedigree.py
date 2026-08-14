@@ -1,3 +1,13 @@
+"""
+Hybrid-pedigree refinements (H-DC, H-DF) of the Dioecious phase-type approximations: enumerates the
+possible migration settings over a fixed-depth pedigree and averages :class:`~tracts.phase_type.dioecious.PhTDioecious`
+predictions over them, weighted by their probability under the model. Entry points are
+:func:`density_hybrid_pedigree`/:func:`hybrid_pedigree_distribution` (tract length density),
+:func:`HP_tract_length_histogram_multi_windowed` (binned histogram, used by
+:mod:`tracts.driver_utils`) and :func:`HP_loglik` (log-likelihood).
+"""
+from __future__ import annotations
+
 import itertools
 from functools import partial
 import numpy as np

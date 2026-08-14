@@ -233,6 +233,7 @@ def plot_migration_matrices_from_output(output_dir: str | Path, output_filename_
 
 def plot_tract_length_distributions_from_output(output_dir: str | Path, output_filename_format: str | None = None,
                                                 log_scale: bool = True, save_dir: str | Path | None = None,
+                                                sum_female_and_male_allosome_tracts: bool = True,
                                                 autosome_title: str = "Autosomal tract length distributions",
                                                 allosome_title: str = "X-chromosome tract length distributions",
                                                 female_allosome_title: str = "Female X-chromosome tract length distributions",
@@ -250,10 +251,9 @@ def plot_tract_length_distributions_from_output(output_dir: str | Path, output_f
     against the predicted distribution), directly from the tract length distribution output files saved in
     ``output_dir`` by a previous :func:`~tracts.driver.run_tracts` run, without re-running the inference.
 
-    Whether allosomal plots are produced, and whether female and male allosomal tracts are combined into a
-    single plot or plotted separately, is inferred from which allosomal output files are present in
-    ``output_dir`` (i.e. from the ``sum_female_and_male_allosome_tracts`` setting used in the original run, see
-    :class:`~tracts.driver_utils.OutputConfig`).
+    Whether allosomal plots are produced at all is inferred from whether allosomal output files are present in
+    ``output_dir``. When they are, ``sum_female_and_male_allosome_tracts`` controls whether female and male
+    allosomal tracts are combined into a single plot (default) or plotted separately.
 
     Parameters
     ----------
@@ -270,6 +270,11 @@ def plot_tract_length_distributions_from_output(output_dir: str | Path, output_f
     save_dir: str | Path | None
         The directory in which to save the re-produced plots (created if it does not already exist). If None,
         defaults to ``output_dir``, overwriting the original plots in place.
+    sum_female_and_male_allosome_tracts: bool
+        If allosomes are present in the sample, whether to plot the female and male allosomal tract length
+        distributions summed into a single plot (default) or as two separate plots. Both the summed and
+        per-sex output files are always saved by :func:`~tracts.driver_utils.output_simulation_data_sex_biased`,
+        so either can be plotted from the same ``output_dir`` regardless of this setting. Defaults to True.
     autosome_title: str
         The title of the autosomal plot. Defaults to "Autosomal tract length distributions".
     allosome_title: str
@@ -335,32 +340,31 @@ def plot_tract_length_distributions_from_output(output_dir: str | Path, output_f
         **common_kwargs,
     )
 
-    # --- Allosomes (if present): combined or separate by sex, depending on which files were saved ---
+    # --- Allosomes (if present): combined or separate by sex, depending on sum_female_and_male_allosome_tracts ---
     if read_path("allosome_sample_tract_distribution").exists():
         allosome_bins = _read_bins(read_path("tract_length_allosome_bins"))
-        allosome_data = _read_population_rows(read_path("allosome_sample_tract_distribution"), pop_names)
-        allosome_predicted = _read_population_rows(read_path("allosome_predicted_tract_distribution"), pop_names)
-        _plot_panel(
-            xbins=allosome_bins,
-            observed_dict=allosome_data,
-            predicted_dict=allosome_predicted,
-            title=allosome_title,
-            output_path=str(write_path("allosomes_all_populations.pdf")),
-            **common_kwargs,
-        )
-    elif read_path("female_allosome_sample_tract_distribution").exists():
-        allosome_bins = _read_bins(read_path("tract_length_allosome_bins"))
-        female_data = _read_population_rows(read_path("female_allosome_sample_tract_distribution"), pop_names)
-        female_predicted = _read_population_rows(read_path("female_allosome_predicted_tract_distribution"), pop_names)
-        _plot_panel(
-            xbins=allosome_bins,
-            observed_dict=female_data,
-            predicted_dict=female_predicted,
-            title=female_allosome_title,
-            output_path=str(write_path("female_allosomes_all_populations.pdf")),
-            **common_kwargs,
-        )
-        if read_path("male_allosome_sample_tract_distribution").exists():
+        if sum_female_and_male_allosome_tracts:
+            allosome_data = _read_population_rows(read_path("allosome_sample_tract_distribution"), pop_names)
+            allosome_predicted = _read_population_rows(read_path("allosome_predicted_tract_distribution"), pop_names)
+            _plot_panel(
+                xbins=allosome_bins,
+                observed_dict=allosome_data,
+                predicted_dict=allosome_predicted,
+                title=allosome_title,
+                output_path=str(write_path("allosomes_all_populations.pdf")),
+                **common_kwargs,
+            )
+        else:
+            female_data = _read_population_rows(read_path("female_allosome_sample_tract_distribution"), pop_names)
+            female_predicted = _read_population_rows(read_path("female_allosome_predicted_tract_distribution"), pop_names)
+            _plot_panel(
+                xbins=allosome_bins,
+                observed_dict=female_data,
+                predicted_dict=female_predicted,
+                title=female_allosome_title,
+                output_path=str(write_path("female_allosomes_all_populations.pdf")),
+                **common_kwargs,
+            )
             male_data = _read_population_rows(read_path("male_allosome_sample_tract_distribution"), pop_names)
             male_predicted = _read_population_rows(read_path("male_allosome_predicted_tract_distribution"), pop_names)
             _plot_panel(
@@ -378,6 +382,7 @@ def plot_tract_length_distributions_from_output(output_dir: str | Path, output_f
 
 def plot_all_from_output_directories(output_dirs, output_filename_format: str | None = None,
                                     log_scale: bool = True, save_dir: str | Path | None = None,
+                                    sum_female_and_male_allosome_tracts: bool = True,
                                     title_fontsize: float | None = None, subtitle_fontsize: float | None = None,
                                     label_fontsize: float | None = None, tick_fontsize: float | None = None,
                                     legend_fontsize: float | None = None) -> None:
@@ -405,6 +410,8 @@ def plot_all_from_output_directories(output_dirs, output_filename_format: str | 
         See :func:`~tracts.plot.plot_admixture_from_output`. Applied to every directory in ``output_dirs``; since
         each output directory typically has its own ``output_filename_format`` prefix, plots from multiple runs
         can safely be collected into the same ``save_dir`` without overwriting each other.
+    sum_female_and_male_allosome_tracts: bool
+        See :func:`~tracts.plot.plot_tract_length_distributions_from_output`.
     title_fontsize: float | None
         The font size of plot titles, applied to every directory in ``output_dirs``. If None (default), each
         plotting function's own default is used (a fixed size for tract length/admixture plots, an adaptive
@@ -459,4 +466,5 @@ def plot_all_from_output_directories(output_dirs, output_filename_format: str | 
                                                     output_filename_format=output_filename_format,
                                                     log_scale=log_scale,
                                                     save_dir=save_dir,
+                                                    sum_female_and_male_allosome_tracts=sum_female_and_male_allosome_tracts,
                                                     **tract_length_kwargs)

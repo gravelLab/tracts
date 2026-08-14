@@ -1,3 +1,9 @@
+"""
+Defines :class:`Chrom` (and its diploid counterpart :class:`Chropair`), a chromosome represented as a
+partition of :class:`~tracts.tract.Tract` objects. Wrapped by :class:`~tracts.haploid.Haploid` to build up
+a haploid genome.
+"""
+
 from tracts.tract import Tract
 from tracts.util import eprint
 import numpy as np

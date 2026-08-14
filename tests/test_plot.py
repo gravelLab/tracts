@@ -83,15 +83,9 @@ def _delete_plots(output_dir: Path) -> None:
 
 @pytest.fixture(scope="module")
 def combined_allosome_output_dir(tmp_path_factory) -> Path:
-    """Output directory for a run with allosomes, using the default (combined) sum_female_and_male_allosome_tracts."""
+    """Output directory for a run with allosomes. Female, male and summed allosomal tract distributions are all
+    saved to output files, regardless of how they are later plotted."""
     return _run_driver(tmp_path_factory, "test_allosomes_one_step.yaml", "plot_combined")
-
-
-@pytest.fixture(scope="module")
-def separate_allosome_output_dir(tmp_path_factory) -> Path:
-    """Output directory for a run with allosomes, with sum_female_and_male_allosome_tracts explicitly set to False."""
-    return _run_driver(tmp_path_factory, "test_allosomes_one_step.yaml", "plot_separate",
-                        extra_output_lines=["sum_female_and_male_allosome_tracts: False"])
 
 
 @pytest.fixture(scope="module")
@@ -152,16 +146,17 @@ class TestPlotFromCombinedAllosomeOutput:
 
 class TestPlotFromSeparateAllosomeOutput:
 
-    def test_tract_length_distribution_plots(self, separate_allosome_output_dir):
-        _delete_plots(separate_allosome_output_dir)
-        plot_tract_length_distributions_from_output(separate_allosome_output_dir)
+    def test_tract_length_distribution_plots(self, combined_allosome_output_dir):
+        _delete_plots(combined_allosome_output_dir)
+        plot_tract_length_distributions_from_output(combined_allosome_output_dir,
+                                                    sum_female_and_male_allosome_tracts=False)
 
-        assert (separate_allosome_output_dir / "test_output_autosomes_all_populations.pdf").exists()
-        assert (separate_allosome_output_dir / "test_output_female_allosomes_all_populations.pdf").exists()
-        assert (separate_allosome_output_dir / "test_output_male_allosomes_all_populations.pdf").exists()
+        assert (combined_allosome_output_dir / "test_output_autosomes_all_populations.pdf").exists()
+        assert (combined_allosome_output_dir / "test_output_female_allosomes_all_populations.pdf").exists()
+        assert (combined_allosome_output_dir / "test_output_male_allosomes_all_populations.pdf").exists()
 
-        # Separate mode: no combined allosome plot should be produced.
-        assert not (separate_allosome_output_dir / "test_output_allosomes_all_populations.pdf").exists()
+        # sum_female_and_male_allosome_tracts=False: no combined allosome plot should be produced.
+        assert not (combined_allosome_output_dir / "test_output_allosomes_all_populations.pdf").exists()
 
 
 class TestPlotFromAutosomeOnlyOutput:

@@ -1,5 +1,5 @@
 from tracts.driver_utils import locate_file_path
-from tracts.driver_utils import parse_chromosomes, parse_start_params, scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
+from tracts.driver_utils import parse_chromosomes, parse_start_params, _scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
 from tracts.driver_utils import parse_param_bounds, _print_param_bounds_table, check_optimal_params_near_bounds
 from tracts.driver_utils import SamplesConfig, InferenceConfig, ParamBoundsConfig
 from tracts.driver_utils import load_demographic_model_from_driver
@@ -669,7 +669,7 @@ class TestComputePhysicalStartParamsSexBiasMidpoint:
 
 class TestScaleSelectIndices:
     """
-    A class for testing the scale_select_indices function, which is designed to apply a scaling factor to selected indices of an array based on a provided boolean mask.
+    A class for testing the _scale_select_indices function, which is designed to apply a scaling factor to selected indices of an array based on a provided boolean mask.
     The tests cover scenarios including basic scaling of selected indices, ensuring that non-selected indices remain unchanged, and error handling for mismatched lengths between the input array and the indices mask.
     """
 
@@ -680,7 +680,7 @@ class TestScaleSelectIndices:
         arr = np.array([1.0, 2.0, 3.0])
         indices = np.array([1, 0, 1])
 
-        result = scale_select_indices(arr, indices, scaling_factor=2)
+        result = _scale_select_indices(arr, indices, scaling_factor=2)
 
         expected = np.array([2.0, 2.0, 6.0])
         np.testing.assert_array_almost_equal(result, expected)
@@ -691,7 +691,7 @@ class TestScaleSelectIndices:
         """
         arr = np.array([1.0, 2.0, 3.0])
         indices = np.array([1, 1, 1])
-        result = scale_select_indices(arr, indices, scaling_factor=1)
+        result = _scale_select_indices(arr, indices, scaling_factor=1)
         np.testing.assert_array_almost_equal(result, arr)
 
     def test_scale_select_indices_mismatched_length_raises_error(self):
@@ -701,7 +701,7 @@ class TestScaleSelectIndices:
         arr = np.array([1.0, 2.0])
         indices = np.array([1, 0, 1])
         with pytest.raises(ValueError):
-            scale_select_indices(arr, indices, scaling_factor=2)
+            _scale_select_indices(arr, indices, scaling_factor=2)
 
 class TestGetTimeScaledModelFunc:
     """

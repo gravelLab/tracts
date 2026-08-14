@@ -1,3 +1,11 @@
+"""
+Defines :class:`ParametrizedDemography`, a sex-unbiased parametrized demographic model (single migration
+rate per pulse/continuous event, no separate male/female rates), together with its
+:class:`PulseEvent`/:class:`ContinuousEvent` migration event types. See
+:class:`~tracts.demography.parametrized_demography_sex_biased.ParametrizedDemographySexBiased` for the
+sex-biased counterpart used when allosomes are present.
+"""
+
 from __future__ import annotations
 import math
 import os
@@ -193,7 +201,7 @@ class ParametrizedDemography(BaseParametrizedDemography):
         
         Returns
         -------
-        dict[str, np.ndarray]
+        dict[str,np.ndarray]
             A dictionary mapping population names to their corresponding migration matrices.
         """
         if self.finalized is not True:

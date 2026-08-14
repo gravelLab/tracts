@@ -1,3 +1,11 @@
+"""
+The main entry point for ``tracts``: :func:`run_tracts` loads a driver YAML file, runs the (optionally
+two-step) optimization via :mod:`tracts.core`, and writes the output files and plots via
+:func:`~tracts.driver_utils.output_simulation_data_sex_biased`. The rest of the module implements the
+individual steps of that pipeline (running/re-running the optimization, sex-bias fixing and boundary
+re-optimizations, etc.), which :func:`run_tracts` orchestrates.
+"""
+
 import io
 import contextlib
 import logging
@@ -227,7 +235,6 @@ def run_tracts(driver_filename: str, script_dir: str):
                                         driver_spec=driver_spec,
                                         output_dir=output_dir,
                                         driver_path=driver_path,
-                                        sum_female_and_male_allosome_tracts=driver_spec.output.sum_female_and_male_allosome_tracts
                                         )
     finally:
         close_log_file(log_filename=log_full_path)
@@ -238,7 +245,7 @@ def run_tracts(driver_filename: str, script_dir: str):
 # ----- Runner functions -----
 
 def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
-                                    population: Population, driver_spec, likelihood_options: LikelihoodOptions,
+                                    population: Population, driver_spec: InferenceConfig, likelihood_options: LikelihoodOptions,
                                     model_param_names: list, sex_bias_param_names: list,
                                     print_run_details: bool = True) -> tuple:
     """
@@ -277,8 +284,8 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
         these details add clutter rather than information. Defaults to True.
 
     Returns
-    -------
-    tuple [np.ndarray, float]
+    ----------
+    tuple[np.ndarray,float]
         The optimal parameters found (in physical units) and the corresponding likelihood.
     """
     demographic_model = genetic_model.demographic_model
@@ -295,7 +302,7 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
         (``genetic_model``, ``population``, iteration/verbosity settings). Warnings raised on
         individual objective-function evaluations within the stage (e.g. a
         ``_GenerationZeroContributionWarning``) are caught and reported once for the whole
-        stage — see :func:`~tracts.driver_utils._run_with_generation_zero_warning_reporting`.
+        stage — see ``_run_with_generation_zero_warning_reporting`` in ``driver_utils``.
         """
         return _run_with_generation_zero_warning_reporting(lambda: _normalize_multi_init_result(
             run_model_multi_init(genetic_model=genetic_model,
@@ -510,7 +517,8 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
     return optimal_params, optimal_likelihood
 
 
-def run_sex_bias_fixing_reoptimizations(driver_spec, model_param_names: list[str], optimal_params: np.ndarray,
+
+def run_sex_bias_fixing_reoptimizations(driver_spec: InferenceConfig, model_param_names: list[str], optimal_params: np.ndarray,
                                         optimal_likelihood: float, run_optimization_fixed_options: Callable) -> tuple[np.ndarray, float]:
     """
     Repeats ``driver_spec.optim.n_reoptimizations`` times: fixing the sex-bias parameters at
@@ -541,8 +549,8 @@ def run_sex_bias_fixing_reoptimizations(driver_spec, model_param_names: list[str
         bound), taking ``physical_start_params`` and ``driver_spec`` as its remaining arguments.
 
     Returns
-    -------
-    tuple[np.ndarray, float]
+    ----------
+    tuple[np.ndarray,float]
         The updated optimal parameters and likelihood after the re-optimization repetitions.
     """
     _print_and_log(_build_reoptimization_intro_message(driver_spec.optim.n_reoptimizations))
@@ -589,7 +597,7 @@ def run_sex_bias_fixing_reoptimizations(driver_spec, model_param_names: list[str
     return optimal_params, optimal_likelihood
 
 
-def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext, optimal_sex_bias_at_boundaries: list[str],
+def run_boundary_reoptimization(driver_spec: InferenceConfig, reload_context: ModelReloadContext, optimal_sex_bias_at_boundaries: list[str],
                                 genetic_model: GeneticModel, optimal_params: np.ndarray, optimal_likelihood: float,
                                 remainder_params: dict, population: Population, likelihood_options: LikelihoodOptions):
     """
@@ -625,7 +633,7 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
         the model YAML file, used only if the implicit population is changed.
     optimal_sex_bias_at_boundaries: list[str]
         Parameter names near their +-1 boundary, as returned by
-        ``check_optimal_sex_bias_parameters_at_boundaries``.
+        :func:`~tracts.driver_utils.check_optimal_sex_bias_parameters_at_boundaries`.
     genetic_model: GeneticModel
         The current genetic model. Its demographic model's parameter names are derived directly
         (see ``get_param_names_by_type``) rather than passed in separately.
@@ -644,7 +652,7 @@ def run_boundary_reoptimization(driver_spec, reload_context: ModelReloadContext,
 
     Returns
     -------
-    tuple[InferenceConfig, GeneticModel, np.ndarray, float, np.ndarray, np.ndarray | list]
+    tuple[InferenceConfig,GeneticModel,np.ndarray,float,np.ndarray,np.ndarray | list]
         The driver spec and genetic model, the optimal parameters and likelihood, and
         ``reload_context.autosome_proportions``/``allosome_proportions`` realigned to the
         population order of the returned genetic model's demographic model (see
@@ -817,7 +825,7 @@ def run_model_multi_init(genetic_model: GeneticModel, population: Population,
 
     Returns
     ----------
-    tuple[list[np.ndarray], list[float], list[float | None]]
+    tuple[list[np.ndarray],list[float],list[float | None]]
         A tuple containing three lists: (i) optimal parameters for each run, (ii) optimization likelihoods for each run, and (iii) optional
         full-data likelihoods (only populated when step 2 is run with allosomal data only).
     """
@@ -917,7 +925,7 @@ def run_model(genetic_model: GeneticModel, population: Population,
 
     Returns
     ----------
-    tuple [np.ndarray, float, float | None]
+    tuple[np.ndarray,float,float | None]
         A tuple containing the optimal parameters found, the corresponding
         optimization likelihood, and an optional full-data likelihood.
     """

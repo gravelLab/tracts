@@ -1,3 +1,9 @@
+"""
+General-purpose helpers used across the package: a stderr-printing convenience function, a same-sign
+check, and the transformations between physical (time/rate/sex-bias) parameter space and the
+unconstrained space used internally by the optimizer.
+"""
+
 import sys
 from numbers import Number
 import numpy as np

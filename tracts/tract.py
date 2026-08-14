@@ -1,3 +1,9 @@
+"""
+Defines :class:`Tract`, the labeled genomic interval that every higher-level structure in ``tracts``
+(:class:`~tracts.chromosome.Chrom`, :class:`~tracts.haploid.Haploid`, :class:`~tracts.indiv.Indiv`,
+:class:`~tracts.population.Population`) is ultimately built from.
+"""
+
 class Tract:
     """
     Represent a labeled genomic interval.

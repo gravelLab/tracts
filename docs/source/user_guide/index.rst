@@ -306,7 +306,6 @@ Output
      verbose_screen: 1
      log_scale: True
      plot_migration_matrices: True
-     sum_female_and_male_allosome_tracts: True
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
 - ``output_filename_format``: The file name format for the output files. If not specified, defaults to ``"{driver_filename}_{label}"``, where ``driver_filename`` is the name of the driver yaml file, without its extension.
@@ -315,7 +314,6 @@ Output
 - ``verbose_screen``: Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every ``verbose`` steps.
 - ``log_scale``: Whether the tract length distributions are depicted in log-scaled counts. Default is ``True``.
 - ``plot_migration_matrices``: Whether to include plots of the inferred migration matrices in the output. Default is ``True``.
-- ``sum_female_and_male_allosome_tracts``: If allosomes are present in the sample, whether to sum female and male allosomal tract length distributions and produce a single allosomal output (sample/predicted tract distribution files and plot), instead of separate outputs for each sex. Default is ``True``.
 
 .. _run-tracts:
 
@@ -353,22 +351,17 @@ Outputs
 - ``_migration_matrices.pdf``, ``_migration_matrices.png``: plots of the inferred mean migration matrix and sex-bias values per generation. Only produced if ``plot_migration_matrices: True`` in the driver file.
 - ``_autosomes_all_populations.pdf``, ``_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
 
-If allosomes are present in the sample, ``sum_female_and_male_allosome_tracts`` in the driver file controls whether the allosomal outputs below are combined across sexes (default, ``True``) or produced separately for females and males (``False``):
+If allosomes are present in the sample, the female, male and summed (female+male) allosomal tract length distributions (and predictions) are all saved to output files, but only the summed distribution is plotted by default:
 
-- If ``sum_female_and_male_allosome_tracts: True``:
+- ``_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution, summed across females and males.
+- ``_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution, summed across females and males, according to the predicted model.
+- ``_allosomes_all_populations.pdf``, ``_allosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes, summed across females and males.
+- ``_female_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution in females.
+- ``_male_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution in males.
+- ``_female_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution in females, according to the predicted model.
+- ``_male_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution in males, according to the predicted model.
 
-  - ``_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution, summed across females and males.
-  - ``_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution, summed across females and males, according to the predicted model.
-  - ``_allosomes_all_populations.pdf``, ``_allosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes, summed across females and males.
-
-- If ``sum_female_and_male_allosome_tracts: False``:
-
-  - ``_female_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution in females.
-  - ``_male_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution in males.
-  - ``_female_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution in females, according to the predicted model.
-  - ``_male_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution in males, according to the predicted model.
-  - ``_female_allosomes_all_populations.pdf``, ``_female_allosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in females.
-  - ``_male_allosomes_all_populations.pdf``, ``_male_allosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes in males.
+The female and male allosomal distributions can be plotted separately from these output files, without re-running the inference, using ``sum_female_and_male_allosome_tracts`` in :func:`~tracts.plot.plot_tract_length_distributions_from_output` (see :mod:`tracts.plot`).
 
 
 

@@ -113,7 +113,6 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             verbose_log=0,
             verbose_screen=0,
             log_scale=False,
-            sum_female_and_male_allosome_tracts=True,
         ),
     )
 
