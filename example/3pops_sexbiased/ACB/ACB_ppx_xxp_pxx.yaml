@@ -37,14 +37,13 @@ start_params:
   RAFR: 0.8
   REUR2: 0.02:0.2
   t2: 6:9.1
-  t3: 4:6
+  t3: 3:4
   REUR_sex_bias: -1:1
   REUR2_sex_bias: -1:1
   RAFR_sex_bias: -1:1
 
 bounds:
   t1: 1:15
-
 optim:
   repetitions: 20
   seed: 100
