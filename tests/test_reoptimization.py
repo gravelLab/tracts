@@ -13,7 +13,7 @@ Tests for the re-optimization features in tracts.driver / tracts.driver_utils / 
   has an effect on step 1.
 
 Model-dependent tests use a real, in-memory ``ParametrizedDemographySexBiased`` with a single
-founder event and two explicit source populations (``EUR``, ``NAT``) plus one implicit/remainder
+founder event and two explicit source populations (``EUR``, ``AMR``) plus one implicit/remainder
 population (``AFR``), built directly via ``add_founder_event`` (no YAML/file I/O, no real
 optimization) -- mirroring the pattern already used in ``tests/test_ancestry_fixing.py`` and
 ``tests/test_driver_utils.py::TestComputeRemainderParams``. Driver-orchestration tests
@@ -59,13 +59,13 @@ from tracts.genetic_model import GeneticModel
 def _make_three_pop_sex_biased_model():
     """
     A ParametrizedDemographySexBiased with one founder event: two explicit source populations
-    (EUR -> REUR, NAT -> RNAT) and one implicit/remainder population (AFR). Parameter order is
-    REUR, REUR_sex_bias, RNAT, RNAT_sex_bias, t.
+    (EUR -> REUR, AMR -> RAMR) and one implicit/remainder population (AFR). Parameter order is
+    REUR, REUR_sex_bias, RAMR, RAMR_sex_bias, t.
     """
     model = ParametrizedDemographySexBiased(name="ThreePop")
     model.add_founder_event(
         dest_population="X",
-        source_populations={"EUR": "REUR", "NAT": "RNAT"},
+        source_populations={"EUR": "REUR", "AMR": "RAMR"},
         remainder_population="AFR",
         found_time="t",
     )
@@ -97,9 +97,9 @@ def _make_three_pop_model_with_implicit(remainder_population: str, source_popula
 
 def _three_pop_param_names():
     return (
-        ["REUR", "REUR_sex_bias", "RNAT", "RNAT_sex_bias", "t"],
-        ["REUR_sex_bias", "RNAT_sex_bias"],
-        ["REUR", "RNAT", "t"],
+        ["REUR", "REUR_sex_bias", "RAMR", "RAMR_sex_bias", "t"],
+        ["REUR_sex_bias", "RAMR_sex_bias"],
+        ["REUR", "RAMR", "t"],
     )
 
 
@@ -121,7 +121,7 @@ def _make_real_driver_spec(**optim_overrides):
             allosomes=["X"],
         ),
         models=ModelsConfig(model_filename="dummy_model.yaml", implicit_population="AFR"),
-        start_params=StartParamsConfig(REUR=0.3, RNAT=0.3, t=10),
+        start_params=StartParamsConfig(REUR=0.3, RAMR=0.3, t=10),
         optim=OptimizationConfig(**optim_kwargs),
         output=OutputConfig(output_filename_format="out_{label}"),
     )
@@ -191,14 +191,14 @@ class TestCheckOptimalSexBiasParametersAtBoundaries:
     def test_explicit_sex_bias_at_positive_boundary(self):
         boundaries = self._boundaries(np.array([0.3, 1.0, 0.3, 0.0, 10.0]))
         assert "REUR_sex_bias" in boundaries
-        assert "RNAT_sex_bias" not in boundaries
+        assert "RAMR_sex_bias" not in boundaries
 
     def test_explicit_sex_bias_at_negative_boundary(self):
         boundaries = self._boundaries(np.array([0.3, -1.0, 0.3, 0.0, 10.0]))
         assert "REUR_sex_bias" in boundaries
 
     def test_implicit_remainder_sex_bias_at_boundary(self):
-        # Push REUR and RNAT proportions so that the AFR remainder's sex-bias is close to a boundary.
+        # Push REUR and RAMR proportions so that the AFR remainder's sex-bias is close to a boundary.
         boundaries = self._boundaries(np.array([0.1, 0.0, 0.1, 1.0, 10.0]), boundary_tol=0.5)
         assert "X_AFR_sex_bias" in boundaries
 
@@ -219,12 +219,12 @@ class TestGetAlternateImplicitPopulation:
     def test_implicit_boundary_hit_skips_also_boundary_hit_alternate(self):
         model = _make_three_pop_sex_biased_model()
         result = get_alternate_implicit_population(model, ["X_AFR_sex_bias", "REUR_sex_bias"])
-        assert result == "NAT"
+        assert result == "AMR"
 
     def test_implicit_boundary_hit_no_valid_alternate_returns_none(self, capsys):
         model = _make_three_pop_sex_biased_model()
         result = get_alternate_implicit_population(
-            model, ["X_AFR_sex_bias", "REUR_sex_bias", "RNAT_sex_bias"]
+            model, ["X_AFR_sex_bias", "REUR_sex_bias", "RAMR_sex_bias"]
         )
         assert result is None
         captured = capsys.readouterr()
@@ -245,8 +245,8 @@ class TestGetDriverForReoptimization:
         assert reopt_spec.optim.repetitions == 1
         assert reopt_spec.start_params.REUR == pytest.approx(0.4)
         assert reopt_spec.start_params.REUR_sex_bias == pytest.approx(0.2)
-        assert reopt_spec.start_params.RNAT == pytest.approx(0.5)
-        assert reopt_spec.start_params.RNAT_sex_bias == pytest.approx(-0.1)
+        assert reopt_spec.start_params.RAMR == pytest.approx(0.5)
+        assert reopt_spec.start_params.RAMR_sex_bias == pytest.approx(-0.1)
         assert reopt_spec.start_params.t == pytest.approx(12.0)
 
     def test_original_driver_spec_is_unmodified(self):
@@ -297,7 +297,7 @@ class TestBuildBoundaryReoptimizationModel:
         assert out_sex_bias_names == sex_bias_param_names
         assert out_non_sex_bias_names == non_sex_bias_param_names
         assert len(physical_start_params) == 1
-        # RNAT_sex_bias is free (not fixed by value here): it must start from its previous optimal
+        # RAMR_sex_bias is free (not fixed by value here): it must start from its previous optimal
         # value (-0.2), not be reset to 0 as the very first (non-reoptimization) start would be.
         np.testing.assert_allclose(physical_start_params[0], [0.2, 1.0, 0.2, -0.2, 10.0])
 
@@ -349,11 +349,11 @@ class TestBuildBoundaryReoptimizationModel:
         # (that's what triggered the implicit-population switch to EUR in the first place); once
         # AFR becomes explicit in the new model, its sex-bias parameter must be fixed by value at
         # +-near_one (default 0.999), not left free to be resampled/re-optimized from scratch.
-        old_model = _make_three_pop_sex_biased_model()  # EUR, NAT explicit; AFR implicit
+        old_model = _make_three_pop_sex_biased_model()  # EUR, AMR explicit; AFR implicit
         genetic_model = GeneticModel(old_model, ad_model_autosomes="DC", ad_model_allosomes="DC")
         driver_spec = _make_real_driver_spec()
 
-        new_model = _make_three_pop_model_with_implicit("EUR", {"NAT": "RNAT", "AFR": "RAFR"})
+        new_model = _make_three_pop_model_with_implicit("EUR", {"AMR": "RAMR", "AFR": "RAFR"})
         new_model_param_names, new_sex_bias_names, new_non_sex_bias_names = get_param_names_by_type(new_model)
 
         def fake_load_demographic_model_from_driver(*, driver_spec, script_dir, driver_path, allosome_label):
@@ -384,9 +384,9 @@ class TestBuildBoundaryReoptimizationModel:
         assert reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value["RAFR_sex_bias"] == pytest.approx(0.999)
         # The rate is only seeded as a starting value, not fixed: it should remain free to optimize.
         assert "RAFR" not in reopt_genetic_model.demographic_model.parameter_handler.user_params_fixed_by_value
-        # RNAT_sex_bias is retained from the old model and free (not fixed): it must carry forward
+        # RAMR_sex_bias is retained from the old model and free (not fixed): it must carry forward
         # its previous optimal value (-0.2), not reset to 0.
-        assert out_model_param_names == ["RNAT", "RNAT_sex_bias", "RAFR", "RAFR_sex_bias", "t"]
+        assert out_model_param_names == ["RAMR", "RAMR_sex_bias", "RAFR", "RAFR_sex_bias", "t"]
         np.testing.assert_allclose(physical_start_params[0], [0.2, -0.2, 0.25, 0.999, 10.0])
 
 
@@ -576,7 +576,7 @@ class TestRunBoundaryReoptimization:
 
         # REUR_sex_bias is marked fixed here, mirroring what the real build_boundary_reoptimization_model
         # would do with boundary_fixed_param_values={"REUR_sex_bias": ...}: this is what makes
-        # has_free_sex_bias_parameters correctly report only RNAT_sex_bias as still free below, so the
+        # has_free_sex_bias_parameters correctly report only RAMR_sex_bias as still free below, so the
         # loop stops after one iteration instead of re-checking (and re-fixing) REUR_sex_bias again.
         rebuilt_model = _make_three_pop_sex_biased_model()
         rebuilt_model.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={},
@@ -688,7 +688,7 @@ class TestRunBoundaryReoptimization:
 
     def test_loops_again_when_a_previously_free_parameter_newly_hits_the_boundary(self, monkeypatch):
         # REUR_sex_bias starts at the boundary and gets fixed in the first iteration; the
-        # re-optimization from that iteration then reports RNAT_sex_bias (until then free) as
+        # re-optimization from that iteration then reports RAMR_sex_bias (until then free) as
         # having also landed on the boundary, so a second iteration must fix and re-optimize that
         # one too, stopping only once no free sex-bias parameter remains.
         model = _make_three_pop_sex_biased_model()
@@ -703,7 +703,7 @@ class TestRunBoundaryReoptimization:
 
         model_after_second_fix = _make_three_pop_sex_biased_model()
         model_after_second_fix.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={},
-                                                        user_params_to_fix_by_value={"REUR_sex_bias": 0.999, "RNAT_sex_bias": 0.999})
+                                                        user_params_to_fix_by_value={"REUR_sex_bias": 0.999, "RAMR_sex_bias": 0.999})
         genetic_model_after_second_fix = GeneticModel(model_after_second_fix, ad_model_autosomes="DC", ad_model_allosomes="DC")
 
         captured_build_calls = []
@@ -715,7 +715,7 @@ class TestRunBoundaryReoptimization:
              [np.array([0.35, 0.9, 0.32, 1.0, 10.0])]),
         ])
         run_optimization_results = iter([
-            (np.array([0.35, 0.9, 0.32, 1.0, 10.0]), -90.0),   # RNAT_sex_bias comes back at 1.0: a new boundary hit.
+            (np.array([0.35, 0.9, 0.32, 1.0, 10.0]), -90.0),   # RAMR_sex_bias comes back at 1.0: a new boundary hit.
             (np.array([0.4, 0.9, 0.34, 0.9, 10.0]), -50.0),    # Further improvement; no more free sex-bias params left.
         ])
 
@@ -750,10 +750,10 @@ class TestRunBoundaryReoptimization:
 
         assert len(captured_build_calls) == 2
         assert captured_build_calls[0]["boundary_fixed_param_values"] == {"REUR_sex_bias": pytest.approx(0.999)}
-        # RNAT_sex_bias (value 1.0, newly returned by the first re-optimization) is fixed in the
+        # RAMR_sex_bias (value 1.0, newly returned by the first re-optimization) is fixed in the
         # second iteration; REUR_sex_bias is no longer included since it was already fixed by the
         # first iteration and is thus no longer among the free base params being checked.
-        assert captured_build_calls[1]["boundary_fixed_param_values"] == {"RNAT_sex_bias": pytest.approx(0.999)}
+        assert captured_build_calls[1]["boundary_fixed_param_values"] == {"RAMR_sex_bias": pytest.approx(0.999)}
         assert len(captured_run_optimization_calls) == 2
         assert result_genetic_model is genetic_model_after_second_fix
         assert result_optimal_likelihood == pytest.approx(-50.0)

@@ -53,15 +53,15 @@ The following model is written in the file ``ppp.yaml``.
 .. code-block:: yaml
 
    model_name: One_Pulse
-   description: Represents a population X founded a generations ago by EUR, NAT, and AFR.
+   description: Represents a population X founded a generations ago by EUR, AMR, and AFR.
    time_units: generations
    demes:
       - name: EUR
       - name: AFR
-      - name: NAT
+      - name: AMR
       - name: X
-   ancestors: [EUR, NAT, AFR]
-   proportions: [REUR, RNAT, RAFR]
+   ancestors: [EUR, AMR, AFR]
+   proportions: [REUR, RAMR, RAFR]
    start_time: t
 
 Two pulses model
@@ -72,15 +72,15 @@ The following model is written in the file ``ppp_pxx.yaml``.
 .. code-block:: yaml
 
    model_name: Two pulses
-   description: A population X founded a generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
+   description: A population X founded a generations ago by EUR, AFR, and AMR, then subsequent EUR migration.
    time_units: generations
    demes:
       - name: EUR
       - name: AFR
-      - name: NAT
+      - name: AMR
       - name: X
-   ancestors: [EUR, NAT, AFR]
-   proportions: [REUR, RNAT, RAFR]
+   ancestors: [EUR, AMR, AFR]
+   proportions: [REUR, RAMR, RAFR]
    start_time: t1
 
    pulses:
@@ -98,15 +98,15 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
 .. code-block:: yaml
 
    model_name: Three pulses
-   description: A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and NAT, then subsequent AFT migration, 
+   description: A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and AMR, then subsequent AFT migration, 
    then subsequent EUR migration.
    time_units: generations
    demes:
       - name: EUR
-      - name: NAT
+      - name: AMR
       - name: targetpop
-   ancestors: [EUR, NAT]
-   proportions: [REUR, RNAT]
+   ancestors: [EUR, AMR]
+   proportions: [REUR, RAMR]
    start_time: t1
 
    pulses:
@@ -129,15 +129,15 @@ The following model is written in the file ``ccp.yaml``.
 .. code-block:: yaml
 
    model_name: Continuous_pulse_AFR
-   description: Represents a population X founded with a discrete event (AFR) and continuous event (EUR, NAT).
+   description: Represents a population X founded with a discrete event (AFR) and continuous event (EUR, AMR).
    time_units: generations
    demes:
       - name: EUR
-      - name: NAT
+      - name: AMR
       - name: AFR
       - name: X
-   ancestors: [EUR, NAT, AFR]
-   proportions: [REUR, RNAT, RAFR]
+   ancestors: [EUR, AMR, AFR]
+   proportions: [REUR, RAMR, RAFR]
    start_time: t1
    end_time: t2
    pulse_pops: [AFR]

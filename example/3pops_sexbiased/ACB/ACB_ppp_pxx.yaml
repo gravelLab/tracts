@@ -33,9 +33,9 @@ start_params:
   t1: 5:10
   t2: 3:5
   REUR: .2:0.6
-  RNAT: 0.01
+  RAMR: 0.01
   REUR_sex_bias: -0.3:0.3
-  RNAT_sex_bias: -0.3:0.3
+  RAMR_sex_bias: -0.3:0.3
   REUR2: .0:0.001
   REUR2_sex_bias: -0.7:.7
 
@@ -44,7 +44,7 @@ optim:
   seed: 10
   maximum_iterations: 300
   npts: 50
-  #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
+  #fix_parameters_from_ancestry_proportions: ['REUR', 'RAMR', 'REUR_sex_bias', 'RAMR_sex_bias']
   exclude_tracts_below_cm: 2
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
   n_reoptimizations: 5

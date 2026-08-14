@@ -737,11 +737,11 @@ _THREE_POP_YAML = """
 model_name: TestModel
 demes:
   - name: EUR
-  - name: NAT
+  - name: AMR
   - name: AFR
   - name: X
-    ancestors: [EUR, NAT, AFR]
-    proportions: [REUR, RNAT, RAFR]
+    ancestors: [EUR, AMR, AFR]
+    proportions: [REUR, RAMR, RAFR]
     start_time: tx
 """
 
@@ -756,9 +756,9 @@ def test_implicit_population_defaults_to_first_ancestor():
         model = ParametrizedDemography.load_from_YAML(path)
         founder_event = model.founder_events["X"]
         assert founder_event.remainder_population == "EUR"
-        assert founder_event.source_populations == {"NAT": "RNAT", "AFR": "RAFR"}
+        assert founder_event.source_populations == {"AMR": "RAMR", "AFR": "RAFR"}
         assert "REUR" not in model.model_base_params
-        assert "RNAT" in model.model_base_params
+        assert "RAMR" in model.model_base_params
         assert "RAFR" in model.model_base_params
     finally:
         os.unlink(path)
@@ -774,9 +774,9 @@ def test_implicit_population_explicit_selection():
         model = ParametrizedDemography.load_from_YAML(path, implicit_population="AFR")
         founder_event = model.founder_events["X"]
         assert founder_event.remainder_population == "AFR"
-        assert founder_event.source_populations == {"EUR": "REUR", "NAT": "RNAT"}
+        assert founder_event.source_populations == {"EUR": "REUR", "AMR": "RAMR"}
         assert "REUR" in model.model_base_params
-        assert "RNAT" in model.model_base_params
+        assert "RAMR" in model.model_base_params
         assert "RAFR" not in model.model_base_params
     finally:
         os.unlink(path)
@@ -838,21 +838,21 @@ def test_implicit_population_rate_derived_as_remainder():
         # Default implicit population (EUR, the first ancestor).
         default_model = ParametrizedDemography.load_from_YAML(path)
         default_model.finalize()
-        # model_base_params insertion order follows source_populations.items(): RNAT, RAFR, then tx.
-        matrices = default_model.get_migration_matrices([0.2, 0.3, 5])  # RNAT, RAFR, tx
+        # model_base_params insertion order follows source_populations.items(): RAMR, RAFR, then tx.
+        matrices = default_model.get_migration_matrices([0.2, 0.3, 5])  # RAMR, RAFR, tx
         matrix = matrices["X"]
-        assert np.isclose(matrix[5, default_model.population_indices["NAT"]], 0.2)
+        assert np.isclose(matrix[5, default_model.population_indices["AMR"]], 0.2)
         assert np.isclose(matrix[5, default_model.population_indices["AFR"]], 0.3)
         assert np.isclose(matrix[5, default_model.population_indices["EUR"]], 0.5)
 
         # Explicit implicit population (AFR).
         explicit_model = ParametrizedDemography.load_from_YAML(path, implicit_population="AFR")
         explicit_model.finalize()
-        # model_base_params insertion order follows source_populations.items(): REUR, RNAT, then tx.
-        matrices = explicit_model.get_migration_matrices([0.3, 0.2, 5])  # REUR, RNAT, tx
+        # model_base_params insertion order follows source_populations.items(): REUR, RAMR, then tx.
+        matrices = explicit_model.get_migration_matrices([0.3, 0.2, 5])  # REUR, RAMR, tx
         matrix = matrices["X"]
         assert np.isclose(matrix[5, explicit_model.population_indices["EUR"]], 0.3)
-        assert np.isclose(matrix[5, explicit_model.population_indices["NAT"]], 0.2)
+        assert np.isclose(matrix[5, explicit_model.population_indices["AMR"]], 0.2)
         assert np.isclose(matrix[5, explicit_model.population_indices["AFR"]], 0.5)
     finally:
         os.unlink(path)

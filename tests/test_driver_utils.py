@@ -590,7 +590,7 @@ class TestCheckOptimalParamsNearBounds:
     def test_only_affected_parameters_are_reported(self):
         model = self._model({
             'REUR': (ParamType.RATE, (0.1, 0.6)),          # narrowed; value near lower -> flagged
-            'RNAT': (ParamType.RATE, (0.1, 0.6)),          # narrowed; value mid-range -> not flagged
+            'RAMR': (ParamType.RATE, (0.1, 0.6)),          # narrowed; value mid-range -> not flagged
             'sb':   (ParamType.SEX_BIAS, self._SEX_BIAS_DEFAULT),  # default; at +1 -> not flagged
             't':    (ParamType.TIME, (1.0, np.inf)),       # default; not flagged
         })

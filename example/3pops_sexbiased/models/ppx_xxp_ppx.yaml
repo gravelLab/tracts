@@ -1,14 +1,14 @@
 model_name: Three pulses
 description:
-  A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and NAT, then subsequent AFT migration, 
+  A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and AMR, then subsequent AFT migration, 
   then subsequent EUR migration.
 time_units: generations
 demes:
   - name: EUR
-  - name: NAT
+  - name: AMR
   - name: targetpop
-    ancestors: [EUR, NAT]
-    proportions: [REUR, RNAT]
+    ancestors: [EUR, AMR]
+    proportions: [REUR, RAMR]
     start_time: t1
 
 pulses:
@@ -17,7 +17,7 @@ pulses:
     proportions: [RAFR]
     time: t2
 
-  - sources: [EUR, NAT]
+  - sources: [EUR, AMR]
     dest: targetpop
-    proportions: [REUR2, RNAT2]
+    proportions: [REUR2, RAMR2]
     time: t3

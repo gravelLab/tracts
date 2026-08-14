@@ -38,10 +38,10 @@ To implement this example, we use the following driver file:
      t1: 10:15
      REUR: 0.07
      RAFR: 0.08
-     RNAT: 0.095
+     RAMR: 0.095
      t2: 3:5
      REUR_sex_bias: -0.99 # more males
-     RNAT_sex_bias: 0.99 # more females
+     RAMR_sex_bias: 0.99 # more females
      RAFR_sex_bias: -0.1
 
    optim:
