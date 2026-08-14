@@ -113,6 +113,7 @@ def _make_mock_driver_spec(tmp_path: Path, two_steps_optimization: bool, autosom
             verbose_log=0,
             verbose_screen=0,
             log_scale=False,
+            sum_female_and_male_allosome_tracts=True,
         ),
     )
 
@@ -405,12 +406,9 @@ def test_run_tracts(tmp_path):
     expected_files_with_allosomes = [
         "test_output_optimal_parameters.txt",
         "test_output_autosomes_all_populations.png",
-        "test_output_female_allosomes_all_populations.png",
-        "test_output_male_allosomes_all_populations.png",
-        "test_output_male_allosome_predicted_tract_distribution",
-        "test_output_female_allosome_predicted_tract_distribution",
-        "test_output_male_allosome_sample_tract_distribution",
-        "test_output_female_allosome_sample_tract_distribution",
+        "test_output_allosomes_all_populations.png",
+        "test_output_allosome_predicted_tract_distribution",
+        "test_output_allosome_sample_tract_distribution",
         "test_output_tract_length_allosome_bins",
         "test_output_autosome_predicted_tract_distribution",
         "test_output_male_migration_matrix",

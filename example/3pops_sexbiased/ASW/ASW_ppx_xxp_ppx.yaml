@@ -59,8 +59,6 @@ optim:
 
 output:
   output_directory: "./output_ppx_xxp_ppx/{date}"
-  output_filename_format: "ASW_test_output_{label}"
-  log_filename: "ASW_three_pulses.log"
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

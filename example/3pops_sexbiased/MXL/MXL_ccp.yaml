@@ -46,9 +46,7 @@ optim:
   rerun_optimization_on_boundaries: True
 
 output:
-  output_filename_format: "MXL_output_{label}"
   output_directory: "./output_ccp/{date}/"
-  log_filename: 'MXL_ccp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale : True

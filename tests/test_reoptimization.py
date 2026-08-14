@@ -483,6 +483,51 @@ class TestRunSexBiasFixingReoptimizations:
         np.testing.assert_allclose(seen_start_params[0][0], [0.3, 0.0, 0.3, 0.0, 10.0])
         np.testing.assert_allclose(seen_start_params[1][0], [0.1, 0.1, 0.1, 0.1, 10.0])
 
+    def test_keeps_previous_params_when_likelihood_decreases(self):
+        model_param_names, _, _ = _three_pop_param_names()
+        driver_spec = _make_real_driver_spec(n_reoptimizations=3)
+        original_params = np.array([0.3, 0.0, 0.3, 0.0, 10.0])
+        worse_params = np.array([0.9, 0.9, 0.9, 0.9, 20.0])
+
+        def fake_run_optimization_fixed_options(physical_start_params, driver_spec, **kwargs):
+            # Likelihood decreases well beyond the tolerance.
+            return worse_params, -200.0
+
+        optimal_params, optimal_likelihood = run_sex_bias_fixing_reoptimizations(
+            driver_spec=driver_spec,
+            model_param_names=model_param_names,
+            optimal_params=original_params,
+            optimal_likelihood=-150.0,
+            run_optimization_fixed_options=fake_run_optimization_fixed_options,
+        )
+
+        # The worse re-optimization result must be discarded entirely: both the returned
+        # params and likelihood should be the ones from before this repetition.
+        assert optimal_likelihood == pytest.approx(-150.0)
+        np.testing.assert_allclose(optimal_params, original_params)
+
+    def test_tiny_decrease_within_tolerance_is_treated_as_converged(self):
+        model_param_names, _, _ = _three_pop_param_names()
+        driver_spec = _make_real_driver_spec(n_reoptimizations=3)  # default reoptimization_likelihood_tolerance = 1e-3
+        new_params = np.array([0.31, 0.01, 0.31, 0.01, 10.1])
+
+        def fake_run_optimization_fixed_options(physical_start_params, driver_spec, **kwargs):
+            # Likelihood decreases by less than the tolerance: should be treated as converged
+            # (i.e. no further improvement), not as a genuine decrease.
+            return new_params, -150.0001
+
+        optimal_params, optimal_likelihood = run_sex_bias_fixing_reoptimizations(
+            driver_spec=driver_spec,
+            model_param_names=model_param_names,
+            optimal_params=np.array([0.3, 0.0, 0.3, 0.0, 10.0]),
+            optimal_likelihood=-150.0,
+            run_optimization_fixed_options=fake_run_optimization_fixed_options,
+        )
+
+        # Treated as converged: the new (slightly worse but within-tolerance) result is kept.
+        assert optimal_likelihood == pytest.approx(-150.0001)
+        np.testing.assert_allclose(optimal_params, new_params)
+
 
 # --------------- run_boundary_reoptimization ---------------
 

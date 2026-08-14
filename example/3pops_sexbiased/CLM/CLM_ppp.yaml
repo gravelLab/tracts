@@ -31,6 +31,9 @@ start_params:
   REUR_sex_bias: -0.5:0.1
   RNAT_sex_bias: -.1:0.5
 
+bounds:
+  REUR_sex_bias: -0.1:-0.05
+
 optim:
   repetitions: 5
   seed: 10
@@ -44,8 +47,6 @@ optim:
   
 output:
   output_directory: "./output_ppp/{date}/"
-  output_filename_format: "CLM_{label}"
-  log_filename: 'CLM_ppp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

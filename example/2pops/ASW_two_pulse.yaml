@@ -31,8 +31,6 @@ optim:
 
 output:
   output_directory: ./output_two_pulse/
-  output_filename_format: "two_pulse_{label}"
-  log_filename: 'two_pulse.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

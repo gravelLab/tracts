@@ -49,6 +49,8 @@ To implement this example, we use the following driver file:
      npts: 50
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
+     n_reoptimizations: 5
+     rerun_optimization_on_boundaries: True
 
    output:
      output_filename_format: "ASW_test_output_{label}"

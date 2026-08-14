@@ -45,8 +45,6 @@ optim:
 
 output:
   output_directory: "./output_ccp/{date}/"
-  output_filename_format: "PEL_{label}"
-  log_filename: 'ccp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

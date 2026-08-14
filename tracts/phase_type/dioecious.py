@@ -8,7 +8,7 @@ from scipy import sparse
 from sklearn.preprocessing import normalize
 logger = logging.getLogger(__name__)
 
-from .base_phase_type import PhaseTypeDistribution, get_survival_factors
+from .base_phase_type import PhaseTypeDistribution, get_survival_factors, _GenerationZeroContributionWarning
 
 class PhTDioecious(PhaseTypeDistribution):
     r"""
@@ -126,7 +126,8 @@ class PhTDioecious(PhaseTypeDistribution):
         if np.sum(np.abs(migration_matrix_m[0, :])) > 0 or np.sum(np.abs(migration_matrix_f[0, :])) > 0:
             warnings.warn(
                 'Source populations cannot contribute to the admixted population at generation 0. '
-                'Contributions at generation 0 will be ignored.')
+                'Contributions at generation 0 will be ignored.',
+                category=_GenerationZeroContributionWarning)
             migration_matrix_m[0, :] = 0
             migration_matrix_f[0, :] = 0
 

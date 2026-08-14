@@ -43,8 +43,6 @@ optim:
   rerun_optimization_on_boundaries: True
 output:
   output_directory: "./output_ppp_EURIMPLICIT/{date}/"
-  output_filename_format: "CLM_EURIMPLICIT_{label}"
-  log_filename: 'CLM_EURIMPLICIT_ppp.log'
   verbose_log: 1
   verbose_screen: 30
   log_scale: True

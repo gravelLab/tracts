@@ -12,6 +12,16 @@ logger = logging.getLogger(__name__)
 
 # -------- Helper function --------
 
+class _GenerationZeroContributionWarning(UserWarning):
+    """
+    Raised by :class:`~tracts.phase_type.monoecious.PhTMonoecious` and
+    :class:`~tracts.phase_type.dioecious.PhTDioecious` when a migration matrix has a nonzero
+    contribution at generation 0 (which is ignored). Given its own category (rather than the
+    default ``UserWarning``) so that it can be selectively caught and aggregated during
+    optimization, where it would otherwise be raised on every objective-function evaluation —
+    see :func:`~tracts.driver.run_optimization`.
+    """
+
 def get_survival_factors(migration_matrix):
     r"""
     Takes a migration matrix of :math:`T` generations and returns a list of length :math:`T`,
