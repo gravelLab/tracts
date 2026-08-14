@@ -254,8 +254,8 @@ Optimization
      exclude_tracts_below_cm: 2
      npts: 50
      unknown_labels_for_smoothing: ["UNK", "centromere", "miscall"]
-     fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias']
-     fix_parameters_by_value: {'t': 10}
+     fix_parameters_from_ancestry_proportions: ['R', 'R_sex_bias'] # Optional
+     fix_parameters_by_value: {'t': 10}  # Optional
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
      N_cores: 5
@@ -305,7 +305,6 @@ Output
      verbose_log: 1
      verbose_screen: 1
      log_scale: True
-     plot_migration_matrices: True
 
 - ``output_directory``: Path to the directory where output files are stored. The directory is created automatically if it does not exist.
 - ``output_filename_format``: The file name format for the output files. If not specified, defaults to ``"{driver_filename}_{label}"``, where ``driver_filename`` is the name of the driver yaml file, without its extension.
@@ -313,7 +312,6 @@ Output
 - ``verbose_log``: Controls the level of detail reported in the log file during execution. If greater than zero, logs optimization status every ``verbose`` steps.
 - ``verbose_screen``: Controls the level of detail printed on screen during execution. If greater than zero, prints optimization status every ``verbose`` steps.
 - ``log_scale``: Whether the tract length distributions are depicted in log-scaled counts. Default is ``True``.
-- ``plot_migration_matrices``: Whether to include plots of the inferred migration matrices in the output. Default is ``True``.
 
 .. _run-tracts:
 
@@ -336,26 +334,28 @@ Once the :ref:`driver file<driver-file>` is ready, the inference can be run usin
 Outputs
 ^^^^^^^
 
-``tracts`` saves results in the ``output_directory`` specified in the :ref:`driver file<driver-file>`. For autosomes, allosomes in males and allosomes in females, these include:
+``tracts`` saves results in the ``output_directory`` specified in the :ref:`driver file<driver-file>`, structured into the following subdirectories. The log file (``log_filename``) is saved directly at the top of ``output_directory``, and a copy of the driver YAML file itself is saved in ``input/``, for reference.
+
+**diagnostics/**: sample-level summaries, independent of the inferred model.
+
+- ``_ancestry_per_individual``: a tab-separated file listing the ancestry proportions per individual for each source population.
+- ``_ancestry_proportions.txt``: a table of the observed and predicted mean ancestry proportions for autosomes and, if present, allosomes.
+- ``_tract_counts.txt``: a table of the observed and predicted total tract counts per source population, for autosomes and, if present, allosomes (summed across females and males).
+- ``_admixture_plot.pdf``: a stacked bar chart of ancestry proportions per individual, sorted by the most common ancestry (ADMIXTURE-style).
+
+**length_distributions/**: observed and predicted tract length distributions.
 
 - ``_tract_length_autosome_bins``: the bins used in the discretization for the autosomal distribution.
 - ``_tract_length_allosome_bins``: if allosomes are present in the sample, the bins used in the discretization for the allosomal distributions.
 - ``_autosome_sample_tract_distribution``: the observed counts in each bin for the autosomal distribution.
 - ``_autosome_predicted_tract_distribution``: the predicted counts in each bin for the autosomal distribution, according to the predicted model.
-- ``_female_migration_matrix``: the inferred female-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
-- ``_male_migration_matrix``: the inferred male-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
-- ``_optimal_parameters.txt``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`, together with the inferred likelihood.
-- ``_ancestry_per_individual``: a tab-separated file listing the ancestry proportions per individual for each source population.
-- ``_ancestry_proportions.txt``: a table of the observed and predicted mean ancestry proportions for autosomes and, if present, allosomes.
-- ``_admixture_plot.pdf``: a stacked bar chart of ancestry proportions per individual, sorted by the most common ancestry (ADMIXTURE-style).
-- ``_migration_matrices.pdf``, ``_migration_matrices.png``: plots of the inferred mean migration matrix and sex-bias values per generation. Only produced if ``plot_migration_matrices: True`` in the driver file.
-- ``_autosomes_all_populations.pdf``, ``_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
+- ``figures/_autosomes_all_populations.pdf``, ``figures/_autosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for autosomes.
 
 If allosomes are present in the sample, the female, male and summed (female+male) allosomal tract length distributions (and predictions) are all saved to output files, but only the summed distribution is plotted by default:
 
 - ``_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution, summed across females and males.
 - ``_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution, summed across females and males, according to the predicted model.
-- ``_allosomes_all_populations.pdf``, ``_allosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes, summed across females and males.
+- ``figures/_allosomes_all_populations.pdf``, ``figures/_allosomes_all_populations.png``: a plot comparing the sample and the predicted tract length distribution for all source populations, for allosomes, summed across females and males.
 - ``_female_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution in females.
 - ``_male_allosome_sample_tract_distribution``: the observed counts in each bin for the allosomal distribution in males.
 - ``_female_allosome_predicted_tract_distribution``: the predicted counts in each bin for the allosomal distribution in females, according to the predicted model.
@@ -363,7 +363,12 @@ If allosomes are present in the sample, the female, male and summed (female+male
 
 The female and male allosomal distributions can be plotted separately from these output files, without re-running the inference, using ``sum_female_and_male_allosome_tracts`` in :func:`~tracts.plot.plot_tract_length_distributions_from_output` (see :mod:`tracts.plot`).
 
+**optimal_model/**: the inferred demographic model itself.
 
+- ``_female_migration_matrix``: the inferred female-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
+- ``_male_migration_matrix``: the inferred male-specific migration matrix, with the most recent generation at the top, and one column per migrant population. Entry `(i,j)` in the matrix represents the proportion of individuals in the admixed population who originate from the source population `j` at generation `i` in the past.
+- ``_optimal_parameters.txt``: the optimal parameters for the considered :ref:`demographic model<demographic-models>`, together with the inferred likelihood.
+- ``figures/_migration_matrices.pdf``, ``figures/_migration_matrices.png``: plots of the inferred mean migration matrix and sex-bias values per generation.
 
 FAQ
 ---

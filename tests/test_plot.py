@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from tracts.driver import run_tracts
+from tracts.driver_utils import _OUTPUT_SUBDIRS
 from tracts.plot import (
     _detect_output_filename_format,
     _read_ancestry_per_individual,
@@ -74,8 +75,18 @@ def _run_driver(tmp_path_factory, driver_filename: str, tag: str, extra_output_l
 
 
 def _delete_plots(output_dir: Path) -> None:
-    for f in list(output_dir.glob("*.pdf")) + list(output_dir.glob("*.png")):
+    for f in list(output_dir.rglob("*.pdf")) + list(output_dir.rglob("*.png")):
         f.unlink()
+
+
+def _out(output_dir: Path, prefix: str, label: str) -> Path:
+    """Path to the output file for ``label`` (e.g. ``"admixture_plot.pdf"``), given the ``output_filename_format``
+    ``prefix`` (e.g. ``"test_output_"``), within the structured output directory (see ``_OUTPUT_SUBDIRS``).
+    ``.png`` companions are not registered under their own label in ``_OUTPUT_SUBDIRS`` (they are always
+    written alongside the corresponding ``.pdf`` file), so their subdirectory is looked up via that ``.pdf``
+    label instead."""
+    lookup_label = label[:-len('.png')] + '.pdf' if label.endswith('.png') else label
+    return output_dir / _OUTPUT_SUBDIRS.get(lookup_label, '') / f"{prefix}{label}"
 
 
 # ------------ Fixtures: real run_tracts output directories, reused across tests ----------
@@ -110,26 +121,26 @@ class TestPlotFromCombinedAllosomeOutput:
     def test_admixture_plot(self, combined_allosome_output_dir):
         _delete_plots(combined_allosome_output_dir)
         plot_admixture_from_output(combined_allosome_output_dir)
-        assert (combined_allosome_output_dir / "test_output_admixture_plot.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "admixture_plot.pdf").exists()
 
     def test_migration_matrices_plot(self, combined_allosome_output_dir):
         _delete_plots(combined_allosome_output_dir)
         plot_migration_matrices_from_output(combined_allosome_output_dir)
-        assert (combined_allosome_output_dir / "test_output_migration_matrices.pdf").exists()
-        assert (combined_allosome_output_dir / "test_output_migration_matrices.png").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "migration_matrices.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "migration_matrices.png").exists()
 
     def test_tract_length_distribution_plots(self, combined_allosome_output_dir):
         _delete_plots(combined_allosome_output_dir)
         plot_tract_length_distributions_from_output(combined_allosome_output_dir)
 
-        assert (combined_allosome_output_dir / "test_output_autosomes_all_populations.pdf").exists()
-        assert (combined_allosome_output_dir / "test_output_autosomes_all_populations.png").exists()
-        assert (combined_allosome_output_dir / "test_output_allosomes_all_populations.pdf").exists()
-        assert (combined_allosome_output_dir / "test_output_allosomes_all_populations.png").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "autosomes_all_populations.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "autosomes_all_populations.png").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "allosomes_all_populations.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "allosomes_all_populations.png").exists()
 
         # Combined mode: no per-sex allosome plots should be produced.
-        assert not (combined_allosome_output_dir / "test_output_female_allosomes_all_populations.pdf").exists()
-        assert not (combined_allosome_output_dir / "test_output_male_allosomes_all_populations.pdf").exists()
+        assert not _out(combined_allosome_output_dir, "test_output_", "female_allosomes_all_populations.pdf").exists()
+        assert not _out(combined_allosome_output_dir, "test_output_", "male_allosomes_all_populations.pdf").exists()
 
     def test_output_filename_format_is_auto_detected_correctly(self, combined_allosome_output_dir):
         assert _detect_output_filename_format(combined_allosome_output_dir) == "test_output_{label}"
@@ -137,7 +148,7 @@ class TestPlotFromCombinedAllosomeOutput:
     def test_explicit_output_filename_format_matches_auto_detected(self, combined_allosome_output_dir):
         _delete_plots(combined_allosome_output_dir)
         plot_admixture_from_output(combined_allosome_output_dir, output_filename_format="test_output_{label}")
-        assert (combined_allosome_output_dir / "test_output_admixture_plot.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "admixture_plot.pdf").exists()
 
     def test_log_scale_can_be_overridden(self, combined_allosome_output_dir):
         # Should not raise, regardless of the log_scale used in the original run.
@@ -151,12 +162,12 @@ class TestPlotFromSeparateAllosomeOutput:
         plot_tract_length_distributions_from_output(combined_allosome_output_dir,
                                                     sum_female_and_male_allosome_tracts=False)
 
-        assert (combined_allosome_output_dir / "test_output_autosomes_all_populations.pdf").exists()
-        assert (combined_allosome_output_dir / "test_output_female_allosomes_all_populations.pdf").exists()
-        assert (combined_allosome_output_dir / "test_output_male_allosomes_all_populations.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "autosomes_all_populations.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "female_allosomes_all_populations.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "male_allosomes_all_populations.pdf").exists()
 
         # sum_female_and_male_allosome_tracts=False: no combined allosome plot should be produced.
-        assert not (combined_allosome_output_dir / "test_output_allosomes_all_populations.pdf").exists()
+        assert not _out(combined_allosome_output_dir, "test_output_", "allosomes_all_populations.pdf").exists()
 
 
 class TestPlotFromAutosomeOnlyOutput:
@@ -165,17 +176,17 @@ class TestPlotFromAutosomeOnlyOutput:
         _delete_plots(autosome_only_output_dir)
         plot_tract_length_distributions_from_output(autosome_only_output_dir)
 
-        assert (autosome_only_output_dir / "test_output_autosomes_all_populations.pdf").exists()
-        assert not (autosome_only_output_dir / "test_output_allosomes_all_populations.pdf").exists()
-        assert not (autosome_only_output_dir / "test_output_female_allosomes_all_populations.pdf").exists()
-        assert not (autosome_only_output_dir / "test_output_male_allosomes_all_populations.pdf").exists()
+        assert _out(autosome_only_output_dir, "test_output_", "autosomes_all_populations.pdf").exists()
+        assert not _out(autosome_only_output_dir, "test_output_", "allosomes_all_populations.pdf").exists()
+        assert not _out(autosome_only_output_dir, "test_output_", "female_allosomes_all_populations.pdf").exists()
+        assert not _out(autosome_only_output_dir, "test_output_", "male_allosomes_all_populations.pdf").exists()
 
     def test_admixture_and_migration_matrices_plots(self, autosome_only_output_dir):
         _delete_plots(autosome_only_output_dir)
         plot_admixture_from_output(autosome_only_output_dir)
         plot_migration_matrices_from_output(autosome_only_output_dir)
-        assert (autosome_only_output_dir / "test_output_admixture_plot.pdf").exists()
-        assert (autosome_only_output_dir / "test_output_migration_matrices.pdf").exists()
+        assert _out(autosome_only_output_dir, "test_output_", "admixture_plot.pdf").exists()
+        assert _out(autosome_only_output_dir, "test_output_", "migration_matrices.pdf").exists()
 
 
 class TestSaveDir:
@@ -189,19 +200,19 @@ class TestSaveDir:
         plot_tract_length_distributions_from_output(combined_allosome_output_dir, save_dir=save_dir)
 
         # Nothing should have been written back into the original output directory.
-        assert not list(combined_allosome_output_dir.glob("*.pdf"))
-        assert not list(combined_allosome_output_dir.glob("*.png"))
+        assert not list(combined_allosome_output_dir.rglob("*.pdf"))
+        assert not list(combined_allosome_output_dir.rglob("*.png"))
 
-        assert (save_dir / "test_output_admixture_plot.pdf").exists()
-        assert (save_dir / "test_output_migration_matrices.pdf").exists()
-        assert (save_dir / "test_output_autosomes_all_populations.pdf").exists()
-        assert (save_dir / "test_output_allosomes_all_populations.pdf").exists()
+        assert _out(save_dir, "test_output_", "admixture_plot.pdf").exists()
+        assert _out(save_dir, "test_output_", "migration_matrices.pdf").exists()
+        assert _out(save_dir, "test_output_", "autosomes_all_populations.pdf").exists()
+        assert _out(save_dir, "test_output_", "allosomes_all_populations.pdf").exists()
 
     def test_save_dir_is_created_if_missing(self, combined_allosome_output_dir, tmp_path):
         save_dir = tmp_path / "does" / "not" / "exist" / "yet"
         assert not save_dir.exists()
         plot_admixture_from_output(combined_allosome_output_dir, save_dir=save_dir)
-        assert (save_dir / "test_output_admixture_plot.pdf").exists()
+        assert _out(save_dir, "test_output_", "admixture_plot.pdf").exists()
 
 
 class TestPlotAllFromOutputDirectories:
@@ -220,24 +231,24 @@ class TestPlotAllFromOutputDirectories:
             save_dir=save_dir,
         )
 
-        for prefix in ("test_output", "autosome_only"):
-            assert (save_dir / f"{prefix}_admixture_plot.pdf").exists()
-            assert (save_dir / f"{prefix}_migration_matrices.pdf").exists()
-            assert (save_dir / f"{prefix}_autosomes_all_populations.pdf").exists()
+        for prefix in ("test_output_", "autosome_only_"):
+            assert _out(save_dir, prefix, "admixture_plot.pdf").exists()
+            assert _out(save_dir, prefix, "migration_matrices.pdf").exists()
+            assert _out(save_dir, prefix, "autosomes_all_populations.pdf").exists()
 
         # The combined run has allosomal outputs, the distinct-format autosome-only run does not.
-        assert (save_dir / "test_output_allosomes_all_populations.pdf").exists()
-        assert not (save_dir / "autosome_only_allosomes_all_populations.pdf").exists()
+        assert _out(save_dir, "test_output_", "allosomes_all_populations.pdf").exists()
+        assert not _out(save_dir, "autosome_only_", "allosomes_all_populations.pdf").exists()
 
         # Original output directories are untouched.
-        assert not list(combined_allosome_output_dir.glob("*.pdf"))
-        assert not list(autosome_only_output_dir_distinct_format.glob("*.pdf"))
+        assert not list(combined_allosome_output_dir.rglob("*.pdf"))
+        assert not list(autosome_only_output_dir_distinct_format.rglob("*.pdf"))
 
 
 class TestReadHelpers:
 
     def test_read_ancestry_per_individual(self, combined_allosome_output_dir):
-        path = combined_allosome_output_dir / "test_output_ancestry_per_individual"
+        path = _out(combined_allosome_output_dir, "test_output_", "ancestry_per_individual")
         pop_names, ancestry_per_individual = _read_ancestry_per_individual(path)
 
         assert set(pop_names) == {"EUR", "NAT", "AFR"}
@@ -247,7 +258,7 @@ class TestReadHelpers:
             assert len(proportions) == len(pop_names)
 
     def test_read_population_names_matches_full_read(self, combined_allosome_output_dir):
-        path = combined_allosome_output_dir / "test_output_ancestry_per_individual"
+        path = _out(combined_allosome_output_dir, "test_output_", "ancestry_per_individual")
         assert _read_population_names(path) == _read_ancestry_per_individual(path)[0]
 
 
@@ -258,11 +269,15 @@ class TestDetectOutputFilenameFormat:
             _detect_output_filename_format(tmp_path)
 
     def test_raises_when_multiple_candidates_found(self, tmp_path):
-        (tmp_path / "runA_optimal_parameters.txt").write_text("parameter\tvalue\nlikelihood -1\n")
-        (tmp_path / "runB_optimal_parameters.txt").write_text("parameter\tvalue\nlikelihood -2\n")
+        optimal_model_dir = tmp_path / _OUTPUT_SUBDIRS["optimal_parameters.txt"]
+        optimal_model_dir.mkdir(parents=True)
+        (optimal_model_dir / "runA_optimal_parameters.txt").write_text("parameter\tvalue\nlikelihood -1\n")
+        (optimal_model_dir / "runB_optimal_parameters.txt").write_text("parameter\tvalue\nlikelihood -2\n")
         with pytest.raises(ValueError):
             _detect_output_filename_format(tmp_path)
 
     def test_detects_single_candidate(self, tmp_path):
-        (tmp_path / "myrun_optimal_parameters.txt").write_text("parameter\tvalue\nlikelihood -1\n")
+        optimal_model_dir = tmp_path / _OUTPUT_SUBDIRS["optimal_parameters.txt"]
+        optimal_model_dir.mkdir(parents=True)
+        (optimal_model_dir / "myrun_optimal_parameters.txt").write_text("parameter\tvalue\nlikelihood -1\n")
         assert _detect_output_filename_format(tmp_path) == "myrun_{label}"

@@ -13,6 +13,7 @@ from tracts.driver import run_tracts
 from tracts.demography.parameter import ParamType
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
 from tracts.driver_utils import _print_run_intro as real_print_run_intro
+from tracts.driver_utils import _OUTPUT_SUBDIRS
 
 # ------------ Helper functions for test setup and checks ----------
 
@@ -377,7 +378,12 @@ def _run_tracts_test(driver_file: str, script_dir: Path, output_dir: Path, log_n
 
     # Verify expected output files exist (if any expected)
     for expected_file in expected_files:
-        file_path = output_dir / expected_file
+        label = expected_file.removeprefix("test_output_")
+        # ".png" companions are not registered under their own label in _OUTPUT_SUBDIRS (they are always
+        # written alongside the corresponding ".pdf" file), so their subdirectory is looked up via that
+        # ".pdf" label instead.
+        lookup_label = label[:-len(".png")] + ".pdf" if label.endswith(".png") else label
+        file_path = output_dir / _OUTPUT_SUBDIRS.get(lookup_label, '') / expected_file
         assert file_path.exists(), f"Expected file '{expected_file}' not found in output directory."
 
     # Clean up output directory
@@ -449,21 +455,21 @@ def _compare_driver_results(driver_files: list[str], script_dir: Path, output_di
         results[driver_file] = {}
         
         # Read optimal parameters: second column only, ignoring header
-        params_file = output_dir / "test_output_optimal_parameters.txt"
+        params_file = output_dir / _OUTPUT_SUBDIRS["optimal_parameters.txt"] / "test_output_optimal_parameters.txt"
         results[driver_file]["params"] = np.atleast_1d(
             np.loadtxt(params_file, skiprows=1, usecols=1)
         )
-        
+
         # Read migration matrices
-        male_mig_file = output_dir / "test_output_male_migration_matrix"
-        female_mig_file = output_dir / "test_output_female_migration_matrix"
+        male_mig_file = output_dir / _OUTPUT_SUBDIRS["male_migration_matrix"] / "test_output_male_migration_matrix"
+        female_mig_file = output_dir / _OUTPUT_SUBDIRS["female_migration_matrix"] / "test_output_female_migration_matrix"
         with open(male_mig_file, "r") as f:
             results[driver_file]["male_mig"] = np.loadtxt(f)
         with open(female_mig_file, "r") as f:
             results[driver_file]["female_mig"] = np.loadtxt(f)
-        
+
         # Read tract distribution
-        tract_file = output_dir / "test_output_autosome_predicted_tract_distribution"
+        tract_file = output_dir / _OUTPUT_SUBDIRS["autosome_predicted_tract_distribution"] / "test_output_autosome_predicted_tract_distribution"
         with open(tract_file, "r") as f:
             results[driver_file]["tract_dist"] = np.loadtxt(f)
         

@@ -14,6 +14,8 @@ from tracts.driver_utils import (
     plot_admixture,
     _plot_panel,
     _plot_migration_matrices,
+    _get_output_path,
+    _OUTPUT_SUBDIRS,
 )
 
 import logging
@@ -40,7 +42,7 @@ def _detect_output_filename_format(output_dir: Path) -> str:
         The inferred ``output_filename_format``.
     """
     suffix = "optimal_parameters.txt"
-    candidates = sorted(Path(output_dir).glob(f"*{suffix}"))
+    candidates = sorted((Path(output_dir) / _OUTPUT_SUBDIRS[suffix]).glob(f"*{suffix}"))
 
     if len(candidates) == 0:
         raise FileNotFoundError(
@@ -74,10 +76,10 @@ def _resolve_output_paths(output_dir: str | Path, output_filename_format: str | 
     save_dir.mkdir(parents=True, exist_ok=True)
 
     def read_path_fn(label: str) -> Path:
-        return output_dir / output_filename_format.format(label=label)
+        return output_dir / _OUTPUT_SUBDIRS.get(label, '') / output_filename_format.format(label=label)
 
     def write_path_fn(label: str) -> Path:
-        return save_dir / output_filename_format.format(label=label)
+        return _get_output_path(save_dir, output_filename_format, label)
 
     return output_dir, save_dir, read_path_fn, write_path_fn
 

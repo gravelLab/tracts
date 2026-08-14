@@ -288,8 +288,6 @@ class OutputConfig(BaseModel):
         The verbosity level for screen prints. Defaults to 30.
     log_scale: bool
         Whether to use log scale to plot the tract length distribution. Defaults to True.
-    plot_migration_matrices: bool
-        Whether to plot the final mean migration matrix together with the sex-bias values per pulse.
     """
     model_config = ConfigDict(extra="forbid")
     output_directory: str|None= None
@@ -298,7 +296,6 @@ class OutputConfig(BaseModel):
     verbose_log: int = 1
     verbose_screen: int = 30
     log_scale: bool = True
-    plot_migration_matrices: bool = True
 
 class InferenceConfig(BaseModel):
     """
@@ -2217,7 +2214,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
     ax1.set_title(title_mean, fontsize=font_scale, pad=10)
     ax1.set_xticks(x_ticks)
-    ax1.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2))
+    ax1.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2), rotation=45, ha="right")
     ax1.set_xlabel("Ancestral population", fontsize=font_scale)
     ax1.set_ylabel("Generation", fontsize=font_scale)
     ax1.set_yticks(y_ticks)
@@ -2253,7 +2250,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
     ax2.set_title(title_sex_bias, fontsize=font_scale, pad=10)
     ax2.set_xticks(x_ticks)
-    ax2.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2))
+    ax2.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2), rotation=45, ha="right")
     ax2.set_xlabel("Ancestral population", fontsize=font_scale)
     ax2.set_ylabel("Generation", fontsize=font_scale)
     ax2.set_yticks(y_ticks)
@@ -2539,6 +2536,52 @@ def _plot_panel(
     plt.close(fig)
 
 
+# Maps each output file's ``label`` (as passed to ``output_filename_format.format(label=...)``) to the
+# subdirectory of ``output_dir`` it is written into, structuring the output directory by kind of output.
+# Labels not listed here (currently none) are written directly at the top of ``output_dir``. Shared by
+# ``_get_output_path`` below and by :mod:`tracts.plot`, so that re-plotting functions read from and write
+# to the same locations. See online documentation for the full output directory structure.
+_OUTPUT_SUBDIRS: dict[str, str] = {
+    'ancestry_per_individual': 'diagnostics',
+    'ancestry_proportions.txt': 'diagnostics',
+    'tract_counts.txt': 'diagnostics',
+    'admixture_plot.pdf': 'diagnostics',
+
+    'tract_length_autosome_bins': 'length_distributions',
+    'tract_length_allosome_bins': 'length_distributions',
+    'autosome_sample_tract_distribution': 'length_distributions',
+    'autosome_predicted_tract_distribution': 'length_distributions',
+    'allosome_sample_tract_distribution': 'length_distributions',
+    'allosome_predicted_tract_distribution': 'length_distributions',
+    'female_allosome_sample_tract_distribution': 'length_distributions',
+    'male_allosome_sample_tract_distribution': 'length_distributions',
+    'female_allosome_predicted_tract_distribution': 'length_distributions',
+    'male_allosome_predicted_tract_distribution': 'length_distributions',
+
+    'autosomes_all_populations.pdf': 'length_distributions/figures',
+    'allosomes_all_populations.pdf': 'length_distributions/figures',
+    'female_allosomes_all_populations.pdf': 'length_distributions/figures',
+    'male_allosomes_all_populations.pdf': 'length_distributions/figures',
+
+    'female_migration_matrix': 'optimal_model',
+    'male_migration_matrix': 'optimal_model',
+    'optimal_parameters.txt': 'optimal_model',
+
+    'migration_matrices.pdf': 'optimal_model/figures',
+}
+
+
+def _get_output_path(output_dir: Path | str, output_filename_format: str, label: str) -> Path:
+    """
+    Builds the path at which the output file for ``label`` should be written within ``output_dir``,
+    placing it in the appropriate subdirectory (see ``_OUTPUT_SUBDIRS``) and creating that subdirectory
+    if it does not already exist.
+    """
+    subdir_path = Path(output_dir) / _OUTPUT_SUBDIRS.get(label, '')
+    subdir_path.mkdir(parents=True, exist_ok=True)
+    return subdir_path / output_filename_format.format(label=label)
+
+
 def output_simulation_data_sex_biased(sample_population: Population,
                                     optimal_params: np.ndarray,
                                     optimal_likelihood:float,
@@ -2582,7 +2625,9 @@ def output_simulation_data_sex_biased(sample_population: Population,
         os.makedirs(output_dir)
 
     if driver_path is not None:
-        shutil.copy2(driver_path, output_dir)
+        input_dir = Path(output_dir) / 'input'
+        input_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(driver_path, input_dir)
 
     # ------- Set up output filename format and load required parameters for output production ------
     output_filename_format = driver_spec.output.output_filename_format
@@ -2609,7 +2654,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     ancestry_per_individual = {ind:ind.ancestryProps(pop_names, cutoff=0) for ind in sample_population.indivs}
     
-    with open(output_dir / output_filename_format.format(label='ancestry_per_individual'), 'w') as fbins:
+    with open(_get_output_path(output_dir, output_filename_format, 'ancestry_per_individual'), 'w') as fbins:
         fbins.write("individual\t" + "\t".join(pop_names)+"\n")
         for ind, proportions in ancestry_per_individual.items():
             fbins.write(ind.name + "\t" + "\t".join(map(str,proportions))+"\n")
@@ -2660,11 +2705,11 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             chrom_lengths=Ls) for pop, pop_num in demographic_model.population_indices.items()}
     
     # Save autosome results
-    with open(output_dir / output_filename_format.format(label='tract_length_autosome_bins'), 'w') as fbins:
+    with open(_get_output_path(output_dir, output_filename_format, 'tract_length_autosome_bins'), 'w') as fbins:
         fbins.write("\t".join(map(str, autosome_bins)))
     _fill_missing_populations_with_zeros(autosome_data, demographic_model.population_indices.keys(),
                                         len(autosome_bins) - 1, 'autosome data')
-    with open(output_dir / output_filename_format.format(label='autosome_sample_tract_distribution'), 'w') as fdat:
+    with open(_get_output_path(output_dir, output_filename_format, 'autosome_sample_tract_distribution'), 'w') as fdat:
         for population in demographic_model.population_indices.keys():
 
             try:
@@ -2677,13 +2722,13 @@ def output_simulation_data_sex_biased(sample_population: Population,
     predicted_autosome_counts = [nind * float(np.sum(autosome_predicted[population])) for population in demographic_model.population_indices.keys()]
 
 
-    with open(output_dir / output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
+    with open(_get_output_path(output_dir, output_filename_format, 'female_migration_matrix'), 'w') as fmig2:
         for line in female_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
-    with open(output_dir / output_filename_format.format(label='male_migration_matrix'), 'w') as fmig2:
+    with open(_get_output_path(output_dir, output_filename_format, 'male_migration_matrix'), 'w') as fmig2:
         for line in male_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
-    with open(output_dir / output_filename_format.format(label='autosome_predicted_tract_distribution'), 'w') as fpred2:
+    with open(_get_output_path(output_dir, output_filename_format, 'autosome_predicted_tract_distribution'), 'w') as fpred2:
         for pop, pop_num in demographic_model.population_indices.items():
             fpred2.write("\t".join(map(
                 str,
@@ -2777,7 +2822,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                                                                             chrom_lengths=[allosome_length]) for pop, pop_num in demographic_model.population_indices.items()}
     
         # Save allosome results
-        with open(output_dir / output_filename_format.format(label='tract_length_allosome_bins'), 'w') as fbins:
+        with open(_get_output_path(output_dir, output_filename_format, 'tract_length_allosome_bins'), 'w') as fbins:
             fbins.write("\t".join(map(str, allosome_bins)))
 
         # Fill in missing populations with zero counts, so that female/male data are aligned on the same set of populations.
@@ -2794,25 +2839,25 @@ def output_simulation_data_sex_biased(sample_population: Population,
             population: num_males * np.asarray(male_predicted[population]) + num_females * np.asarray(female_predicted[population])
             for population in demographic_model.population_indices.keys()
         }
-        with open(output_dir / output_filename_format.format(label='allosome_sample_tract_distribution'), 'w') as fdat:
+        with open(_get_output_path(output_dir, output_filename_format, 'allosome_sample_tract_distribution'), 'w') as fdat:
             for population in demographic_model.population_indices.keys():
                 fdat.write("\t".join(map(str, allosome_data_combined[population])) + "\n")
-        with open(output_dir / output_filename_format.format(label='allosome_predicted_tract_distribution'), 'w') as fpred2:
+        with open(_get_output_path(output_dir, output_filename_format, 'allosome_predicted_tract_distribution'), 'w') as fpred2:
             for population in demographic_model.population_indices.keys():
                 fpred2.write("\t".join(map(str, allosome_predicted_combined[population])) + "\n")
-        with open(output_dir / output_filename_format.format(label='female_allosome_sample_tract_distribution'), 'w') as fdat:
+        with open(_get_output_path(output_dir, output_filename_format, 'female_allosome_sample_tract_distribution'), 'w') as fdat:
             for population in demographic_model.population_indices.keys():
                 fdat.write("\t".join(map(str, female_data[population])) + "\n")
-        with open(output_dir / output_filename_format.format(label='male_allosome_sample_tract_distribution'), 'w') as fdat:
+        with open(_get_output_path(output_dir, output_filename_format, 'male_allosome_sample_tract_distribution'), 'w') as fdat:
             for population in demographic_model.population_indices.keys():
                 fdat.write("\t".join(map(str, male_data[population])) + "\n")
-        with open(output_dir / output_filename_format.format(label='female_allosome_predicted_tract_distribution'), 'w') as fpred2:
+        with open(_get_output_path(output_dir, output_filename_format, 'female_allosome_predicted_tract_distribution'), 'w') as fpred2:
             for pop, pop_num in demographic_model.population_indices.items():
                 fpred2.write("\t".join(map(
                     str,
                     [num_females * num_tracts for num_tracts in female_predicted[pop]]))
                             + "\n")
-        with open(output_dir / output_filename_format.format(label='male_allosome_predicted_tract_distribution'), 'w') as fpred2:
+        with open(_get_output_path(output_dir, output_filename_format, 'male_allosome_predicted_tract_distribution'), 'w') as fpred2:
             for pop, pop_num in demographic_model.population_indices.items():
                 fpred2.write("\t".join(map(
                     str,
@@ -2836,7 +2881,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
 
     # ------ Save optimal parameters -------
     param_names = list(demographic_model.model_base_params.keys())
-    params_file_path = output_dir / output_filename_format.format(label="optimal_parameters.txt")
+    params_file_path = _get_output_path(output_dir, output_filename_format, "optimal_parameters.txt")
     remainder_params = compute_remainder_params(demographic_model, matrices)
     with open(params_file_path, "w") as f:
 
@@ -2852,19 +2897,15 @@ def output_simulation_data_sex_biased(sample_population: Population,
     pop_colors = get_population_colors(pop_names)
 
     fig, ax = plot_admixture(ancestry_per_individual, pop_names, [pop_colors[pop] for pop in pop_names], ax=None)
-    admixture_file_path = output_dir / output_filename_format.format(label="admixture_plot.pdf")
+    admixture_file_path = _get_output_path(output_dir, output_filename_format, "admixture_plot.pdf")
     fig.savefig(admixture_file_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     # --- Produce migration matrices plot
-    if driver_spec.output.plot_migration_matrices:
-        _plot_migration_matrices(migration_matrix_f=female_matrix,
-                                migration_matrix_m=male_matrix,
-                                pop_labels=pop_names,
-                                output_path=os.path.join(
-                                    output_dir,
-                                    output_filename_format.format(label="migration_matrices.pdf")
-                                ))
+    _plot_migration_matrices(migration_matrix_f=female_matrix,
+                            migration_matrix_m=male_matrix,
+                            pop_labels=pop_names,
+                            output_path=str(_get_output_path(output_dir, output_filename_format, "migration_matrices.pdf")))
 
     # --- Produce plot for autosomes ---
     _plot_panel(
@@ -2874,10 +2915,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
         scale_factor=nind,
         title="Autosomal tract length distributions",
         ylabel="Count",
-        output_path=os.path.join(
-            output_dir,
-            output_filename_format.format(label="autosomes_all_populations.pdf")
-        ),
+        output_path=str(_get_output_path(output_dir, output_filename_format, "autosomes_all_populations.pdf")),
         pop_names=pop_names,
         pop_colors=pop_colors,
         log_scale=log_scale,
@@ -2899,10 +2937,7 @@ def output_simulation_data_sex_biased(sample_population: Population,
                 scale_factor=1,
                 title="X-chromosome tract length distributions",
                 ylabel="Count",
-                output_path=os.path.join(
-                    output_dir,
-                    output_filename_format.format(label="allosomes_all_populations.pdf")
-                    ),
+                output_path=str(_get_output_path(output_dir, output_filename_format, "allosomes_all_populations.pdf")),
                 pop_names=pop_names,
                 pop_colors=pop_colors,
                 log_scale=log_scale,
@@ -3657,7 +3692,7 @@ def save_ancestry_table(ancestor_labels, observed_autosome: np.ndarray, predicte
         )
     lines.append(sep)
 
-    out_path = Path(output_dir) / output_filename_format.format(label=label)
+    out_path = _get_output_path(output_dir, output_filename_format, label)
     with open(out_path, "w") as f:
         f.write("\n".join(lines) + "\n")
 

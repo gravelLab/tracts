@@ -59,7 +59,6 @@ To implement this example, we use the following driver file:
      verbose_log: 1
      verbose_screen: 30
      log_scale: True
-     plot_migration_matrices: True
 
 
 Complete results from this analysis are saved in the output directory specified in the driver file. Below, we display the optimal parameters estimated from this analysis,
