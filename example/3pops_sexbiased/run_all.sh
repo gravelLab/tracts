@@ -6,12 +6,12 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Per-population run flags ───────────────────────────────────────────────────
-RUN_ACB=1
+RUN_ACB=0
 RUN_ASW=1
-RUN_CLM=1
-RUN_MXL=1
-RUN_PEL=1
-RUN_PUR=1
+RUN_CLM=0
+RUN_MXL=0
+RUN_PEL=0
+RUN_PUR=0
 
 # ── Models per population (files must be <POP>/<POP>_<model>.py) ──────────────
 ACB_MODELS=(ppp ppx_xxp_pxx)
@@ -48,7 +48,16 @@ run_pop() {
         if [ -f "$script" ]; then
             echo "  → $model"
             _wait_for_slot
-            (cd "$SCRIPT_DIR/$pop" && python "$script") > /dev/null 2>&1 &
+            (
+                cd "$SCRIPT_DIR/$pop" || exit 1
+                python "$script" > /dev/null 2>&1
+                status=$?
+                if [ "$status" -eq 0 ]; then
+                    echo "  ✓ done: ${pop}_${model}"
+                else
+                    echo "  ✗ failed: ${pop}_${model} (exit $status)"
+                fi
+            ) &
             _PIDS+=($!)
         else
             echo "  ✗ not found: ${pop}_${model}.py"

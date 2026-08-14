@@ -219,12 +219,12 @@ def run_tracts(driver_filename: str, script_dir: str):
 
         # ------ Save ancestry proportions table -------
         _save_ancestry_proportions_table(ancestor_labels=demographic_model.population_indices.keys(),
-                                        observed_autosome_proportions=autosome_proportions,
-                                        predicted_autosome_proportions=autosomal_predicted_ancestries,
+                                        observed_autosome=autosome_proportions,
+                                        predicted_autosome=autosomal_predicted_ancestries,
                                         output_dir=output_dir,
                                         output_filename_format=driver_spec.output.output_filename_format,
-                                        observed_allosome_proportions=allosome_proportions if len(driver_spec.samples.allosomes) >= 1 else None,
-                                        predicted_allosome_proportions=allosomal_predicted_ancestries,
+                                        observed_allosome=allosome_proportions if len(driver_spec.samples.allosomes) >= 1 else None,
+                                        predicted_allosome=allosomal_predicted_ancestries,
                                         allosome_label=allosome_label)
 
         # ------ Produce output -------

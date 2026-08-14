@@ -6,7 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Output flags ──────────────────────────────────────────────────────────────
 PRINT_WARNINGS=1              # print log warnings and likelihood regression warnings
-PRINT_ANCESTRY_PROPORTIONS=1  # print ancestry proportions table for each model
+
+LATEX_FORMAT=1
+LATEX_SIG_FIGS=3              # significant figures for parameter values in the LaTeX table
+PRINT_ANCESTRY_PROPORTIONS=1  # 0=off, 1=print ancestry proportions table as-is
 PRINT_PARAMETERS=1
 
 
@@ -14,8 +17,10 @@ PRINT_PARAMETERS=1
 LIKELIHOOD_TOLERANCE=0.1
 
 # ── Date filter: only show results whose latest run is more recent than this date ──
-# Pass via -s/--since YYYY-MM-DD (or YYYYMMDD); omit to be prompted, blank input shows all.
+# Pass via -s/--since YYYY-MM-DD (or YYYYMMDD); omit to be prompted.
+# Default (blank input) is today; type 'all' to show everything.
 SINCE_DATE=""
+TODAY="$(date +%Y-%m-%d)"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -s|--since)
@@ -23,19 +28,20 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            echo "Usage: $0 [-s|--since YYYY-MM-DD]" >&2
+            echo "Usage: $0 [-s|--since YYYY-MM-DD|all]" >&2
             exit 1
             ;;
     esac
 done
 
 if [ -z "$SINCE_DATE" ]; then
-    read -r -p "Only show results more recent than (YYYY-MM-DD, blank for all): " SINCE_DATE
+    read -r -p "Only show results more recent than (YYYY-MM-DD, default ${TODAY}, 'all' for all): " SINCE_DATE
 fi
+[ -z "$SINCE_DATE" ] && SINCE_DATE="$TODAY"
 
 # Normalize to a run-timestamp-comparable string (YYYYMMDD_HHMMSS, start of day).
 SINCE_TS=""
-if [ -n "$SINCE_DATE" ]; then
+if [ "$SINCE_DATE" != "all" ]; then
     SINCE_TS="$(echo "$SINCE_DATE" | tr -d '-')_000000"
 fi
 
@@ -119,6 +125,90 @@ get_num_individuals() {
     query_yaml_len "$yaml_file" "samples.individual_names"
 }
 
+# print_ancestry_table_latex <ancestry_proportions.txt> <corner_label> — renders the
+# fixed-width ancestry proportions table (see _save_ancestry_proportions_table in
+# driver_utils.py) as a basic LaTeX tabular, with <corner_label> in the top-left cell.
+print_ancestry_table_latex() {
+    python3 - "$1" "$2" <<'EOF'
+import sys
+
+with open(sys.argv[1]) as f:
+    lines = [line.rstrip("\n") for line in f if line.strip()]
+corner_label = sys.argv[2]
+
+# Drop the "----" separator lines.
+content = [line for line in lines if set(line.strip()) - {"-"}]
+if not content:
+    sys.exit(0)
+
+header = content[0].split()
+n_cols = len(header)
+
+rows = []
+for line in content[1:]:
+    tokens = line.split()
+    label, values = " ".join(tokens[:-n_cols]), tokens[-n_cols:]
+    rows.append((label, values))
+
+print(r"\begin{tabular}{l" + "r" * n_cols + "}")
+print(r"\hline")
+print(" & ".join([corner_label] + header) + r" \\")
+print(r"\hline")
+for label, values in rows:
+    print(" & ".join([label] + values) + r" \\")
+print(r"\hline")
+print(r"\end{tabular}")
+EOF
+}
+
+# print_params_table_latex <optimal_parameters.txt> <corner_label> <sig_figs> — renders the
+# "parameter\tvalue" file written in _save_optimization_results (driver_utils.py) as a
+# basic LaTeX tabular, with one column per parameter (plus likelihood) and <corner_label>
+# in the top-left cell. Values are rounded to <sig_figs> significant figures.
+print_params_table_latex() {
+    python3 - "$1" "$2" "$3" <<'EOF'
+import sys
+
+with open(sys.argv[1]) as f:
+    lines = [line.rstrip("\n") for line in f if line.strip()]
+corner_label = sys.argv[2]
+sig_figs = int(sys.argv[3])
+
+# First line is the "parameter value" header; skip it.
+rows = []
+likelihood = None
+for line in lines[1:]:
+    tokens = line.split()
+    if not tokens:
+        continue
+    name, value = tokens[0], tokens[-1]
+    if name == "likelihood":
+        likelihood = value
+    else:
+        rows.append((name, value))
+
+if not rows:
+    sys.exit(0)
+
+def round_sig(value):
+    return f"{float(value):.{sig_figs}g}"
+
+names = [name for name, _ in rows]
+values = [round_sig(value) for _, value in rows]
+if likelihood is not None:
+    names.append("likelihood")
+    values.append(round_sig(likelihood))
+
+print(r"\begin{tabular}{l" + "r" * len(names) + "}")
+print(r"\hline")
+print(" & ".join([corner_label] + names) + r" \\")
+print(r"\hline")
+print(" & ".join([""] + values) + r" \\")
+print(r"\hline")
+print(r"\end{tabular}")
+EOF
+}
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
@@ -165,12 +255,24 @@ for pop in ACB ASW CLM MXL PEL PUR; do
         fi
         if [ "$PRINT_ANCESTRY_PROPORTIONS" -eq 1 ]; then
             anc_file=$(find "$latest_run" -maxdepth 1 -name "*ancestry_proportions.txt" | head -1)
-            [ -n "$anc_file" ] && cat "$anc_file" || echo "  (no ancestry_proportions.txt)"
+            if [ -z "$anc_file" ]; then
+                echo "  (no ancestry_proportions.txt)"
+            elif [ "$LATEX_FORMAT" -eq 1 ]; then
+                print_ancestry_table_latex "$anc_file" "${pop}_${model_name}"
+            else
+                cat "$anc_file"
+            fi
         fi
         
         if [ "$PRINT_PARAMETERS" -eq 1 ]; then
             param_file=$(find "$latest_run" -maxdepth 1 -name "*optimal_parameters.txt" | head -1)
-            [ -n "$param_file" ] && cat "$param_file" || echo "  (no parameters.txt)"
+            if [ -z "$param_file" ]; then
+                echo "  (no parameters.txt)"
+            elif [ "$LATEX_FORMAT" -eq 1 ]; then
+                print_params_table_latex "$param_file" "${pop}_${model_name}" "$LATEX_SIG_FIGS"
+            else
+                cat "$param_file"
+            fi
         fi
 
 
