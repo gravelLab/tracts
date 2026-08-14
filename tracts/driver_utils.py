@@ -2350,6 +2350,10 @@ def output_simulation_data_sex_biased(sample_population: Population,
             except KeyError:
                 autosome_data[population] = np.zeros(len(autosome_bins)).tolist()
                 print(f'Population {population} not found in autosome data.')
+
+    observed_autosome_counts = [float(np.sum(autosome_data[population])) for population in demographic_model.population_indices.keys()]
+    predicted_autosome_counts = [nind * float(np.sum(autosome_predicted[population])) for population in demographic_model.population_indices.keys()]
+
     with open(output_dir / output_filename_format.format(label='female_migration_matrix'), 'w') as fmig2:
         for line in female_matrix:
             fmig2.write("\t".join(map(str, line)) + "\n")
@@ -2362,6 +2366,11 @@ def output_simulation_data_sex_biased(sample_population: Population,
                 str,
                 [nind * num_tracts for num_tracts in autosome_predicted[pop]]))
                          + "\n")
+
+    observed_allosome_counts = None
+    predicted_allosome_counts = None
+    allosome_labels = driver_spec.samples.allosomes
+    allosome_label = allosome_labels[0] if len(allosome_labels) > 0 else None  # Currently assumes allosomes is a single label. May change in the future
 
     # Allosomal data and predictions (if applicable)
     if ad_model_allosomes is not None:
@@ -2473,6 +2482,21 @@ def output_simulation_data_sex_biased(sample_population: Population,
                     str,
                     [num_males * num_tracts for num_tracts in male_predicted[pop]]))
                             + "\n")
+
+        observed_allosome_counts = [float(np.sum(female_data[population])) + float(np.sum(male_data[population]))
+                                    for population in demographic_model.population_indices.keys()]
+        predicted_allosome_counts = [num_females * float(np.sum(female_predicted[population])) + num_males * float(np.sum(male_predicted[population]))
+                                    for population in demographic_model.population_indices.keys()]
+
+    # ------ Save tract counts table -------
+    _save_tracts_counts_table(ancestor_labels=demographic_model.population_indices.keys(),
+                            observed_autosome=observed_autosome_counts,
+                            predicted_autosome=predicted_autosome_counts,
+                            output_dir=output_dir,
+                            output_filename_format=output_filename_format,
+                            observed_allosome=observed_allosome_counts,
+                            predicted_allosome=predicted_allosome_counts,
+                            allosome_label=allosome_label)
 
     # ------ Save optimal parameters -------
     param_names = list(demographic_model.model_base_params.keys())
@@ -3312,49 +3336,54 @@ def _get_optimization_subtitle(parameter_handler: FixedParametersHandler,
     return f"Step 1 : Optimizing autosomal likelihood over parameters {str(free_params)}."
 
 
-def _save_ancestry_proportions_table(ancestor_labels, observed_autosome_proportions: np.ndarray, predicted_autosome_proportions: np.ndarray | None,
-                                    output_dir, output_filename_format: str, observed_allosome_proportions: np.ndarray | None = None,
-                                    predicted_allosome_proportions: np.ndarray | None = None, allosome_label: str | None = None) -> None:
+def save_ancestry_table(ancestor_labels, observed_autosome: np.ndarray, predicted_autosome: np.ndarray | None,
+                        output_dir, output_filename_format: str, label: str, observed_allosome: np.ndarray | None = None,
+                        predicted_allosome: np.ndarray | None = None, allosome_label: str | None = None) -> None:
     """
-    Writes a fixed-width text table of observed and predicted ancestry proportions
+    Writes a fixed-width text table of observed and predicted per-population values
     (for autosomes and, optionally, allosomes) to the output directory.
+
+    Shared by ``_save_ancestry_proportions_table`` and ``_save_tracts_counts_table``,
+    which differ only in the values they tabulate and the output file's ``label``.
 
     Parameters
     ----------
     ancestor_labels:
         Ordered iterable of source-population names (columns of the table).
-    observed_autosome_proportions:
-        Observed autosomal ancestry proportions, one value per source population.
-    predicted_autosome_proportions:
-        Predicted autosomal ancestry proportions from the optimal model parameters,
+    observed_autosome:
+        Observed autosomal values, one value per source population.
+    predicted_autosome:
+        Predicted autosomal values from the optimal model parameters,
         or ``None`` if not available.
     output_dir:
         Path to the directory where the file will be written.
     output_filename_format:
         The ``output_filename_format`` string from the driver file (must contain
         a ``{label}`` placeholder).
-    observed_allosome_proportions:
-        Observed allosomal ancestry proportions, or ``None`` if no allosomes are
+    label:
+        The ``{label}`` value used to build the output filename (e.g.
+        ``"ancestry_proportions.txt"``).
+    observed_allosome:
+        Observed allosomal values, or ``None`` if no allosomes are
         present in the sample.
-    predicted_allosome_proportions:
-        Predicted allosomal ancestry proportions from the optimal model parameters,
+    predicted_allosome:
+        Predicted allosomal values from the optimal model parameters,
         or ``None`` if not available.
     allosome_label:
         The allosome identifier (e.g. ``'X'``), used as the row label suffix.
-        Required when ``observed_allosome_proportions`` or
-        ``predicted_allosome_proportions`` is provided.
+        Required when ``observed_allosome`` or ``predicted_allosome`` is provided.
     """
     pop_labels = list(ancestor_labels)
     col_w = max(max(len(lbl) for lbl in pop_labels), 12)
     row_label_w = 30
 
-    rows = [("Observed (autosomes)", observed_autosome_proportions)]
-    if predicted_autosome_proportions is not None:
-        rows.append(("Predicted (autosomes)", predicted_autosome_proportions))
-    if observed_allosome_proportions is not None:
-        rows.append((f"Observed ({allosome_label})", observed_allosome_proportions))
-    if predicted_allosome_proportions is not None:
-        rows.append((f"Predicted ({allosome_label})", predicted_allosome_proportions))
+    rows = [("Observed (autosomes)", observed_autosome)]
+    if predicted_autosome is not None:
+        rows.append(("Predicted (autosomes)", predicted_autosome))
+    if observed_allosome is not None:
+        rows.append((f"Observed ({allosome_label})", observed_allosome))
+    if predicted_allosome is not None:
+        rows.append((f"Predicted ({allosome_label})", predicted_allosome))
 
     header = f"{'':>{row_label_w}} " + " ".join(f"{lbl:>{col_w}}" for lbl in pop_labels)
     sep = "-" * len(header)
@@ -3365,8 +3394,32 @@ def _save_ancestry_proportions_table(ancestor_labels, observed_autosome_proporti
         )
     lines.append(sep)
 
-    out_path = Path(output_dir) / output_filename_format.format(label="ancestry_proportions.txt")
+    out_path = Path(output_dir) / output_filename_format.format(label=label)
     with open(out_path, "w") as f:
         f.write("\n".join(lines) + "\n")
-    
-    logger.info(f"Ancestry proportions table saved to {output_dir / output_filename_format.format(label='ancestry_proportions.txt')}")
+
+    logger.info(f"Table saved to {out_path}")
+
+
+def _save_ancestry_proportions_table(ancestor_labels, observed_autosome: np.ndarray, predicted_autosome: np.ndarray | None,
+                                    output_dir, output_filename_format: str, observed_allosome: np.ndarray | None = None,
+                                    predicted_allosome: np.ndarray | None = None, allosome_label: str | None = None) -> None:
+    """
+    Writes a fixed-width text table of observed and predicted ancestry proportions
+    (for autosomes and, optionally, allosomes) to the output directory.
+    """
+    save_ancestry_table(ancestor_labels=ancestor_labels, observed_autosome=observed_autosome, predicted_autosome=predicted_autosome,
+                        output_dir=output_dir, output_filename_format=output_filename_format, label="ancestry_proportions.txt",
+                        observed_allosome=observed_allosome, predicted_allosome=predicted_allosome, allosome_label=allosome_label)
+
+
+def _save_tracts_counts_table(ancestor_labels, observed_autosome: np.ndarray, predicted_autosome: np.ndarray | None,
+                            output_dir, output_filename_format: str, observed_allosome: np.ndarray | None = None,
+                            predicted_allosome: np.ndarray | None = None, allosome_label: str | None = None) -> None:
+    """
+    Writes a fixed-width text table of observed and predicted tract counts
+    (for autosomes and, optionally, allosomes) to the output directory.
+    """
+    save_ancestry_table(ancestor_labels=ancestor_labels, observed_autosome=observed_autosome, predicted_autosome=predicted_autosome,
+                        output_dir=output_dir, output_filename_format=output_filename_format, label="tract_counts.txt",
+                        observed_allosome=observed_allosome, predicted_allosome=predicted_allosome, allosome_label=allosome_label)
