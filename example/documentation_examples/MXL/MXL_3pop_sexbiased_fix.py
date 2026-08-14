@@ -69,14 +69,14 @@ Optimal parameters
 ------------------
 
 .. csv-table:: Estimated optimal parameters
-   :file: output_continuous_pulse/MXL_test_output_optimal_parameters.txt
+   :file: output_ccp/MXL_test_output_optimal_parameters.txt
    :header-rows: 1
    :delim: tab
    
 Optimal migration matrices
 --------------------------
 
-.. image:: output_continuous_pulse/MXL_test_output_migration_matrices.png
+.. image:: output_ccp/MXL_test_output_migration_matrices.png
    :width: 500px
 
 Tract length histograms
@@ -85,21 +85,21 @@ Tract length histograms
 Autosomal admixture
 ^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_continuous_pulse/MXL_test_output_autosomes_all_populations.png
+.. image:: output_ccp/MXL_test_output_autosomes_all_populations.png
    :width: 700px
    :alt: African ancestry tract histogram
 
 X chromosome admixture in females
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_continuous_pulse/MXL_test_output_female_allosomes_all_populations.png
+.. image:: output_ccp/MXL_test_output_female_allosomes_all_populations.png
    :width: 700px
    :alt: European ancestry tract histogram
 
 X chromosome admixture in males
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_continuous_pulse/MXL_test_output_male_allosomes_all_populations.png
+.. image:: output_ccp/MXL_test_output_male_allosomes_all_populations.png
    :width: 700px
    :alt: Native American ancestry tract histogram
 

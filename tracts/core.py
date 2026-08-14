@@ -1,3 +1,11 @@
+"""
+The optimization core: :func:`compute_objective` evaluates a demographic model's log-likelihood for a
+given set of parameters, and :func:`optimize_cob_sex_biased_single_step`/
+:func:`optimize_cob_sex_biased_two_steps` drive the actual optimization (in one step, or in two steps that
+first fit non-sex-bias parameters on autosomal data before fitting sex-bias parameters). Called by
+:mod:`tracts.driver`.
+"""
+
 import logging
 import numpy as np
 import scipy.optimize
@@ -24,7 +32,7 @@ _ignore_oob_above = -1e-14
 
 # ------------------ Objective function ------------------
 
-def _compute_objective(
+def compute_objective(
     parameters,
     *,
     best_state,
@@ -195,7 +203,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, genetic
 
     Returns
     -------
-    tuple [np.ndarray, float]
+    tuple[np.ndarray,float]
         A tuple containing the optimal parameters found and the corresponding likelihood.
     """
 
@@ -222,7 +230,7 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, genetic
     _likelihood_options = likelihood_options.with_overrides(include_allosomes=ad_model_allosomes is not None)
 
     def objective_function(parameters):
-        return _compute_objective(
+        return compute_objective(
             parameters,
             local_genetic_model=local_genetic_model,
             best_state=_best_state,
@@ -341,7 +349,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
 
     Returns
     -------
-    tuple [np.ndarray, float] or tuple [np.ndarray, float, float | None]
+    tuple[np.ndarray,float] or tuple[np.ndarray,float,float | None]
         By default, returns the optimal parameters found and the optimization likelihood.
         If ``return_full_likelihood`` is True, also returns an additional full-data
         likelihood. The additional likelihood is only non-None when step 2 is run
@@ -422,7 +430,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
     # ----------- Define objective function for optimization ------------
 
     def objective_function(model_base_parameters, include_autosomes=True, include_allosomes=True):
-        return _compute_objective(
+        return compute_objective(
             model_base_parameters,
             local_genetic_model=local_genetic_model,
             best_state=_best_state,

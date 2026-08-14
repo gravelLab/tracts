@@ -1,6 +1,8 @@
 """
 Plotting helpers for Phase-Type tract length densities and histograms.
 """
+from __future__ import annotations
+
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
@@ -87,7 +89,7 @@ def plot_tractlength_density(bins: npt.ArrayLike, curves: dict[str, npt.ArrayLik
 
     Returns
     -------
-    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+    tuple[matplotlib.figure.Figure,matplotlib.axes.Axes]
     """
     styles = _resolve_styles(model_styles)
     bins = np.asarray(bins)
@@ -171,7 +173,7 @@ def plot_tractlength_histogram(bins: npt.ArrayLike, curves: dict[str, npt.ArrayL
 
     Returns
     -------
-    tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+    tuple[matplotlib.figure.Figure,matplotlib.axes.Axes]
     """
     styles = _resolve_styles(model_styles)
     bins = np.asarray(bins)

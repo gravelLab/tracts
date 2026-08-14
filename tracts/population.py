@@ -1,3 +1,9 @@
+"""
+Defines :class:`Population`, a collection of :class:`~tracts.indiv.Indiv` objects loaded from a sample
+directory of ``.bed`` files. This is the sample-data entry point used by :func:`~tracts.driver.run_tracts`
+to compute observed tract length distributions and ancestry proportions.
+"""
+
 from tracts.indiv import Indiv
 from tracts.util import eprint
 from tracts.chromosome import Chrom, Tract
@@ -25,7 +31,7 @@ def collect_pop(flatdat: list[Tract]) -> dict[str, list[Tract]]:
     
     Returns
     -------
-    dict[str, list[Tract]]
+    dict[str,list[Tract]]
         A dictionary where the keys are ancestry labels and the values are lists of tracts with that ancestry label.    
     """
     dic = defaultdict(list)
@@ -244,7 +250,7 @@ class Population:
         
         Returns
         -------
-        dict[str, float]
+        dict[str,float]
             A dictionary mapping allosome labels to their lengths. The length of an allosome is determined by the length of the chromosome with that label in the first individual that has that allosome. It is assumed that all individuals have the same lengths for their allosomes, and an error is raised if this is not the case.
         """
 
@@ -276,7 +282,7 @@ class Population:
         
         Returns
         -------
-        tuple[int, int]
+        tuple[int,int]
             A tuple containing the number of males and females in the population.
 
         Notes
@@ -385,7 +391,7 @@ class Population:
         
         Returns
         -------
-        tuple[dict[str, int], dict[str, float]]
+        tuple[dict[str,int],dict[str,float]]
             A tuple containing two dictionaries. The first dictionary maps ancestry labels to the count of tracts of that ancestry that extend beyond the position `pos` by at least `cutoff`. The second dictionary maps ancestry labels to the average length of tracts of that ancestry that extend beyond the position `pos` by at least `cutoff`.
         """
         ancestry = {}

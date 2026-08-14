@@ -48,4 +48,3 @@ output:
   verbose_log: 1
   verbose_screen: 30
   log_scale: True
-  plot_migration_matrices: True

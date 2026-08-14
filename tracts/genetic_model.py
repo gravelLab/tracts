@@ -5,7 +5,7 @@ configuration used to evaluate its likelihood.
 This exists to avoid threading a long, repeated list of related parameters
 (``ad_model_autosomes``, ``ad_model_allosomes``, ``rho_f``, ``rho_m``, ``TP``,
 ``N_cores``, plus the demographic model itself) through :mod:`tracts.core`'s
-optimization functions (:func:`~tracts.core._compute_objective`,
+optimization functions (``compute_objective``,
 :func:`~tracts.core.optimize_cob_sex_biased_single_step`,
 :func:`~tracts.core.optimize_cob_sex_biased_two_steps`) and their callers in
 :mod:`tracts.driver`.
@@ -304,7 +304,7 @@ class GeneticModel:
         ``np.linalg.LinAlgError`` or ``ValueError`` for infeasible migration
         matrices (e.g. singular matrices); callers should catch these the same way
         they already do around obtaining ``male_matrix``/``female_matrix`` in the
-        first place (see :func:`~tracts.core._compute_objective`).
+        first place (see ``compute_objective`` in ``tracts.core``).
         """
         config = self.phase_type_config
         result = LoglikBreakdown()

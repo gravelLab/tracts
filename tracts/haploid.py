@@ -1,3 +1,9 @@
+"""
+Defines :class:`Haploid`, a haploid genome composed of :class:`~tracts.chromosome.Chrom` objects, built by
+loading a single haplotype's ``.bed`` file. Paired up by :class:`~tracts.indiv.Indiv` to build a diploid
+individual.
+"""
+
 from collections import defaultdict
 from typing import Any
 from tracts.tract import Tract

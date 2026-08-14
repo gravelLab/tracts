@@ -1,3 +1,9 @@
+"""
+Defines :class:`ParamType` (the admissible-bounds type of a demographic model parameter: time, rate,
+sex-bias or untyped) and :class:`Parameter`/:class:`DependentParameter`, the individual named parameters
+that make up a :class:`~tracts.demography.base_parametrized_demography.BaseParametrizedDemography`.
+"""
+
 from __future__ import annotations
 from enum import Enum
 from collections.abc import Callable

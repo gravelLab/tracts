@@ -1,5 +1,11 @@
+"""
+Defines :class:`PhTMonoecious`, the :class:`~tracts.phase_type.base_phase_type.PhaseTypeDistribution`
+subclass implementing the Monoecious Markov approximation (unbiased migration and recombination rates).
+"""
+from __future__ import annotations
+
 import warnings
-import logging 
+import logging
 import numpy as np
 import numpy.typing as npt
 import scipy
