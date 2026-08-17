@@ -49,8 +49,8 @@ To implement this example, we use the following driver file:
      npts: 50
      exclude_tracts_below_cm: 2
      unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
-     n_reoptimizations: 5
-     rerun_optimization_on_boundaries: True
+     n_reoptimizations: 1
+     rerun_optimization_on_boundaries: False
 
    output:
     output_directory: ./output_two_pulses/
