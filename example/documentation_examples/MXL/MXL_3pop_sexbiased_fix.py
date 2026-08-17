@@ -45,9 +45,9 @@ To implement this example, we use the following driver file:
      RAFR_sex_bias: -0.1
 
    optim:
-     repetitions: 10
+     repetitions: 3
      seed: 100
-     maximum_iterations: 1000
+     maximum_iterations: 100
      unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
      exclude_tracts_below_cm: 2
      npts : 50
@@ -69,14 +69,14 @@ Optimal parameters
 ------------------
 
 .. csv-table:: Estimated optimal parameters
-   :file: output_ccp/MXL_test_output_optimal_parameters.txt
+   :file: output_ccp/MXL_output_optimal_parameters.txt
    :header-rows: 1
    :delim: tab
    
 Optimal migration matrices
 --------------------------
 
-.. image:: output_ccp/MXL_test_output_migration_matrices.png
+.. image:: output_ccp/MXL_output_migration_matrices.png
    :width: 500px
 
 Tract length histograms
@@ -85,23 +85,16 @@ Tract length histograms
 Autosomal admixture
 ^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_ccp/MXL_test_output_autosomes_all_populations.png
+.. image:: output_ccp/MXL_output_autosomes_all_populations.png
    :width: 700px
-   :alt: African ancestry tract histogram
+   :alt: Autosomal tract length distribution
 
-X chromosome admixture in females
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_ccp/MXL_test_output_female_allosomes_all_populations.png
+.. image:: output_ccp/MXL_output_allosomes_all_populations.png
    :width: 700px
-   :alt: European ancestry tract histogram
-
-X chromosome admixture in males
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: output_ccp/MXL_test_output_male_allosomes_all_populations.png
-   :width: 700px
-   :alt: Native American ancestry tract histogram
+   :alt: X chromosome tract length distribution
 
 """
 # sphinx_gallery_start_ignore

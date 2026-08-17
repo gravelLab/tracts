@@ -44,9 +44,9 @@ To implement this example, we use the following driver file:
      RAFR_sex_bias: -0.2:0.2
 
    optim:
-     repetitions: 5
+     repetitions: 3
      seed: 100
-     maximum_iterations: 1000
+     maximum_iterations: 100
      npts: 50
      exclude_tracts_below_cm: 2
      unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
@@ -86,21 +86,14 @@ Autosomal admixture
 
 .. image:: output_three_pulses/ASW_test_output_autosomes_all_populations.png
    :width: 700px
-   :alt: African ancestry tract histogram
+   :alt: Autosomal tract length distribution
 
-X chromosome admixture in females
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_female_allosomes_all_populations.png
+.. image:: output_three_pulses/ASW_test_output_allosomes_all_populations.png
    :width: 700px
-   :alt: European ancestry tract histogram
-
-X chromosome admixture in males
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: output_three_pulses/ASW_test_output_male_allosomes_all_populations.png
-   :width: 700px
-   :alt: Native American ancestry tract histogram
+   :alt: X chromosome tract length distribution
 
 
 """
