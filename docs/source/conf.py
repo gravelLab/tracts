@@ -37,12 +37,6 @@ sphinx_gallery_conf = {
     "examples_dirs": examples_path,      # where your scripts live
     "gallery_dirs": "auto_examples",     # generated site
     "filename_pattern": r"\.py",
-    # ASW_three_pulses.py is excluded from the built documentation: this three-pulse,
-    # sex-biased, 9-parameter model on the full ASW dataset can take multiple hours to
-    # fit (dominated by the allosomal/X-chromosome likelihood evaluations), which
-    # exceeds the docs workflow's CI budget. The example file itself is untouched; to
-    # bring it back into the online docs, just remove "ASW_three_pulses" below.
-    "ignore_pattern": r"ASW_three_pulses\.py$",
     "run_stale_examples": False,
 }
 

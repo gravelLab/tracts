@@ -32,16 +32,16 @@ To implement this example, we use the following driver file:
     ad_model_autosomes: M
     ad_model_allosomes: DC
 
-   start_params: 
-     t1: 9:12
-     REUR: 0.8
-     RAFR: 0.9
-     REUR2: 0.2
-     t2: 5:8
-     t3: 1:4
-     REUR_sex_bias: -0.2:0.2
-     REUR2_sex_bias: -0.2:0.2
-     RAFR_sex_bias: -0.2:0.2
+   start_params:
+     t1: 9:13
+     REUR: 0.5:.8
+     RAFR: 0.6:0.9
+     REUR2: 0.02:0.2
+     t2: 5:9
+     t3: 2:3
+     REUR_sex_bias: -.99:.99
+     REUR2_sex_bias: -.99:.99
+     RAFR_sex_bias: 0.8:.999
 
    optim:
      repetitions: 3
