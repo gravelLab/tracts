@@ -33,17 +33,10 @@ Example analyses
 
       Example analyses for the ASW population.
 
-   .. grid-item-card:: MXL population
-      :link: ../auto_examples/MXL/index
-      :link-type: doc
-
-      Example analyses for the MXL population.
-      
-
 Demographic models
 ------------------
 
-In this section, we consider four demographic models of varying complexity. The corresponding YAML files are specified below.
+In this section, we consider three demographic models of varying complexity. The corresponding YAML files are specified below.
 
 One pulse model
 ^^^^^^^^^^^^^^^
@@ -119,38 +112,15 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
         dest: targetpop
         proportions: [REUR2]
         time: t3
-   
- 
-Continuous pulse model
-^^^^^^^^^^^^^^^^^^^^^^
 
-The following model is written in the file ``ccp.yaml``.
 
-.. code-block:: yaml
-
-   model_name: Continuous_pulse_AFR
-   description: Represents a population X founded with a discrete event (AFR) and continuous event (EUR, NAT).
-   time_units: generations
-   demes:
-      - name: EUR
-      - name: NAT
-      - name: AFR
-      - name: X
-   ancestors: [EUR, NAT, AFR]
-   proportions: [REUR, RNAT, RAFR]
-   start_time: t1
-   end_time: t2
-   pulse_pops: [AFR]
-   
-   
 .. toctree::
    :hidden:
 
    data_description
    data_processing
    ../auto_examples/ASW/index
-   ../auto_examples/MXL/index
-   
+
 
 
 

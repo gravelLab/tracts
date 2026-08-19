@@ -92,51 +92,12 @@ This page collects the example analyses for the ASW population.
     </div>
 
 
-MXL population
-==============
-
-This page collects the example analyses for the MXL population.
-
-
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbnails">
-
-.. thumbnail-parent-div-open
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example implements inference for the MXL population under a continuous pulse model of admixture, using the tracts package. Inference is performed using autosomal and X chromosome data, allowing for the specification of sex-biased admixture. ">
-
-.. only:: html
-
-  .. image:: /auto_examples/MXL/images/thumb/sphx_glr_MXL_3pop_sexbiased_fix_thumb.png
-    :alt:
-
-  :doc:`/auto_examples/MXL/MXL_3pop_sexbiased_fix`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">MXL inference - continuous pulse model</div>
-    </div>
-
-
-.. thumbnail-parent-div-close
-
-.. raw:: html
-
-    </div>
-
-
 .. toctree::
    :hidden:
    :includehidden:
 
 
    /auto_examples/ASW/index.rst
-   /auto_examples/MXL/index.rst
 
 
 .. only:: html
