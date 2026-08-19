@@ -46,11 +46,11 @@ To implement this example, we use the following driver file:
    optim:
      repetitions: 3
      seed: 100
-     maximum_iterations: 100
+     maximum_iterations: 1000
      npts: 50
      exclude_tracts_below_cm: 2
      unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
-     n_reoptimizations: 1
+     n_reoptimizations: 5
      rerun_optimization_on_boundaries: False
    
    output:

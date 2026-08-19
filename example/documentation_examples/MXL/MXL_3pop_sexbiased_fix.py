@@ -34,24 +34,27 @@ To implement this example, we use the following driver file:
      ad_model_autosomes: M
      ad_model_allosomes: DC
 
-   start_params: 
+   start_params:
+     t1: 11.70:14.30
+     REUR: 0.07:0.09
+     RAFR: 0.04:0.05
+     RNAT: 0.08:0.09
+     t2: 2.29:2.79
+     REUR_sex_bias: -0.99:-0.90 # more males
+     RNAT_sex_bias: 0.44:0.54 # more females
+     RAFR_sex_bias: 0.90:0.99
+
+   bounds:
      t1: 10:15
-     REUR: 0.07
-     RAFR: 0.08
-     RNAT: 0.095
-     t2: 3:5
-     REUR_sex_bias: -0.99 # more males
-     RNAT_sex_bias: 0.99 # more females
-     RAFR_sex_bias: -0.1
 
    optim:
      repetitions: 3
      seed: 100
-     maximum_iterations: 100
-     unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
+     maximum_iterations: 1000
+     unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
      exclude_tracts_below_cm: 2
      npts : 50
-     n_reoptimizations: 1
+     n_reoptimizations: 5
      rerun_optimization_on_boundaries: False
 
    output:
