@@ -14,9 +14,11 @@ both autosomes and the X chromosome.
 
 To install: 
 
-1. Clone this repository
-2. In your local copy, open a terminal
-3. Run `pip install .`
+```bash
+git clone https://github.com/gravelLab/tracts.git
+cd tracts
+pip install .
+```
 
 You can now import $\texttt{tracts}$ as a python package.
 
