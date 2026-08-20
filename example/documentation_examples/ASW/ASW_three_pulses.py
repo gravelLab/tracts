@@ -55,7 +55,6 @@ To implement this example, we use the following driver file:
    
    output:
     output_directory: ./output_three_pulses/
-    output_filename_format: "ASW_test_output_{label}"
     log_filename: 'ASW_three_pulses.log'
     verbose_log: 1
     verbose_screen: 30
@@ -68,14 +67,14 @@ Optimal parameters
 ------------------
 
 .. csv-table:: Estimated optimal parameters
-   :file: output_three_pulses/ASW_test_output_optimal_parameters.txt
+   :file: output_three_pulses/ASW_three_pulses_optimal_parameters.txt
    :header-rows: 1
    :delim: tab
    
 Optimal migration matrices
 --------------------------
 
-.. image:: output_three_pulses/ASW_test_output_migration_matrices.png
+.. image:: output_three_pulses/ASW_three_pulses_migration_matrices.png
    :width: 500px
 
 Tract length histograms
@@ -84,14 +83,14 @@ Tract length histograms
 Autosomal admixture
 ^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_autosomes_all_populations.png
+.. image:: output_three_pulses/ASW_three_pulses_autosomes_all_populations.png
    :width: 700px
    :alt: Autosomal tract length distribution
 
 X chromosome admixture
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_allosomes_all_populations.png
+.. image:: output_three_pulses/ASW_three_pulses_allosomes_all_populations.png
    :width: 700px
    :alt: X chromosome tract length distribution
 
@@ -99,7 +98,7 @@ X chromosome admixture
 """
 
 # sphinx_gallery_start_ignore
-sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_three_pulses/ASW_test_output_autosomes_all_populations.png'
+sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_three_pulses/ASW_three_pulses_autosomes_all_populations.png'
 # sphinx_gallery_end_ignore
 
 import sys
