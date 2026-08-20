@@ -1,4 +1,4 @@
-model_name: One_Pulse
+model_name: One pulse
 description: Represents a population X founded a generations ago by EUR, AMR, and AFR.
 time_units: generations
 demes:

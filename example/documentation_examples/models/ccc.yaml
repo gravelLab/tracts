@@ -1,4 +1,4 @@
-model_name: One_Pulse
+model_name: Continuous pulse
 description: 
   Represents a population X founded with a continuous event.
 time_units: generations
