@@ -1680,9 +1680,9 @@ class CompositeDemographicModel:
 
 def plotmig(mig, colordict=None, order=None):
     if colordict is None:
-        colordict = {'CEU': 'red', 'NAH': 'orange', 'NAT': 'orange', 'UNKNOWN': 'gray', 'YRI': 'blue'}
+        colordict = {'CEU': 'red', 'NAH': 'orange', 'AMR': 'orange', 'UNKNOWN': 'gray', 'YRI': 'blue'}
     if order is None:
-        order = ['CEU', 'NAT', 'YRI']
+        order = ['CEU', 'AMR', 'YRI']
 
     pylab.figure()
     axes = pylab.axes()

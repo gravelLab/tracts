@@ -4,10 +4,10 @@ description:
 time_units: generations
 demes:
   - name: EUR
-  - name: NAT
+  - name: AMR
   - name: AFR
   - name: targetpop
-    ancestors: [EUR, NAT, AFR]
-    proportions: [REUR, RNAT,RAFR ]
+    ancestors: [EUR, AMR, AFR]
+    proportions: [REUR, RAMR,RAFR ]
     start_time: t1
     end_time: t2

@@ -39,8 +39,8 @@ To implement this example, we use the following driver file:
      t2: 4:8
      REUR2: 0.1:0.8
      REUR2_sex_bias: 0.1:0.3
-     RNAT: 0.1:0.9
-     RNAT_sex_bias: 0.1:0.3
+     RAMR: 0.1:0.9
+     RAMR_sex_bias: 0.1:0.3
 
    optim:
      repetitions: 3

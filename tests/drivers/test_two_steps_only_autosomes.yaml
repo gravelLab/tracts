@@ -24,7 +24,7 @@ models:
 start_params: 
   t: 5
   REUR: 0.8
-  RNAT: 0.1
+  RAMR: 0.1
 
 optim:
   repetitions: 1

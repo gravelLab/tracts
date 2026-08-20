@@ -36,9 +36,9 @@ To implement this example, we use the following driver file:
    start_params:
      t: 4:8
      REUR: 0.8
-     RNAT: 0.1
+     RAMR: 0.1
      REUR_sex_bias: -0.2:0.2
-     RNAT_sex_bias: -0.2:0.2
+     RAMR_sex_bias: -0.2:0.2
 
    optim:
      repetitions: 3

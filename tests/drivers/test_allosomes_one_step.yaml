@@ -25,9 +25,9 @@ models:
 start_params: 
   t: 4:8
   REUR: 0.8
-  RNAT: 0.1
+  RAMR: 0.1
   REUR_sex_bias: 0.1
-  RNAT_sex_bias: 0.1
+  RAMR_sex_bias: 0.1
 
 optim:
   repetitions: 2

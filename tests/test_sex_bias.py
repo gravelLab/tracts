@@ -700,11 +700,11 @@ _THREE_POP_YAML_SEX_BIASED = """
 model_name: TestModel
 demes:
   - name: EUR
-  - name: NAT
+  - name: AMR
   - name: AFR
   - name: X
-    ancestors: [EUR, NAT, AFR]
-    proportions: [REUR, RNAT, RAFR]
+    ancestors: [EUR, AMR, AFR]
+    proportions: [REUR, RAMR, RAFR]
     start_time: tx
 """
 
@@ -726,9 +726,9 @@ def test_implicit_population_defaults_to_first_ancestor_sex_biased():
         model = ParametrizedDemographySexBiased.load_from_YAML(path)
         assert model.founder_events["X_male"].remainder_population == "EUR"
         assert model.founder_events["X_female"].remainder_population == "EUR"
-        assert set(model.founder_events["X_male"].source_populations.keys()) == {"NAT", "AFR"}
+        assert set(model.founder_events["X_male"].source_populations.keys()) == {"AMR", "AFR"}
         assert "REUR" not in model.model_base_params
-        assert "RNAT" in model.model_base_params
+        assert "RAMR" in model.model_base_params
         assert "RAFR" in model.model_base_params
     finally:
         os.unlink(path)
@@ -744,9 +744,9 @@ def test_implicit_population_explicit_selection_sex_biased():
         model = ParametrizedDemographySexBiased.load_from_YAML(path, implicit_population="AFR")
         assert model.founder_events["X_male"].remainder_population == "AFR"
         assert model.founder_events["X_female"].remainder_population == "AFR"
-        assert set(model.founder_events["X_male"].source_populations.keys()) == {"EUR", "NAT"}
+        assert set(model.founder_events["X_male"].source_populations.keys()) == {"EUR", "AMR"}
         assert "REUR" in model.model_base_params
-        assert "RNAT" in model.model_base_params
+        assert "RAMR" in model.model_base_params
         assert "RAFR" not in model.model_base_params
     finally:
         os.unlink(path)

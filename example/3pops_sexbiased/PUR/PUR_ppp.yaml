@@ -28,16 +28,16 @@ models:
 start_params: 
   t: 4:14
   REUR: .2:0.4
-  RNAT: .0:0.2
+  RAMR: .0:0.2
   REUR_sex_bias: -1:1
-  RNAT_sex_bias: -1:1
+  RAMR_sex_bias: -1:1
 
 optim:
   repetitions: 20
   seed: 5
   maximum_iterations: 1000
   npts: 50
-  #fix_parameters_from_ancestry_proportions: ['REUR', 'RNAT', 'REUR_sex_bias', 'RNAT_sex_bias']
+  #fix_parameters_from_ancestry_proportions: ['REUR', 'RAMR', 'REUR_sex_bias', 'RAMR_sex_bias']
   exclude_tracts_below_cm: 2
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
   n_reoptimizations: 5

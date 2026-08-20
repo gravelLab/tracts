@@ -19,7 +19,7 @@ samples:
 
 models:
   model_filename: ../models/ppx_xxp_ppx.yaml
-  implicit_population: NAT
+  implicit_population: AMR
   ad_model_autosomes: M
   ad_model_allosomes: DC
 
@@ -38,12 +38,12 @@ start_params:
   REUR: 0.5:.8
   RAFR: 0.6:0.9
   REUR2: 0.02:0.2
-  RNAT2: 0.02:0.2
+  RAMR2: 0.02:0.2
   t2: 4:8
   t3: 2:4
   REUR_sex_bias: -.2:.2
   REUR2_sex_bias: -.2:.2
-  RNAT2_sex_bias: -.2:.2
+  RAMR2_sex_bias: -.2:.2
   RAFR_sex_bias: -.2:.2
 
 optim:

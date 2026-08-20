@@ -251,7 +251,7 @@ class TestReadHelpers:
         path = _out(combined_allosome_output_dir, "test_output_", "ancestry_per_individual")
         pop_names, ancestry_per_individual = _read_ancestry_per_individual(path)
 
-        assert set(pop_names) == {"EUR", "NAT", "AFR"}
+        assert set(pop_names) == {"EUR", "AMR", "AFR"}
         assert len(ancestry_per_individual) > 0
         for name, proportions in ancestry_per_individual.items():
             assert isinstance(name, str)

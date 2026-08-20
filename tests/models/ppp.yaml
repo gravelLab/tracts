@@ -1,11 +1,11 @@
 model_name: One_Pulse
-description: Represents a population X founded a generations ago by EUR, NAT, and AFR.
+description: Represents a population X founded a generations ago by EUR, AMR, and AFR.
 time_units: generations
 demes:
   - name: EUR
   - name: AFR
-  - name: NAT
+  - name: AMR
   - name: X
-    ancestors: [EUR, NAT, AFR]
-    proportions: [REUR, RNAT, RAFR]
+    ancestors: [EUR, AMR, AFR]
+    proportions: [REUR, RAMR, RAFR]
     start_time: t
