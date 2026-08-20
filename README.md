@@ -33,4 +33,3 @@ A detailed introduction to the models and methods presented in $\texttt{tracts 2
 
 For any inquires, please file an [issue](https://github.com/gravelLab/tracts/issues) or [contact us](mailto:javier.gonzalez-delgado@ensai.fr).
 
----
