@@ -1,6 +1,6 @@
 model_name: Three pulses
 description:
-  A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and AMR, then subsequent AFR migration, 
+  A demes model with flexible parameters. Represents a population X founded t1 generations ago by EUR and AMR, then subsequent AFR migration,
   then subsequent EUR migration.
 time_units: generations
 demes:
