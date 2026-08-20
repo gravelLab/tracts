@@ -2205,7 +2205,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
             if mean_matrix[i, j] > 1e-12:
                 ax1.text(
                     j, i,
-                    f"{mean_matrix[i, j]:.3f}",
+                    f"{mean_matrix[i, j]:.2f}",
                     ha="center",
                     va="center",
                     fontsize=annot_font,
@@ -2241,7 +2241,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
             if abs(sex_bias_matrix[i, j]) > 1e-12:
                 ax2.text(
                     j, i,
-                    f"{sex_bias_matrix[i, j]:.3f}",
+                    f"{sex_bias_matrix[i, j]:.2f}",
                     ha="center",
                     va="center",
                     fontsize=annot_font,
