@@ -4,22 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracts"
-version = "0.0.2"
+version = "2.0.0"
 license = { text = "MIT" }
 authors = [
+  { name="Javier González-Delgado", email="javier.gonzalez-delgado@ensai.fr" },
   { name="Simon Gravel", email="simon.gravel@mcgill.ca" },
 ]
-description = "A set of classes and definitions used to model migration histories based on ancestry tracts in admixed individuals. Time-dependent gene-flow from multiple populations can be modeled."
+description = "A set of tools to model migration histories based on ancestry tracts in admixed individuals. Time-dependent and sex-biased gene-flow from multiple populations can be modeled."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/sgravel/tracts/blob/devel"
-"Bug Tracker" = "https://github.com/sgravel/tracts/issues"
+"Homepage" = "https://github.com/gravelLab/tracts/blob/devel"
+"Bug Tracker" = "https://github.com/gravelLab/tracts/issues"
 
 [tool.pytest.ini_options]
 filterwarnings = [
