@@ -123,7 +123,7 @@ def skip_private_and_abstract_members(app, what, name, obj, skip, options):
         return True
     if inspect.isfunction(obj) and getattr(obj, "__isabstractmethod__", False):
         return True
-    return skip
+    return None
 
 def skip_duplicate_pydantic_and_enum_members(app, what, name, obj, skip, options):
     # Pydantic model fields and Enum members are real class attributes, so autodoc documents them
@@ -133,6 +133,7 @@ def skip_duplicate_pydantic_and_enum_members(app, what, name, obj, skip, options
     # hand-listed (and kept up to date) per class in the autosummary class template.
     if what != "class":
         return skip
+    import dataclasses
     import importlib
     from enum import Enum
     from pydantic import BaseModel
@@ -149,6 +150,9 @@ def skip_duplicate_pydantic_and_enum_members(app, what, name, obj, skip, options
             return True
     elif isinstance(cls, type) and issubclass(cls, Enum):
         if name in cls.__members__:
+            return True
+    elif dataclasses.is_dataclass(cls):
+        if name in {field.name for field in dataclasses.fields(cls)}:
             return True
     return skip
 

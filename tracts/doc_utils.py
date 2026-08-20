@@ -58,16 +58,17 @@ def prepare_example_outputs_for_docs(
 
     dst_out.mkdir(parents=True, exist_ok=True)
 
-    # Copy image files
+    # Copy image files (searched recursively, since output files are now nested into subdirectories
+    # by kind, see tracts.driver_utils._OUTPUT_SUBDIRS)
     for pattern in image_patterns:
-        for f in src_out.glob(pattern):
+        for f in src_out.rglob(pattern):
             if f.is_file():
                 copy2(f, dst_out / f.name)
 
     result: dict[str, Path] = {"destination_dir": dst_out}
 
     # Copy the optimal-parameters table file
-    table_candidates = sorted(src_out.glob(f"*{table_suffix}"))
+    table_candidates = sorted(src_out.rglob(f"*{table_suffix}"))
     if table_candidates:
         table_file = table_candidates[0]
         copied_table = dst_out / table_file.name

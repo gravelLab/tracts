@@ -32,30 +32,29 @@ To implement this example, we use the following driver file:
     ad_model_autosomes: M
     ad_model_allosomes: DC
 
-   start_params: 
-     t1: 9:12
-     REUR: 0.8
-     RAFR: 0.9
-     REUR2: 0.2
-     t2: 5:8
-     t3: 1:4
-     REUR_sex_bias: -0.2:0.2
-     REUR2_sex_bias: -0.2:0.2
-     RAFR_sex_bias: -0.2:0.2
+   start_params:
+     t1: 9.65:10.25
+     REUR: 0.78:0.82
+     RAFR: 0.87:0.91
+     REUR2: 0.18:0.22
+     t2: 6.60:7.20
+     t3: 3.18:3.78
+     REUR_sex_bias: 0.00:0.04
+     REUR2_sex_bias: 0.12:0.16
+     RAFR_sex_bias: 0.07:0.11
 
    optim:
-     repetitions: 5
+     repetitions: 3
      seed: 100
      maximum_iterations: 1000
      npts: 50
      exclude_tracts_below_cm: 2
      unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
      n_reoptimizations: 5
-     rerun_optimization_on_boundaries: True
+     rerun_optimization_on_boundaries: False
    
    output:
     output_directory: ./output_three_pulses/
-    output_filename_format: "ASW_test_output_{label}"
     log_filename: 'ASW_three_pulses.log'
     verbose_log: 1
     verbose_screen: 30
@@ -68,14 +67,14 @@ Optimal parameters
 ------------------
 
 .. csv-table:: Estimated optimal parameters
-   :file: output_three_pulses/ASW_test_output_optimal_parameters.txt
+   :file: output_three_pulses/ASW_three_pulses_optimal_parameters.txt
    :header-rows: 1
    :delim: tab
    
 Optimal migration matrices
 --------------------------
 
-.. image:: output_three_pulses/ASW_test_output_migration_matrices.png
+.. image:: output_three_pulses/ASW_three_pulses_migration_matrices.png
    :width: 500px
 
 Tract length histograms
@@ -84,29 +83,22 @@ Tract length histograms
 Autosomal admixture
 ^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_autosomes_all_populations.png
+.. image:: output_three_pulses/ASW_three_pulses_autosomes_all_populations.png
    :width: 700px
-   :alt: African ancestry tract histogram
+   :alt: Autosomal tract length distribution
 
-X chromosome admixture in females
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_three_pulses/ASW_test_output_female_allosomes_all_populations.png
+.. image:: output_three_pulses/ASW_three_pulses_allosomes_all_populations.png
    :width: 700px
-   :alt: European ancestry tract histogram
-
-X chromosome admixture in males
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: output_three_pulses/ASW_test_output_male_allosomes_all_populations.png
-   :width: 700px
-   :alt: Native American ancestry tract histogram
+   :alt: X chromosome tract length distribution
 
 
 """
 
 # sphinx_gallery_start_ignore
-sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_three_pulses/ASW_test_output_autosomes_all_populations.png'
+sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_three_pulses/ASW_three_pulses_autosomes_all_populations.png'
 # sphinx_gallery_end_ignore
 
 import sys

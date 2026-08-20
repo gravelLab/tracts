@@ -41,16 +41,16 @@ To implement this example, we use the following driver file:
      RAMR_sex_bias: -0.2:0.2
 
    optim:
-     repetitions: 5
+     repetitions: 3
      maximum_iterations: 1000
-     seed: 10 
-     unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.  
+     seed: 10
+     unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
      exclude_tracts_below_cm: 2
      npts: 50
      two_steps_optimization: True
      use_autosomes_for_sex_bias: False
      n_reoptimizations: 5
-     rerun_optimization_on_boundaries: True
+     rerun_optimization_on_boundaries: False
 
    output:
      output_filename_format: "ASW_test_output_{label}"
@@ -86,21 +86,14 @@ Autosomal admixture
 
 .. image:: output_one_pulse/ASW_test_output_autosomes_all_populations.png
    :width: 700px
-   :alt: African ancestry tract histogram
+   :alt: Autosomal tract length distribution
 
-X chromosome admixture in females
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+X chromosome admixture
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: output_one_pulse/ASW_test_output_female_allosomes_all_populations.png
+.. image:: output_one_pulse/ASW_test_output_allosomes_all_populations.png
    :width: 700px
-   :alt: European ancestry tract histogram
-
-X chromosome admixture in males
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. image:: output_one_pulse/ASW_test_output_male_allosomes_all_populations.png
-   :width: 700px
-   :alt: Native American ancestry tract histogram
+   :alt: X chromosome tract length distribution
 
 """
 

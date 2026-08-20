@@ -87,6 +87,8 @@ The previous block specifies one pulse from ``EUR`` population at generation ``t
 A continuous migration
 ^^^^^^^^^^^^^^^^^^^^^^
 
+Continuous migration between generations ``t1`` and ``t2`` can be specified as follows:
+
 .. code-block:: yaml
 
    migrations:
@@ -95,8 +97,6 @@ A continuous migration
        rate: K
        start_time: t1
        end_time: t2
-
-Continuous migration between generations ``t1`` and ``t2`` can be specified as below.
 
 .. admonition:: Sex-bias specification
    :class: tip
@@ -143,6 +143,9 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as b
 
    If there are :math:`P` source populations, the user only specifies :math:`P-1` rates and sex biases,
    and the remaining parameters are inferred from these dependencies.
+
+
+
 
 
 .. _input-data:
