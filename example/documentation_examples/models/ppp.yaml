@@ -1,5 +1,5 @@
-model_name: One_Pulse
-description: Represents a population X founded a generations ago by EUR, AMR, and AFR.
+model_name: One pulse
+description: Represents a population X founded t generations ago by EUR, AMR, and AFR.
 time_units: generations
 demes:
   - name: EUR

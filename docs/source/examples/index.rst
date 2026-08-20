@@ -45,8 +45,8 @@ The following model is written in the file ``ppp.yaml``.
 
 .. code-block:: yaml
 
-   model_name: One_Pulse
-   description: Represents a population X founded a generations ago by EUR, NAT, and AFR.
+   model_name: One pulse
+   description: Represents a population X founded t generations ago by EUR, NAT, and AFR.
    time_units: generations
    demes:
       - name: EUR
@@ -65,7 +65,7 @@ The following model is written in the file ``ppp_pxx.yaml``.
 .. code-block:: yaml
 
    model_name: Two pulses
-   description: A population X founded a generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
+   description: A population X founded t1 generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
    time_units: generations
    demes:
       - name: EUR
@@ -91,7 +91,7 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
 .. code-block:: yaml
 
    model_name: Three pulses
-   description: A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and NAT, then subsequent AFT migration, 
+   description: A demes model with flexible parameters. Represents a population X founded t1 generations ago by EUR and NAT, then subsequent AFR migration,
    then subsequent EUR migration.
    time_units: generations
    demes:
