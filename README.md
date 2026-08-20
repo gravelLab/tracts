@@ -8,8 +8,6 @@ multiple populations can be modeled. In $\texttt{tracts 2.0}$, sex-biased migrat
 and recombination rates are supported, enabling modeling and inference for 
 both autosomes and the X chromosome.
 
----
-
 ### Installing $\texttt{tracts}$
 
 To install: 
