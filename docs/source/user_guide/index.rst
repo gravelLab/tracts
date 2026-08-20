@@ -145,7 +145,41 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as f
    and the remaining parameters are inferred from these dependencies.
 
 
+Example demographic models
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The blocks above can be combined into full demographic models. Here are some standard examples that can be specified in YAML files.
+
+.. dropdown:: One pulse model
+
+   A population ``X`` founded ``t`` generations ago by ``EUR``, ``AMR``, and ``AFR``.
+
+   .. literalinclude:: ../../../example/documentation_examples/models/ppp.yaml
+      :language: yaml
+
+.. dropdown:: Two pulses model
+
+   A population ``X`` founded ``t1`` generations ago by ``EUR``, ``AFR``, and ``AMR``, followed by a
+   second pulse of ``EUR`` migration at ``t2``.
+
+   .. literalinclude:: ../../../example/documentation_examples/models/ppp_pxx.yaml
+      :language: yaml
+
+.. dropdown:: Three pulses model
+
+   A population ``targetpop`` founded ``t1`` generations ago by ``EUR`` and ``AMR``, followed by an
+   ``AFR`` pulse at ``t2`` and a second ``EUR`` pulse at ``t3``.
+
+   .. literalinclude:: ../../../example/documentation_examples/models/ppx_xxp_pxx.yaml
+      :language: yaml
+
+.. dropdown:: Continuous pulse model
+
+   A population ``X`` founded by continuous migration from ``EUR``, ``AMR``, and ``AFR`` between
+   generations ``t1`` and ``t2``.
+
+   .. literalinclude:: ../../../example/documentation_examples/models/ccc.yaml
+      :language: yaml
 
 
 .. _input-data:
