@@ -1,0 +1,8 @@
+tracts.phase\_type.base\_phase\_type.PhaseTypeDistribution
+==========================================================
+
+.. currentmodule:: tracts.phase_type.base_phase_type
+
+.. autoclass:: PhaseTypeDistribution
+   :members:
+   :show-inheritance:

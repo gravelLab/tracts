@@ -1,0 +1,6 @@
+tracts.driver\_utils.compute\_remainder\_params
+===============================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: compute_remainder_params

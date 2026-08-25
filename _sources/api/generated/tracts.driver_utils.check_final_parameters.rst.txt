@@ -1,0 +1,6 @@
+tracts.driver\_utils.check\_final\_parameters
+=============================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: check_final_parameters

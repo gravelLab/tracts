@@ -1,0 +1,6 @@
+tracts.plot.plot\_tract\_length\_distributions\_from\_output
+============================================================
+
+.. currentmodule:: tracts.plot
+
+.. autofunction:: plot_tract_length_distributions_from_output

@@ -1,0 +1,8 @@
+tracts.demography.parameter.Parameter
+=====================================
+
+.. currentmodule:: tracts.demography.parameter
+
+.. autoclass:: Parameter
+   :members:
+   :show-inheritance:

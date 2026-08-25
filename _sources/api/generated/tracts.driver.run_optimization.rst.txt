@@ -1,0 +1,6 @@
+tracts.driver.run\_optimization
+===============================
+
+.. currentmodule:: tracts.driver
+
+.. autofunction:: run_optimization

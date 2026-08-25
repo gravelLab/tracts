@@ -1,0 +1,6 @@
+tracts.driver\_utils.get\_param\_names\_by\_type
+================================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: get_param_names_by_type

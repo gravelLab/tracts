@@ -1,0 +1,6 @@
+tracts.driver\_utils.check\_optimal\_sex\_bias\_parameters\_at\_boundaries
+==========================================================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: check_optimal_sex_bias_parameters_at_boundaries

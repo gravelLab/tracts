@@ -1,0 +1,8 @@
+tracts.phase\_type.monoecious.PhTMonoecious
+===========================================
+
+.. currentmodule:: tracts.phase_type.monoecious
+
+.. autoclass:: PhTMonoecious
+   :members:
+   :show-inheritance:

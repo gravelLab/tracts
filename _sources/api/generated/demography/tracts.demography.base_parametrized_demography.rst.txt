@@ -1,0 +1,33 @@
+﻿tracts.demography.base\_parametrized\_demography
+================================================
+
+.. automodule:: tracts.demography.base_parametrized_demography
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   smooth_clip01
+   softplus
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   BaseFounderEvent
+   BaseMigrationEvent
+   BaseParametrizedDemography
+   FixedParametersHandler
+   FounderEvent
+
+
