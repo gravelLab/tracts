@@ -6,19 +6,19 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Per-population run flags ───────────────────────────────────────────────────
-RUN_ACB=0
+RUN_ACB=1
 RUN_ASW=1
-RUN_CLM=0
-RUN_MXL=0
-RUN_PEL=0
-RUN_PUR=0
+RUN_CLM=1
+RUN_MXL=1
+RUN_PEL=1
+RUN_PUR=1
 
 # ── Models per population (files must be <POP>/<POP>_<model>.py) ──────────────
 ACB_MODELS=(ppp ppx_xxp_pxx)
 ASW_MODELS=(ppp ppx_xxp_ppx ppx_xxp_pxx)
 CLM_MODELS=(ppp ccc ccp)
 MXL_MODELS=(ppp ccp)
-PEL_MODELS=(ppp ccp)
+PEL_MODELS=(ppp ccc)
 PUR_MODELS=(ppp cpc cpp)
 
 MAX_WORKERS=6
