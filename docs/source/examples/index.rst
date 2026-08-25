@@ -33,17 +33,10 @@ Example analyses
 
       Example analyses for the ASW population.
 
-   .. grid-item-card:: MXL population
-      :link: ../auto_examples/MXL/index
-      :link-type: doc
-
-      Example analyses for the MXL population.
-      
-
 Demographic models
 ------------------
 
-In this section, we consider four demographic models of varying complexity. The corresponding YAML files are specified below.
+In this section, we consider three demographic models of varying complexity. The corresponding YAML files are specified below.
 
 One pulse model
 ^^^^^^^^^^^^^^^
@@ -52,16 +45,16 @@ The following model is written in the file ``ppp.yaml``.
 
 .. code-block:: yaml
 
-   model_name: One_Pulse
-   description: Represents a population X founded a generations ago by EUR, AMR, and AFR.
+   model_name: One pulse
+   description: Represents a population X founded t generations ago by EUR, NAT, and AFR.
    time_units: generations
    demes:
       - name: EUR
       - name: AFR
-      - name: AMR
+      - name: NAT
       - name: X
-   ancestors: [EUR, AMR, AFR]
-   proportions: [REUR, RAMR, RAFR]
+   ancestors: [EUR, NAT, AFR]
+   proportions: [REUR, RNAT, RAFR]
    start_time: t
 
 Two pulses model
@@ -72,15 +65,15 @@ The following model is written in the file ``ppp_pxx.yaml``.
 .. code-block:: yaml
 
    model_name: Two pulses
-   description: A population X founded a generations ago by EUR, AFR, and AMR, then subsequent EUR migration.
+   description: A population X founded t1 generations ago by EUR, AFR, and NAT, then subsequent EUR migration.
    time_units: generations
    demes:
       - name: EUR
       - name: AFR
-      - name: AMR
+      - name: NAT
       - name: X
-   ancestors: [EUR, AMR, AFR]
-   proportions: [REUR, RAMR, RAFR]
+   ancestors: [EUR, NAT, AFR]
+   proportions: [REUR, RNAT, RAFR]
    start_time: t1
 
    pulses:
@@ -98,15 +91,15 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
 .. code-block:: yaml
 
    model_name: Three pulses
-   description: A demes model with flexible parameters. Represents a population X founded a generations ago by EUR and AMR, then subsequent AFT migration, 
+   description: A demes model with flexible parameters. Represents a population X founded t1 generations ago by EUR and NAT, then subsequent AFR migration,
    then subsequent EUR migration.
    time_units: generations
    demes:
       - name: EUR
-      - name: AMR
+      - name: NAT
       - name: targetpop
-   ancestors: [EUR, AMR]
-   proportions: [REUR, RAMR]
+   ancestors: [EUR, NAT]
+   proportions: [REUR, RNAT]
    start_time: t1
 
    pulses:
@@ -119,38 +112,15 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
         dest: targetpop
         proportions: [REUR2]
         time: t3
-   
- 
-Continuous pulse model
-^^^^^^^^^^^^^^^^^^^^^^
 
-The following model is written in the file ``ccp.yaml``.
 
-.. code-block:: yaml
-
-   model_name: Continuous_pulse_AFR
-   description: Represents a population X founded with a discrete event (AFR) and continuous event (EUR, AMR).
-   time_units: generations
-   demes:
-      - name: EUR
-      - name: AMR
-      - name: AFR
-      - name: X
-   ancestors: [EUR, AMR, AFR]
-   proportions: [REUR, RAMR, RAFR]
-   start_time: t1
-   end_time: t2
-   pulse_pops: [AFR]
-   
-   
 .. toctree::
    :hidden:
 
    data_description
    data_processing
    ../auto_examples/ASW/index
-   ../auto_examples/MXL/index
-   
+
 
 
 

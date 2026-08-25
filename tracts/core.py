@@ -39,6 +39,7 @@ def compute_objective(
     local_genetic_model: GeneticModel,
     tracts_data: TractsData,
     likelihood_options: LikelihoodOptions,
+    count_iteration: bool = True,
 ):
     """
     Evaluate the optimization objective (negative log-likelihood) for a given parameter vector.
@@ -79,6 +80,12 @@ def compute_objective(
         Logging verbosity (``verbose_log``, ``verbose_screen``) and autosome/allosome
         inclusion flags (``include_autosomes``, ``include_allosomes``) for this
         evaluation.
+    count_iteration : bool, default: True
+        Whether this evaluation counts as an optimizer iteration: increments the
+        global iteration counter and is eligible for log/screen printing. Set to
+        False for diagnostic re-evaluations (e.g. recomputing the full-data
+        likelihood for reporting after optimization has already finished) so they
+        don't appear as phantom iterations.
 
     Returns
     -------
@@ -93,9 +100,12 @@ def compute_objective(
     global _counter
     global _out_of_bounds_val
     global _min_out_of_bounds_val
-    _counter += 1
+    if count_iteration:
+        _counter += 1
 
     def flush_result(result, note=''):
+        if not count_iteration:
+            return
         prev_time_param_logging = local_parameter_handler.enable_time_param_logging
         local_parameter_handler.enable_time_param_logging = False
         try:
@@ -229,13 +239,14 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, genetic
     _best_state = {'objective': np.inf, 'params': None, 'loglik': None}
     _likelihood_options = likelihood_options.with_overrides(include_allosomes=ad_model_allosomes is not None)
 
-    def objective_function(parameters):
+    def objective_function(parameters, count_iteration=True):
         return compute_objective(
             parameters,
             local_genetic_model=local_genetic_model,
             best_state=_best_state,
             tracts_data=tracts_data,
             likelihood_options=_likelihood_options,
+            count_iteration=count_iteration,
         )
     # ------------ Define reduced objective function and out-of-bounds function for optimization ------------
 
@@ -429,7 +440,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
 
     # ----------- Define objective function for optimization ------------
 
-    def objective_function(model_base_parameters, include_autosomes=True, include_allosomes=True):
+    def objective_function(model_base_parameters, include_autosomes=True, include_allosomes=True, count_iteration=True):
         return compute_objective(
             model_base_parameters,
             local_genetic_model=local_genetic_model,
@@ -438,6 +449,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
             likelihood_options=likelihood_options.with_overrides(
                 include_autosomes=include_autosomes, include_allosomes=include_allosomes
             ),
+            count_iteration=count_iteration,
         )
 
     # ----------- Reduced functions (shared by both optimization steps) -----------
@@ -569,7 +581,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
                     if not autosomes_in_step_2:
                         prev_best_objective = _best_state['objective']
                         prev_best_params = _best_state['params']
-                        full_data_likelihood = -objective_function(step2_full_params_opt, include_autosomes=True, include_allosomes=True)
+                        full_data_likelihood = -objective_function(step2_full_params_opt, include_autosomes=True, include_allosomes=True, count_iteration=False)
                         _best_state['objective'] = prev_best_objective
                         _best_state['params'] = prev_best_params
                     return _format_return(step2_full_params_opt, fallback_likelihood, full_data_likelihood)
@@ -580,7 +592,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
             if not autosomes_in_step_2:
                 prev_best_objective = _best_state['objective']
                 prev_best_params = _best_state['params']
-                full_data_likelihood = -objective_function(_best_state['params'], include_autosomes=True, include_allosomes=True)
+                full_data_likelihood = -objective_function(_best_state['params'], include_autosomes=True, include_allosomes=True, count_iteration=False)
                 _best_state['objective'] = prev_best_objective
                 _best_state['params'] = prev_best_params
             return _format_return(_best_state['params'], -_best_state['objective'], full_data_likelihood)
@@ -605,7 +617,8 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
                     prev_best_params = _best_state['params']
                     full_data_likelihood = -objective_function(optimized_parameters,
                                                                include_autosomes=True,
-                                                               include_allosomes=True)
+                                                               include_allosomes=True,
+                                                               count_iteration=False)
                     _best_state['objective'] = prev_best_objective
                     _best_state['params'] = prev_best_params
                 return _format_return(optimized_parameters, fallback_likelihood, full_data_likelihood)

@@ -2205,7 +2205,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
             if mean_matrix[i, j] > 1e-12:
                 ax1.text(
                     j, i,
-                    f"{mean_matrix[i, j]:.3f}",
+                    f"{mean_matrix[i, j]:.2f}",
                     ha="center",
                     va="center",
                     fontsize=annot_font,
@@ -2226,7 +2226,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
         im1,
         ax=ax1,
         orientation="horizontal",
-        pad=0.18,
+        pad=0.32,
         fraction=0.05
     )
     cbar1.set_label("Migration rate", fontsize=font_scale, labelpad=8)
@@ -2241,7 +2241,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
             if abs(sex_bias_matrix[i, j]) > 1e-12:
                 ax2.text(
                     j, i,
-                    f"{sex_bias_matrix[i, j]:.3f}",
+                    f"{sex_bias_matrix[i, j]:.2f}",
                     ha="center",
                     va="center",
                     fontsize=annot_font,
@@ -2262,7 +2262,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
         im2,
         ax=ax2,
         orientation="horizontal",
-        pad=0.18,
+        pad=0.32,
         fraction=0.05
     )
 
