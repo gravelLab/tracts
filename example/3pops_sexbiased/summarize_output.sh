@@ -58,7 +58,7 @@ get_best_run_info() {
     local best_lik="" best_ts=""
     for run_dir in $(ls -d "$out_dir"/[0-9]*/ 2>/dev/null | sort); do
         local params_file ts lik
-        params_file=$(find "$run_dir" -maxdepth 1 -name "*optimal_parameters.txt" | head -1)
+        params_file=$(find "$run_dir" -maxdepth 2 -name "*optimal_parameters.txt" | head -1)
         [ -n "$params_file" ] || continue
         lik=$(grep "^likelihood" "$params_file" | awk '{print $2}')
         [ -n "$lik" ] || continue
@@ -74,7 +74,7 @@ get_best_run_info() {
 get_latest_likelihood() {
     local latest_run="$1"
     local params_file
-    params_file=$(find "$latest_run" -maxdepth 1 -name "*optimal_parameters.txt" | head -1)
+    params_file=$(find "$latest_run" -maxdepth 2 -name "*optimal_parameters.txt" | head -1)
     [ -n "$params_file" ] || { echo "ERROR: optimal_parameters.txt missing in $(basename "$latest_run")"; return; }
     local lik
     lik=$(grep "^likelihood" "$params_file" | awk '{print $2}')
@@ -84,7 +84,7 @@ get_latest_likelihood() {
 
 get_latest_yaml() {
     local yaml_file
-    yaml_file=$(find "$1" -maxdepth 1 -name "*.yaml" | head -1)
+    yaml_file=$(find "$1" -maxdepth 2 -name "*.yaml" | head -1)
     [ -n "$yaml_file" ] && echo "$yaml_file"
 }
 
@@ -254,7 +254,7 @@ for pop in ACB ASW CLM MXL PEL PUR; do
             fi
         fi
         if [ "$PRINT_ANCESTRY_PROPORTIONS" -eq 1 ]; then
-            anc_file=$(find "$latest_run" -maxdepth 1 -name "*ancestry_proportions.txt" | head -1)
+            anc_file=$(find "$latest_run" -maxdepth 2 -name "*ancestry_proportions.txt" | head -1)
             if [ -z "$anc_file" ]; then
                 echo "  (no ancestry_proportions.txt)"
             elif [ "$LATEX_FORMAT" -eq 1 ]; then
@@ -265,7 +265,7 @@ for pop in ACB ASW CLM MXL PEL PUR; do
         fi
         
         if [ "$PRINT_PARAMETERS" -eq 1 ]; then
-            param_file=$(find "$latest_run" -maxdepth 1 -name "*optimal_parameters.txt" | head -1)
+            param_file=$(find "$latest_run" -maxdepth 2 -name "*optimal_parameters.txt" | head -1)
             if [ -z "$param_file" ]; then
                 echo "  (no parameters.txt)"
             elif [ "$LATEX_FORMAT" -eq 1 ]; then
