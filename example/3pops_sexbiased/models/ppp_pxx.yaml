@@ -13,7 +13,6 @@ demes:
 
 pulses:
 
-
   - sources: [EUR]
     dest: targetpop
     proportions: [REUR2]
