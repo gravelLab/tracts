@@ -6,6 +6,7 @@ by calling the relevant function below once per output directory.
 """
 
 from pathlib import Path
+from typing import Any
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -314,7 +315,7 @@ def plot_tract_length_distributions_from_output(output_dir: str | Path, output_f
         optimal_likelihood = _read_optimal_likelihood(read_path("optimal_parameters.txt"))
         subtitle = f"Log-likelihood: {optimal_likelihood:.6g}"
 
-    common_kwargs = dict(
+    common_kwargs: dict[str, Any] = dict(
         scale_factor=1,  # Predicted counts saved to disk are already scaled.
         pop_names=pop_names,
         pop_colors=pop_colors,

@@ -23,3 +23,4 @@ example/data/metadata
 example/**/*output*/
 example/**/**/*output*/
 example/**/**/TrioPhased
+example/3pops_sexbiased/plots/
