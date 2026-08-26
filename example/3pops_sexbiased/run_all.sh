@@ -15,11 +15,11 @@ RUN_PUR=1
 
 # ── Models per population (files must be <POP>/<POP>_<model>.py) ──────────────
 ACB_MODELS=(ppp ppx_xxp_pxx)
-ASW_MODELS=(ppp ppx_xxp_ppx ppx_xxp_pxx)
-CLM_MODELS=(ppp ccc ccp)
+ASW_MODELS=(ppp ppx_xxp_pxx)
+CLM_MODELS=(ppp ccc)
 MXL_MODELS=(ppp ccp)
 PEL_MODELS=(ppp ccc)
-PUR_MODELS=(ppp cpc cpp)
+PUR_MODELS=(ppp cpc)
 
 MAX_WORKERS=6
 

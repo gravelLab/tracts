@@ -385,18 +385,17 @@ def plot_tract_length_distributions_from_output(output_dir: str | Path, output_f
 def plot_all_from_output_directories(output_dirs, output_filename_format: str | None = None,
                                     log_scale: bool = True, save_dir: str | Path | None = None,
                                     sum_female_and_male_allosome_tracts: bool = True,
-                                    title_fontsize: float | None = None, subtitle_fontsize: float | None = None,
-                                    label_fontsize: float | None = None, tick_fontsize: float | None = None,
-                                    legend_fontsize: float | None = None) -> None:
+                                    admixture_kwargs: dict | None = None,
+                                    migration_matrices_kwargs: dict | None = None,
+                                    tract_length_kwargs: dict | None = None) -> None:
     """
     Convenience wrapper around :func:`~tracts.plot.plot_admixture_from_output`,
     :func:`~tracts.plot.plot_migration_matrices_from_output` and
     :func:`~tracts.plot.plot_tract_length_distributions_from_output`, to re-produce all three sets of plots for
     a list of output directories (e.g. corresponding to different models or populations) in a single call.
 
-    Since titles are inherently specific to each run, they are not exposed here; call the individual plotting
-    functions directly to customize titles or subtitles. Font sizes, being run-agnostic style choices, are
-    exposed and applied uniformly across every directory in ``output_dirs``.
+    Each of the three plot types can be customized independently, by passing that function's keyword arguments through
+    ``admixture_kwargs``/``migration_matrices_kwargs``/``tract_length_kwargs``.
 
     Parameters
     ----------
@@ -414,43 +413,20 @@ def plot_all_from_output_directories(output_dirs, output_filename_format: str | 
         can safely be collected into the same ``save_dir`` without overwriting each other.
     sum_female_and_male_allosome_tracts: bool
         See :func:`~tracts.plot.plot_tract_length_distributions_from_output`.
-    title_fontsize: float | None
-        The font size of plot titles, applied to every directory in ``output_dirs``. If None (default), each
-        plotting function's own default is used (a fixed size for tract length/admixture plots, an adaptive
-        size for the migration matrices plot).
-    subtitle_fontsize: float | None
-        The font size of plot subtitles (tract length distribution plots only). If None, the default of
-        :func:`~tracts.plot.plot_tract_length_distributions_from_output` is used.
-    label_fontsize: float | None
-        The font size of axis labels (tract length distribution and admixture plots). If None, each plotting
-        function's own default is used.
-    tick_fontsize: float | None
-        The font size of tick labels, applied to every directory in ``output_dirs``. If None (default), each
-        plotting function's own default is used (a fixed size for tract length/admixture plots, an adaptive
-        size for the migration matrices plot).
-    legend_fontsize: float | None
-        The font size of legends (tract length distribution and admixture plots). If None, each plotting
-        function's own default is used.
+    admixture_kwargs: dict | None
+        Extra keyword arguments forwarded to :func:`~tracts.plot.plot_admixture_from_output` (e.g.
+        ``title_fontsize``, ``legend_fontsize``) for every directory in ``output_dirs``. Defaults to None (no
+        overrides: each parameter keeps that function's own default).
+    migration_matrices_kwargs: dict | None
+        Extra keyword arguments forwarded to :func:`~tracts.plot.plot_migration_matrices_from_output` (e.g.
+        ``title_mean``, ``tick_fontsize``) for every directory in ``output_dirs``. Defaults to None.
+    tract_length_kwargs: dict | None
+        Extra keyword arguments forwarded to :func:`~tracts.plot.plot_tract_length_distributions_from_output`
+        (e.g. ``subtitle_fontsize``, ``xlabel``) for every directory in ``output_dirs``. Defaults to None.
     """
-    admixture_kwargs = {}
-    if title_fontsize is not None:
-        admixture_kwargs["title_fontsize"] = title_fontsize
-    if label_fontsize is not None:
-        admixture_kwargs["label_fontsize"] = label_fontsize
-    if tick_fontsize is not None:
-        admixture_kwargs["tick_fontsize"] = tick_fontsize
-    if legend_fontsize is not None:
-        admixture_kwargs["legend_fontsize"] = legend_fontsize
-
-    migration_matrices_kwargs = {}
-    if title_fontsize is not None:
-        migration_matrices_kwargs["title_fontsize"] = title_fontsize
-    if tick_fontsize is not None:
-        migration_matrices_kwargs["tick_fontsize"] = tick_fontsize
-
-    tract_length_kwargs = dict(admixture_kwargs)
-    if subtitle_fontsize is not None:
-        tract_length_kwargs["subtitle_fontsize"] = subtitle_fontsize
+    admixture_kwargs = admixture_kwargs or {}
+    migration_matrices_kwargs = migration_matrices_kwargs or {}
+    tract_length_kwargs = tract_length_kwargs or {}
 
     for output_dir in output_dirs:
 
@@ -458,12 +434,12 @@ def plot_all_from_output_directories(output_dirs, output_filename_format: str | 
                                    output_filename_format=output_filename_format,
                                    save_dir=save_dir,
                                    **admixture_kwargs)
-        
+
         plot_migration_matrices_from_output(output_dir=output_dir,
                                             output_filename_format=output_filename_format,
                                             save_dir=save_dir,
                                             **migration_matrices_kwargs)
-        
+
         plot_tract_length_distributions_from_output(output_dir=output_dir,
                                                     output_filename_format=output_filename_format,
                                                     log_scale=log_scale,
