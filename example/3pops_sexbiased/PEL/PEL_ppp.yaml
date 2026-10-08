@@ -41,7 +41,7 @@ optim:
 
 output:
   output_directory: "./output_ppp/{date}/"
-  output_filename_format: "PEL_{label}"
+  output_filename_format: "PEL_ppp_{label}"
   log_filename: "PEL_ppp.log"
   verbose_log: 1
   verbose_screen: 30

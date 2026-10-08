@@ -33,7 +33,7 @@ start_params:
   RAFR_sex_bias: -0.1:0.1
 
 optim:
-  repetitions: 20
+  repetitions: 80
   seed: 100
   maximum_iterations: 300
   npts: 50
@@ -45,7 +45,7 @@ optim:
 
 output:
   output_directory: "./output_ccc/{date}/"
-  output_filename_format: "PEL_{label}"
+  output_filename_format: "PEL_ccc_{label}"
   log_filename: 'ccc.log'
   verbose_log: 1
   verbose_screen: 30
