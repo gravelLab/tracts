@@ -83,7 +83,7 @@ for POP in "${POPS[@]}"; do
     
     #reorganize directories for consistency across populations
     if [[ -d "${BEDDIR}/${POP}/PopPhased/" ]]; then
-        
+
         echo "mv ${BEDDIR}/${POP}/PopPhased/* ${BEDDIR}/"
         mv "${BEDDIR}/${POP}/PopPhased/"* "${BEDDIR}/"
         rmdir "${BEDDIR}/${POP}/PopPhased"
@@ -91,7 +91,17 @@ for POP in "${POPS[@]}"; do
         echo "File not found: "${BEDDIR}/${POP}/PopPhased/""
     fi
 
-    
+    # The 1000 Genomes ancestry-deconvolution source labels the Native American ancestry
+    # component "NAT", but this example's model/driver YAML files (and their RAMR/RAMR_sex_bias
+    # start params) use "AMR" instead. Relabel the 4th (label) column in place so the
+    # downloaded data matches the examples. 
+    echo
+    echo "Relabeling NAT -> AMR in ${BEDDIR} ..."
+    for BEDFILE in "${BEDDIR}"/*.bed; do
+        [[ -e "${BEDFILE}" ]] || continue
+        awk -F'\t' -v OFS='\t' '{ if ($4 == "NAT") $4 = "AMR"; print }' "${BEDFILE}" > "${BEDFILE}.tmp"
+        mv "${BEDFILE}.tmp" "${BEDFILE}"
+    done
 
     echo
     echo "Finished ${POP}"
