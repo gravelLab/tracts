@@ -1,0 +1,6 @@
+tracts.driver\_utils.get\_admixture\_models
+===========================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: get_admixture_models

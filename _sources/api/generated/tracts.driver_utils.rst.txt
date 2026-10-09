@@ -1,0 +1,65 @@
+﻿tracts.driver\_utils
+====================
+
+.. automodule:: tracts.driver_utils
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   build_boundary_reoptimization_model
+   check_final_parameters
+   check_optimal_params_near_bounds
+   check_optimal_sex_bias_parameters_at_boundaries
+   check_population_labels
+   check_start_params
+   collapse_identical_start_params
+   compute_physical_start_params
+   compute_remainder_params
+   get_admixture_models
+   get_alternate_implicit_population
+   get_ancestry_proportions
+   get_param_names_by_type
+   get_population_colors
+   get_predicted_ancestry_proportions
+   get_starting_ancestry_proportions
+   get_time_scaled_model_bounds
+   get_time_scaled_model_func
+   has_free_sex_bias_parameters
+   load_demographic_model_from_driver
+   load_driver_file
+   load_population
+   locate_file_path
+   output_simulation_data_sex_biased
+   parse_chromosomes
+   parse_individual_filenames
+   parse_param_bounds
+   parse_start_params
+   plot_admixture
+   save_ancestry_table
+   setup_fixed_parameters
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   InferenceConfig
+   ModelReloadContext
+   ModelsConfig
+   OptimizationConfig
+   OutputConfig
+   ParamBoundsConfig
+   SamplesConfig
+   StartParamsConfig
+
+

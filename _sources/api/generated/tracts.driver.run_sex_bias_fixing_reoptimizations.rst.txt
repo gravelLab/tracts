@@ -1,0 +1,6 @@
+tracts.driver.run\_sex\_bias\_fixing\_reoptimizations
+=====================================================
+
+.. currentmodule:: tracts.driver
+
+.. autofunction:: run_sex_bias_fixing_reoptimizations

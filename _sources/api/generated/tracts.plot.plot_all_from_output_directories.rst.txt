@@ -1,0 +1,6 @@
+tracts.plot.plot\_all\_from\_output\_directories
+================================================
+
+.. currentmodule:: tracts.plot
+
+.. autofunction:: plot_all_from_output_directories

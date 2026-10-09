@@ -1,0 +1,6 @@
+tracts.core.compute\_objective
+==============================
+
+.. currentmodule:: tracts.core
+
+.. autofunction:: compute_objective

@@ -1,0 +1,6 @@
+tracts.core.optimize\_cob\_sex\_biased\_two\_steps
+==================================================
+
+.. currentmodule:: tracts.core
+
+.. autofunction:: optimize_cob_sex_biased_two_steps
