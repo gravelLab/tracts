@@ -21,7 +21,7 @@ MXL_MODELS=(ppp ccp)
 PEL_MODELS=(ppp ccc)
 PUR_MODELS=(ppp cpc)
 
-MAX_WORKERS=6
+MAX_WORKERS=18
 
 _PIDS=()
 

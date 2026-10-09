@@ -12,7 +12,6 @@ LATEX_SIG_FIGS=3              # significant figures for parameter values in the 
 PRINT_ANCESTRY_PROPORTIONS=1  # 0=off, 1=print ancestry proportions table as-is
 PRINT_PARAMETERS=1
 
-
 # ── Likelihood tolerance: warn only if latest run is worse than best by at least this amount ──
 LIKELIHOOD_TOLERANCE=0.1
 
