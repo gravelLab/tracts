@@ -2156,12 +2156,14 @@ def _readable_text_color(rgba: tuple) -> str:
 def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list, output_path: str,
                             title_mean: str = "Mean migration matrix", title_sex_bias: str = "Sex-bias in migration",
                             title_fontsize: float | None = None, tick_fontsize: float | None = None,
-                            annot_fontsize: float | None = None):
+                            annot_fontsize: float | None = None, figsize: tuple[float, float] = (7.5, 4.0)):
     """
     See :func:`~tracts.driver_utils.output_simulation_data_sex_biased` and :mod:`tracts.plot` for usage. The
     ``title_fontsize``, ``tick_fontsize`` and ``annot_fontsize`` parameters default to an adaptive font size
     computed from the number of populations/generations, matching the size of the matrices being plotted, if
-    left as None.
+    left as None. ``figsize`` defaults to a two-panel, full-page-width layout (matching the tract length
+    comparison figures produced alongside this one) so that text reads at a consistent size when both figure
+    types are placed in the same document at the same display width.
     """
 
     mean_matrix = (migration_matrix_f[1:,:] + migration_matrix_m[1:,:]) / 2
@@ -2180,7 +2182,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
 
     n_rows, n_cols = mean_matrix.shape
 
-    fig = Figure()
+    fig = Figure(figsize=figsize)
     ax1, ax2 = fig.subplots(1, 2)
 
     # Adaptive fonts (used whenever the corresponding *_fontsize argument is left as None)
@@ -2191,14 +2193,37 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     x_ticks = np.arange(n_cols)
     y_ticks = np.arange(n_rows)
 
-    # Colormaps
+    # Colormaps. Cells with no meaningful migration path (e.g. a population not yet founded at a given
+    # generation) are masked rather than left to render as an indistinguishable "0.00", so the figure
+    # visually separates "structurally not applicable" from "measured, and it happens to be near zero".
+    na_color = "#d9d9d9"
     cmap_mean = LinearSegmentedColormap.from_list("white_green", ["white", "green"])
-    cmap_bias = LinearSegmentedColormap.from_list("blue_white_red", ["blue", "white", "red"])
+    cmap_mean.set_bad(color=na_color)
+    cmap_bias = plt.get_cmap("RdBu_r").copy()
+    cmap_bias.set_bad(color=na_color)
     norm_bias = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1)
 
+    mean_matrix_masked = np.ma.masked_where(mean_matrix <= 1e-12, mean_matrix)
+    sex_bias_matrix_masked = np.ma.masked_invalid(sex_bias_matrix)
+
+    def _panel_label(ax, label):
+        # Bold "a"/"b" tag for referencing each panel in text (e.g. "Fig. 3a") -- the standard convention
+        # expected by most journals for multi-panel figures. Anchored right at the axes' top-left corner,
+        # with the (wide, centered) panel title pushed further up via its own `pad` so the two never collide
+        # even for a narrow panel.
+        ax.text(0.0, 1.0, label, transform=ax.transAxes, fontsize=font_scale + 2,
+                fontweight="bold", va="bottom", ha="left")
+
+    def _admixed_separator(ax):
+        # Thin rule separating the real ancestral-population columns from the derived "Admixed" column
+        # (1 - sum of the others), which is not a migration source in the same sense as the others.
+        ax.axvline(n_cols - 1.5, color="black", lw=1.0, zorder=10)
+
     # Panel 1: Mean matrix
-    im1 = ax1.imshow(mean_matrix, cmap=cmap_mean, vmin=0, vmax=1, aspect="auto")
+    im1 = ax1.imshow(mean_matrix_masked, cmap=cmap_mean, vmin=0, vmax=1, aspect="auto")
     ax1.set_box_aspect(mean_matrix.shape[0] / mean_matrix.shape[1])
+    _admixed_separator(ax1)
+    _panel_label(ax1, "a")
 
     for i in range(n_rows):
         for j in range(n_cols):
@@ -2212,7 +2237,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
                     color=_readable_text_color(cmap_mean(np.clip(mean_matrix[i, j], 0, 1))),
                 )
 
-    ax1.set_title(title_mean, fontsize=font_scale, pad=10)
+    ax1.set_title(title_mean, fontsize=font_scale, pad=22)
     ax1.set_xticks(x_ticks)
     ax1.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2), rotation=45, ha="right")
     ax1.set_xlabel("Ancestral population", fontsize=font_scale)
@@ -2225,30 +2250,32 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     cbar1 = fig.colorbar(
         im1,
         ax=ax1,
-        orientation="horizontal",
-        pad=0.32,
-        fraction=0.05
+        orientation="vertical",
+        fraction=0.046,
+        pad=0.04,
     )
     cbar1.set_label("Migration rate", fontsize=font_scale, labelpad=8)
     cbar1.ax.tick_params(labelsize=tick_font)
 
     # Panel 2: Sex bias matrix
-    im2 = ax2.imshow(sex_bias_matrix, cmap=cmap_bias, norm=norm_bias, aspect="auto")
+    im2 = ax2.imshow(sex_bias_matrix_masked, cmap=cmap_bias, norm=norm_bias, aspect="auto")
     ax2.set_box_aspect(sex_bias_matrix.shape[0] / sex_bias_matrix.shape[1])
+    _admixed_separator(ax2)
+    _panel_label(ax2, "b")
 
     for i in range(n_rows):
         for j in range(n_cols):
-            if abs(sex_bias_matrix[i, j]) > 1e-12:
+            if not np.isnan(sex_bias_matrix[i, j]) and abs(sex_bias_matrix[i, j]) > 1e-12:
                 ax2.text(
                     j, i,
-                    f"{sex_bias_matrix[i, j]:.2f}",
+                    f"{sex_bias_matrix[i, j]:+.2f}",
                     ha="center",
                     va="center",
                     fontsize=annot_font,
                     color=_readable_text_color(cmap_bias(norm_bias(sex_bias_matrix[i, j]))),
                 )
 
-    ax2.set_title(title_sex_bias, fontsize=font_scale, pad=10)
+    ax2.set_title(title_sex_bias, fontsize=font_scale, pad=22)
     ax2.set_xticks(x_ticks)
     ax2.set_xticklabels(pop_labels, fontsize=max(4, tick_font - 2), rotation=45, ha="right")
     ax2.set_xlabel("Ancestral population", fontsize=font_scale)
@@ -2261,23 +2288,22 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     cbar2 = fig.colorbar(
         im2,
         ax=ax2,
-        orientation="horizontal",
-        pad=0.32,
-        fraction=0.05
+        orientation="vertical",
+        fraction=0.046,
+        pad=0.04,
     )
 
+    # Ticks are kept as plain numbers (rather than "-1 (male-only)", "+1 (female-only)" baked into the
+    # colorbar) so they stay legible if this figure is resized for a journal column; the convention is
+    # instead stated once, below the whole figure, alongside the N/A legend swatch.
     cbar2.set_label("Sex-bias", fontsize=font_scale, labelpad=8)
     cbar2.set_ticks([-1, 0, 1])
-    cbar2.set_ticklabels([
-        "-1 (male-only)",
-        "0 (unbiased)",
-        "+1 (female-only)"
-    ])
+    cbar2.set_ticklabels(["-1", "0", "+1"])
     cbar2.ax.tick_params(labelsize=tick_font)
 
-    # Layout
+    # Layout. The N/A legend and sex-bias sign convention are not drawn on the figure itself -- both are
+    # meant to be stated in the surrounding publication's caption instead.
     fig.tight_layout()
-    fig.subplots_adjust(bottom=0.15)
 
     # Save plot
     fig.savefig(output_path, dpi=300, bbox_inches="tight")

@@ -183,7 +183,8 @@ def plot_migration_matrices_from_output(output_dir: str | Path, output_filename_
                                         title_sex_bias: str = "Sex-bias in migration",
                                         title_fontsize: float | None = None,
                                         tick_fontsize: float | None = None,
-                                        annot_fontsize: float | None = None) -> None:
+                                        annot_fontsize: float | None = None,
+                                        figsize: tuple[float, float] = (7.5, 4.0)) -> None:
     """
     Re-produces the ``_migration_matrices`` plot (mean migration matrix and sex-bias values per generation),
     directly from the ``_female_migration_matrix``/``_male_migration_matrix`` output files saved in
@@ -213,6 +214,10 @@ def plot_migration_matrices_from_output(output_dir: str | Path, output_filename_
     annot_fontsize: float | None
         The font size of the value annotations inside each matrix cell. If None (default), an adaptive font
         size is used.
+    figsize: tuple[float, float]
+        The ``(width, height)`` of the figure, in inches. Defaults to a two-panel, full-page-width layout
+        matching the tract length comparison figures produced alongside this one, so that text reads at a
+        consistent size when both figure types are placed in the same document at the same display width.
     """
     output_dir, save_dir, read_path, write_path = _resolve_output_paths(output_dir, output_filename_format, save_dir)
 
@@ -228,7 +233,8 @@ def plot_migration_matrices_from_output(output_dir: str | Path, output_filename_
                             title_sex_bias=title_sex_bias,
                             title_fontsize=title_fontsize,
                             tick_fontsize=tick_fontsize,
-                            annot_fontsize=annot_fontsize)
+                            annot_fontsize=annot_fontsize,
+                            figsize=figsize)
 
     print(f"Migration matrices plot regenerated in: {save_dir}")
     logger.info(f"Migration matrices plot regenerated in: {save_dir}")
