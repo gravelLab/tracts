@@ -78,6 +78,21 @@ LOG_SCALE = True
 SUM_FEMALE_AND_MALE_ALLOSOME_TRACTS = True
 OUTPUT_FILENAME_FORMAT = None  # auto-detected per directory if left as None
 
+# Both the tract length comparison figures and the migration matrix figures have two panels in a single
+# row and are meant to sit side by side in the same document -- FIGURE_WIDTH_INCHES is their shared target
+# display width (e.g. a page's full text width), so that, once both are placed at that width, their text
+# reads at the same size. Adjust to match your target page/column width.
+FIGURE_WIDTH_INCHES = 7.5
+TRACT_LENGTH_FIGURE_HEIGHT_INCHES = 3.5
+# The migration matrix figure has much less surrounding whitespace than the tract length figure (no
+# legend/caption row below it), so savefig(bbox_inches="tight") crops it down by roughly 22% in width
+# relative to its nominal figsize. The nominal width below is calibrated so the *cropped* output lands at
+# FIGURE_WIDTH_INCHES -- i.e. the same final display width as the tract length figure -- rather than
+# ending up narrower and having its (same point-size) text read larger once both are placed at that width.
+_MIGRATION_MATRICES_CROP_FACTOR = 0.772
+MIGRATION_MATRICES_FIGSIZE = (FIGURE_WIDTH_INCHES / _MIGRATION_MATRICES_CROP_FACTOR,
+                               4.0 / _MIGRATION_MATRICES_CROP_FACTOR)
+
 ADMIXTURE_KWARGS = {
     # "title_fontsize": 14,
     # "label_fontsize": 10,
@@ -85,16 +100,19 @@ ADMIXTURE_KWARGS = {
     # "legend_fontsize": 10,
 }
 MIGRATION_MATRICES_KWARGS = {
+    "figsize": MIGRATION_MATRICES_FIGSIZE,
     # "title_fontsize": 12,
     # "tick_fontsize": 8,
     # "annot_fontsize": 7,
 }
 TRACT_LENGTH_KWARGS = {
-    # "title_fontsize": 14,
-    # "subtitle_fontsize": 10,
-    # "label_fontsize": 12,
-    # "tick_fontsize": 10,
-    # "legend_fontsize": 10,
+    "figure_width_inches": FIGURE_WIDTH_INCHES,
+    "figure_height_inches": TRACT_LENGTH_FIGURE_HEIGHT_INCHES,
+    "title_fontsize": 11,
+    "subtitle_fontsize": 10.5,
+    "label_fontsize": 12,
+    "tick_fontsize": 10.5,
+    "legend_fontsize": 11,
 }
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -143,7 +161,8 @@ def most_recent_output_dir(pop: str, model: str) -> Path | None:
 
 def _draw_tract_length_panel(ax, xbins, observed_dict, predicted_dict, pop_names, pop_colors, log_scale,
                               xlabel, ylabel, panel_title, subtitle, alpha_ci,
-                              title_fontsize, subtitle_fontsize, label_fontsize, tick_fontsize):
+                              title_fontsize, subtitle_fontsize, label_fontsize, tick_fontsize,
+                              panel_label=None):
     """
     Draws one model's tract length distribution onto ``ax`` (observed counts as points, predicted
     distribution as a step function with a shaded Poisson prediction interval), without creating a
@@ -156,7 +175,7 @@ def _draw_tract_length_panel(ax, xbins, observed_dict, predicted_dict, pop_names
     for pop in pop_names:
         color = pop_colors[pop]
         y_obs = np.asarray(observed_dict[pop], dtype=float)
-        ax.scatter(x_centers, y_obs, s=30, color=color, alpha=0.95, edgecolor="white", linewidth=0.6, zorder=3)
+        ax.scatter(x_centers, y_obs, s=18, color=color, alpha=0.95, edgecolor="white", linewidth=0.5, zorder=3)
 
         y_pred_bin = np.asarray(predicted_dict[pop], dtype=float)
         y_low_bin = np.asarray(poisson.ppf(alpha_ci / 2, y_pred_bin), dtype=float)
@@ -166,11 +185,11 @@ def _draw_tract_length_panel(ax, xbins, observed_dict, predicted_dict, pop_names
         y_low_step = np.r_[y_low_bin, y_low_bin[-1]]
         y_high_step = np.r_[y_high_bin, y_high_bin[-1]]
 
-        ax.step(xbins, y_pred_step, where="post", color=color, lw=2.2, alpha=0.95, zorder=2)
+        ax.step(xbins, y_pred_step, where="post", color=color, lw=1.5, alpha=0.95, zorder=2)
         ax.fill_between(xbins, y_low_step, y_high_step, step="post", color=color, alpha=0.18, linewidth=0, zorder=1)
 
         population_handles.append(
-            Line2D([0], [0], color=color, lw=2.2, marker='o', markersize=6,
+            Line2D([0], [0], color=color, lw=1.5, marker='o', markersize=5,
                    markerfacecolor=color, markeredgecolor="white", label=pop)
         )
 
@@ -179,6 +198,11 @@ def _draw_tract_length_panel(ax, xbins, observed_dict, predicted_dict, pop_names
     if subtitle is not None:
         ax.text(0.5, 1.02, subtitle, transform=ax.transAxes, ha='center', va='bottom', clip_on=False,
                 fontsize=subtitle_fontsize, color='0.4')
+    if panel_label is not None:
+        # Bold "a"/"b" tag for referencing each panel in text (e.g. "Fig. 2a"), placed above the panel
+        # title (rather than beside it) so it never collides with a long/centered title string.
+        ax.text(0.0, 1.15, panel_label, transform=ax.transAxes, ha='left', va='bottom', clip_on=False,
+                fontsize=title_fontsize + 2, fontweight='bold')
     ax.set_xlabel(xlabel, fontsize=label_fontsize)
     ax.set_ylabel(ylabel, fontsize=label_fontsize)
     if log_scale:
@@ -196,7 +220,8 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
                                           bins_label, sample_label, predicted_label,
                                           output_filename_format, log_scale, save_dir,
                                           xlabel, ylabel, alpha_ci, title_fontsize, subtitle_fontsize,
-                                          label_fontsize, tick_fontsize, legend_fontsize):
+                                          label_fontsize, tick_fontsize, legend_fontsize,
+                                          figure_width_inches, figure_height_inches):
     """
     Builds one figure for ``population`` with one panel per (model, output_dir) in ``model_output_dirs``,
     all sharing a single legend (population colors + observed/predicted glyphs) below the figure.
@@ -204,15 +229,30 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    fig, axes = plt.subplots(1, len(model_output_dirs), figsize=(7.2 * len(model_output_dirs), 5.8),
+    # Total figure width is fixed at figure_width_inches regardless of panel count (rather than scaling
+    # with it), so the figure always renders at the intended display width -- e.g. a page's full text
+    # width -- with the chosen font sizes reading at their intended size once placed in a document.
+    fig, axes = plt.subplots(1, len(model_output_dirs), figsize=(figure_width_inches, figure_height_inches),
                               constrained_layout=True, squeeze=False)
     axes = axes[0]
 
+    # Build a single population->color mapping shared across every panel, from the union of
+    # population names across all panels in canonical (sorted) order. Each panel's output file
+    # can list its populations in a different order, and get_population_colors() assigns colors
+    # by list position, so computing it per-panel (from that panel's own local order) could map
+    # the same population to a different color in each panel despite the figure sharing one legend.
+    all_pop_names = []
+    for _, output_dir in model_output_dirs:
+        _, _, read_path, _ = _resolve_output_paths(output_dir, output_filename_format, save_dir)
+        for name in _read_population_names(read_path("ancestry_per_individual")):
+            if name not in all_pop_names:
+                all_pop_names.append(name)
+    pop_colors = get_population_colors(sorted(all_pop_names))
+
     population_handles = None
-    for ax, (model, output_dir) in zip(axes, model_output_dirs):
+    for panel_index, (ax, (model, output_dir)) in enumerate(zip(axes, model_output_dirs)):
         _, _, read_path, _ = _resolve_output_paths(output_dir, output_filename_format, save_dir)
         pop_names = _read_population_names(read_path("ancestry_per_individual"))
-        pop_colors = get_population_colors(pop_names)
         optimal_likelihood = _read_optimal_likelihood(read_path("optimal_parameters.txt"))
 
         bins = _read_bins(read_path(bins_label))
@@ -224,6 +264,7 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
             panel_title=model, subtitle=f"Log-likelihood: {optimal_likelihood:.6g}", alpha_ci=alpha_ci,
             title_fontsize=title_fontsize, subtitle_fontsize=subtitle_fontsize,
             label_fontsize=label_fontsize, tick_fontsize=tick_fontsize,
+            panel_label=chr(ord('a') + panel_index),
         )
         if population_handles is None:
             population_handles = handles
@@ -233,20 +274,20 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
 
     glyph_handles = [
         Line2D([0], [0], linestyle="None", marker='o', color='0.35', markerfacecolor='0.35',
-               markeredgecolor="white", markersize=6, label="Observed"),
-        Line2D([0], [0], linestyle='-', color='0.35', lw=2.2, label="Predicted"),
+               markeredgecolor="white", markersize=5, label="Observed"),
+        Line2D([0], [0], linestyle='-', color='0.35', lw=1.5, label="Predicted"),
     ]
     # Anchored with x in figure-fraction (centered across every panel) but y in the first axes' own
     # fraction, so the vertical gap below the x-axis label stays consistent regardless of how many
     # panels (and therefore how much suptitle/panel-title space) the figure has.
     blended = mtransforms.blended_transform_factory(fig.transFigure, axes[0].transAxes)
     legend_pop = fig.legend(
-        handles=population_handles, loc="upper center", bbox_to_anchor=(0.5, -0.16), bbox_transform=blended,
+        handles=population_handles, loc="upper center", bbox_to_anchor=(0.5, -0.20), bbox_transform=blended,
         frameon=False, fontsize=legend_fontsize, ncol=min(len(population_handles), 4),
         title="Source population", title_fontsize=legend_fontsize,
     )
     fig.add_artist(legend_pop)
-    fig.legend(handles=glyph_handles, loc="upper center", bbox_to_anchor=(0.5, -0.29), bbox_transform=blended,
+    fig.legend(handles=glyph_handles, loc="upper center", bbox_to_anchor=(0.5, -0.46), bbox_transform=blended,
                frameon=False, fontsize=legend_fontsize, ncol=2)
 
     output_path = save_dir / f"{population}_{tract_kind}_model_comparison.pdf"
@@ -260,7 +301,8 @@ def plot_tract_length_model_comparison(population, model_output_dirs, output_fil
                                         save_dir, sum_female_and_male_allosome_tracts,
                                         xlabel="Tract Length (M)", ylabel="Count", alpha_ci=0.05,
                                         title_fontsize=14, subtitle_fontsize=10, label_fontsize=12,
-                                        tick_fontsize=10, legend_fontsize=10):
+                                        tick_fontsize=10, legend_fontsize=10,
+                                        figure_width_inches=7.5, figure_height_inches=4.4):
     """
     Produces, for a single population, one tract length distribution comparison figure per tract kind
     (autosomal, and allosomal if present) with one panel per entry of ``model_output_dirs``
@@ -272,7 +314,7 @@ def plot_tract_length_model_comparison(population, model_output_dirs, output_fil
         "tract_length_autosome_bins", "autosome_sample_tract_distribution",
         "autosome_predicted_tract_distribution", output_filename_format, log_scale, save_dir,
         xlabel, ylabel, alpha_ci, title_fontsize, subtitle_fontsize, label_fontsize, tick_fontsize,
-        legend_fontsize,
+        legend_fontsize, figure_width_inches, figure_height_inches,
     )
 
     # Allosomes are only present for sex-biased models; detect from the first model's output directory.
@@ -286,7 +328,7 @@ def plot_tract_length_model_comparison(population, model_output_dirs, output_fil
             population, model_output_dirs, "allosomes", "X-chromosome tract length distributions",
             "tract_length_allosome_bins", sample_label, predicted_label, output_filename_format,
             log_scale, save_dir, xlabel, ylabel, alpha_ci, title_fontsize, subtitle_fontsize,
-            label_fontsize, tick_fontsize, legend_fontsize,
+            label_fontsize, tick_fontsize, legend_fontsize, figure_width_inches, figure_height_inches,
         )
 
 
