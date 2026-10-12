@@ -168,6 +168,7 @@ get_model_output_dir() {
 print_paper_tables() {
     python3 - "$@" <<'EOF'
 import sys
+import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -279,7 +280,19 @@ def rate_header(anc, suffix=""):
     sub = f"\\text{{{anc}}},{suffix}" if suffix else f"\\text{{{anc}}}"
     return f"{{$R_{{{sub}}}$}} & {{$R_{{{sub}}}^{{\\text{{SB}}}}$}}"
 
+def fit_colspec(colspec, values):
+    """Widen each S[table-format=...] column so that its value fits (never narrows it)."""
+    values = iter(values)
+    def widen(match):
+        spec, value = match.group(1), next(values)
+        sign = "-" if spec.startswith("-") or value.startswith("-") else ""
+        int_part, dec_part = spec.lstrip("-").split(".")
+        v_int, _, v_dec = value.lstrip("-").partition(".")
+        return f"S[table-format={sign}{max(int(int_part), len(v_int))}.{max(int(dec_part), len(v_dec))}]"
+    return re.sub(r"S\[table-format=([-\d.]+)\]", widen, colspec)
+
 def print_params_table(colspec, group_rows, header, values, caption, label):
+    colspec = fit_colspec(colspec, values)
     print(r"\begin{table}")
     print(r"\centering")
     print(r"\small")
@@ -328,7 +341,7 @@ def print_model_table(p):
                   r"\cmidrule(lr){1-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}"]
         header = (" " + rate_header("EUR") + "\n & " + rate_header("AMR") + " & {$t_1$}\n & "
                   + rate_header("AFR") + " & {$t_2$}\n & " + rate_header("EUR", "2") + " & {$t_3$}\n"
-                  " & {$\\mathcal{L}_{\\mathcal{D}(\\bm{\\theta})}$} \\\\")
+                  " & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
         values = [fmt(rate(p, "EUR")), fmt(sex_bias(p, "EUR")), fmt(rate(p, "AMR")), fmt(sex_bias(p, "AMR")), fmt(p["t1"]),
                   fmt(rate(p, "AFR")), fmt(sex_bias(p, "AFR")), fmt(p["t2"]),
                   fmt(p["REUR2"]), fmt(p["REUR2_sex_bias"]), fmt(p["t3"]), lik]
