@@ -328,7 +328,7 @@ def print_model_table(p):
                   r"\cmidrule(lr){1-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}"]
         header = (" " + rate_header("EUR") + "\n & " + rate_header("AMR") + " & {$t_1$}\n & "
                   + rate_header("AFR") + " & {$t_2$}\n & " + rate_header("EUR", "2") + " & {$t_3$}\n"
-                  " & {$\\mathcal{L}_{\\mathcal{D}(\\bm{\\theta})}$} \\\\")
+                  " & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\")
         values = [fmt(rate(p, "EUR")), fmt(sex_bias(p, "EUR")), fmt(rate(p, "AMR")), fmt(sex_bias(p, "AMR")), fmt(p["t1"]),
                   fmt(rate(p, "AFR")), fmt(sex_bias(p, "AFR")), fmt(p["t2"]),
                   fmt(p["REUR2"]), fmt(p["REUR2_sex_bias"]), fmt(p["t3"]), lik]
