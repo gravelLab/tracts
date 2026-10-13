@@ -1,6 +1,6 @@
-model_name: Continuous_pulse_AFR
+model_name: Continuous_pulse_AMR
 description: 
-  Represents a population X founded with a discrete event (AFR) and continuous event (EUR, AMR).
+  Represents a population X founded with a discrete event (AMR) and continuous event (EUR, AMR).
 time_units: generations
 demes:
   - name: EUR
