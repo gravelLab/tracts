@@ -36,6 +36,7 @@ optim:
   maximum_iterations: 300
   npts: 50
   #fix_parameters_from_ancestry_proportions: ['REUR', 'RAMR', 'REUR_sex_bias', 'RAMR_sex_bias']
+  n_reoptimizations: 5
   exclude_tracts_below_cm: 2
   unknown_labels_for_smoothing: ["UNK", "centromere","miscall"] # segments with these labels will be smoother over, that is, will be filled with neighbouring ancestries up to their midpoints.
 
