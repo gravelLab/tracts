@@ -496,6 +496,7 @@ PROP_ROW_LABEL = {
     "ccc": "Predicted (continuous pulse)",
     "ccp": "Predicted (single and continuous pulse)",
     "cpc": "Predicted (continuous)",
+    "pcc": "Predicted (single and continuous pulse)",
 }
 PARAMS_LABEL = {"ACB": "table:params_ACB", "PUR": "tab:PURcpc"}
 SINGLE_LABEL = {"PUR": "tab:PURparams_pulse"}
@@ -508,8 +509,8 @@ PARAMS_CAPTION = {
            "contribute migrants between $t_1$ and $t_2$ generations ago.",
     "MXL": "inferred using a model with a discrete AFR pulse $t_1$ generations ago and continuous "
            "EUR and AMR migration between $t_1$ and $t_2$ generations ago.",
-    "PEL": "inferred using a continuous-migration model in which the three source populations "
-           "contribute migrants between $t_1$ and $t_2$ generations ago.",
+    "PEL": "inferred using a model (pcc) with a discrete EUR pulse $t_1$ generations ago and continuous "
+           "AFR and AMR migration between $t_1$ and $t_2$ generations ago.",
     "PUR": "inferred using a model (cpc) with a discrete AMR pulse $t_1$ generations ago and continuous "
            "EUR and AFR migration between $t_1$ and $t_2$ generations ago.",
 }
@@ -743,8 +744,8 @@ def print_model_table(f, pop, model, sig_figs, p):
         for anc in ANCESTRIES:
             values += [fmt(rate(p, anc), sig_figs), fmt(sex_bias(p, anc), sig_figs)]
         values += [fmt(p["t1"], sig_figs), fmt(p["t2"], sig_figs), lik]
-    elif model in ("ccp", "cpc"):
-        pulse = "AFR" if model == "ccp" else "AMR"
+    elif model in ("ccp", "cpc", "pcc"):
+        pulse = {"ccp": "AFR", "cpc": "AMR", "pcc": "EUR"}[model]
         continuous = [a for a in ANCESTRIES if a != pulse]
         r_fmt = "1.4" if model == "ccp" else "1.5"
         colspec = (f"S[table-format={r_fmt}] S[table-format=-1.3]\n"
