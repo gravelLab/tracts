@@ -392,8 +392,11 @@ if print_props:
     if single_props is None or model_props is None:
         print("% (missing ancestry_proportions.txt: cannot build the ancestry proportions table)")
     else:
-        if (single_props["Observed (autosomes)"], single_props["Observed (X)"]) != \
-           (model_props["Observed (autosomes)"], model_props["Observed (X)"]):
+        if any(
+            [float(single_props[row][anc]) for anc in ANCESTRIES] !=
+            [float(model_props[row][anc]) for anc in ANCESTRIES]
+            for row in ("Observed (autosomes)", "Observed (X)")
+        ):
             warning = (f"WARNING: {pop}: observed proportions differ between the ppp and {model} runs "
                        "(different samples?); ancestry proportions table skipped.")
             print(f"% {warning}")
