@@ -10,7 +10,7 @@ This section shows how to use ``tracts`` on a real dataset. It analyzes a single
 .. admonition:: Reproducing the 1000 Genomes analyses of the paper
    :class: tip
 
-   The full analysis of the six admixed populations of the 1000 Genomes Project (ACB, ASW, CLM, MXL, PEL and PUR) presented in the paper is available in the folder `example/3pops_sexbiased <https://github.com/gravelLab/tracts/tree/devel/example/3pops_sexbiased>`_ of the GitHub repository. Its README explains how to download the data, run the inference and produce the tables and figures. It is also available on the page :ref:`paper-1kgp`.
+   The full analysis of the six admixed populations of the 1000 Genomes Project (ACB, ASW, CLM, MXL, PEL and PUR) presented in the paper is available in the folder `example/3pops_sexbiased <https://github.com/gravelLab/tracts/tree/devel/example/3pops_sexbiased>`_ of the GitHub repository. Its README explains how to download the data, run the inference and produce the tables and figures.
 
 Data
 ----
@@ -41,12 +41,6 @@ Example analyses
       :link-type: doc
 
       Example analyses for the ASW population.
-
-   .. grid-item-card:: Reproducing the paper's analyses
-      :link: paper-1kgp
-      :link-type: ref
-
-      Full analysis of the six 1000 Genomes populations presented in the paper.
 
 Demographic models
 ------------------
@@ -135,7 +129,6 @@ The following model is written in the file ``ppp_xxp_pxx.yaml``.
    data_description
    data_processing
    ../auto_examples/ASW/index
-   paper_1kgp
 
 
 
