@@ -46,6 +46,7 @@ fi
 
 SCRIPT_DIR="$SCRIPT_DIR" SAVE_DIR="$SAVE_DIR" PAIRS="$(printf '%s\n' "${PAIRS[@]}")" python3 - <<'PYEOF'
 import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -125,11 +126,11 @@ yaml_loader = YAML(typ="safe")
 
 def most_recent_output_dir(pop: str, model: str) -> Path | None:
     """
-    Finds the most recent *completed* output directory for ``pop``/``model``, by reading the
+    Finds the most recent output directory for ``pop``/``model``, by reading the
     ``output.output_directory`` field of its driver file (resolving the "{date}" placeholder to the
     directory it expands into at run time) and picking the lexicographically-last "YYYYMMDD_HHMMSS"
-    subdirectory that actually contains a completed run (an interrupted/crashed run is skipped, even
-    if it is the most recent by timestamp).
+    subdirectory. The latest run is always used: if it is not complete (still running or crashed),
+    the model is skipped with a message rather than falling back to an older run.
     """
     driver_path = script_dir / pop / f"{pop}_{model}.yaml"
     if not driver_path.exists():
@@ -148,15 +149,18 @@ def most_recent_output_dir(pop: str, model: str) -> Path | None:
         print(f"  x {pop}_{model}: no output directory found at {root}", file=sys.stderr)
         return None
 
-    complete_runs = [
-        d for d in root.iterdir()
-        if d.is_dir() and list((d / _OUTPUT_SUBDIRS["optimal_parameters.txt"]).glob("*optimal_parameters.txt"))
-    ]
-    if not complete_runs:
-        print(f"  x {pop}_{model}: no completed run found under {root}", file=sys.stderr)
+    runs = [d for d in root.iterdir() if d.is_dir() and re.fullmatch(r"\d{8}_\d{6}", d.name)]
+    if not runs:
+        print(f"  x {pop}_{model}: no run found under {root}", file=sys.stderr)
         return None
 
-    return max(complete_runs, key=lambda d: d.name)
+    latest = max(runs, key=lambda d: d.name)
+    if not list((latest / _OUTPUT_SUBDIRS["optimal_parameters.txt"]).glob("*optimal_parameters.txt")):
+        print(f"  x {pop}_{model}: latest run {latest.name} is not complete (still running or crashed); skipped",
+              file=sys.stderr)
+        return None
+
+    return latest
 
 
 def _draw_tract_length_panel(ax, xbins, observed_dict, predicted_dict, pop_names, pop_colors, log_scale,
