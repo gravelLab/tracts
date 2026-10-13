@@ -28,6 +28,7 @@ extensions = [
 
 extensions += ["sphinx_design"]
 extensions += ["sphinx_gallery.gen_gallery"]
+extensions += ["myst_parser"]  # Markdown pages (e.g. the README of example/3pops_sexbiased)
 
 nbsphinx_execute = "never"
 

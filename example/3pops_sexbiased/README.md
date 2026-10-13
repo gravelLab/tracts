@@ -1,7 +1,7 @@
 # Sex-biased admixture in six 1000 Genomes populations
 
 This folder contains the instructions to reproduce the results (tables and figures) of the
-**Results** section of \texttt{tracts 2.0} paper.
+**Results** section of the `tracts 2.0` paper.
 
 We fit three-way (EUR, AMR, AFR) sex-biased admixture models jointly on autosomal and X chromosome
 local ancestry tracts for the six admixed populations of the 1000 Genomes Project Phase 3: ACB,
