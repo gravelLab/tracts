@@ -399,9 +399,13 @@ if print_props:
     else:
         if (single_props["Observed (autosomes)"], single_props["Observed (X)"]) != \
            (model_props["Observed (autosomes)"], model_props["Observed (X)"]):
-            print("% WARNING: observed proportions differ between the two runs (different samples?); using the ppp run.")
-        print_proportions_table(single_props, model_props)
-        print()
+            warning = (f"WARNING: {pop}: observed proportions differ between the ppp and {model} runs "
+                       "(different samples?); ancestry proportions table skipped.")
+            print(f"% {warning}")
+            print(f"*** {warning}", file=sys.stderr)
+        else:
+            print_proportions_table(single_props, model_props)
+            print()
 if print_single:
     print_single_pulse_table(read_params(single_run))
     print()
