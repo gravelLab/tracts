@@ -56,8 +56,9 @@ fi
 
 # ── Summary functions ─────────────────────────────────────────────────────────
 
+# get_latest_run <out_dir> — latest run folder, by its YYYYMMDD_HHMMSS timestamp name.
 get_latest_run() {
-    ls -d "$1"/[0-9]*/ 2>/dev/null | sort | tail -1
+    ls -d "$1"/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9]/ 2>/dev/null | sort | tail -1
 }
 
 # Prints "<best_likelihood> <timestamp>" across all runs in out_dir.
@@ -134,16 +135,10 @@ get_num_individuals() {
     query_yaml_len "$yaml_file" "samples.individual_names"
 }
 
-# get_latest_complete_run <out_dir> — latest timestamped run that contains an
-# optimal_parameters.txt file (i.e. skips runs that are still going or crashed).
-get_latest_complete_run() {
-    local run_dir
-    for run_dir in $(ls -d "$1"/[0-9]*/ 2>/dev/null | sort -r); do
-        if [ -n "$(find "$run_dir" -maxdepth 2 -name "*optimal_parameters.txt" | head -1)" ]; then
-            echo "$run_dir"
-            return
-        fi
-    done
+# is_complete_run <run_dir> — true if the run contains an optimal_parameters.txt file
+# (i.e. it is neither still running nor crashed).
+is_complete_run() {
+    [ -n "$(find "$1" -maxdepth 2 -name "*optimal_parameters.txt" | head -1)" ]
 }
 
 # get_model_output_dir <pop> <model> — output directory of <pop>_<model>.yaml, with the
@@ -473,8 +468,8 @@ for pop in ACB ASW CLM MXL PEL PUR; do
 done
 
 # ── LaTeX tables for the paper ────────────────────────────────────────────────
-# One block per population, built from the latest *completed* run of each model in
-# <POP>_MODELS (independent of the date filter above). Paste each block as is.
+# One block per population, built from the latest run of each model in <POP>_MODELS
+# (independent of the date filter above); skipped if a latest run is not complete. Paste each block as is.
 if [ "$LATEX_FORMAT" -eq 1 ]; then
     echo ""
     echo "══════════════════════════════════════════"
@@ -485,11 +480,21 @@ if [ "$LATEX_FORMAT" -eq 1 ]; then
         models=("${!models_var}")
         single_model="${models[0]}"
         model="${models[1]}"
-        single_run=$(get_latest_complete_run "$(get_model_output_dir "$pop" "$single_model")")
-        model_run=$(get_latest_complete_run "$(get_model_output_dir "$pop" "$model")")
+        single_run=$(get_latest_run "$(get_model_output_dir "$pop" "$single_model")")
+        model_run=$(get_latest_run "$(get_model_output_dir "$pop" "$model")")
         echo ""
-        if [ -z "$single_run" ] || [ -z "$model_run" ]; then
-            echo "% ===== $pop: no completed run for ${single_model} and/or ${model}; skipped ====="
+        skip=""
+        for m in "$single_model" "$model"; do
+            run=$single_run; [ "$m" = "$model" ] && run=$model_run
+            if [ -z "$run" ]; then
+                skip="$skip ${m}: no run found;"
+            elif ! is_complete_run "$run"; then
+                skip="$skip ${m}: latest run $(basename "${run%/}") is not complete (still running or crashed);"
+            fi
+        done
+        if [ -n "$skip" ]; then
+            echo "% ===== $pop: skipped --$skip ====="
+            echo "*** $pop LaTeX tables skipped --$skip" >&2
             continue
         fi
         print_paper_tables "$pop" "${single_run%/}" "$model" "${model_run%/}" "$LATEX_SIG_FIGS" \
