@@ -2165,6 +2165,41 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     comparison figures produced alongside this one) so that text reads at a consistent size when both figure
     types are placed in the same document at the same display width.
     """
+    fig = Figure(figsize=figsize)
+    ax1, ax2 = fig.subplots(1, 2)
+    _draw_migration_matrices(fig=fig,
+                            ax1=ax1,
+                            ax2=ax2,
+                            migration_matrix_f=migration_matrix_f,
+                            migration_matrix_m=migration_matrix_m,
+                            pop_labels=pop_labels,
+                            title_mean=title_mean,
+                            title_sex_bias=title_sex_bias,
+                            title_fontsize=title_fontsize,
+                            tick_fontsize=tick_fontsize,
+                            annot_fontsize=annot_fontsize)
+
+    # Layout. The N/A legend and sex-bias sign convention are not drawn on the figure itself -- both are
+    # meant to be stated in the surrounding publication's caption instead.
+    fig.tight_layout()
+
+    # Save plot
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    png_path = os.path.splitext(output_path)[0] + ".png"
+    fig.savefig(png_path, dpi=300, bbox_inches="tight")
+
+
+def _draw_migration_matrices(fig, ax1, ax2, migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray,
+                             pop_labels: list, title_mean: str = "Mean migration matrix",
+                             title_sex_bias: str = "Sex-bias in migration", title_fontsize: float | None = None,
+                             tick_fontsize: float | None = None, annot_fontsize: float | None = None,
+                             panel_labels: tuple[str, str] = ("a", "b")):
+    """
+    Draws the mean migration matrix onto ``ax1`` and the sex-bias matrix onto ``ax2`` (both axes, and their
+    colorbars, belonging to ``fig``), tagged with ``panel_labels``. Used by
+    :func:`~tracts.driver_utils._plot_migration_matrices`, and reusable to embed both matrices in a larger
+    multi-panel figure. Layout and saving are left to the caller.
+    """
 
     mean_matrix = (migration_matrix_f[1:,:] + migration_matrix_m[1:,:]) / 2
     denom_matrix = 2 * np.minimum(mean_matrix, 1 - mean_matrix)
@@ -2181,9 +2216,6 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     pop_labels = pop_labels + ['Admixed']
 
     n_rows, n_cols = mean_matrix.shape
-
-    fig = Figure(figsize=figsize)
-    ax1, ax2 = fig.subplots(1, 2)
 
     # Adaptive fonts (used whenever the corresponding *_fontsize argument is left as None)
     font_scale = title_fontsize if title_fontsize is not None else max(7, min(12, 12 - 0.4 * n_cols))
@@ -2223,7 +2255,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     im1 = ax1.imshow(mean_matrix_masked, cmap=cmap_mean, vmin=0, vmax=1, aspect="auto")
     ax1.set_box_aspect(mean_matrix.shape[0] / mean_matrix.shape[1])
     _admixed_separator(ax1)
-    _panel_label(ax1, "a")
+    _panel_label(ax1, panel_labels[0])
 
     for i in range(n_rows):
         for j in range(n_cols):
@@ -2261,7 +2293,7 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     im2 = ax2.imshow(sex_bias_matrix_masked, cmap=cmap_bias, norm=norm_bias, aspect="auto")
     ax2.set_box_aspect(sex_bias_matrix.shape[0] / sex_bias_matrix.shape[1])
     _admixed_separator(ax2)
-    _panel_label(ax2, "b")
+    _panel_label(ax2, panel_labels[1])
 
     for i in range(n_rows):
         for j in range(n_cols):
@@ -2300,15 +2332,6 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     cbar2.set_ticks([-1, 0, 1])
     cbar2.set_ticklabels(["-1", "0", "+1"])
     cbar2.ax.tick_params(labelsize=tick_font)
-
-    # Layout. The N/A legend and sex-bias sign convention are not drawn on the figure itself -- both are
-    # meant to be stated in the surrounding publication's caption instead.
-    fig.tight_layout()
-
-    # Save plot
-    fig.savefig(output_path, dpi=300, bbox_inches="tight")
-    png_path = os.path.splitext(output_path)[0] + ".png"
-    fig.savefig(png_path, dpi=300, bbox_inches="tight")
 
 
 def get_population_colors(pop_names: list) -> dict:
