@@ -1,0 +1,8 @@
+tracts.likelihood\_options.LikelihoodOptions
+============================================
+
+.. currentmodule:: tracts.likelihood_options
+
+.. autoclass:: LikelihoodOptions
+   :members:
+   :show-inheritance:

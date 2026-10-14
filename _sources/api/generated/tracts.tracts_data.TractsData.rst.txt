@@ -1,0 +1,8 @@
+tracts.tracts\_data.TractsData
+==============================
+
+.. currentmodule:: tracts.tracts_data
+
+.. autoclass:: TractsData
+   :members:
+   :show-inheritance:

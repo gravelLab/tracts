@@ -1,0 +1,6 @@
+tracts.driver\_utils.plot\_admixture
+====================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: plot_admixture

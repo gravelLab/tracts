@@ -1,0 +1,8 @@
+tracts.phase\_type.dioecious.PhTDioecious
+=========================================
+
+.. currentmodule:: tracts.phase_type.dioecious
+
+.. autoclass:: PhTDioecious
+   :members:
+   :show-inheritance:
