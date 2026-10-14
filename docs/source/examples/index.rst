@@ -3,14 +3,10 @@ Examples
 
 This section shows how to use ``tracts`` on a real dataset. It analyzes a single population from the 1000 Genomes Project, the African Americans from Southwest US (ASW), using trio-phased local ancestry calls. The examples walk through the main steps of an analysis: the input data, the driver files, the demographic models, running the inference and reading the outputs. Below, we provide a description of the data, the preprocessing steps, links to the examples, and the demographic models considered.
 
-.. important::
-
-   The data used in these examples are not the same as the data analyzed in the ``tracts`` paper. Here, the ASW local ancestry calls are trio-phased, whereas the paper uses the population-phased local ancestry calls from the same 1000 Genomes release. Because phasing changes the inferred ancestry tracts, the results of these examples differ from those reported in the paper. 
-
 .. admonition:: Reproducing the 1000 Genomes analyses of the paper
    :class: tip
 
-   The full analysis of the six admixed populations of the 1000 Genomes Project (ACB, ASW, CLM, MXL, PEL and PUR) presented in the paper is available in the folder `example/3pops_sexbiased <https://github.com/gravelLab/tracts/tree/devel/example/3pops_sexbiased>`_ of the GitHub repository. Its README explains how to download the data, run the inference and produce the tables and figures.
+   The data used in these examples are not the same as the data analyzed in the ``tracts`` paper. Here, the ASW local ancestry calls are trio-phased, whereas the paper uses the population-phased local ancestry calls from the same 1000 Genomes release. The full analysis of the six admixed populations of the 1000 Genomes Project (ACB, ASW, CLM, MXL, PEL and PUR) presented in the paper is available in the folder `example/3pops_sexbiased <https://github.com/gravelLab/tracts/tree/devel/example/3pops_sexbiased>`_ of the GitHub repository. Its README explains how to download the data, run the inference and produce the tables and figures.
 
 Data
 ----
