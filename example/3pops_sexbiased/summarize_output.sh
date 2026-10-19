@@ -12,6 +12,10 @@ LATEX_SIG_FIGS=3              # significant figures for parameter values in the 
 PRINT_ANCESTRY_PROPORTIONS=1  # ancestry proportions table (single-pulse and second model)
 PRINT_PARAMETERS=1            # best-fit parameters table of the second model
 PRINT_SINGLE_PULSE_PARAMETERS=1  # best-fit parameters table of the single-pulse model (LaTeX only)
+LATEX_TABLES_DIR="$SCRIPT_DIR/latex_tables"  # folder where the merged LaTeX tables (.tex files) are written
+WRITE_TRACT_COUNTS=1          # write the tract counts table of all populations to $LATEX_TABLES_DIR/tract_counts.tex
+WRITE_ANCESTRY_PROPORTIONS=1  # write the ancestry proportions table of all populations to $LATEX_TABLES_DIR/ancestry_proportions.tex
+WRITE_SINGLE_PULSE_PARAMS=1   # write the single-pulse best-fit parameters of all populations to $LATEX_TABLES_DIR/single_pulse_params.tex
 
 # ── Models per population for the LaTeX tables: single-pulse model first, then the second
 # model (same convention as run_all.sh; files must be <POP>/<POP>_<model>.yaml) ──
@@ -19,7 +23,7 @@ ACB_MODELS=(ppp ppx_xxp_pxx)
 ASW_MODELS=(ppp ppx_xxp_pxx)
 CLM_MODELS=(ppp ccc)
 MXL_MODELS=(ppp ccp)
-PEL_MODELS=(ppp ccc)
+PEL_MODELS=(ppp pcc)
 PUR_MODELS=(ppp cpc)
 
 # ── Likelihood tolerance: warn only if latest run is worse than best by at least this amount ──
@@ -180,6 +184,7 @@ PROP_ROW_LABEL = {
     "ccc": "Predicted (continuous pulse)",
     "ccp": "Predicted (single and continuous pulse)",
     "cpc": "Predicted (continuous)",
+    "pcc": "Predicted (single and continuous pulse)",
 }
 PARAMS_LABEL = {"ACB": "table:params_ACB", "PUR": "tab:PURcpc"}
 SINGLE_LABEL = {"PUR": "tab:PURparams_pulse"}
@@ -192,8 +197,8 @@ PARAMS_CAPTION = {
            "contribute migrants between $t_1$ and $t_2$ generations ago.",
     "MXL": "inferred using a model with a discrete AFR pulse $t_1$ generations ago and continuous "
            "EUR and AMR migration between $t_1$ and $t_2$ generations ago.",
-    "PEL": "inferred using a continuous-migration model in which the three source populations "
-           "contribute migrants between $t_1$ and $t_2$ generations ago.",
+    "PEL": "inferred using a model (pcc) with a discrete EUR pulse $t_1$ generations ago and continuous "
+           "AMR and AFR migration between $t_1$ and $t_2$ generations ago.",
     "PUR": "inferred using a model (cpc) with a discrete AMR pulse $t_1$ generations ago and continuous "
            "EUR and AFR migration between $t_1$ and $t_2$ generations ago.",
 }
@@ -362,8 +367,8 @@ def print_model_table(p):
         for anc in ANCESTRIES:
             values += [fmt(rate(p, anc)), fmt(sex_bias(p, anc))]
         values += [fmt(p["t1"]), fmt(p["t2"]), lik]
-    elif model in ("ccp", "cpc"):
-        pulse = "AFR" if model == "ccp" else "AMR"
+    elif model in ("ccp", "cpc", "pcc"):
+        pulse = {"ccp": "AFR", "cpc": "AMR", "pcc": "EUR"}[model]
         continuous = [a for a in ANCESTRIES if a != pulse]
         r_fmt = "1.4" if model == "ccp" else "1.5"
         colspec = (f"S[table-format={r_fmt}] S[table-format=-1.3]\n"
@@ -410,6 +415,201 @@ if print_single:
 if print_params:
     print_model_table(read_params(model_run))
     print()
+EOF
+}
+
+# write_merged_table <kind> <output.tex> <pop> <single_run_dir> <model> <model_run_dir> [<pop> ...]
+# Writes one of the paper's merged tables (all populations in one table), comparing observed values
+# with those predicted by the single-pulse model and by the second model, on the autosomes and the
+# X chromosome. <kind> is "tract_counts" (read from *tract_counts.txt) or "ancestry_proportions"
+# (read from *ancestry_proportions.txt). <kind> "single_pulse_params" instead writes the best-fit
+# parameters of the single-pulse model (read from *optimal_parameters.txt of the ppp runs). A population whose two runs have different observed values
+# (different samples?) is left out with a warning.
+write_merged_table() {
+    SIG_FIGS="$LATEX_SIG_FIGS" python3 - "$@" <<'EOF'
+import sys
+from pathlib import Path
+
+kind, out_path, rows = sys.argv[1], Path(sys.argv[2]), sys.argv[3:]
+entries = [rows[i:i + 4] for i in range(0, len(rows), 4)]
+
+KINDS = {
+    "tract_counts": dict(
+        name="tract counts", source="tract_counts.txt", header="Counts", placement="h!", precision=1,
+        formats=["5.1", "5.1", "4.1", "3.1", "3.1", "3.1"], integer_observed=True, label="tab:tractcounts",
+        caption="Observed and predicted tract counts on the autosomes and the X chromosome for the six admixed "
+                "populations. For each population, predicted counts are given under a single-pulse model and under "
+                "an alternative admixture model."),
+    "ancestry_proportions": dict(
+        name="ancestry proportions", source="ancestry_proportions.txt", header="Proportions", placement="ht!",
+        precision=4, formats=["1.4"] * 6, integer_observed=False, label="tab:prop",
+        caption="Observed and predicted ancestry proportions on the autosomes and the X chromosome for the six "
+                "admixed populations. For each population, predicted proportions are given under a single-pulse "
+                "model and under an alternative admixture model."),
+}
+
+def write_single_pulse_params():
+    """Best-fit parameters of the single-pulse model (ppp) for all populations, one row each."""
+    import os, re
+    from decimal import Decimal
+    sig_figs = int(os.environ.get("SIG_FIGS", "3"))
+    fmt = lambda v: format(Decimal(f"{v:.{sig_figs}g}"), "f")
+
+    def read_params(run_dir):
+        matches = sorted(Path(run_dir).glob("*optimal_parameters.txt")) + sorted(Path(run_dir).glob("*/*optimal_parameters.txt"))
+        params = {}
+        for line in matches[0].read_text().splitlines()[1:]:
+            tokens = line.split()
+            if tokens:
+                params[tokens[0]] = float(tokens[-1])
+        return params
+
+    def lookup(params, anc, suffix):
+        names = [f"R{anc}{suffix}"] + [f"R{a}{suffix}" for a, b in {"NAT": "AMR"}.items() if b == anc] \
+                + [f"targetpop_{anc}_{'rate' if not suffix else 'sex_bias'}"]
+        for name in names:
+            if name in params:
+                return params[name]
+        raise KeyError(f"no {'rate' if not suffix else 'sex-bias'} parameter for {anc}")
+
+    rows = []
+    for pop, single_run, _, _ in entries:
+        p = read_params(single_run)
+        values = []
+        for anc in ["EUR", "AMR", "AFR"]:
+            values += [fmt(lookup(p, anc, "")), fmt(lookup(p, anc, "_sex_bias"))]
+        values += [fmt(p["t"]), fmt(p["likelihood"])]
+        rows.append((pop, values))
+
+    # Column formats as in the paper, widened if a value does not fit (never narrowed).
+    formats = ["1.4", "-1.3", "1.4", "-1.3", "1.4", "-1.3", "1.2", "-4.0"]
+    def widen(spec, column):
+        sign = "-" if spec.startswith("-") or any(v.startswith("-") for v in column) else ""
+        i, d = (int(x) for x in spec.lstrip("-").split("."))
+        for v in column:
+            vi, _, vd = v.lstrip("-").partition(".")
+            i, d = max(i, len(vi)), max(d, len(vd))
+        return f"{sign}{i}.{d}"
+    formats = [widen(s, [v[j] for _, v in rows]) for j, s in enumerate(formats)]
+    widths = [max(len(v[j]) for _, v in rows) for j in range(8)]
+
+    out = [r"\begin{table}[h!]",
+           r"\centering",
+           r"\small",
+           r"\setlength{\tabcolsep}{4pt}",
+           r"\begin{tabular}{l",
+           f"                S[table-format={formats[0]}] S[table-format={formats[1]}]",
+           f"                S[table-format={formats[2]}] S[table-format={formats[3]}]",
+           f"                S[table-format={formats[4]}] S[table-format={formats[5]}]",
+           f"                S[table-format={formats[6]}]",
+           f"                S[table-format={formats[7]}]}}",
+           r"\toprule",
+           r"\multirow{2}{*}{Population} & \multicolumn{2}{c}{EUR} & \multicolumn{2}{c}{AMR} & \multicolumn{2}{c}{AFR} & & \\",
+           r"\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}",
+           r" & {$R_{\text{EUR}}$} & {$R_{\text{EUR}}^{\text{SB}}$}",
+           r" & {$R_{\text{AMR}}$} & {$R_{\text{AMR}}^{\text{SB}}$}",
+           r" & {$R_{\text{AFR}}$} & {$R_{\text{AFR}}^{\text{SB}}$}",
+           r" & {$t$}",
+           r" & {$\mathcal{L}_{\mathcal{D}}(\bm{\theta})$} \\",
+           r"\midrule"]
+    for pop, values in rows:
+        out.append(f"{pop} & " + " & ".join(f"{v:<{w}}" for v, w in zip(values, widths)) + r" \\")
+    out += [r"\bottomrule",
+            r"\end{tabular}",
+            r"\caption{Best-fit parameters for the six admixed populations, inferred using a single-pulse model in "
+            r"which the three source populations contribute at a single admixture event $t$ generations ago.}",
+            r"\label{tab:params_single}",
+            r"\end{table}"]
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(out) + "\n")
+    print(f"Single-pulse parameters table ({len(rows)} populations) written to {out_path}")
+
+if kind == "single_pulse_params":
+    write_single_pulse_params()
+    sys.exit(0)
+
+cfg = KINDS[kind]
+
+ANCESTRIES = ["EUR", "AMR", "AFR"]
+ALIASES = {"NAT": "AMR"}
+MODEL_LABEL = {
+    "ppp": "Single pulse (ppp)",
+    "ppx_xxp_pxx": "Three pulses (ppx\\_xxp\\_pxx)",
+    "ccc": "Continuous pulse (ccc)",
+    "ccp": "Single + continuous (ccp)",
+    "cpc": "Single + continuous (cpc)",
+    "pcc": "Single + continuous (pcc)",
+}
+
+def read_table(run_dir):
+    suffix = cfg["source"]
+    matches = sorted(Path(run_dir).glob(f"*{suffix}")) + sorted(Path(run_dir).glob(f"*/*{suffix}"))
+    if not matches:
+        return None
+    content = [l for l in matches[0].read_text().splitlines() if l.strip() and set(l.strip()) - {"-"}]
+    header = [ALIASES.get(a, a) for a in content[0].split()]
+    table = {}
+    for line in content[1:]:
+        tokens = line.split()
+        table[" ".join(tokens[:-len(header)])] = dict(zip(header, tokens[-len(header):]))
+    return table
+
+def observed(value):
+    """Observed counts are integers: drop the trailing zeros of the decimal part."""
+    if cfg["integer_observed"] and float(value).is_integer():
+        return str(int(float(value)))
+    return value
+
+blocks = []
+for pop, single_run, model, model_run in entries:
+    single, other = read_table(single_run), read_table(model_run)
+    if single is None or other is None:
+        print(f"*** {pop}: missing {cfg['source']}; left out of the {cfg['name']} table", file=sys.stderr)
+        continue
+    if (single["Observed (autosomes)"], single["Observed (X)"]) != (other["Observed (autosomes)"], other["Observed (X)"]):
+        print(f"*** WARNING: {pop}: observed {cfg['name']} differ between the ppp and {model} runs "
+              f"(different samples?); left out of the {cfg['name']} table", file=sys.stderr)
+        continue
+    lines = [("Observed", [observed(single["Observed (autosomes)"][a]) for a in ANCESTRIES]
+                          + [observed(single["Observed (X)"][a]) for a in ANCESTRIES]),
+             (MODEL_LABEL["ppp"], [single["Predicted (autosomes)"][a] for a in ANCESTRIES]
+                                  + [single["Predicted (X)"][a] for a in ANCESTRIES]),
+             (MODEL_LABEL.get(model, model.replace("_", "\\_")),
+              [other["Predicted (autosomes)"][a] for a in ANCESTRIES] + [other["Predicted (X)"][a] for a in ANCESTRIES])]
+    blocks.append((pop, lines))
+
+label_width = max((len(label) for _, lines in blocks for label, _ in lines), default=0)
+widths = [max((len(values[j]) for _, lines in blocks for _, values in lines), default=0) for j in range(6)]
+first_col = len("\\multirow{3}{*}{XXX}")
+fmts = cfg["formats"]
+
+out = [f"\\begin{{table}}[{cfg['placement']}]",
+       r"\centering",
+       f"\\sisetup{{round-mode=places, round-precision={cfg['precision']}}}",
+       r"\begin{tabular}{ll",
+       f"                S[table-format={fmts[0]}] S[table-format={fmts[1]}] S[table-format={fmts[2]}]",
+       f"                S[table-format={fmts[3]}] S[table-format={fmts[4]}] S[table-format={fmts[5]}]}}",
+       r"\toprule",
+       r" & & \multicolumn{3}{c}{Autosomes} & \multicolumn{3}{c}{X chromosome} \\",
+       r"\cmidrule(lr){3-5} \cmidrule(lr){6-8}",
+       f"Population & {cfg['header']} & {{EUR}} & {{AMR}} & {{AFR}} & {{EUR}} & {{AMR}} & {{AFR}} \\\\",
+       r"\midrule"]
+for i, (pop, lines) in enumerate(blocks):
+    if i > 0:
+        out.append(r"\addlinespace")
+    for k, (label, values) in enumerate(lines):
+        first = f"\\multirow{{3}}{{*}}{{{pop}}}" if k == 0 else ""
+        cells = " & ".join(f"{v:<{w}}" for v, w in zip(values, widths))
+        out.append(f"{first:<{first_col}} & {label:<{label_width}} & {cells} \\\\")
+out += [r"\bottomrule",
+        r"\end{tabular}",
+        f"\\caption{{{cfg['caption']}}}",
+        f"\\label{{{cfg['label']}}}",
+        r"\end{table}"]
+
+out_path.parent.mkdir(parents=True, exist_ok=True)
+out_path.write_text("\n".join(out) + "\n")
+print(f"{cfg['name'].capitalize()} table ({len(blocks)} populations) written to {out_path}")
 EOF
 }
 
@@ -478,6 +678,7 @@ if [ "$LATEX_FORMAT" -eq 1 ]; then
     echo "══════════════════════════════════════════"
     echo " LaTeX tables (paper format)"
     echo "══════════════════════════════════════════"
+    merged_table_runs=()
     for pop in ACB ASW CLM MXL PEL PUR; do
         models_var="${pop}_MODELS[@]"
         models=("${!models_var}")
@@ -502,5 +703,22 @@ if [ "$LATEX_FORMAT" -eq 1 ]; then
         fi
         print_paper_tables "$pop" "${single_run%/}" "$model" "${model_run%/}" "$LATEX_SIG_FIGS" \
             "$PRINT_ANCESTRY_PROPORTIONS" "$PRINT_PARAMETERS" "$PRINT_SINGLE_PULSE_PARAMETERS"
+        merged_table_runs+=("$pop" "${single_run%/}" "$model" "${model_run%/}")
+    done
+
+    # Merged tables written to .tex files (all populations in one table).
+    echo ""
+    for kind in tract_counts ancestry_proportions single_pulse_params; do
+        case "$kind" in
+            tract_counts) write_flag=$WRITE_TRACT_COUNTS ;;
+            ancestry_proportions) write_flag=$WRITE_ANCESTRY_PROPORTIONS ;;
+            single_pulse_params) write_flag=$WRITE_SINGLE_PULSE_PARAMS ;;
+        esac
+        [ "$write_flag" -eq 1 ] || continue
+        if [ "${#merged_table_runs[@]}" -eq 0 ]; then
+            echo "*** No population with complete runs: $kind table not written." >&2
+        else
+            write_merged_table "$kind" "$LATEX_TABLES_DIR/$kind.tex" "${merged_table_runs[@]}"
+        fi
     done
 fi
