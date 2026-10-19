@@ -98,7 +98,7 @@ X chromosome admixture
 """
 
 # sphinx_gallery_start_ignore
-sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_one_pulse/ASW_test_output_autosomes_all_populations.png'
+sphinx_gallery_thumbnail_path = 'auto_examples/ASW/output_one_pulse/ASW_test_output_migration_matrices.png'
 # sphinx_gallery_end_ignore
 
 import sys

@@ -18,7 +18,7 @@ ACB_MODELS=(ppp ppx_xxp_pxx)
 ASW_MODELS=(ppp ppx_xxp_pxx)
 CLM_MODELS=(ppp ccc)
 MXL_MODELS=(ppp ccp)
-PEL_MODELS=(ppp ccc)
+PEL_MODELS=(ppp pcc)
 PUR_MODELS=(ppp cpc)
 
 # Directory where the regenerated plots are saved (created if it does not already exist).
