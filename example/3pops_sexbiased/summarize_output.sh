@@ -194,13 +194,13 @@ PARAMS_CAPTION = {
     "ACB": THREE_PULSE_CAPTION,
     "ASW": THREE_PULSE_CAPTION,
     "CLM": "inferred using a continuous-pulse model (ccc) in which the three source populations "
-           "contribute migrants between $t_1$ and $t_2$ generations ago.",
-    "MXL": "inferred using a model with a discrete AFR pulse $t_1$ generations ago and continuous "
-           "EUR and AMR migration between $t_1$ and $t_2$ generations ago.",
-    "PEL": "inferred using a model (pcc) with a discrete EUR pulse $t_1$ generations ago and continuous "
-           "AMR and AFR migration between $t_1$ and $t_2$ generations ago.",
-    "PUR": "inferred using a model (cpc) with a discrete AMR pulse $t_1$ generations ago and continuous "
-           "EUR and AFR migration between $t_1$ and $t_2$ generations ago.",
+           "contribute migrants between $t^{\\text{start}}$ and $t^{\\text{end}}$ generations ago.",
+    "MXL": "inferred using a model with a discrete AFR pulse $t^{\\text{start}}$ generations ago and continuous "
+           "EUR and AMR migration between $t^{\\text{start}}$ and $t^{\\text{end}}$ generations ago.",
+    "PEL": "inferred using a model (pcc) with a discrete EUR pulse $t^{\\text{start}}$ generations ago and continuous "
+           "AMR and AFR migration between $t^{\\text{start}}$ and $t^{\\text{end}}$ generations ago.",
+    "PUR": "inferred using a model (cpc) with a discrete AMR pulse $t^{\\text{start}}$ generations ago and continuous "
+           "EUR and AFR migration between $t^{\\text{start}}$ and $t^{\\text{end}}$ generations ago.",
 }
 
 # ── Reading tracts output ─────────────────────────────────────────────────────
@@ -362,7 +362,7 @@ def print_model_table(p):
                   " & \\multicolumn{2}{c}{Time window} & \\\\",
                   r"\cmidrule(lr){1-2} \cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8}"]
         header = (" " + rate_header("EUR") + "\n & " + rate_header("AMR") + "\n & " + rate_header("AFR")
-                  + "\n & {$t_1$} & {$t_2$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
+                  + "\n & {$t^{\\text{start}}$} & {$t^{\\text{end}}$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
         values = []
         for anc in ANCESTRIES:
             values += [fmt(rate(p, anc)), fmt(sex_bias(p, anc))]
@@ -380,7 +380,7 @@ def print_model_table(p):
                   " & \\multicolumn{2}{c}{Time window} & \\\\",
                   r"\cmidrule(lr){1-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8}"]
         header = (" " + rate_header(continuous[0]) + "\n & " + rate_header(continuous[1]) + "\n & "
-                  + rate_header(pulse) + "\n & {$t_1$} & {$t_2$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
+                  + rate_header(pulse) + "\n & {$t^{\\text{start}}$} & {$t^{\\text{end}}$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
         values = []
         for anc in continuous + [pulse]:
             values += [fmt(rate(p, anc)), fmt(sex_bias(p, anc))]
