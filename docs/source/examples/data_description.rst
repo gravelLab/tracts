@@ -6,7 +6,7 @@ Data description
 Overview
 --------
 
-This repository contains **haploid local ancestry inference (LAI) tracts** for Phase 3 admixed populations from the **1000 Genomes Project**. The data were generated in 2014 by the 1000 Genomes Project Admixture Working Group and downloaded from the official FTP server on December 5, 2025. All tracts were generated with respect to **hg19**.
+The data used in this section, available in the folder `example/documentation_examples/ASW/ASW_TrioPhased <https://github.com/gravelLab/tracts/tree/devel/example/documentation_examples/ASW/ASW_TrioPhased>`_ of the GitHub repository, are haploid local ancestry inference (LAI) tracts for the ASW population, one of the Phase 3 admixed populations from the 1000 Genomes Project. The data were generated in 2014 by the 1000 Genomes Project Admixture Working Group and downloaded from the official FTP server on December 5, 2025. All tracts were generated with respect to hg19.
 
 Data source:
 https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20140818_ancestry_deconvolution/.
@@ -34,12 +34,12 @@ For each population, data are distributed in compressed archives:
 
    *_phase3_ancestry_deconvolution.zip
 
-Each archive contains **two haploid BED files per individual** (one per chromosome copy), for example:
+For each phasing (``PopPhased`` and ``TrioPhased``, see below), the archive contains a compressed file ``[POP]_bed.tar.gz`` in the ``bed_files`` directory. Once extracted, it provides two haploid BED files per individual (one per chromosome copy), for example:
 
 ::
 
-   PUR/PopPhased/bed_files/HG00553_A.bed
-   PUR/PopPhased/bed_files/HG00553_B.bed
+   PUR/PopPhased/HG00553_A_final.bed
+   PUR/PopPhased/HG00553_B_final.bed
 
 
 Directory Structure
@@ -73,12 +73,12 @@ Where:
 BED File Format
 ---------------
 
-Each haploid BED file is **tab-delimited** with the following six columns:
+Each haploid BED file is tab-delimited with the following six columns:
 
 +--------+----------------------------------------------+
 | Column | Description                                  |
 +========+==============================================+
-| 1      | Chromosome number (1–22)                     |
+| 1      | Chromosome (1–22 and X)                      |
 +--------+----------------------------------------------+
 | 2      | Start physical position (0-based, bp)        |
 +--------+----------------------------------------------+
@@ -102,7 +102,7 @@ Ancestry Codes
 +-----------+----------------------------------------------+
 | EUR       | European                                     |
 +-----------+----------------------------------------------+
-| NAT       | Native American                              |
+| AMR       | Native American (``NAT`` in original files)  |
 +-----------+----------------------------------------------+
 | UNK       | Uncertain (posterior < 0.9)                  |
 +-----------+----------------------------------------------+
@@ -110,6 +110,8 @@ Ancestry Codes
 +-----------+----------------------------------------------+
 | miscall   | Masked region with high miscall rate         |
 +-----------+----------------------------------------------+
+
+The original files label Native American ancestry ``NAT``. In the data used in the ``tracts`` examples, it has been relabeled ``AMR``.
 
 
 Masked Region on Chromosome 15
@@ -161,9 +163,9 @@ Example definition for European ancestry:
 
 ::
 
-   (sum[EUR/EUR] + (sum[EUR/AFR] + sum[EUR/NAT]) / 2)
+   (sum[EUR/EUR] + (sum[EUR/AFR] + sum[EUR/AMR]) / 2)
    --------------------------------------------------
-              sum[EUR + AFR + NAT + UNK]
+              sum[EUR + AFR + AMR + UNK]
 
 Note: ``UNK`` excludes regions masked in all individuals (centromere and miscall).
 
@@ -175,7 +177,7 @@ Reference Panels and Phasing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Phased haplotypes were obtained from the 1000 Genomes Phase 3 FTP site (SHAPEIT2).
-- Native American reference samples (>99% NAT ancestry) were phased similarly.
+- Native American reference samples (>99% AMR ancestry) were phased similarly.
 - Reference panel included: 50 CEU individuals, 50 YRI individuals and 43 Native American individuals.
 
 

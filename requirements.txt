@@ -9,7 +9,6 @@ sphinxcontrib-napoleon>=0.7
 pytest~=8.3.3
 scikit-learn~=1.6.0
 pandas~=2.2.1
-tracts~=0.0.2
 joblib~=1.4.2
 setuptools>=70.0.0
 pydantic>=2.12.5

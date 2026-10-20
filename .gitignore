@@ -14,3 +14,13 @@ dist/
 .ipynb_checkpoints/
 *.log
 docs/_build/
+docs/source/api/generated
+docs/source/auto_examples/*
+!docs/source/auto_examples
+!docs/source/auto_examples/index.rst
+example/data/1000G_ancestry_deconvolution
+example/data/metadata
+example/**/*output*/
+example/**/**/*output*/
+example/**/**/TrioPhased
+example/3pops_sexbiased/plots/

@@ -78,7 +78,7 @@ Each haploid BED file is **tab-delimited** with the following six columns:
 |:-----|:--------|
 | AFR | African |
 | EUR | European |
-| NAT | Native American |
+| AMR | Native American |
 | UNK | Uncertain / low-confidence (posterior < 0.9) |
 | centromere | Centromeric regions (3 Mb each) |
 | miscall | Masked region with high miscall rate |
@@ -120,9 +120,9 @@ lai_global_*.txt
 Example definition for European ancestry:
 
 ```
-(sum[EUR/EUR] + (sum[EUR/AFR] + sum[EUR/NAT]) / 2)
+(sum[EUR/EUR] + (sum[EUR/AFR] + sum[EUR/AMR]) / 2)
 --------------------------------------------------
-           sum[EUR + AFR + NAT + UNK]
+           sum[EUR + AFR + AMR + UNK]
 ```
 
 Note: `UNK` excludes regions masked in all individuals (centromere and miscall).
@@ -134,7 +134,7 @@ Note: `UNK` excludes regions masked in all individuals (centromere and miscall).
 #### Reference Panels and Phasing
 
 - Phased haplotypes were obtained from the 1000 Genomes Phase 3 FTP site (SHAPEIT2).
-- Native American reference samples (>99% NAT ancestry) were phased similarly.
+- Native American reference samples (>99% AMR ancestry) were phased similarly.
 - Reference panel included:
   - 50 CEU individuals
   - 50 YRI individuals

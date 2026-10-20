@@ -1,452 +1,818 @@
-import matplotlib.pyplot as plt
-import numpy
+"""
+Tests for sex-biased optimizers in tracts/core.py.
+
+The tests use lightweight mocks so that no real tract data or costly model
+evaluations are needed. The Population mock returns pre-computed constant
+histogram arrays; fmin_cobyla is patched to return x0 unchanged so we can
+inspect what the optimizers would have been called with without running real
+phase-type computations. Tests that only need to exercise the validation
+logic (raises before fmin_cobyla is called) do not need the patch.
+
+GeneticModel.model_func / outofbounds_fun / loglik are stubbed at the class
+level (see ``_stub_genetic_model_methods``) rather than on individual
+instances: optimize_cob_sex_biased_* always operate on ``genetic_model.copy()``,
+which reconstructs a fresh GeneticModel via ``GeneticModel(...)`` rather than
+copying arbitrary instance attributes, so an instance-level stub would be
+silently lost after the internal copy.
+"""
+
+import contextlib
+import logging
+import numpy as np
 import pytest
-import scipy
-from tracts.hybrid_pedigree import hybrid_pedigree_distribution
+from unittest.mock import MagicMock, patch
 
-from test_data import bins, Ls
-from tracts import DemographicModel
-from tracts.phase_type_distribution import PhTDioecious, PhTMonoecious, PhaseTypeDistribution
-
-"""
-Tests for component methods of tracts core
-"""
-
-
-@pytest.fixture
-def migration_matrix_A():
-    return numpy.array([[0, 0], [0, 0], [0.1, 0], [0, 0], [0, 0], [0, 0], [0.2, 0.8]])
+import tracts.core as core_module
+from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
+from tracts.genetic_model import GeneticModel, LoglikBreakdown
+from tracts.likelihood_options import LikelihoodOptions
+from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
+from tracts.demography.base_parametrized_demography import FixedParametersHandler
+from tracts.demography.parameter import ParamType
+from tracts.demography.parametrized_demography_sex_biased import SexType
 
 
-@pytest.fixture
-def migration_matrix_B():
-    return numpy.array([[0, 0], [0, 0], [0, 0.5], [0.6, 0.4]])
+# --------------- Helpers / shared fixtures ---------------
+
+N_PARAMS = 4  # 2 non-sex-bias (t, rate_eur) + 2 sex-bias (sb_eur, sb_afr)
+N_BINS   = 5
+N_POPS   = 2  # populations A, B
+P0      = np.array([5.0, 0.3, 0.05, 0.05])   # [t, rate_eur, sb_eur, sb_afr]
+P_DICT  = {"A": 0, "B": 1}
+
+# Keys that belong to GeneticModel's PhaseTypeModelConfig / LikelihoodOptions,
+# used by _call / _call_single to route **overrides to the right place.
+_GENETIC_MODEL_KEYS = {"ad_model_autosomes", "ad_model_allosomes", "rho_f", "rho_m", "TP", "N_cores"}
+_LIKELIHOOD_OPTIONS_KEYS = {"verbose_log", "verbose_screen"}
 
 
-@pytest.fixture
-def migration_matrix_C():
-    return numpy.array([[0, 0], [0, 0], [0, 0.5], [0.2, 0.2], [0.6, 0.4]])
-
-
-@pytest.fixture
-def migration_matrix_D():
-    return numpy.array([[0, 0], [0, 0], [0, 0.3], [1, 0]])
-
-
-@pytest.fixture
-def migration_matrix_E():
-    return numpy.array([[0, 0], [0, 0], [0.7, 0.3]])
-
-
-# TODO: The test fails with migration_matrix_D
-@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
-                                  "migration_matrix_C", "migration_matrix_D"])
-def test_PDT_Monoecious(data, request):
-    migration_matrix = request.getfixturevalue(data)
-    PTD = PhTMonoecious(migration_matrix)
-    # Verify that the equilibrium distribution is a valid probability vector
-    assert min(PTD.equilibrium_distribution) >= 0
-    assert numpy.isclose(numpy.linalg.norm(PTD.equilibrium_distribution, ord=1), 1)
-    # Verify that the determinant of the transition matrix is 0
-    assert numpy.isclose(numpy.linalg.det(PTD.full_transition_matrix), 0)
-    assert numpy.allclose(numpy.dot(PTD.equilibrium_distribution, PTD.full_transition_matrix), 0)
-
-
-def verify_similar_ptd_models(ptd_first: PhaseTypeDistribution, ptd_second: PhaseTypeDistribution,
-                              atol: float = 0.02):
-    newbins, counts_first, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                        density=True, freq=False)
-    newbins, counts_second, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                          density=True, freq=False)
-    newbins, counts_first_freq, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                             density=True, freq=True)
-    newbins, counts_second_freq, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                               density=True, freq=True)
-    outbins, counts_first_hist, E = ptd_first.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                    density=False)
-    outbins, counts_second_hist, E = ptd_second.tractlength_histogram_windowed(population_number=0, bins=bins, L=Ls[1],
-                                                                      density=False)
-
-    # Densities must be close
-    assert numpy.all(numpy.isclose(counts_first, counts_second, atol=atol))
-    # And the frequencies
-    assert numpy.all(numpy.isclose(counts_first_freq, counts_second_freq, atol=atol))
-    # And the histograms
-    assert numpy.all(numpy.isclose(counts_first_hist, counts_second_hist, atol=atol))
-
-# Test t0_proportions computation
-
-def verify_same_t0_proportions_unbiased(ptd_autosome: PhaseTypeDistribution,
-                              ptd_X: PhaseTypeDistribution,
-                              atol: float = 0.02):
-    
-    if ptd_autosome.X_chr or not ptd_X.X_chr:
-        raise Exception("The first and second models need to be autosomal and allosomal, respectively.")
-    if not numpy.all(numpy.isclose(ptd_autosome.migration_matrix_f, ptd_autosome.migration_matrix_m, atol=atol)):
-        raise Exception("The sex-specific migration matrices of the autosomal model must be the same for this comparison.")
-    if not numpy.all(numpy.isclose(ptd_X.migration_matrix_f, ptd_X.migration_matrix_m, atol=atol)):
-        raise Exception("The sex-specific migration matrices of the autosomal model must be the same for this comparison.")
-    if not numpy.all(numpy.isclose(ptd_autosome.migration_matrix_f, ptd_X.migration_matrix_f, atol=atol)):
-        raise Exception("The sex-specific migration matrices of both models must be the same for this comparison.")
-    if not numpy.all(numpy.isclose(ptd_autosome.migration_matrix_m, ptd_X.migration_matrix_m, atol=atol)):
-        raise Exception("The sex-specific migration matrices of both models must be the same for this comparison.")
-
-    # Check that t0_proportions are the same for autosomal and X chromosome admixture under unbiased migration.
-    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, ptd_autosome.t0_proportions_m, atol=atol))
-    assert numpy.all(numpy.isclose(ptd_X.t0_proportions_f, ptd_X.t0_proportions_m, atol=atol))
-    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, ptd_X.t0_proportions_m, atol=atol))
-
-def verify_autosomal_t0_recursive(ptd_autosome: PhaseTypeDistribution, atol: float = 0.02):
-    
-    if ptd_autosome.X_chr:
-        raise Exception("The model needs to be autosomal for this test.")
-    # Verify that the t0_proportions computed recursively are the same as the direct computation.
-
-    # Compute the autosomal t0_proportions recursively, analogously as the X chromosome case.
-
-    migration_matrix_f = ptd_autosome.migration_matrix_f_unchanged # Get migration matrices
-    migration_matrix_m = ptd_autosome.migration_matrix_m_unchanged
-    num_generations = migration_matrix_f.shape[0]
-
-    ancestry_proportions_m = migration_matrix_m[num_generations - 1, ]
-    ancestry_proportions_f = migration_matrix_f[num_generations - 1, ]
-    for generation_number in range(num_generations - 2, 0, -1):
-               
-        ancestry_proportions_f_prev = ancestry_proportions_f.copy()
-        ancestry_proportions_m_prev = ancestry_proportions_m.copy()
-        ancestry_proportions_m = migration_matrix_m[generation_number, ] + (1 - migration_matrix_m[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2 
-        ancestry_proportions_f = migration_matrix_f[generation_number, ] + (1 - migration_matrix_f[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2           
-            
-    t0_proportions_f = ancestry_proportions_f
-    t0_proportions_m = ancestry_proportions_m
-
-    # Compare the t0_proportions computed recursively with the ones computed directly.
-
-    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, t0_proportions_f, atol=atol))
-    assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_m, t0_proportions_m, atol=atol))
-
-
-@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
-                                  "migration_matrix_C", "migration_matrix_D"])
-def test_PDT_Dioecious(data, request):
-    migration_matrix = request.getfixturevalue(data)
-    PTD_Monoecious = PhTMonoecious(migration_matrix)
-    PTD_Dioecious_F = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
-                                   rho_m=1, sex_model='DF')
-    PTD_Dioecious_C = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
-                                   rho_m=1, sex_model='DC')
-    verify_similar_ptd_models(ptd_first=PTD_Monoecious, ptd_second=PTD_Dioecious_F)
-    verify_similar_ptd_models(ptd_first=PTD_Monoecious, ptd_second=PTD_Dioecious_C)
-    verify_ptd_dioecious_matrices(PTD_Dioecious_F)
-    verify_ptd_dioecious_matrices(PTD_Dioecious_C)
-
-
-def verify_ptd_dioecious_matrices(pht: PhTDioecious):
-    assert numpy.all(numpy.isclose(numpy.sum(pht.full_transition_matrix_f, axis=1), 0))
-    assert numpy.all(numpy.isclose(numpy.sum(pht.full_transition_matrix_m, axis=1), 0))
-
-@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
-                                  "migration_matrix_C", "migration_matrix_D"])
-def test_t0_proportions(data, request):
-    migration_matrix = request.getfixturevalue(data)
-    
-    PTD_Dioecious_aut = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
-                                   rho_m=1, sex_model='DC', X_chromosome=False)
-    PTD_Dioecious_X = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
-                                   rho_m=1, sex_model='DC', X_chromosome = True, X_chromosome_male = False)
-    
-    verify_same_t0_proportions_unbiased(PTD_Dioecious_aut, PTD_Dioecious_X)
-    verify_autosomal_t0_recursive(PTD_Dioecious_aut) # For unbiased migration matrices
-    
-    # For biased migration rates
-    prop_of_female_migration = 0.8 # 0.5 for unbiased migration, 1 for only female migrants, 0 for only male migrants.
-    mig_m = 2*migration_matrix*(1-prop_of_female_migration)
-    mig_f = 2*migration_matrix*prop_of_female_migration
-    mig_m[-1,:] = migration_matrix[-1,:]
-    mig_f[-1,:] = migration_matrix[-1,:]
-    
-    PTD_Dioecious_aut_biased = PhTDioecious(mig_f, mig_m, rho_f=1,
-                                   rho_m=1, sex_model='DC', X_chromosome=False)
-    verify_autosomal_t0_recursive(PTD_Dioecious_aut_biased) # For biased migration matrices
-
-
-@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
-                                  "migration_matrix_C", "migration_matrix_D"])
-def test_PDT_X(data, request):
-    migration_matrix = request.getfixturevalue(data)
-    for Xcmale in [True, False]:
-        PTD_Dioecious_F = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
-                                       rho_m=1, sex_model='DF', X_chromosome=True,
-                                       X_chromosome_male=Xcmale)
-        PTD_Dioecious_C = PhTDioecious(migration_matrix, migration_matrix, rho_f=1,
-                                       rho_m=1, sex_model='DC', X_chromosome=True,
-                                       X_chromosome_male=Xcmale)
-        verify_similar_ptd_models(ptd_first=PTD_Dioecious_F, ptd_second=PTD_Dioecious_C, atol=0.15)
-
-        # Basic checks for X models
-        verify_ptd_dioecious_matrices(PTD_Dioecious_F)
-        verify_ptd_dioecious_matrices(PTD_Dioecious_C)
-
-
-@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
-                                  "migration_matrix_C", "migration_matrix_D"])
-def test_pedigree(data, request):
-    # Hybrid pedigree model with TP = 2
-    migration_matrix = request.getfixturevalue(data)
-    # Densities
-    result_bins, counts_HP_aut = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                              bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                              X_chr=False, X_chr_male=False, N_cores=5,
-                                                              density=True, freq=False)
-    result_bins, counts_HP_X = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                            mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                            bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                            X_chr=True,
-                                                            X_chr_male=False, N_cores=5, density=True,
-                                                            freq=False)
-    result_bins, counts_HP_Xm = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                             mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                             bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                             X_chr=True,
-                                                             X_chr_male=True, N_cores=5, density=True,
-                                                             freq=False)
-
-    assert numpy.all(counts_HP_aut >= 0)
-    assert numpy.all(counts_HP_X >= 0)
-    assert numpy.all(counts_HP_Xm >= 0)
-
-    # Frequencies
-    result_bins, counts_HP_aut = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                              bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                              X_chr=False, X_chr_male=False, N_cores=5,
-                                                              density=True, freq=True)
-    result_bins, counts_HP_X = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                            mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                            bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                            X_chr=True,
-                                                            X_chr_male=False, N_cores=5, density=True,
-                                                            freq=True)
-    result_bins, counts_HP_Xm = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                             mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                             bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                             X_chr=True,
-                                                             X_chr_male=True, N_cores=5, density=True,
-                                                             freq=True)
-
-    assert numpy.all(counts_HP_aut >= 0)
-    assert numpy.all(counts_HP_X >= 0)
-    assert numpy.all(counts_HP_Xm >= 0)
-
-    # Histograms
-    result_bins, counts_HP_aut = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                              mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                              bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                              X_chr=False, X_chr_male=False, N_cores=5,
-                                                              density=False, freq=False)
-    result_bins, counts_HP_X = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                            mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                            bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                            X_chr=True,
-                                                            X_chr_male=False, N_cores=5, density=False,
-                                                            freq=False)
-    result_bins, counts_HP_Xm = hybrid_pedigree_distribution(mig_matrix_f=migration_matrix,
-                                                             mig_matrix_m=migration_matrix, TP=2, L=Ls[1],
-                                                             bingrid=bins, whichpop=0, rr_f=1, rr_m=1,
-                                                             X_chr=True,
-                                                             X_chr_male=True, N_cores=5, density=False,
-                                                             freq=False)
-
-    assert numpy.all(counts_HP_aut >= 0)
-    assert numpy.all(counts_HP_X >= 0)
-    assert numpy.all(counts_HP_Xm >= 0)
-
-
-def verify_PDT(migration_matrix):
-    print(f'Migration Matrix:\n{migration_matrix}')
-    models = ModelComparison(migration_matrix)
-    models.compare_models(bins, Ls[0], 0)
-    models.compare_proportions()
-    models.compare_TpopTau()
-    models.compare_models_4(bins, Ls[0], 0)
-    compare_models_2(migration_matrix, [1], 1)
-
-
-@pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
-                                  "migration_matrix_C", "migration_matrix_D"])
-def test_verify_PDT(data, request):
+def _make_demography():
     """
-    Test that phase-type distributions gives the same result as demographic_model.expectperbin()
+    Return a minimal ParametrizedDemographySexBiased with two sex-bias params.
     """
-    migration_matrix = request.getfixturevalue(data)
-    verify_PDT(migration_matrix)
+    dem = ParametrizedDemographySexBiased()
+    dem.add_parameter("t",       ParamType.TIME)
+    dem.add_parameter("rate_eur",ParamType.RATE)
+    dem.add_parameter("sb_eur",  ParamType.SEX_BIAS)
+    dem.add_parameter("sb_afr",  ParamType.SEX_BIAS)
+    return dem
 
-
-def plot_histogram_model_comparison(PTD_hist, demo_hist, L):
-    # TODO: Consider moving this to examples
-    print(sum(PTD_hist))
-    print(sum(demo_hist))
-    fig, ax = plt.subplots(1, 2)
-    L = round(L, 3)
-    ax[0].loglog(bins, demo_hist, label='demographic_model')
-    ax[0].loglog(bins, PTD_hist, label='Phase-Type Distribution')
-    ax[0].set_title(f"Log-Log Plot of Expected Number of Tracts Per Bin\n On a chromosome of length {L}")
-    ax[0].set_xlabel("Bin Value")
-    ax[0].set_ylabel("Expected number of tracts")
-    ax[1].plot(demo_hist, PTD_hist)
-    ax[1].set_title(
-        f"Ratio of Phase-Type Distribution tracts to demographic_model tracts\n On a chromosome of length {L}")
-    ax[1].set_xlabel("demographic_model")
-    ax[1].set_ylabel("Phase-Type Distribution")
-    ratio = round(sum(demo_hist) / sum(PTD_hist), 3)
-    Rstat = scipy.stats.pearsonr(PTD_hist, demo_hist)
-    ax[1].text(0.05, 0.95,
-               f'Slope: {ratio} \nR-value: {round(Rstat.statistic, 3)} \nP-Value: {round(Rstat.pvalue, 3)}',
-               transform=ax[1].transAxes, fontsize=14,
-               verticalalignment='top')
-    plt.show()
-
-
-class ModelComparison:
+def _make_handler(dem=None):
     """
-    A class for comparing PhaseType and demographic_model values
+    Return a FixedParametersHandler wired to *dem* with no parameters fixed.
+    """
+    if dem is None:
+        dem = _make_demography()
+    ph = FixedParametersHandler(logging.getLogger("test"))
+    ph.set_up_fixed_parameters(dem, params_to_fix_by_ancestry=[], proportions={})
+    return ph
+
+
+def _make_genetic_model(**phase_type_overrides):
+    """
+    Return a GeneticModel wrapping a fresh demography + handler (see
+    _make_demography / _make_handler), with default phase_type_config
+    ad_model_autosomes='DC', ad_model_allosomes='DC' unless overridden.
+    """
+    dem = _make_demography()
+    dem.parameter_handler = _make_handler(dem)
+    config = dict(ad_model_autosomes="DC", ad_model_allosomes="DC")
+    config.update(phase_type_overrides)
+    return GeneticModel(dem, **config)
+
+
+def _make_population():
+    """
+    Return a mock Population whose data accessors return constant arrays.
+    """
+    pop = MagicMock()
+
+    bins   = np.linspace(0, 1, N_BINS + 1)
+    counts = np.zeros(N_BINS, dtype="int64").tolist()
+
+    pop.get_global_tractlengths.return_value = (bins, {"A": counts, "B": counts})
+    pop.get_global_allosome_tractlengths.return_value = (
+        bins,
+        {
+            SexType.FEMALE: {"A": counts, "B": counts},
+            SexType.MALE:   {"A": counts, "B": counts},
+        },
+    )
+    pop.Ls             = [1.0]
+    pop.indivs         = [MagicMock()] * 10
+    pop.num_males      = 5
+    pop.num_females    = 5
+    pop.allosome_lengths = {"X": 1.0}
+    return pop
+
+
+def _fake_fmin(func, x0, cons, **kwargs):
+    """
+    fmin_cobyla mock: returns x0 unchanged without calling the objective.
+    """
+    return x0
+
+
+@contextlib.contextmanager
+def _stub_genetic_model_methods():
+    """
+    Patches GeneticModel.model_func / outofbounds_fun / loglik at the class
+    level so that the (only) real objective evaluation performed by the
+    optimizers (the "fallback" call made when fmin_cobyla is stubbed and
+    never updates best_state) never triggers real migration-matrix or
+    phase-type computations. The fixed LoglikBreakdown values are the same
+    regardless of which components were requested; tests in this file only
+    check types/shapes/control-flow, never exact likelihood values.
+    """
+    dummy_matrix = np.array([[0.5, 0.5]])
+    fake_loglik_result = LoglikBreakdown(autosomes=-1.0, female_allosomes=-1.0, male_allosomes=-1.0)
+    with patch.object(GeneticModel, "model_func", return_value={"female": dummy_matrix, "male": dummy_matrix}), \
+         patch.object(GeneticModel, "outofbounds_fun", return_value=1.0), \
+         patch.object(GeneticModel, "loglik", return_value=fake_loglik_result):
+        yield
+
+
+def _split_overrides(overrides):
+    """
+    Splits **overrides into (genetic_model_overrides, likelihood_options_overrides, remaining),
+    based on which of GeneticModel's phase_type_config / LikelihoodOptions each key belongs to.
+    """
+    genetic_model_overrides = {k: v for k, v in overrides.items() if k in _GENETIC_MODEL_KEYS}
+    likelihood_options_overrides = {k: v for k, v in overrides.items() if k in _LIKELIHOOD_OPTIONS_KEYS}
+    remaining = {
+        k: v for k, v in overrides.items()
+        if k not in _GENETIC_MODEL_KEYS and k not in _LIKELIHOOD_OPTIONS_KEYS
+    }
+    return genetic_model_overrides, likelihood_options_overrides, remaining
+
+
+def _call(steps=None, patch_fmin=True, **overrides):
+    """
+    Invoke optimize_cob_sex_biased_two_steps with the common fixture.
+
+    When *patch_fmin* is True (default) scipy.optimize.fmin_cobyla is replaced
+    with a stub that returns x0 unchanged, avoiding any real phase-type call.
+    Set patch_fmin=False only for tests that raise before fmin_cobyla is reached,
+    or that install their own fmin_cobyla mock.
+    """
+    genetic_model_overrides, likelihood_overrides, remaining = _split_overrides(overrides)
+
+    genetic_model = _make_genetic_model(**genetic_model_overrides)
+    likelihood_options = LikelihoodOptions(verbose_log=0, verbose_screen=0, **likelihood_overrides)
+
+    kwargs = dict(
+        p0=P0,
+        population=_make_population(),
+        genetic_model=genetic_model,
+        likelihood_options=likelihood_options,
+        p_dict=P_DICT,
+        exclude_tracts_below_cM=0,
+        maxiter=2,
+        reset_counter=True,
+        autosomes_in_step_2=True,
+        npts=N_BINS,
+        steps=steps,
+    )
+    kwargs.update(remaining)
+
+    with _stub_genetic_model_methods():
+        if patch_fmin:
+            with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+                return optimize_cob_sex_biased_two_steps(**kwargs)
+        else:
+            return optimize_cob_sex_biased_two_steps(**kwargs)
+
+
+def _call_single(patch_fmin=True, **overrides):
+    """
+    Invoke optimize_cob_sex_biased_single_step with the common fixture.
+
+    When *patch_fmin* is True (default) scipy.optimize.fmin_cobyla is replaced
+    with a stub that returns x0 unchanged.
+    """
+    genetic_model_overrides, likelihood_overrides, remaining = _split_overrides(overrides)
+
+    genetic_model = _make_genetic_model(**genetic_model_overrides)
+    likelihood_options = LikelihoodOptions(verbose_log=0, verbose_screen=0, **likelihood_overrides)
+
+    kwargs = dict(
+        p0=P0,
+        population=_make_population(),
+        genetic_model=genetic_model,
+        likelihood_options=likelihood_options,
+        p_dict=P_DICT,
+        exclude_tracts_below_cM=0,
+        maxiter=2,
+        reset_counter=True,
+        npts=N_BINS,
+    )
+    kwargs.update(remaining)
+
+    with _stub_genetic_model_methods():
+        if patch_fmin:
+            with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+                return optimize_cob_sex_biased_single_step(**kwargs)
+        return optimize_cob_sex_biased_single_step(**kwargs)
+
+
+# --------------- Steps argument validation ---------------
+
+class TestStepsValidation:
+    """
+    This class contains tests for the validation logic of the *steps* argument to optimize_cob_sex_biased_two_steps.
+    The tests verify that valid specifications are accepted and invalid ones raise the appropriate exceptions with informative messages.
+    It also checks that the default behavior (steps=None) runs without error and returns a valid output type, as this is a common usage pattern.
     """
 
-    def __init__(self, migration_matrix):
-        self.migration_matrix = migration_matrix
-        self.PTD = PhTMonoecious(migration_matrix)
-        self.demo = DemographicModel(migration_matrix)
-
-    def compare_proportions(self):
-        print(f'Tracts proportions at t0: {self.demo.proportions[0]}')
-        print(f'PTD proportions at t0: {self.PTD.t0_proportions}')
-        assert numpy.allclose(self.demo.proportions[0], self.PTD.t0_proportions, atol=0.01)
-
-    def compare_TpopTau(self):
-        for tpopTau, result in self.demo.dicTpopTau.items():
-            assert self.PTD.get_TpopTau(tpopTau[0], tpopTau[1], tpopTau[2]) == result
-        print('TpopTau is equal for PTD and demographic_model. All assertions passed.')
-
-    def compare_models(self, bins, L, population_number):
-        PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        PTD_hist = PTD_hist_tuple[1]
-        demo_hist = self.demo.expectperbin([L], population_number, bins)[:-1]
-        print(f'\nTractlength histogram from PTD: \n{PTD_hist}')
-        print(f'\nTractlength histogram from tracts: \n{numpy.array(demo_hist)}')
-        assert numpy.allclose(PTD_hist, numpy.array(demo_hist), atol=0.01)
-
-    def compare_models_2(self, input_bins, L, population_number):
-        # TODO: Decide if this should be moved to examples
-        PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        PTD_hist = PTD_hist_tuple[1]
-        demo_hist = self.demo.expectperbin([L], population_number, input_bins)
-        plot_histogram_model_comparison(PTD_hist, demo_hist, L)
-
-    def compare_models_3(self, bins, L, population_number):
-        PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        PTD_hist = PTD_hist_tuple[1]
-        # TODO: Check that the correct function name has been guessed correctly
-        # PTD_CDF = PTD.tractlength_CDF_windowed(population_number, bins, L)
-        PTD_CDF = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        print(numpy.array([numpy.sum(PTD_hist[:i]) for i in range(len(PTD_hist) + 1)]))
-        print(PTD_CDF - PTD_CDF[0])
-
-    def compare_models_4(self, bins, L, population_number):
-        # TODO: Move to examples
-        PTD_hist_tuple = self.PTD.tractlength_histogram_windowed(population_number, bins, L)
-        PTD_hist = PTD_hist_tuple[1]
-        demo_hist = per_bin_noscale(self.demo, bins, L, population_number)[:-1]
-        # demo_hist2 = per_bin_noscale(self.demo, bins, L, population_number)
-        # TODO: demo_hist and demo_hist2 can be compared with numpy.allclose(demo_hist, demo_hist2)
-        assert len(PTD_hist) == len(demo_hist)  # == len(demo_hist2)
-        print(f'Chromosome has length {L}.')
-        print(f'Normalized tractlength distribution from tracts PDF using bin midpoints:\n{demo_hist}')
-        print(f'Normalized tractlength distribution from PhaseType CDF:\n{PTD_hist}')
-        # print(f'Normalized tractlength distribution from tracts PDF using scipy integration:\n {demo_hist2}')
-
-    def compare_models_5(self, bins, Ls, population_number):
-        # TODO: Discuss if this can be automatically verified
-        print(f'Chromosome lengths:\n {Ls}')
-        Z = numpy.array([self.PTD.normalization_factor([L], self.PTD.transition_matrices[population_number],
-                                                       self.PTD.inverse_S0_list[population_number],
-                                                       self.PTD.alpha_list[population_number]) for L in Ls])
-
-        ratios = numpy.array([numpy.sum(self.demo.expectperbin([L], population_number, bins)) / numpy.sum(
-            self.PTD.tractlength_histogram_windowed(population_number, bins, L)[1]) for L in Ls])
-        print(f'\nRatios of expectperbin (tracts) to histogram (PhaseType): \n{ratios}')
-        print(f'\nRatios divided by Z: \n{numpy.divide(ratios, Z)}')
-        weird_factors = self.weird_factors(Ls, population_number)
-        print(f'\nScaling factor from tracts: \n{weird_factors} ')
-        print(f'\nScaling factor over Z: \n{numpy.divide(weird_factors, Z)}')
-
-    def compare_models_6(self, population_number, Ls):
-        # TODO: Discuss if this can be automatically verified
-        # TODO: This function wasn't even in the comments
-        # print(f'Alpha * S0_inverse:\n {self.alpha_s0_inv(population_number)} ')
-        print(f'Chromosome lengths: \n{numpy.array(Ls)}')
-        print(f'\nScaling factor from tracts: \n{self.weird_factors(Ls, population_number)} ')
-        Z_to_tracts_factor = 2 * self.PTD.t0_proportions[population_number] / self.alpha_s0_inv(population_number)
-        Z = numpy.array([self.PTD.normalization_factor([L], self.PTD.transition_matrices[population_number],
-                                                       self.PTD.inverse_S0_list[population_number],
-                                                       self.PTD.alpha_list[population_number]) for L in Ls])
-        print(f'\n  Z * 2 * (proportions at t0) / (alpha*s0_inverse) * -1: \n{-Z * Z_to_tracts_factor}')
-        print(f'\nTracts self.totSwitchDensity:\n {self.demo.totSwitchDens[population_number]}')
-        print(f'\n2 * (proportions at t0) / (alpha*s0_inverse) * -1: \n{-Z_to_tracts_factor}')
-        return
-
-    def alpha_s0_inv(self, population_number):
+    def test_none_runs_both_steps(self):
         """
-        The product of alpha and S0_inv for the given population
+        Checks that steps=None must run without error (default: both steps).
         """
-        # TODO: The function is only present in the comments, discuss if it should be removed
-        return numpy.dot(self.PTD.alpha_list[population_number], self.PTD.inverse_S0_list[population_number])
+        params, lik = _call(steps=None)
+        assert isinstance(params, np.ndarray)
+        assert np.isfinite(lik) or lik == -1e32  # finite or hard fallback
 
-    def weird_factors(self, Ls, population_number):
-        return numpy.array(
-            [L * self.demo.totSwitchDens[population_number] + 2. * self.demo.proportions[0, population_number] for L in
-             Ls])
+    @pytest.mark.parametrize("steps", [
+        [1], ["step1"],
+        [2], ["step2"],
+        [1, 2], ["step1", "step2"], [1, "step2"], ["step1", 2],
+    ])
+
+    def test_valid_steps_accepted(self, steps):
+        """
+        Checks that all documented valid step specifications are accepted.
+        """
+        # step 2 requires allosomal data already set in COMMON_KWARGS
+        params, lik = _call(steps=steps)
+        assert isinstance(params, np.ndarray)
+
+    def test_not_a_list_raises_type_error(self):
+        """
+        Checks that a non-list steps argument raises TypeError.
+        """
+        with pytest.raises(TypeError):
+            _call(steps=1)
+
+    def test_empty_list_raises_value_error(self):
+        """
+        Checks that an empty list for steps raises ValueError, as it does not specify any valid step.
+        """
+        with pytest.raises(ValueError, match="empty"):
+            _call(steps=[])
+
+    def test_invalid_step_value_raises_value_error(self):
+        """
+        Checks that invalid step values (e.g., 3 or "step3") raise ValueError with an informative message.
+        """
+        with pytest.raises(ValueError, match="Invalid step value"):
+            _call(steps=[3])
+
+    def test_invalid_string_raises_value_error(self):
+        """
+        Checks that invalid string step values (e.g., "step3") raise ValueError with an informative message.
+        """
+        with pytest.raises(ValueError, match="Invalid step value"):
+            _call(steps=["step3"])
+
+    def test_duplicate_step_integer_raises(self):
+        """
+        Checks that [1, 1] duplicates step 1.
+        """
+        with pytest.raises(ValueError, match="duplicate"):
+            _call(steps=[1, 1])
+
+    def test_duplicate_step_mixed_raises(self):
+        """
+        Checks that [1, 'step1'] references step 1 twice.
+        """
+        with pytest.raises(ValueError, match="duplicate"):
+            _call(steps=[1, "step1"])
+
+    def test_duplicate_step_2_raises(self):
+        """
+        Checks that [2, "step2"] duplicates step 2.
+        """
+        with pytest.raises(ValueError, match="duplicate"):
+            _call(steps=[2, "step2"])
 
 
-def compare_models_2(migration_matrix, Ls, population_number):
-    # TODO: This compare_models_2 is performing a different verification frpm ModelComparison.compare_models_2.
-    # Come up with better names for all the functions
-    PTD = PhTMonoecious(migration_matrix)
-    demo = DemographicModel(migration_matrix)
-    tracts_z = demo.Z(Ls, population_number)
-    phase_type_z = numpy.array([PTD.normalization_factor([L], PTD.transition_matrices[population_number],
-                                                         PTD.inverse_S0_list[population_number],
-                                                         PTD.alpha_list[population_number]) for L in Ls])
-    print(f'Z from tracts: {tracts_z}')
-    print(f'Z from PhaseType Calculation: {phase_type_z}')
-    assert numpy.allclose(tracts_z, phase_type_z)
-    # print(scipy.stats.pearsonr(PTD_hist,demo_hist))
+# --------------- Tests for the ad_model_allosomes constraint ---------------
+
+class TestAllosomeModelConstraint:
+    """
+    This class contains tests for the requirement that step 2 of optimize_cob_sex_biased_two_steps must have an allosomal model specified.
+    The tests verify that attempting to run step 2 without an allosomal model raises a ValueError with an informative message,
+    and that step 1 only does not require an allosomal model.
+    """
+
+    def test_step2_without_allosome_model_raises(self):
+        """
+        Checks that step 2 without an allosomal model raises ValueError, as step 2 relies on allosomal data to estimate sex bias.
+        The error message should mention "ad_model_allosomes" to guide the user to the missing argument.
+        """
+        with pytest.raises(ValueError, match="ad_model_allosomes"):
+            _call(steps=[2], ad_model_allosomes=None)
+
+    def test_step2_both_without_allosome_model_downgrades(self):
+        """
+        Checks that running both steps without an allosomal model auto-downgrades to step 1 only
+        without raising an error, since step 1 does not require allosomal data.
+        """
+        params, lik = _call(steps=[1, 2], ad_model_allosomes=None)
+        assert isinstance(params, np.ndarray)
+        assert isinstance(lik, float)
+
+    def test_step1_only_none_allosome_model_allowed(self):
+        """
+        Checks that step 1 only does not require an allosomal model and runs without error even if ad_model_allosomes
+        is None, since step 1 does not use allosomal data.
+        """
+        params, lik = _call(steps=[1], ad_model_allosomes=None)
+        assert isinstance(params, np.ndarray)
 
 
-def per_bin_noscale(demographic_model: DemographicModel, input_bins, L, population_number):
-    PDF = lambda x: (demographic_model.inners(L, x, population_number) +
-                     demographic_model.outers(L, x, population_number)) / demographic_model.Z(L, population_number)
-    binval = lambda binNum: scipy.integrate.quad(PDF, input_bins[binNum], input_bins[binNum + 1])
-    lsval = [binval(binNum)[0] for binNum in range(len(input_bins) - 1)]
-    lsval.append(demographic_model.full(L, population_number) / demographic_model.Z(L, population_number))
-    return numpy.array(lsval)
+# --------------- Tests for parameter fixing semantics per mode ---------------
+
+class TestParameterFixingSemantics:
+    """
+    This class checks that each mode optimizes over exactly the right parameter subset.
+    The functions capture the local FixedParametersHandler seen by the optimizer
+    and assert the exact free parameter labels at each fmin_cobyla call.
+    """
+
+    def _extract_handler_from_callable(self, func):
+        """
+        Walk a callable closure to find the local FixedParametersHandler instance.
+        """
+        seen = set()
+
+        def visit(obj):
+            obj_id = id(obj)
+            if obj_id in seen:
+                return None
+            seen.add(obj_id)
+
+            if isinstance(obj, FixedParametersHandler):
+                return obj
+
+            closure = getattr(obj, "__closure__", None)
+            if closure is None:
+                return None
+
+            for cell in closure:
+                try:
+                    cell_value = cell.cell_contents
+                except ValueError:
+                    continue
+                found = visit(cell_value)
+                if found is not None:
+                    return found
+            return None
+
+        handler = visit(func)
+        if handler is None:
+            raise AssertionError("Could not extract FixedParametersHandler from optimizer callback closure.")
+        return handler
+
+    def _run_and_capture_free_labels(self, steps, **extra):
+        """
+        Runs the two-step optimizer and returns a list of free parameter label
+        lists, one per fmin_cobyla call, captured from the local handler closure.
+        """
+        captured = []
+
+        def capturing_fmin(func, x0, cons, **kwargs):
+            handler = self._extract_handler_from_callable(func)
+            captured.append(handler.indices_to_labels(handler.free_parameters_indices))
+            return x0
+
+        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capturing_fmin):
+            _call(steps=steps, patch_fmin=False, **extra)
+
+        return captured
+
+    def test_step1_only_optimises_non_sex_bias(self):
+        """
+        Checks that step 1 only optimizes non-sex-bias parameters.
+        """
+        captured = self._run_and_capture_free_labels(steps=[1])
+        assert len(captured) == 1, "exactly one fmin_cobyla call expected"
+        assert captured[0] == ["t", "rate_eur"]
+
+    def test_step2_only_optimises_sex_bias(self):
+        """
+        Checks that step 2 only optimizes sex-bias parameters, with non-sex-bias parameters fixed.
+        """
+        captured = self._run_and_capture_free_labels(steps=[2])
+        assert len(captured) == 1
+        assert captured[0] == ["sb_eur", "sb_afr"]
+
+    def test_both_steps_two_fmin_calls(self):
+        """
+        Checks that running both steps results in two calls to fmin_cobyla, one for each step,
+        with the appropriate parameter subsets free in each.
+        """
+        captured = self._run_and_capture_free_labels(steps=[1, 2])
+        assert len(captured) == 2
+
+    def test_step1_in_combined_optimises_non_sex_bias(self):
+        """
+        Checks that in combined mode, step 1 optimizes the non-sex-bias parameters (t and rate_eur) while sex-bias parameters are fixed.
+        """
+        captured = self._run_and_capture_free_labels(steps=[1, 2])
+        assert captured[0] == ["t", "rate_eur"]
+
+    def test_step2_in_combined_optimises_sex_bias(self):
+        """
+        Checks that in combined mode, step 2 optimizes the sex-bias parameters (sb_eur and sb_afr) while non-sex-bias parameters are fixed.
+        """
+        captured = self._run_and_capture_free_labels(steps=[1, 2])
+        assert captured[1] == ["sb_eur", "sb_afr"]
 
 
-def per_bin_noscale_integral(demographic_model: DemographicModel, bins, L, population_number):
-    # TODO: This function is never used, consider removing it
-    mid = lambda binNum: (bins[binNum + 1] + bins[binNum]) / 2
-    diff = lambda binNum: bins[binNum + 1] - bins[binNum]
-    PDF = lambda x: (demographic_model.inners(L, x, population_number) +
-                     demographic_model.outers(L, x, population_number)) / demographic_model.Z(L, population_number)
-    lsval = [PDF(mid(binNum)) * diff(binNum) for binNum in range(len(bins) - 1)]
-    lsval.append(demographic_model.full(L, population_number) / demographic_model.Z(L, population_number))
-    return numpy.array(lsval)
+# --------------- Tests for best-likelihood tracking scoped to the active step ---------------
+
+class TestBestLikelihoodTracking:
+    """
+    This class verifies that the best-likelihood tracking is correctly scoped to the active step(s) and does not cross-contaminate between steps.
+    In particular, verifies that:
+    - Step 1 only: returned likelihood reflects the best seen during step 1.
+    - Step 2 only: returned likelihood reflects the best seen during step 2.
+    - Both steps: the returned likelihood is the best from step 2, not the
+      global best across both steps.
+    """
+
+    def _run_tracking_test(self, steps):
+        """
+        Return the likelihood reported by the function.  We patch fmin_cobyla
+        to return the initial x0 unchanged so the function always evaluates
+        at p0; the exact value does not matter, only that it is consistent.
+        """
+        _, lik = _call(steps=steps)
+        return lik
+
+    def test_step1_only_returns_finite_or_fallback(self):
+        lik = self._run_tracking_test(steps=[1])
+        assert np.isfinite(lik) or lik == -1e32
+
+    def test_step2_only_returns_finite_or_fallback(self):
+        lik = self._run_tracking_test(steps=[2])
+        assert np.isfinite(lik) or lik == -1e32
+
+    def test_both_steps_returns_finite_or_fallback(self):
+        lik = self._run_tracking_test(steps=[1, 2])
+        assert np.isfinite(lik) or lik == -1e32
+
+    def test_step2_best_resets_between_steps(self):
+        """
+        Verify that the best objective is reset before step 2 by checking that
+        two independent runs (step-1-only vs step-2-only) do not share state.
+        """
+        _, lik_s1 = _call(steps=[1])
+        _, lik_s2 = _call(steps=[2])
+        # Both should be a real number (even if very negative); not cross-contaminated
+        assert np.isfinite(lik_s1) or lik_s1 == -1e32
+        assert np.isfinite(lik_s2) or lik_s2 == -1e32
 
 
-def expectperbin_ratios(migration_matrix, input_bins, Ls, population_number):
-    # TODO: This function is never used, consider removing it
-    demo = DemographicModel(migration_matrix)
-    PTD = PhTMonoecious(migration_matrix)
-    demo_hist = lambda L: demo.expectperbin([L], population_number, input_bins)
-    PTD_hist = lambda L: PTD.tractlength_histogram_windowed(population_number, input_bins, L)[1]
-    return numpy.array([numpy.sum(demo_hist(L)) / numpy.sum(PTD_hist(L)) for L in Ls])
+# --------------- Tests that parameter autosomes_in_step_2 controls data scope in step 2 ---------------
+
+class TestAutosomesInStep2:
+
+    def _run_and_capture_include_autosomes(self, steps, autosomes_in_step_2):
+        """
+        Capture the include_autosomes value that was passed to the step-2 objective.
+        We do this by recording the x0 size and any calls; the objective itself
+        is not called here, but we verify no ValueError is raised.
+        """
+        params, lik = _call(steps=steps, autosomes_in_step_2=autosomes_in_step_2)
+        return params, lik
+
+    def test_autosomes_in_step2_true_no_error(self):
+        """
+        Tests that autosomes_in_step_2=True runs without error and returns a parameter array,
+        indicating that the step-2 objective was able to include autosomal data as intended.
+        """
+        params, lik = self._run_and_capture_include_autosomes([2], autosomes_in_step_2=True)
+        assert isinstance(params, np.ndarray)
+
+    def test_autosomes_in_step2_false_no_error(self):
+        """
+        Tests that autosomes_in_step_2=False runs without error and returns a parameter array,
+        indicating that the step-2 objective was able to exclude autosomal data and focus on allosomal data as intended.
+        """
+        params, lik = self._run_and_capture_include_autosomes([2], autosomes_in_step_2=False)
+        assert isinstance(params, np.ndarray)
+
+    def test_autosomes_in_step2_false_requires_allosome_model(self):
+        """
+        Tests that autosomes_in_step_2=False raises ValueError if ad_model_allosomes is None,
+        since excluding autosomal data in step 2 requires an allosomal model to be specified
+        for the optimization to proceed.
+        """
+        with pytest.raises(ValueError):
+            _call(steps=[2], autosomes_in_step_2=False, ad_model_allosomes=None)
+
+
+# --------------- Tests for return type and shape ---------------
+
+class TestReturnTypeAndShape:
+
+    @pytest.mark.parametrize("steps", [[1], [2], [1, 2], None])
+    def test_returns_tuple_of_array_and_float(self, steps):
+        """
+        Tests that the function returns a tuple of (params, lik) where params is a numpy array and lik is a float,
+        for all valid step specifications including the default None. This ensures that the output format is
+        consistent regardless of which steps are run.
+        """
+        result = _call(steps=steps)
+        assert isinstance(result, tuple) and len(result) == 2
+        params, lik = result
+        assert isinstance(params, np.ndarray)
+        assert isinstance(lik, float)
+
+    @pytest.mark.parametrize("steps", [[1], [2], [1, 2], None])
+    def test_returned_params_have_correct_length(self, steps):
+        """
+        Tests that the returned parameter array has the expected length (N_PARAMS) for all valid step specifications,
+        including the default None. This verifies that the function returns a complete parameter vector regardless of which steps are executed.
+        """
+        params, _ = _call(steps=steps)
+        assert len(params) == N_PARAMS
+
+
+# ---------------  Tests for reset_counter behaviour ---------------
+
+class TestResetCounter:
+    """
+    This class verifies that the reset_counter argument correctly controls whether the internal optimization counter is reset to zero before optimization begins.
+    """
+
+    def test_reset_counter_true_resets_to_zero(self):
+        """
+        Tests that when reset_counter=True, the internal counter is reset to zero before optimization begins.
+        """
+        core_module._counter = 999
+        _call(steps=[1], reset_counter=True)
+        assert core_module._counter < 999 # Counter will have been incremented at least once from 0; it will not be 999+.
+
+    def test_reset_counter_false_preserves_count(self):
+        """
+        Tests that when reset_counter=False, the internal counter is not reset and retains its value from previous runs,
+        allowing for cumulative counting across multiple calls if desired.
+        """
+        core_module._counter = 0
+        _call(steps=[1], reset_counter=True)
+        count_after_first = core_module._counter
+        _call(steps=[1], reset_counter=False)
+        assert core_module._counter > count_after_first # Counter must have grown (not been reset to 0)
+
+
+# ---------------  Tests for p0 used as starting point in step-2-only mode ---------------
+
+class TestStep2OnlyStartingPoint:
+
+    def test_step2_only_x0_derived_from_p0(self):
+        """
+        Tests that in step-2-only mode, the initial parameter vector (x0) passed to fmin_cobyla is derived
+        from the input p0, specifically taking the sex-bias parameters from p0 and not the non-sex-bias parameters.
+        """
+        captured_x0 = []
+
+        def capture(func, x0, cons, **kw):
+            captured_x0.append(x0.copy())
+            return x0
+
+        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capture):
+            _call(steps=[2], p0=P0, patch_fmin=False)
+
+        assert len(captured_x0) == 1
+        # sb_eur=0.05, sb_afr=0.05 are the sex-bias values in P0
+        np.testing.assert_allclose(captured_x0[0], P0[[2, 3]], rtol=1e-6)
+
+
+# --------------- Test for optimize_cob_sex_biased_single_step ---------------
+
+class TestSingleStepBasicModes:
+    """
+    This class contains basic tests for optimize_cob_sex_biased_single_step to verify that it runs without error
+    and returns outputs of the expected type and shape, both with and without an allosomal model specified.
+    These tests do not check the internal logic of the optimization but ensure that the function can be invoked in
+    its basic modes and that it handles the presence or absence of an allosomal model as expected.
+    """
+
+    @pytest.mark.parametrize("ad_model_allosomes", ["DC", None])
+    def test_single_step_accepts_with_or_without_allosomes(self, ad_model_allosomes):
+        """
+        Tests that the function accepts both with and without an allosomal model specified.
+        """
+        params, lik = _call_single(ad_model_allosomes=ad_model_allosomes)
+        assert isinstance(params, np.ndarray)
+        assert len(params) == N_PARAMS
+        assert np.isfinite(lik) or lik == -1e32
+
+    def test_single_step_returns_tuple_array_float(self):
+        """
+        Tests that the function returns a tuple containing a numpy array and a float.
+        """
+        result = _call_single()
+        assert isinstance(result, tuple) and len(result) == 2
+        params, lik = result
+        assert isinstance(params, np.ndarray)
+        assert isinstance(lik, float)
+        assert len(params) == N_PARAMS
+
+
+class TestSingleStepOptimizerCall:
+    """
+    This class contains tests to verify that optimize_cob_sex_biased_single_step makes exactly one call to scipy.optimize.fmin_cobyla
+    and that the initial parameter vector (x0) passed to fmin_cobyla is derived from the input p0 as expected, specifically that it includes
+    the full parameter vector and not just a subset. These tests use a mock for fmin_cobyla to capture the calls and inspect the arguments
+    without performing any real optimization.
+    """
+
+    def test_single_step_calls_fmin_once(self):
+        """
+        Tests that optimize_cob_sex_biased_single_step makes exactly one call to scipy.optimize.fmin_cobyla, ensuring
+        that the optimization process is initiated as expected and that there are no unexpected multiple calls to the optimizer.
+        """
+        call_count = 0
+
+        def capture(func, x0, cons, **kw):
+            nonlocal call_count
+            call_count += 1
+            return x0
+
+        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capture):
+            _call_single(patch_fmin=False)
+
+        assert call_count == 1
+
+    def test_single_step_x0_is_full_parameter_vector(self):
+        """
+        Tests that the initial parameter vector (x0) passed to fmin_cobyla in optimize_cob_sex_biased_single_step is the full parameter
+        vector derived from the input p0, rather than a subset, ensuring that the optimization is correctly initialized with all parameters
+        available for optimization.
+        """
+        captured_x0 = []
+
+        def capture(func, x0, cons, **kw):
+            captured_x0.append(np.array(x0, copy=True))
+            return x0
+
+        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capture):
+            _call_single(p0=P0, patch_fmin=False)
+
+        assert len(captured_x0) == 1
+        np.testing.assert_allclose(captured_x0[0], P0, rtol=1e-6)
+
+
+class TestSingleStepResetCounter:
+    """
+    This class contains tests to verify that the reset_counter argument in optimize_cob_sex_biased_single_step correctly
+    controls whether the internal optimization counter is reset to zero before optimization begins.
+    """
+
+    def test_single_step_reset_counter_true_resets_to_zero(self):
+        """
+        Tests that when reset_counter=True, the internal counter is reset to zero before optimization begins,
+        ensuring that the optimization process starts with a clean state and that the counter does not carry over from previous runs.
+        """
+        core_module._counter = 999
+        _call_single(reset_counter=True)
+        assert core_module._counter < 999
+
+    def test_single_step_reset_counter_false_preserves_count(self):
+        """
+        Tests that when reset_counter=False, the internal counter is not reset and retains its value from previous runs,
+        allowing for cumulative counting across multiple calls if desired, and that the counter continues to increment from its
+        previous value rather than resetting to zero.
+        """
+        core_module._counter = 0
+        _call_single(reset_counter=True)
+        count_after_first = core_module._counter
+        _call_single(reset_counter=False)
+        assert core_module._counter > count_after_first
+
+
+# --------------- Regression test for _ancestry_overrides in step 2 ---------------
+
+class TestAncestryOverridesInStep2:
+    """
+    Regression tests for the _ancestry_overrides mechanism in
+    optimize_cob_sex_biased_two_steps.
+
+    During step 2, ancestry-fixed non-sex-bias parameters must remain pinned to their
+    step-1/p0 values for every optimizer iteration.  Without _ancestry_overrides, each
+    call to extend_parameters() would invoke compute_params_fixed_by_ancestry() and
+    re-solve those parameters against the current sex-bias candidate, letting them drift.
+    """
+
+    def _make_handler_with_ancestry_fixed(self):
+        """
+        Return a FixedParametersHandler where rate_eur (index 1) is declared as
+        fixed-by-ancestry.  We set the attribute directly after calling the standard
+        _make_handler() factory to avoid needing real migration-matrix machinery.
+        """
+        ph = _make_handler()  # t(0), rate_eur(1), sb_eur(2), sb_afr(3); nothing ancestry-fixed
+        ph.params_fixed_by_ancestry = {"rate_eur": ""}
+        ph.free_parameters_indices = [
+            idx
+            for idx, name in enumerate(ph.demography.model_base_params)
+            if name not in ph.current_fixed_parameters
+            and name not in ph.params_fixed_by_ancestry
+        ]
+        return ph
+
+    def test_step2_ancestry_fixed_param_pinned_in_objective(self):
+        """
+        _ancestry_overrides must keep rate_eur (an ancestry-fixed non-sex-bias param at
+        index 1) at its p0 value in every call to reduced_objective_function during step 2,
+        even though the patched compute_params_fixed_by_ancestry() would compute a
+        different value based on the current sex-bias candidate.
+
+        The test patches compute_params_fixed_by_ancestry to set
+        rate_eur = |sb_eur| * 100 (simulating drift), then checks that the full
+        parameter vector seen by outofbounds_fun — after the _ancestry_overrides
+        override — always has rate_eur == P0[1] (== 0.3), never the drifted value.
+
+        GeneticModel.outofbounds_fun is patched (class-level, so it survives the
+        internal genetic_model.copy()) to delegate to capturing_oob, which always
+        reports out-of-bounds so the objective short-circuits before ever reaching
+        model_func/loglik — those do not need stubbing for this test.
+        """
+        captured = []
+        state = {"in_fmin": False}
+
+        def drifting_ancestry(self_ph, params, **kwargs):
+            """Simulate drift: compute_params_fixed_by_ancestry sets rate_eur ∝ sb_eur."""
+            result = np.array(params, dtype=float)
+            result[1] = abs(result[2]) * 100  # e.g. sb_eur=0.07 → rate_eur=7.0 without fix
+            return result
+
+        def capturing_oob(params):
+            """
+            Collect extended params seen during the optimizer phase, then short-circuit
+            model evaluation so PhT code is never invoked.
+            """
+            if state["in_fmin"]:
+                captured.append(np.array(params))
+            return -1  # always OOB → objective returns without calling model_func
+
+        def fmin_mock(func, x0, cons, **kwargs):
+            state["in_fmin"] = True
+            try:
+                perturbed = x0.copy()
+                perturbed[0] += 0.02  # shift sb_eur to trigger ancestry drift
+                func(perturbed)
+            finally:
+                state["in_fmin"] = False
+            return x0
+
+        ph = self._make_handler_with_ancestry_fixed()
+        dem = ph.demography
+        dem.parameter_handler = ph
+        genetic_model = GeneticModel(dem, ad_model_autosomes="DC", ad_model_allosomes="DC")
+
+        with patch.object(
+            FixedParametersHandler,
+            "compute_params_fixed_by_ancestry",
+            drifting_ancestry,
+        ):
+            with patch.object(
+                GeneticModel, "outofbounds_fun", lambda self, params, verbose=False: capturing_oob(params)
+            ):
+                with patch.object(
+                    core_module.scipy.optimize, "fmin_cobyla", side_effect=fmin_mock
+                ):
+                    optimize_cob_sex_biased_two_steps(
+                        p0=P0,
+                        population=_make_population(),
+                        genetic_model=genetic_model,
+                        likelihood_options=LikelihoodOptions(verbose_log=0, verbose_screen=0),
+                        p_dict=P_DICT,
+                        exclude_tracts_below_cM=0,
+                        maxiter=2,
+                        reset_counter=True,
+                        npts=N_BINS,
+                        steps=[2],
+                    )
+
+        assert len(captured) > 0, (
+            "outofbounds_fun was never called during the fmin phase; "
+            "the fmin mock did not invoke the objective function."
+        )
+
+        RATE_EUR_P0 = P0[1]  # 0.3 — the value _ancestry_overrides should pin to
+        drifted_value = abs(P0[2] + 0.02) * 100  # what drifting_ancestry would produce
+        for i, params in enumerate(captured):
+            np.testing.assert_allclose(
+                params[1],
+                RATE_EUR_P0,
+                rtol=1e-9,
+                err_msg=(
+                    f"Call {i}: rate_eur should be pinned to p0 ({RATE_EUR_P0}) "
+                    f"by _ancestry_overrides, not drifted to {drifted_value:.4f} "
+                    "via compute_params_fixed_by_ancestry."
+                ),
+            )

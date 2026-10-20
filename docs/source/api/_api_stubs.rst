@@ -2,17 +2,16 @@
    :toctree: generated
    :recursive:
 
-   tracts
    tracts.chromosome
    tracts.core
    tracts.driver
+   tracts.driver_utils
+   tracts.genetic_model
+   tracts.haploid
+   tracts.indiv
+   tracts.likelihood_options
+   tracts.plot
    tracts.population
    tracts.tract
+   tracts.tracts_data
    tracts.util
-   tracts.demography
-   tracts.demography.base_parametrized_demography
-   tracts.demography.composite_demographic_model
-   tracts.demography.demographic_model
-   tracts.demography.parameter
-   tracts.demography.parametrized_demography
-   tracts.demography.parametrized_demography_sex_biased

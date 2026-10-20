@@ -1,28 +1,28 @@
 import os
 import sys
 import numpy as np
-import pytest
-
+import math
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir+'\\..')
 from tracts.demography.parametrized_demography import ParametrizedDemography
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
-from tracts.demography.parameter import ParamType
+
+"""
+This test suite checks the functionality of the ancestry fixing feature in the `ParametrizedDemography` class, which allows users to fix certain parameters based on sample proportions.
+"""
 
 def test_ancestry_fixing_single_population():
     """
     Test the ancestry fixing functionality for a single population with two founders.
     
     This test:
-    1. Creates a model with two founders and no other events
-    2. Sets up sample proportions
-    3. Fixes the founding rate parameter using the sample proportions
-    4. Verifies that the model can take in only a founding time value and output a migration matrix
-    5. Verifies that the resulting rate parameter matches the sample proportions
-    6. Verifies that the final proportions of the matrix match the sample proportions
+    1. Creates a model with two founders and no other events,
+    2. Sets up sample proportions,
+    3. Fixes the founding rate parameter using the sample proportions,
+    4. Verifies that the model can take in only a founding time value and output a migration matrix,
+    5. Verifies that the resulting rate parameter matches the sample proportions,
+    6. Verifies that the final proportions of the matrix match the sample proportions.
     """
-    
-
 
     # Create a model with two founders
     model = ParametrizedDemography(name="TestModel")
@@ -54,7 +54,8 @@ def test_ancestry_fixing_single_population():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rate is fixed)
-    found_time = 10 
+    found_time = 10-1e-9
+    found_time_ceil = math.ceil(found_time)
     test_free_params = [found_time]  # Only the founding time
     test_params = [0,found_time] #the first parameter should be rewritten
     # Get the migration matrices
@@ -74,12 +75,12 @@ def test_ancestry_fixing_single_population():
     matrix = migration_matrices["target_pop"]
     
     # Verify the matrix dimensions
-    assert matrix.shape[0] == found_time + 1  # found_time + 1
+    assert np.isclose(matrix.shape[0], found_time + 1)  # found_time + 1
     assert matrix.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
-    assert np.isclose(matrix[found_time, 0], 0.7)  # source_pop1 proportion at founding time
-    assert np.isclose(matrix[found_time, 1], 0.3)  # source_pop2 proportion at founding time
+    assert np.isclose(matrix[found_time_ceil, 0], 0.7)  # source_pop1 proportion at founding time
+    assert np.isclose(matrix[found_time_ceil, 1], 0.3)  # source_pop2 proportion at founding time
     
     # Verify that the final proportions match the sample proportions
     final_proportions = model.proportions_from_matrix(matrix)
@@ -95,12 +96,12 @@ def test_ancestry_fixing_single_population_with_fixed_param():
     Test the ancestry fixing functionality for a single population with two founders.
     
     This test:
-    1. Creates a model with two founders and no other events
-    2. Sets up sample proportions
-    3. Fixes the founding rate parameter using the sample proportions
-    4. Verifies that the model can take in only a founding time value and output a migration matrix
-    5. Verifies that the resulting rate parameter matches the sample proportions
-    6. Verifies that the final proportions of the matrix match the sample proportions
+    1. Creates a model with two founders and no other events,
+    2. Sets up sample proportions,
+    3. Fixes the founding rate parameter using the sample proportions,
+    4. Verifies that the model can take in only a founding time value and output a migration matrix,
+    5. Verifies that the resulting rate parameter matches the sample proportions,
+    6. Verifies that the final proportions of the matrix match the sample proportions.
     """
     # Create a model with two founders
     model = ParametrizedDemography(name="TestModel")
@@ -122,10 +123,12 @@ def test_ancestry_fixing_single_population_with_fixed_param():
     }
     
     # Fix the start time
-    fixed_time =10
+    fixed_time =10-1e-9
+    fixed_time_ceil = math.ceil(fixed_time)
+
+    
     fixed_params = {"found_time": fixed_time}
     # Fix the founding rate parameter using the sample proportions
-    
     
     model.parameter_handler.set_up_fixed_parameters(
         demography=model,
@@ -156,8 +159,8 @@ def test_ancestry_fixing_single_population_with_fixed_param():
     assert matrix.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
-    assert np.isclose(matrix[10, 0], 0.7)  # source_pop1 proportion at founding time
-    assert np.isclose(matrix[10, 1], 0.3)  # source_pop2 proportion at founding time
+    assert np.isclose(matrix[fixed_time_ceil, 0], 0.7)  # source_pop1 proportion at founding time
+    assert np.isclose(matrix[fixed_time_ceil, 1], 0.3)  # source_pop2 proportion at founding time
     
     # Verify that the final proportions match the sample proportions
     final_proportions = model.proportions_from_matrix(matrix)
@@ -172,16 +175,15 @@ def test_ancestry_fixing_multiple_populations():
     Test the ancestry fixing functionality for multiple populations.
     
     This test:
-    1. Creates a model with two populations, each with two founders
-    2. Sets up sample proportions for each population
-    3. Fixes the founding rate parameters using the sample proportions
-    4. Verifies that the model can take in only founding time values and output migration matrices
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrices match the sample proportions
+    1. Creates a model with two populations, each with two founders,
+    2. Sets up sample proportions for each population,
+    3. Fixes the founding rate parameters using the sample proportions,
+    4. Verifies that the model can take in only founding time values and output migration matrices,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrices match the sample proportions.
     """
-    # Create a model with two populations, each with two founders
-    
 
+    # Create a model with two populations, each with two founders
     model = ParametrizedDemography(name="TestModel")
     
     # Add founder events for two populations
@@ -219,7 +221,12 @@ def test_ancestry_fixing_multiple_populations():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding times (since the rates are fixed)
-    test_free_params = [10, 15]  # [found_time1, found_time2]
+    
+    found_time1 = 10-1e-9
+    found_time2 = 15-1e-9
+    int_found_time1 = math.ceil(found_time1)
+    int_found_time2 = math.ceil(found_time2)
+    test_free_params = [found_time1, found_time2]  # [found_time1, found_time2]
     test_parameters = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_parameters) == 4
@@ -235,9 +242,9 @@ def test_ancestry_fixing_multiple_populations():
     matrix2 = migration_matrices["target_pop2"]
     
     # Verify the matrix dimensions
-    assert matrix1.shape[0] == 11  # found_time1 + 1
+    assert matrix1.shape[0] == int_found_time1 + 1   
     assert matrix1.shape[1] == 2  # two source populations
-    assert matrix2.shape[0] == 16  # found_time2 + 1
+    assert matrix2.shape[0] == int_found_time2 + 1   
     assert matrix2.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
@@ -265,12 +272,12 @@ def test_ancestry_fixing_three_founders():
     Test the ancestry fixing functionality for a population with three founders.
     
     This test:
-    1. Creates a model with one population and three founders
-    2. Sets up sample proportions
-    3. Fixes the founding rate parameters using the sample proportions
-    4. Verifies that the model can take in only a founding time value and output a migration matrix
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrix match the sample proportions
+    1. Creates a model with one population and three founders,
+    2. Sets up sample proportions,
+    3. Fixes the founding rate parameters using the sample proportions,
+    4. Verifies that the model can take in only a founding time value and output a migration matrix,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrix match the sample proportions.
     """
     # Create a model with three founders
     model = ParametrizedDemography(name="TestModel")
@@ -305,12 +312,13 @@ def test_ancestry_fixing_three_founders():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rates are fixed)
-    test_free_params = [10]  # Only the founding time
+    founding_time = 10 - 1e-9
+    int_found_time = math.ceil(founding_time) 
+    
+    test_free_params = [founding_time]  # Only the founding time
     test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 3
-
-
 
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
@@ -322,7 +330,7 @@ def test_ancestry_fixing_three_founders():
     matrix = migration_matrices["target_pop"]
     
     # Verify the matrix dimensions
-    assert matrix.shape[0] == 11  # found_time + 1
+    assert matrix.shape[0] == int_found_time + 1 
     assert matrix.shape[1] == 3  # three source populations
     
     # Verify that the founder rates match the sample proportions
@@ -345,13 +353,14 @@ def test_ancestry_fixing_two_samples_three_founders():
     Test the ancestry fixing functionality for two populations, each with three founders.
     
     This test:
-    1. Creates a model with two populations, each with three founders
-    2. Sets up sample proportions for each population
-    3. Fixes the founding rate parameters using the sample proportions
-    4. Verifies that the model can take in only founding time values and output migration matrices
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrices match the sample proportions
+    1. Creates a model with two populations, each with three founders,
+    2. Sets up sample proportions for each population,
+    3. Fixes the founding rate parameters using the sample proportions,
+    4. Verifies that the model can take in only founding time values and output migration matrices,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrices match the sample proportions.
     """
+
     # Create a model with two populations, each with three founders
     model = ParametrizedDemography(name="TestModel")
     
@@ -396,11 +405,16 @@ def test_ancestry_fixing_two_samples_three_founders():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding times (since the rates are fixed)
-    test_free_params = [10, 15]  # [found_time1, found_time2]
+    
+    found_time1 = 10-1e-9
+    found_time2 = 15-1e-9
+    int_found_time1 = math.ceil(found_time1)
+    int_found_time2 = math.ceil(found_time2)
+    
+    test_free_params = [found_time1, found_time2]
     test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 6
-
 
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
@@ -414,9 +428,9 @@ def test_ancestry_fixing_two_samples_three_founders():
     matrix2 = migration_matrices["target_pop2"]
     
     # Verify the matrix dimensions
-    assert matrix1.shape[0] == 11  # found_time1 + 1
+    assert matrix1.shape[0] == int_found_time1 + 1
     assert matrix1.shape[1] == 3  # three source populations
-    assert matrix2.shape[0] == 16  # found_time2 + 1
+    assert matrix2.shape[0] == int_found_time2 + 1
     assert matrix2.shape[1] == 3  # three source populations
     
     # Verify that the founder rates match the sample proportions for target_pop1
@@ -445,25 +459,17 @@ def test_ancestry_fixing_two_samples_three_founders():
     assert np.isclose(final_proportions1.sum(), 1.0)
     assert np.isclose(final_proportions2.sum(), 1.0)
 
-
-
-
-
-
-
-
-
 def test_ancestry_fixing_with_pulse_migration():
     """
     Test the ancestry fixing functionality for a model with two founders and one pulse migration.
     
     This test:
-    1. Creates a model with two founders and one pulse migration
-    2. Sets up sample proportions
-    3. Fixes the founding rate parameter using the sample proportions
-    4. Verifies that the model can take in founding time, pulse time, and pulse rate values and output a migration matrix
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrix match the sample proportions
+    1. Creates a model with two founders and one pulse migration,
+    2. Sets up sample proportions,
+    3. Fixes the founding rate parameter using the sample proportions,
+    4. Verifies that the model can take in founding time, pulse time, and pulse rate values and output a migration matrix,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrix match the sample proportions.
     """
     # Create a model with two founders and one pulse migration
     model = ParametrizedDemography(name="TestModel")
@@ -503,13 +509,13 @@ def test_ancestry_fixing_with_pulse_migration():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with founding time, pulse time, and pulse rate
-    test_free_params = [10, 0.2, 5]  # [found_time, pulse_rate, pulse_time]
+    
+    founding_time = 10 - 1e-9
+    int_found_time = math.ceil(founding_time) 
+    test_free_params = [founding_time, 0.2, 5]  # [found_time, pulse_rate, pulse_time]
     test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 4
-
-
-
 
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
@@ -521,7 +527,7 @@ def test_ancestry_fixing_with_pulse_migration():
     matrix = migration_matrices["target_pop"]
     
     # Verify the matrix dimensions
-    assert matrix.shape[0] == 11  # found_time + 1
+    assert matrix.shape[0] == int_found_time + 1  
     assert matrix.shape[1] == 2  # two source populations
         
     # Verify that the founder rates are greater than 0
@@ -546,12 +552,12 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     where the pulse migration rate is fixed by the final proportions.
     
     This test:
-    1. Creates a model with two founders and one pulse migration
-    2. Sets up sample proportions
-    3. Fixes the founding rate parameter using the sample proportions
-    4. Verifies that the model can take in founding time and pulse time values and output a migration matrix
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrix match the sample proportions
+    1. Creates a model with two founders and one pulse migration,
+    2. Sets up sample proportions,
+    3. Fixes the founding rate parameter using the sample proportions,
+    4. Verifies that the model can take in founding time and pulse time values and output a migration matrix,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrix match the sample proportions.
     """
     # Create a model with two founders and one pulse migration
     model = ParametrizedDemography(name="TestModel")
@@ -591,8 +597,9 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with founding time and pulse time (since the rates are fixed)
-    test_free_params = [0.2, 10, 5]  # [found_time, founding_rate, pulse_time]
-    
+    founding_time = 10 - 1e-9
+    int_found_time = math.ceil(founding_time) 
+    test_free_params = [0.2, founding_time, 5]  # [found_time, founding_rate, pulse_time]
 
     test_params = model.parameter_handler.extend_parameters(test_free_params)
  
@@ -608,7 +615,7 @@ def test_ancestry_fixing_with_pulse_migration_fixed_rate():
     matrix = migration_matrices["target_pop"]
     
     # Verify the matrix dimensions
-    assert matrix.shape[0] == 11  # found_time + 1
+    assert matrix.shape[0] == int_found_time + 1
     assert matrix.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
@@ -634,12 +641,12 @@ def test_ancestry_fixing_sex_biased():
     Test the ancestry fixing functionality for a sex-biased demography with two founders.
     
     This test:
-    1. Creates a sex-biased model with two founders
-    2. Sets up sample proportions for both male and female populations
-    3. Fixes the founding rate and sex-bias parameters using the sample proportions
-    4. Verifies that the model can take in only a founding time value and output migration matrices
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrices match the sample proportions
+    1. Creates a sex-biased model with two founders,
+    2. Sets up sample proportions for both male and female populations,
+    3. Fixes the founding rate and sex-bias parameters using the sample proportions,
+    4. Verifies that the model can take in only a founding time value and output migration matrices,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrices match the sample proportions.
     """
     # Create a sex-biased model with two founders
     model = ParametrizedDemographySexBiased(name="SexBiasedModel")
@@ -658,7 +665,7 @@ def test_ancestry_fixing_sex_biased():
     # Define sample proportions
     sample_proportions = {
         "target_pop_autosomal": [0.6, 0.4],  # [source_pop1, source_pop2] for autosomes
-        "target_pop_X": [0.4, 0.6]  # [source_pop1, source_pop2] for X chromosomes
+        "target_pop_X": [0.51, 0.49]  # [source_pop1, source_pop2] for X chromosomes
     }
     
     # Fix the founding rate and sex-bias parameters using the sample proportions
@@ -672,7 +679,11 @@ def test_ancestry_fixing_sex_biased():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rates are fixed)
-    test_free_params = [10]  # Only the founding time
+    
+    founding_time = 10-1e-15
+    int_found_time = math.ceil(founding_time) 
+    
+    test_free_params = [founding_time]  # Only the founding time
     test_params = model.parameter_handler.extend_parameters(test_free_params)
  
     assert len(test_params) == 3
@@ -689,9 +700,9 @@ def test_ancestry_fixing_sex_biased():
     matrix_female = migration_matrices["target_pop_female"]
     
     # Verify the matrix dimensions
-    assert matrix_male.shape[0] == 11  # found_time + 1
+    assert matrix_male.shape[0] == int_found_time + 1
     assert matrix_male.shape[1] == 2  # two source populations
-    assert matrix_female.shape[0] == 11  # found_time + 1
+    assert matrix_female.shape[0] == int_found_time + 1
     assert matrix_female.shape[1] == 2  # two source populations
      
 
@@ -705,12 +716,12 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     Test the ancestry fixing functionality for a sex-biased demography with two founders.
     
     This test:
-    1. Creates a sex-biased model with two founders
-    2. Sets up sample proportions with full parameters for both male and female populations
-    3. Fixes the founding rate and sex-bias parameters using the computed
-    4. Verifies that the model can take in only a founding time value and output migration matrices
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrices match the sample proportions
+    1. Creates a sex-biased model with two founders,
+    2. Sets up sample proportions with full parameters for both male and female populations,
+    3. Fixes the founding rate and sex-bias parameters using the computed proportions,
+    4. Verifies that the model can take in only a founding time value and output migration matrices,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrices match the sample proportions.
     """
     # Create a sex-biased model with two founders
     model = ParametrizedDemographySexBiased(name="SexBiasedModel")
@@ -744,7 +755,8 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     bias1 = 1
     rate2=0.4
     bias2=-1
-    foundt=10
+    foundt=10-1e-9
+    int_found_time = math.ceil(foundt)
     endt=5
     params_full = [rate1, bias1, rate2, bias2, foundt, endt] 
 
@@ -769,7 +781,6 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding time (since the rates are fixed)
-
     test_free_params = [rate2,bias2,foundt,endt]  
     
     computed_params = model.parameter_handler.compute_params_fixed_by_ancestry(params_full)
@@ -780,14 +791,12 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     assert (model.parameter_handler.params_fixed_by_ancestry_indices.tolist() == [0,1])
 
     raw_test_params = params_full.copy()
-    raw_test_params[0]= 0.0  #messing values to be filled in
-    raw_test_params[1]=0.  #messing values to be filled in  
+    raw_test_params[0]= 0.0  # messing values to be filled in
+    raw_test_params[1]=0.  # messing values to be filled in  
     test_params = model.parameter_handler.compute_params_fixed_by_ancestry(raw_test_params)
     
     assert len(test_params) == 6
     assert np.allclose(test_params, params_full)
-
-
 
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
@@ -801,11 +810,10 @@ def test_ancestry_fixing_sex_biased_continuous_founder():
     matrix_female = migration_matrices["target_pop_female"]
     
     # Verify the matrix dimensions
-    assert matrix_male.shape[0] == 11  # found_time + 1
+    assert matrix_male.shape[0] == int_found_time + 1
     assert matrix_male.shape[1] == 2  # two source populations
-    assert matrix_female.shape[0] == 11  # found_time + 1
+    assert matrix_female.shape[0] == int_found_time + 1
     assert matrix_female.shape[1] == 2  # two source populations
-     
 
     final_proportions=model.proportions_from_matrices(migration_matrices)
     # Verify that the final proportions match the sample proportions
@@ -821,12 +829,12 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     Test the ancestry fixing functionality for a sex-biased demography with two founders and one pulse migration.
     
     This test:
-    1. Creates a sex-biased model with two founders and one pulse migration
-    2. Sets up sample proportions for both male and female populations
-    3. Fixes the pulse rate and sex-bias parameters using the sample proportions
-    4. Verifies that the model can take in founding time and pulse time values and output migration matrices
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrices match the sample proportions
+    1. Creates a sex-biased model with two founders and one pulse migration,
+    2. Sets up sample proportions for both male and female populations,
+    3. Fixes the pulse rate and sex-bias parameters using the sample proportions,
+    4. Verifies that the model can take in founding time and pulse time values and output migration matrices,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrices match the sample proportions.
     """
     # Create a sex-biased model with two founders and one pulse migration
     model = ParametrizedDemographySexBiased(name="SexBiasedPulseModel")
@@ -866,7 +874,10 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with founding time, founding rate, and pulse time (since the pulse rate is fixed)
-    test_free_params = [0.5, 0, 10, 5]  # [founder_rate, founder_rate_sex_bias, found_time, pulse_time]
+    found_time = 10-1e-9
+    int_found_time = math.ceil(found_time)
+    
+    test_free_params = [0.5, 0, found_time, 5]  # [founder_rate, founder_rate_sex_bias, found_time, pulse_time]
     
     test_params = model.parameter_handler.extend_parameters(test_free_params)
     # Get the migration matrices
@@ -880,13 +891,10 @@ def test_ancestry_fixing_sex_biased_with_pulse():
     matrix_male = migration_matrices["target_pop_male"]
     matrix_female = migration_matrices["target_pop_female"]
     
- 
-
-
     # Verify the matrix dimensions
-    assert matrix_male.shape[0] == 11  # found_time + 1
+    assert matrix_male.shape[0] == int_found_time + 1
     assert matrix_male.shape[1] == 2  # two source populations
-    assert matrix_female.shape[0] == 11  # found_time + 1
+    assert matrix_female.shape[0] == int_found_time + 1
     assert matrix_female.shape[1] == 2  # two source populations
     
     # Verify that the founder rates are greater than 0
@@ -906,21 +914,17 @@ def test_ancestry_fixing_sex_biased_with_pulse():
         assert np.allclose(final_proportions[key], sample_proportions[key])
 
 
-
-## Test parameter fixing
-# 
-# 
 def test_parameter_fixing_single_population():
     """
     Test the parameter fixing functionality for a single population with two founders.
     
     This test:
-    1. Creates a model with two founders and no other events
-    2. Sets up sample proportions
-    3. Fixes the founding rate parameter using the sample proportions
-    4. Verifies that the model can take in only a founding time value and output a migration matrix
-    5. Verifies that the resulting rate parameter matches the sample proportions
-    6. Verifies that the final proportions of the matrix match the sample proportions
+    1. Creates a model with two founders and no other events,
+    2. Sets up sample proportions,
+    3. Fixes the founding rate parameter using the sample proportions,
+    4. Verifies that the model can take in only a founding time value and output a migration matrix,
+    5. Verifies that the resulting rate parameter matches the sample proportions,
+    6. Verifies that the final proportions of the matrix match the sample proportions.
     """
     # Create a model with two founders
     model = ParametrizedDemography(name="TestModel")
@@ -935,14 +939,15 @@ def test_parameter_fixing_single_population():
     
     # Finalize the model
     model.finalize()
-    
 
     # Define sample proportions (70% from source_pop1, 30% from source_pop2)
     sample_proportions = {
         "target_pop": [0.7, 0.3]  # [source_pop1, source_pop2]
     }
     
-    params_to_fix_by_value = {"found_time":10}
+    found_time = 10-1e-9
+    int_found_time = math.ceil(found_time)
+    params_to_fix_by_value = {"found_time":found_time}
 
     # Fix the founding rate parameter using the sample proportions
     model.parameter_handler.set_up_fixed_parameters(
@@ -969,7 +974,7 @@ def test_parameter_fixing_single_population():
     matrix = migration_matrices["target_pop"]
     
     # Verify the matrix dimensions
-    assert matrix.shape[0] == 11  # found_time + 1
+    assert matrix.shape[0] == int_found_time + 1
     assert matrix.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions
@@ -990,12 +995,12 @@ def test_ancestry_fixing_multiple_populations_v2():
     Test the ancestry fixing functionality for multiple populations.
     
     This test:
-    1. Creates a model with two populations, each with two founders
-    2. Sets up sample proportions for each population
-    3. Fixes the founding rate parameters using the sample proportions
-    4. Verifies that the model can take in only founding time values and output migration matrices
-    5. Verifies that the resulting rate parameters match the sample proportions
-    6. Verifies that the final proportions of the matrices match the sample proportions
+    1. Creates a model with two populations, each with two founders,
+    2. Sets up sample proportions for each population,
+    3. Fixes the founding rate parameters using the sample proportions,
+    4. Verifies that the model can take in only founding time values and output migration matrices,
+    5. Verifies that the resulting rate parameters match the sample proportions,
+    6. Verifies that the final proportions of the matrices match the sample proportions.
     """
     # Create a model with two populations, each with two founders
     model = ParametrizedDemography(name="TestModel")
@@ -1035,7 +1040,13 @@ def test_ancestry_fixing_multiple_populations_v2():
     assert model.parameter_handler.has_been_fixed
     
     # Create a parameter list with only the founding times (since the rates are fixed)
-    test_free_params = [10, 15]  # [found_time1, found_time2]
+    
+    found_time1 = 10-1e-9
+    found_time2 = 15-1e-9
+    int_found_time1 = math.ceil(found_time1)
+    int_found_time2 = math.ceil(found_time2)
+    
+    test_free_params = [found_time1, found_time2]  # [found_time1, found_time2]
     test_params = model.parameter_handler.extend_parameters(test_free_params)
     # Get the migration matrices
     migration_matrices = model.get_migration_matrices(test_params)
@@ -1049,9 +1060,9 @@ def test_ancestry_fixing_multiple_populations_v2():
     matrix2 = migration_matrices["target_pop2"]
     
     # Verify the matrix dimensions
-    assert matrix1.shape[0] == 11  # found_time1 + 1
+    assert matrix1.shape[0] == int_found_time1 + 1
     assert matrix1.shape[1] == 2  # two source populations
-    assert matrix2.shape[0] == 16  # found_time2 + 1
+    assert matrix2.shape[0] == int_found_time2 + 1
     assert matrix2.shape[1] == 2  # two source populations
     
     # Verify that the founder rates match the sample proportions

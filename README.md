@@ -1,22 +1,20 @@
 ## About $\texttt{tracts}$
 
-Warning: The master branch is not thoroughly tested at the moment after a major update.
-
 $\texttt{tracts}$ is a python library used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from
 multiple populations can be modeled. In $\texttt{tracts 2.0}$, sex-biased migration
 and recombination rates are supported, enabling modeling and inference for 
 both autosomes and the X chromosome.
 
----
-
 ### Installing $\texttt{tracts}$
 
 To install: 
 
-1. Clone this repository
-2. In your local copy, open a terminal
-3. Run `pip install .`
+```bash
+git clone https://github.com/gravelLab/tracts.git
+cd tracts
+pip install .
+```
 
 You can now import $\texttt{tracts}$ as a python package.
 
@@ -33,4 +31,3 @@ A detailed introduction to the models and methods presented in $\texttt{tracts 2
 
 For any inquires, please file an [issue](https://github.com/gravelLab/tracts/issues) or [contact us](mailto:javier.gonzalez-delgado@ensai.fr).
 
----

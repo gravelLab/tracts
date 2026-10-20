@@ -4,14 +4,21 @@ from tracts.tract import Tract
 from tracts.population import Population
 from tracts.chromosome import Chrom, Chropair
 from tracts.haploid import Haploid
-from tracts.phase_type_distribution import PhTMonoecious, PhTDioecious
+from tracts.phase_type import PhaseTypeDistribution
+from tracts.phase_type import PhTMonoecious, PhTDioecious
+from tracts.phase_type import hybrid_pedigree
 from tracts.util import eprint
-from tracts.demography import ParametrizedDemography, ParametrizedDemographySexBiased, DemographicModel, CompositeDemographicModel
-from tracts import legacy_models
+from tracts.demography import ParametrizedDemography, ParametrizedDemographySexBiased
+from tracts.legacy import DemographicModel, CompositeDemographicModel
+from tracts.legacy import legacy_models
 from tracts import logs
-from tracts import legacy
-from tracts import driver
-from tracts import hybrid_pedigree
-
-from tracts.logs import show_INFO
+from tracts.legacy import legacy
+from tracts import driver, driver_utils
 from tracts.driver import run_tracts
+from tracts import plot
+from tracts.plot import (
+    plot_admixture_from_output,
+    plot_migration_matrices_from_output,
+    plot_tract_length_distributions_from_output,
+    plot_all_from_output_directories,
+)
