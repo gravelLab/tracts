@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/source/_static/logo/tracts-logo-dark.svg">
-    <img alt="tracts logo" src="docs/source/_static/logo/tracts-logo-light.svg" width="300">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/source/_static/logo/tracts-logo-dark.svg" width="150">
+    <img alt="tracts logo" src="docs/source/_static/logo/tracts-logo-light.svg" width="150">
   </picture>
 </p>
 
