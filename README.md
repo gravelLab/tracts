@@ -1,4 +1,9 @@
-## About $\texttt{tracts}$
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/source/_static/logo/tracts-logo-dark.svg" width="150">
+    <img alt="tracts logo" src="docs/source/_static/logo/tracts-logo-light.svg" width="150">
+  </picture>
+</p>
 
 $\texttt{tracts}$ is a python library used to model migration histories
 based on ancestry tracts in admixed individuals. Time-dependent gene-flow from

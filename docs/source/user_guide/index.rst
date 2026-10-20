@@ -181,6 +181,13 @@ The blocks above can be combined into full demographic models. Here are some sta
    .. literalinclude:: ../../../example/documentation_examples/models/ccc.yaml
       :language: yaml
 
+.. dropdown:: Continuous + pulse model
+
+   A population ``X`` founded by a pulse from ``AMR`` at generation ``t1``, together with continuous migration from ``EUR`` and ``AFR`` between
+   generations ``t1`` and ``t2``.
+
+   .. literalinclude:: ../../../example/documentation_examples/models/cpc.yaml
+      :language: yaml
 
 .. _input-data:
 
