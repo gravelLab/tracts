@@ -2,7 +2,10 @@ import numpy
 import pytest
 from tracts.phase_type.hybrid_pedigree import hybrid_pedigree_distribution
 from test_data import bins, Ls
-from tracts.legacy.demographic_model import DemographicModel
+try:  # tracts 1.0 reference implementation, deprecated and not installed (available from the source tree only)
+    from tracts.legacy.demographic_model import DemographicModel
+except ImportError:
+    DemographicModel = None
 from tracts.phase_type.base_phase_type import PhaseTypeDistribution
 from tracts.phase_type.monoecious import PhTMonoecious
 from tracts.phase_type.dioecious import PhTDioecious
@@ -472,6 +475,7 @@ def verify_PDT(migration_matrix):
 @pytest.mark.parametrize("data", ["migration_matrix_A", "migration_matrix_B",
                                   "migration_matrix_C", "migration_matrix_D"])
 
+@pytest.mark.skipif(DemographicModel is None, reason="tracts.legacy (tracts 1.0 reference) is not installed")
 def test_verify_PDT(data, request):
     """
     Implements the verify_PDT testing suite. 
