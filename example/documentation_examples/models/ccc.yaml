@@ -8,6 +8,6 @@ demes:
   - name: AFR
   - name: X
     ancestors: [EUR, AMR, AFR]
-    proportions: [REUR, RAMR,RAFR ]
+    proportions: [REUR, RAMR, RAFR]
     start_time: t1
     end_time: t2

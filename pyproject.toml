@@ -27,8 +27,8 @@ filterwarnings = [
     # Environment-only: fires when a duplicate (system + venv) Matplotlib install is
     # present; not caused by tracts and does not affect any functionality tracts uses.
     "ignore:Unable to import Axes3D:UserWarning",
-    # Expected: tracts.legacy is intentionally deprecated and warns once on import,
-    # purely from being re-exported at the top level for backwards compatibility.
+    # Expected: tracts.legacy is deprecated and warns on import; it is only imported by the
+    # test comparing tracts 2.0 with the tracts 1.0 reference implementation.
     "ignore:tracts.legacy is deprecated:DeprecationWarning",
     # Third-party: Matplotlib's own math-text renderer (used when plotting output figures)
     # calls pyparsing APIs that pyparsing itself has since deprecated; not caused by tracts

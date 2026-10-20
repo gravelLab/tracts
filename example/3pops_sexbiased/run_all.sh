@@ -23,6 +23,10 @@ PUR_MODELS=(ppp cpc)
 
 MAX_WORKERS=18
 
+# Failed or missing runs are recorded here, so that the script can exit with a nonzero status.
+FAILED_RUNS_FILE="$(mktemp)"
+trap 'rm -f "$FAILED_RUNS_FILE"' EXIT
+
 _PIDS=()
 
 _wait_for_slot() {
@@ -56,11 +60,14 @@ run_pop() {
                     echo "  ✓ done: ${pop}_${model}"
                 else
                     echo "  ✗ failed: ${pop}_${model} (exit $status)"
+                    echo "${pop}_${model} (exit $status)" >> "$FAILED_RUNS_FILE"
                 fi
+                exit "$status"
             ) &
             _PIDS+=($!)
         else
             echo "  ✗ not found: ${pop}_${model}.py"
+            echo "${pop}_${model} (driver script not found)" >> "$FAILED_RUNS_FILE"
         fi
     done
 }
@@ -73,4 +80,9 @@ run_pop() {
 [ "$RUN_PUR" -eq 1 ] && run_pop PUR "${PUR_MODELS[@]}"
 
 wait
+if [ -s "$FAILED_RUNS_FILE" ]; then
+    echo "Some runs failed ($(wc -l < "$FAILED_RUNS_FILE" | tr -d ' ')):"
+    sed 's/^/  - /' "$FAILED_RUNS_FILE"
+    exit 1
+fi
 echo "All runs complete."

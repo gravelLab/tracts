@@ -1,0 +1,3 @@
+# Deprecated tracts 1.0 examples: kept in the repository for reference, but left out of
+# source archives (GitHub "Download ZIP", release tarballs and `git archive`).
+example/legacy export-ignore

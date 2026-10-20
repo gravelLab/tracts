@@ -1,6 +1,6 @@
 model_name: Continuous_pulse_AMR
 description: 
-  Represents a population X founded with a discrete event (AMR) and continuous event (EUR, AMR).
+  Represents a population X founded with a discrete event (AMR) and continuous event (EUR, AFR).
 time_units: generations
 demes:
   - name: EUR
@@ -8,7 +8,7 @@ demes:
   - name: AFR
   - name: targetpop
     ancestors: [EUR, AMR, AFR]
-    proportions: [REUR, RAMR,RAFR ]
+    proportions: [REUR, RAMR, RAFR]
     start_time: t1
     end_time: t2
     pulse_pops: [AMR]
