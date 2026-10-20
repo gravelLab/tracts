@@ -1,0 +1,6 @@
+tracts.driver\_utils.save\_ancestry\_table
+==========================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: save_ancestry_table

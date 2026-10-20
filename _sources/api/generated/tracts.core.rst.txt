@@ -1,0 +1,22 @@
+﻿tracts.core
+===========
+
+.. automodule:: tracts.core
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   compute_objective
+   optimize_cob_sex_biased_single_step
+   optimize_cob_sex_biased_two_steps
+
+
+
+

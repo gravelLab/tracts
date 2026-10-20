@@ -1,0 +1,8 @@
+tracts.demography.base\_parametrized\_demography.BaseFounderEvent
+=================================================================
+
+.. currentmodule:: tracts.demography.base_parametrized_demography
+
+.. autoclass:: BaseFounderEvent
+   :members:
+   :show-inheritance:

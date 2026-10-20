@@ -1,0 +1,20 @@
+﻿tracts.haploid
+==============
+
+.. automodule:: tracts.haploid
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   Haploid
+
+

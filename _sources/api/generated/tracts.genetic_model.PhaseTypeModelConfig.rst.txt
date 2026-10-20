@@ -1,0 +1,8 @@
+tracts.genetic\_model.PhaseTypeModelConfig
+==========================================
+
+.. currentmodule:: tracts.genetic_model
+
+.. autoclass:: PhaseTypeModelConfig
+   :members:
+   :show-inheritance:

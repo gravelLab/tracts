@@ -1,0 +1,6 @@
+tracts.plot.plot\_admixture\_from\_output
+=========================================
+
+.. currentmodule:: tracts.plot
+
+.. autofunction:: plot_admixture_from_output

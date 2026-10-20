@@ -1,0 +1,6 @@
+tracts.driver\_utils.get\_alternate\_implicit\_population
+=========================================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: get_alternate_implicit_population
