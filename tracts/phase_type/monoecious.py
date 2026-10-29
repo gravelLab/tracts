@@ -93,6 +93,16 @@ class PhTMonoecious(PhaseTypeDistribution):
         full_replacements = np.where(np.isclose(mig_per_row, 1, atol=1e-2))[0]
         last_full_replacement = np.min(full_replacements)
         self.migration_matrix = self.migration_matrix[:last_full_replacement + 1, :]  # Remove generations after the last full replacement.
+        # The founding row may only be close to 1 (within the atol above) rather than exactly 1,
+        # e.g. when a continuous event time's fractional part spreads its rate across two adjacent
+        # rows (see FounderEvent.execute). Renormalizing avoids silently losing that residual
+        # probability mass; the (negligible, bounded by atol) approximation this introduces is
+        # treating it as if it had occurred at this generation instead of the next. Skip when the
+        # row already sums to 1 to within ordinary floating-point error, so the common (exact,
+        # non-fractional-time) case is left bit-identical.
+        last_row_sum = self.migration_matrix[-1, :].sum()
+        if not np.isclose(last_row_sum, 1, atol=1e-9):
+            self.migration_matrix[-1, :] /= last_row_sum
 
         # ------ Compute transition matrix and initial state of the Phase-Type distribution ------
              

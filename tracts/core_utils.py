@@ -295,12 +295,11 @@ def _monoecious_sex_bias_invariance_violation(demography, params_list: list[np.n
 def _compute_autosomal_loglik(params: np.ndarray, genetic_model: GeneticModel, tracts_data: TractsData) -> float:
     """
     Computes the autosomal log-likelihood at the (physical) parameters ``params``, with the
-    female and male migration matrices passed separately to the autosomal model (rather than
-    averaged, as done during step 1), so that the result reflects how the autosomal model itself
-    depends on the sex-bias parameters.
+    female and male migration matrices passed separately to the autosomal model, so that the
+    result reflects how the autosomal model itself depends on the sex-bias parameters.
     """
     matrices = genetic_model.demographic_model.get_migration_matrices(params)
-    male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices, include_allosomes=True)
+    male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices)
     loglik = genetic_model.loglik(male_matrix=male_matrix,
                                   female_matrix=female_matrix,
                                   tracts_data=tracts_data,

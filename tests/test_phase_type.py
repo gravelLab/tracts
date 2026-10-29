@@ -531,3 +531,67 @@ class ModelComparison:
 
 
 
+
+
+# ----------------- Frequency-scale densities of the Dioecious models -----------------
+
+def _asymmetric_dioecious_model(X_chromosome: bool) -> PhTDioecious:
+    """
+    A Dioecious-Coarse model whose maternal and paternal copies have clearly different frequency
+    scales (ancestry proportion times L over expected tract length): a strongly sex-biased founding
+    pulse, a female-only pulse two generations ago and unequal sex-specific recombination rates.
+    """
+    T, P = 6, 2
+    migration_matrix_f = numpy.zeros((T + 1, P))
+    migration_matrix_m = numpy.zeros((T + 1, P))
+    migration_matrix_f[T] = [0.9, 0.1]
+    migration_matrix_m[T] = [0.2, 0.8]
+    migration_matrix_f[2, 1] = 0.4
+    return PhTDioecious(migration_matrix_f=migration_matrix_f, migration_matrix_m=migration_matrix_m,
+                        rho_f=3.0, rho_m=1.0 if X_chromosome else 1 / 3, sex_model='DC',
+                        X_chromosome=X_chromosome)
+
+
+@pytest.mark.parametrize("X_chromosome", [False, True])
+def test_dioecious_frequency_density_weights_each_copy_by_its_own_scale(X_chromosome):
+    """
+    The frequency-scale density combining both copies (autosomes, or X chromosome in females) must be
+    the sum of the paternal and maternal frequency-scale densities, each weighted by its own scale.
+    Regression test for a bug in which the paternal and maternal scales were swapped.
+    """
+    L = 1.5
+    bins = numpy.linspace(0, L, 401)
+    model = _asymmetric_dioecious_model(X_chromosome)
+    _, combined, _ = model.tractlength_histogram_windowed(population_number=1, bins=bins, L=L, density=True, freq=True)
+    _, paternal, ETL_m = model.tractlength_histogram_windowed(population_number=1, bins=bins, L=L, density=True,
+                                                              freq=True, return_only=0)
+    _, maternal, ETL_f = model.tractlength_histogram_windowed(population_number=1, bins=bins, L=L, density=True,
+                                                              freq=True, return_only=1)
+    combined, paternal, maternal = (numpy.asarray(x).ravel() for x in (combined, paternal, maternal))
+
+    scale_m = model.t0_proportions_m[1] * L / ETL_m
+    scale_f = model.t0_proportions_f[1] * L / ETL_f
+    assert not numpy.isclose(scale_m, scale_f, rtol=0.1)  # the test only discriminates if the scales differ
+
+    numpy.testing.assert_allclose(combined, paternal + maternal, rtol=1e-10)
+    swapped = paternal * scale_f / scale_m + maternal * scale_m / scale_f
+    assert not numpy.allclose(combined, swapped, rtol=0.05)
+
+
+@pytest.mark.parametrize("X_chromosome", [False, True])
+def test_dioecious_frequency_density_integrates_to_histogram(X_chromosome):
+    """
+    Integrating the frequency-scale density over a bin must give the expected tract count in that bin,
+    as computed by the histogram used in the likelihood.
+    """
+    L = 1.5
+    model = _asymmetric_dioecious_model(X_chromosome)
+    newbins, density, _ = model.tractlength_histogram_windowed(population_number=1, bins=numpy.linspace(0, L, 401),
+                                                               L=L, density=True, freq=True)
+    newbins, density = numpy.asarray(newbins), numpy.asarray(density).ravel()
+    edges = numpy.array([0.1, 0.4, 0.7, 1.0, 1.3])
+    _, histogram, _ = model.tractlength_histogram_windowed(population_number=1, bins=edges, L=L)
+
+    integrated = numpy.array([numpy.trapezoid(density[(newbins >= a) & (newbins <= b)], newbins[(newbins >= a) & (newbins <= b)])
+                              for a, b in zip(edges[:-1], edges[1:])])
+    numpy.testing.assert_allclose(integrated, histogram, rtol=0.03)
