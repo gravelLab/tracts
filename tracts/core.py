@@ -170,25 +170,18 @@ def compute_objective(
 
 def _run_cobyla(func, x0, cons, maxfun: int | None, step_label: str | None = None) -> np.ndarray:
     """
-    Runs ``scipy.optimize.fmin_cobyla`` with the settings shared by all tracts optimization
-    steps, counting objective evaluations so that the reason COBYLA stopped (evaluation limit
-    reached, or trust-region radius reached ``rhoend``) can be reported once the run ends.
+    Runs COBYLA with the settings shared by all tracts optimization steps, via
+    ``scipy.optimize.minimize(method='COBYLA')`` (equivalent to ``scipy.optimize.fmin_cobyla``
+    with ``rhobeg=.01``, ``rhoend=.0001`` and ``maxfun=maxfun``), and reports why it stopped,
+    from its termination status. Returns the optimal (free) parameters.
     """
-    n_evaluations = 0
-
-    def counted_func(x):
-        nonlocal n_evaluations
-        n_evaluations += 1
-        return func(x)
-
-    outputs = scipy.optimize.fmin_cobyla(func=counted_func,
-                                         x0=x0,
-                                         cons=cons,
-                                         rhobeg=.01,
-                                         rhoend=.0001,
-                                         maxfun=maxfun)
-    _print_and_log(_build_cobyla_stop_message(n_evaluations, maxfun, step_label))
-    return outputs
+    result = scipy.optimize.minimize(fun=func,
+                                     x0=x0,
+                                     method='COBYLA',
+                                     constraints={'type': 'ineq', 'fun': cons},
+                                     options={'rhobeg': .01, 'tol': .0001, 'maxiter': maxfun})
+    _print_and_log(_build_cobyla_stop_message(result, maxfun, step_label))
+    return result.x
 
 
 # ------------------ Single-step optimization ------------------

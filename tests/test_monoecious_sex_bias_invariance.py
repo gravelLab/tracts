@@ -21,6 +21,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import numpy as np
 import pytest
+import scipy.optimize
 
 import tracts.core as core_module
 from tracts.core import optimize_cob_sex_biased_two_steps, _run_cobyla
@@ -156,16 +157,16 @@ def _run_step(model, population, steps, p0_opt, maxiter):
     evaluated by COBYLA, in order.
     """
     evaluated_objectives = []
-    real_fmin_cobyla = core_module.scipy.optimize.fmin_cobyla
+    real_minimize = core_module.scipy.optimize.minimize
 
-    def recording_fmin_cobyla(func, x0, cons, **kwargs):
-        def recording_func(x):
-            value = func(x)
+    def recording_minimize(fun, x0, **kwargs):
+        def recording_fun(x):
+            value = fun(x)
             evaluated_objectives.append(value)
             return value
-        return real_fmin_cobyla(recording_func, x0, cons, **kwargs)
+        return real_minimize(fun=recording_fun, x0=x0, **kwargs)
 
-    with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=recording_fmin_cobyla):
+    with patch.object(core_module.scipy.optimize, "minimize", side_effect=recording_minimize):
         params, likelihood = optimize_cob_sex_biased_two_steps(
             p0=p0_opt,
             population=population,
@@ -296,31 +297,99 @@ class TestCheckMonoeciousAutosomalLoglikUnchanged:
         assert any("Check passed" in record.getMessage() for record in core_utils_caplog.records)
 
 
+class TestCheckSkipsPenaltyOnlyResults:
+
+    def _check(self, model, tracts_data, step_1_autosomal_loglik=-100.0, physical_params=None):
+        return check_monoecious_autosomal_loglik_unchanged(
+            genetic_model=_genetic_model(model, "M"),
+            tracts_data=tracts_data,
+            step_1_autosomal_loglik=step_1_autosomal_loglik,
+            final_params_opt=_to_opt(model, physical_params if physical_params is not None
+                                     else _physical_params((0.0, 0.0))),
+        )
+
+    def _assert_skipped(self, result, core_utils_caplog, capsys, reason):
+        assert result is None
+        assert "The autosomal log-likelihood changed" not in capsys.readouterr().out
+        messages = [record.getMessage() for record in core_utils_caplog.records if record.levelno == logging.WARNING]
+        assert any("Skipping the check" in message and reason in message for message in messages)
+
+    def test_skips_when_step_1_loglik_is_not_finite(self, setup, core_utils_caplog, capsys):
+        model, _, tracts_data = setup
+        result = self._check(model, tracts_data, step_1_autosomal_loglik=-np.inf)
+        self._assert_skipped(result, core_utils_caplog, capsys, "step-1 log-likelihood is not finite")
+
+    def test_skips_when_final_params_out_of_bounds(self, setup, core_utils_caplog, capsys):
+        model, _, tracts_data = setup
+        with patch.object(GeneticModel, "outofbounds_fun", return_value=-1.0):
+            result = self._check(model, tracts_data)
+        self._assert_skipped(result, core_utils_caplog, capsys, "out of bounds")
+
+    @pytest.mark.parametrize("error", [np.linalg.LinAlgError("singular"), ValueError("bad matrix"),
+                                       FloatingPointError("overflow")])
+    def test_skips_when_final_loglik_cannot_be_evaluated(self, setup, core_utils_caplog, capsys, error):
+        model, _, tracts_data = setup
+        with patch.object(GeneticModel, "loglik", side_effect=error):
+            result = self._check(model, tracts_data)
+        self._assert_skipped(result, core_utils_caplog, capsys, "could not be evaluated")
+
+
 # --------------- D. COBYLA stop-reason reporting ---------------
+
+def _optimize_result(nfev, success, status, message):
+    return scipy.optimize.OptimizeResult(x=np.zeros(2), nfev=nfev, success=success, status=status, message=message)
+
 
 class TestCobylaStopReason:
 
     def test_message_when_evaluation_limit_reached(self):
-        message = _build_cobyla_stop_message(n_evaluations=300, maxfun=300, step_label="Step 1")
+        result = _optimize_result(300, False, 2, "Maximum number of function evaluations has been exceeded.")
+        message = _build_cobyla_stop_message(result, maxfun=300, step_label="Step 1")
         assert message.startswith("Step 1: ")
         assert "evaluation limit (maximum_iterations = 300) was reached" in message
 
-    def test_message_when_stopped_before_limit(self):
-        message = _build_cobyla_stop_message(n_evaluations=26, maxfun=300)
-        assert "26 objective evaluations, before the evaluation limit" in message
+    def test_message_when_limit_reached_without_explicit_maxfun(self):
+        # With maxfun=None, scipy applies its own default limit: detected from the result's message.
+        result = _optimize_result(100, False, 2, "Maximum number of function evaluations has been exceeded.")
+        message = _build_cobyla_stop_message(result, maxfun=None)
+        assert "the evaluation limit was reached" in message
+
+    def test_message_when_converged(self):
+        result = _optimize_result(26, True, 1, "Optimization terminated successfully.")
+        message = _build_cobyla_stop_message(result, maxfun=300)
+        assert "COBYLA converged after 26 objective evaluations" in message
         assert "rhoend" in message
 
-    def test_message_without_limit(self):
-        message = _build_cobyla_stop_message(n_evaluations=26, maxfun=None)
-        assert "before the evaluation limit" in message
+    @pytest.mark.parametrize("status, scipy_message", [
+        (3, "Rounding errors are becoming damaging in COBYLA subroutine."),
+        (5, "NaN result encountered."),
+    ])
+    def test_message_when_stopped_early_without_converging(self, status, scipy_message):
+        # Stopping before the evaluation limit does not mean convergence: the scipy status decides.
+        result = _optimize_result(40, False, status, scipy_message)
+        message = _build_cobyla_stop_message(result, maxfun=300)
+        assert "without converging" in message
+        assert scipy_message in message
+        assert f"(status {status})" in message
+        assert "rhoend" not in message
 
     def test_run_cobyla_reports_limit_reached(self, capsys):
         _run_cobyla(func=lambda x: float(np.sum((x - 3) ** 2)), x0=np.zeros(2), cons=lambda x: 1.0,
                     maxfun=5, step_label="Step 1")
         assert "Step 1: COBYLA stopped after 5 objective evaluations: the evaluation limit" in capsys.readouterr().out
 
-    def test_run_cobyla_reports_convergence_before_limit(self, capsys):
+    def test_run_cobyla_reports_convergence(self, capsys):
         outputs = _run_cobyla(func=lambda x: float(np.sum((x - 0.02) ** 2)), x0=np.zeros(2), cons=lambda x: 1.0,
                               maxfun=1000)
         np.testing.assert_allclose(outputs, [0.02, 0.02], atol=1e-3)
-        assert "before the evaluation limit" in capsys.readouterr().out
+        assert "COBYLA converged after" in capsys.readouterr().out
+
+    def test_run_cobyla_reports_nan_result(self, capsys):
+        _run_cobyla(func=lambda x: np.nan, x0=np.zeros(2), cons=lambda x: 1.0, maxfun=50)
+        assert "without converging: NaN result encountered." in capsys.readouterr().out
+
+    def test_run_cobyla_matches_fmin_cobyla(self):
+        func = lambda x: float(np.sum((x - np.array([0.3, -0.2])) ** 2) + np.sin(5 * x[0]))
+        cons = lambda x: 1.0 - np.sum(x ** 2)
+        expected = scipy.optimize.fmin_cobyla(func, np.zeros(2), cons, rhobeg=.01, rhoend=.0001, maxfun=200)
+        np.testing.assert_array_equal(_run_cobyla(func=func, x0=np.zeros(2), cons=cons, maxfun=200), expected)

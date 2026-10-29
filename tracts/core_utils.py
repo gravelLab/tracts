@@ -109,19 +109,26 @@ def _get_steps(steps: list, ad_model_allosomes) -> tuple:
     return step_1, step_2
 
 
-def _build_cobyla_stop_message(n_evaluations: int, maxfun: int | None, step_label: str | None = None) -> str:
+def _build_cobyla_stop_message(result, maxfun: int | None, step_label: str | None = None) -> str:
     """
-    Builds the message reporting why a COBYLA run stopped: either it used up its budget of
-    ``maxfun`` objective evaluations (so it may have been cut off before converging, and
-    restarting it from its result can still improve the likelihood), or it stopped before the
-    budget, when its trust-region radius shrank to ``rhoend``.
+    Builds the message reporting why a COBYLA run stopped, from the ``scipy.optimize.OptimizeResult``
+    returned by ``scipy.optimize.minimize(method='COBYLA')``: it used up its budget of objective
+    evaluations (so it may have been cut off before converging, and restarting it from its result
+    can still improve the likelihood), it converged (trust-region radius reached ``rhoend``), or it
+    stopped early for another reason reported by scipy (e.g. rounding errors or a NaN result).
     """
     prefix = f"{step_label}: " if step_label else ""
-    if maxfun is not None and n_evaluations >= maxfun:
-        return (f"{prefix}COBYLA stopped after {n_evaluations} objective evaluations: the evaluation limit "
-                f"(maximum_iterations = {maxfun}) was reached, so the optimizer may not have converged.")
-    return (f"{prefix}COBYLA stopped after {n_evaluations} objective evaluations, before the evaluation limit: "
-            "the trust-region radius reached its final value (rhoend).")
+    limit_reached = ((maxfun is not None and result.nfev >= maxfun)
+                     or (not result.success and "function evaluations" in str(result.message).lower()))
+    if limit_reached:
+        limit = f" (maximum_iterations = {maxfun})" if maxfun is not None else ""
+        return (f"{prefix}COBYLA stopped after {result.nfev} objective evaluations: the evaluation limit{limit} "
+                "was reached, so the optimizer may not have converged.")
+    if result.success:
+        return (f"{prefix}COBYLA converged after {result.nfev} objective evaluations: the trust-region radius "
+                "reached its final value (rhoend).")
+    return (f"{prefix}COBYLA stopped after {result.nfev} objective evaluations without converging: "
+            f"{result.message} (status {result.status}).")
 
 
 def _flush_final_result(best_state: dict, parameter_handler, verbose_log: int, verbose_screen: int,
@@ -248,14 +255,34 @@ def check_monoecious_autosomal_loglik_unchanged(genetic_model: GeneticModel, tra
     -------
     bool | None
         True if the autosomal log-likelihood is unchanged, False if it changed (a warning is
-        logged), and None if the check does not apply (autosomal model is not M).
+        logged), and None if the check does not apply (autosomal model is not M) or cannot be
+        performed (penalty-only step-1 or step-2 result, or the final likelihood cannot be
+        evaluated; logged).
     """
     if genetic_model.phase_type_config.ad_model_autosomes != 'M':
         return None
 
-    final_autosomal_loglik = _compute_autosomal_loglik(params_opt=final_params_opt,
-                                                      genetic_model=genetic_model,
-                                                      tracts_data=tracts_data)
+    # Out-of-bounds or infeasible parameters only have a penalty objective (see compute_objective
+    # in tracts.core, whose out-of-bounds threshold -1e-14 is mirrored here), not a likelihood to compare.
+    skip_reason = None
+    if not np.isfinite(step_1_autosomal_loglik):
+        skip_reason = "the step-1 log-likelihood is not finite"
+    elif genetic_model.outofbounds_fun(final_params_opt) < -1e-14:
+        skip_reason = "the final step-2 parameters are out of bounds"
+    else:
+        try:
+            final_autosomal_loglik = _compute_autosomal_loglik(params_opt=final_params_opt,
+                                                              genetic_model=genetic_model,
+                                                              tracts_data=tracts_data)
+        except (np.linalg.LinAlgError, ValueError, FloatingPointError) as exc:
+            skip_reason = f"the final autosomal log-likelihood could not be evaluated ({exc})"
+        else:
+            if not np.isfinite(final_autosomal_loglik):
+                skip_reason = "the final autosomal log-likelihood is not finite"
+
+    if skip_reason is not None:
+        logger.warning(f"Skipping the check that step 2 leaves the autosomal log-likelihood unchanged: {skip_reason}.")
+        return None
 
     if np.isclose(final_autosomal_loglik, step_1_autosomal_loglik, rtol=rtol, atol=atol):
         logger.info(f"Check passed: the autosomal log-likelihood ({final_autosomal_loglik:.6f}) is unchanged by "

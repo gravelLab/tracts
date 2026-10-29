@@ -26,6 +26,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import numpy as np
 import pytest
+import scipy.optimize
 
 import tracts.driver as driver_module
 import tracts.driver_utils as driver_utils_module
@@ -810,7 +811,7 @@ class TestCoreStepOneFixesSexBiasFromP0:
 
         captured = {}
 
-        def capturing_fmin(func, x0, cons, **kwargs):
+        def capturing_fmin(fun, x0, **kwargs):
             seen = set()
 
             def visit(obj):
@@ -833,9 +834,9 @@ class TestCoreStepOneFixesSexBiasFromP0:
                         return found
                 return None
 
-            handler_seen = visit(func)
+            handler_seen = visit(fun)
             captured["current_fixed_parameters"] = dict(handler_seen.current_fixed_parameters)
-            return x0
+            return scipy.optimize.OptimizeResult(x=x0, nfev=0, success=True, status=1, message="mock")
 
         from tracts.genetic_model import LoglikBreakdown
         dummy_matrix = np.array([[0.5, 0.5]])
@@ -844,7 +845,7 @@ class TestCoreStepOneFixesSexBiasFromP0:
         with patch.object(GeneticModel, "model_func", return_value={"female": dummy_matrix, "male": dummy_matrix}), \
              patch.object(GeneticModel, "outofbounds_fun", return_value=1.0), \
              patch.object(GeneticModel, "loglik", return_value=fake_loglik_result), \
-             patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capturing_fmin):
+             patch.object(core_module.scipy.optimize, "minimize", side_effect=capturing_fmin):
             core_module.optimize_cob_sex_biased_two_steps(
                 p0=p0,
                 population=pop,
