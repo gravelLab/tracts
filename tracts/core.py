@@ -23,6 +23,7 @@ from tracts.core_utils import (
     _flush_final_result,
     _print_step2_header,
     _build_cobyla_stop_message,
+    check_step_2_kept_non_sex_bias_parameters,
     check_monoecious_autosomal_loglik_unchanged,
 )
 logger = logging.getLogger(__name__)
@@ -560,8 +561,7 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
             verbose_log=verbose_log, verbose_screen=verbose_screen,
         )
 
-        # Autosomal log-likelihood at the best step-1 parameters, used to check that step 2 leaves it
-        # unchanged under the Monoecious autosomal model (see check_monoecious_autosomal_loglik_unchanged).
+        # Autosomal log-likelihood at the best step-1 parameters, for check_monoecious_autosomal_loglik_unchanged.
         step_1_autosomal_loglik = _best_state['loglik'].autosomes if step_1 and _best_state['loglik'] is not None else None
 
         _best_state['objective'] = np.inf
@@ -590,13 +590,22 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
             line = "-" * len(final_message)
             _print_and_log(final_message, line)
 
-            if step_1_autosomal_loglik is not None:
-                check_monoecious_autosomal_loglik_unchanged(
-                    genetic_model=local_genetic_model,
-                    tracts_data=tracts_data,
-                    step_1_autosomal_loglik=step_1_autosomal_loglik,
-                    final_params_opt=_best_state['params'] if _best_state['params'] is not None else step2_full_params_opt,
+            if _best_state['params'] is not None:
+                step_1_params_phys = local_parameter_handler.convert_to_physical_params(optimized_parameters)
+                final_params_phys = local_parameter_handler.convert_to_physical_params(_best_state['params'])
+                check_step_2_kept_non_sex_bias_parameters(
+                    model_base_params=local_parameter_handler.demography.model_base_params,
+                    step_1_params=step_1_params_phys,
+                    final_params=final_params_phys,
                 )
+                if step_1_autosomal_loglik is not None:
+                    check_monoecious_autosomal_loglik_unchanged(
+                        genetic_model=local_genetic_model,
+                        tracts_data=tracts_data,
+                        step_1_autosomal_loglik=step_1_autosomal_loglik,
+                        step_1_params=step_1_params_phys,
+                        final_params=final_params_phys,
+                    )
 
             # ------------ Return optimal parameters corresponding to best likelihood ------------
 

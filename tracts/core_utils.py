@@ -3,13 +3,17 @@ Console/logging helper functions used by :mod:`tracts.core`'s optimization
 functions (:func:`~tracts.core.optimize_cob_sex_biased_single_step`,
 :func:`~tracts.core.optimize_cob_sex_biased_two_steps`), factored out to keep
 the optimization loops themselves focused on control flow rather than
-print/logging boilerplate. Also holds the check that step 2 leaves the
-autosomal log-likelihood unchanged under the Monoecious autosomal model
-(:func:`check_monoecious_autosomal_loglik_unchanged`).
+print/logging boilerplate. Also holds the checks that step 2 of a two-step
+optimization only changes sex-bias parameters
+(:func:`check_step_2_kept_non_sex_bias_parameters`) and, where the Monoecious
+autosomal model is guaranteed to ignore sex bias, that it leaves the autosomal
+log-likelihood unchanged (:func:`check_monoecious_autosomal_loglik_unchanged`).
 """
 import logging
 import numpy as np
 from tracts.util import eprint
+from tracts.demography.parameter import ParamType
+from tracts.demography.parametrized_demography import PulseEvent
 from tracts.genetic_model import GeneticModel
 from tracts.likelihood_options import LikelihoodOptions
 from tracts.tracts_data import TractsData
@@ -202,19 +206,101 @@ def _print_step2_header(step_1: bool, autosomes_in_step_2: bool, free_sex_bias_p
         _print_verbose([table_header, line_header], verbose_log, verbose_screen)
 
 
-# ------------------ Monoecious autosomal invariance check ------------------
+# ------------------ Step-2 parameter-freezing check ------------------
 
-def _compute_autosomal_loglik(params_opt: np.ndarray, genetic_model: GeneticModel, tracts_data: TractsData) -> float:
+def check_step_2_kept_non_sex_bias_parameters(model_base_params: dict, step_1_params: np.ndarray, final_params: np.ndarray,
+                                              rtol: float = 1e-8, atol: float = 1e-10) -> bool:
     """
-    Computes the autosomal log-likelihood at ``params_opt`` (full parameters, in optimizer
-    space). For sex-biased models, the female and male migration matrices are passed
-    separately to the autosomal model (rather than averaged, as done during step 1), so that
-    the result reflects how the autosomal model itself depends on the sex-bias parameters.
+    Checks that step 2 of a two-step optimization kept every non-sex-bias parameter at the value
+    it was fixed at for step 2 (the step-1 optimum, or ``p0`` when only step 2 is run), i.e. that
+    step 2 only changed sex-bias parameters. A change is reported as a warning rather than
+    raised, so that it cannot abort a long inference run.
+
+    Comparing the parameters themselves, rather than e.g. the autosomal log-likelihood, makes the
+    check valid for every demography and autosomal model: even under the Monoecious model, the
+    autosomal log-likelihood can depend on sex bias (for pulses at fractional times, the averaged
+    female/male migration matrix is nonlinear in the sex-specific rates).
+
+    Parameters
+    ----------
+    model_base_params: dict
+        The demographic model's ``model_base_params`` (parameter name -> parameter info, with its
+        ``type``), in the order of the parameter vectors.
+    step_1_params: np.ndarray
+        The full parameters that step 2 started from, in physical units.
+    final_params: np.ndarray
+        The full final (step-2) parameters, in physical units.
+    rtol, atol: float
+        Relative and absolute tolerances of the comparison. Default to 1e-8 and 1e-10.
+
+    Returns
+    -------
+    bool
+        True if all non-sex-bias parameters are unchanged, False otherwise (a warning is logged).
     """
-    matrices = genetic_model.model_func(params_opt)
-    male_matrix, female_matrix = genetic_model.split_migration_matrices(
-        matrices, include_allosomes=genetic_model.phase_type_config.ad_model_allosomes is not None
-    )
+    changed_params = [
+        f"{name}: {step_1_value:.10g} -> {final_value:.10g}"
+        for (name, param_info), step_1_value, final_value in zip(model_base_params.items(),
+                                                                 step_1_params, final_params)
+        if param_info.type != ParamType.SEX_BIAS
+        and not np.isclose(step_1_value, final_value, rtol=rtol, atol=atol, equal_nan=True)
+    ]
+
+    if not changed_params:
+        logger.info("Check passed: step 2 kept all non-sex-bias parameters at the values it started from.")
+        return True
+
+    warning_message = ("WARNING: Step 2 changed non-sex-bias parameters, although it should only optimize "
+                       f"sex-bias parameters ({'; '.join(changed_params)}). This is a bug.")
+    print(warning_message)
+    logger.warning(warning_message)
+    return False
+
+
+# ------------------ Monoecious autosomal log-likelihood check ------------------
+
+def _monoecious_sex_bias_invariance_violation(demography, params_list: list[np.ndarray]) -> str | None:
+    """
+    Returns why the averaged female/male migration matrix seen by the Monoecious autosomal model
+    may depend on the sex-bias parameters for ``demography`` at the (physical) parameter sets in
+    ``params_list``, or None if it cannot.
+
+    Each sex-specific rate is ``rate +- sex_bias * c(rate)``, so the average over sexes of any
+    migration-matrix entry that is linear in the rate does not depend on sex bias. This holds for
+    founder events and continuous migration, but not for:
+
+    - pulses at fractional times, spread over two generations with a rate nonlinear in the pulse rate;
+    - continuous founder events, which divide each rate by the sum of the founding rates;
+    - founder events whose founding rates for one sex sum to slightly more than 1 (within the
+      tolerance below which ``FounderEvent.execute`` clips the remainder rate at 0, leaving the
+      founding row summing to more than 1).
+    """
+    for founder_event in demography.founder_events.values():
+        if getattr(founder_event, "end_time", None) is not None:
+            return "the demography has a continuous founder event"
+
+    for params in params_list:
+        for events in demography.events.values():
+            for event in events:
+                if isinstance(event, PulseEvent):
+                    pulse_time = demography.get_param_value(param_name=event.time_parameter, params=params)
+                    if not np.isclose(pulse_time, np.round(pulse_time), rtol=0, atol=1e-12):
+                        return f"the pulse at time {event.time_parameter} = {pulse_time:.6g} is at a fractional time"
+        for matrix in demography.get_migration_matrices(params).values():
+            if np.any(matrix.sum(axis=1) > 1 + 1e-12):
+                return "the founding rates of one sex sum to more than 1, so the remainder rate is clipped at 0"
+    return None
+
+
+def _compute_autosomal_loglik(params: np.ndarray, genetic_model: GeneticModel, tracts_data: TractsData) -> float:
+    """
+    Computes the autosomal log-likelihood at the (physical) parameters ``params``, with the
+    female and male migration matrices passed separately to the autosomal model (rather than
+    averaged, as done during step 1), so that the result reflects how the autosomal model itself
+    depends on the sex-bias parameters.
+    """
+    matrices = genetic_model.demographic_model.get_migration_matrices(params)
+    male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices, include_allosomes=True)
     loglik = genetic_model.loglik(male_matrix=male_matrix,
                                   female_matrix=female_matrix,
                                   tracts_data=tracts_data,
@@ -226,40 +312,47 @@ def _compute_autosomal_loglik(params_opt: np.ndarray, genetic_model: GeneticMode
 
 
 def check_monoecious_autosomal_loglik_unchanged(genetic_model: GeneticModel, tracts_data: TractsData,
-                                                step_1_autosomal_loglik: float, final_params_opt: np.ndarray,
-                                                rtol: float = 1e-8, atol: float = 1e-8) -> bool | None:
+                                                step_1_autosomal_loglik: float, step_1_params: np.ndarray,
+                                                final_params: np.ndarray, rtol: float = 1e-8,
+                                                atol: float = 1e-8) -> bool | None:
     """
     Checks that step 2 of a two-step optimization did not change the autosomal log-likelihood
-    found at the end of step 1, when autosomes are modelled with the Monoecious (M) model.
-
-    The M model only sees the average of the female and male migration matrices, which does
-    not depend on the sex-bias parameters, and step 2 only changes sex-bias parameters (all
-    non-sex-bias parameters stay fixed at their step-1 values). So the autosomal
-    log-likelihood at the final step-2 parameters must equal the step-1 one. A mismatch is
-    logged as a warning rather than raised, so that it cannot abort a long inference run.
+    found at the end of step 1, when autosomes are modelled with the Monoecious (M) model and the
+    demography guarantees that M ignores the sex-bias parameters (see
+    ``_monoecious_sex_bias_invariance_violation``). Step 2 only changes sex-bias parameters, so
+    the autosomal log-likelihood at the final step-2 parameters must then equal the step-1 one.
+    A mismatch is reported as a warning rather than raised, so that it cannot abort a long run.
 
     Parameters
     ----------
     genetic_model: GeneticModel
-        The genetic model used in the optimization.
+        The genetic model used in the optimization (with a sex-biased demographic model).
     tracts_data: TractsData
         The tract-length data used in the optimization (allosomal data is not needed).
     step_1_autosomal_loglik: float
         The autosomal log-likelihood at the best step-1 parameters.
-    final_params_opt: np.ndarray
-        The final (step-2) parameters, in optimizer space.
+    step_1_params: np.ndarray
+        The full parameters that step 2 started from, in physical units.
+    final_params: np.ndarray
+        The full final (step-2) parameters, in physical units.
     rtol, atol: float
-        Relative and absolute tolerances of the comparison. Defaults to 1e-8.
+        Relative and absolute tolerances of the comparison. Default to 1e-8.
 
     Returns
     -------
     bool | None
         True if the autosomal log-likelihood is unchanged, False if it changed (a warning is
-        logged), and None if the check does not apply (autosomal model is not M) or cannot be
-        performed (penalty-only step-1 or step-2 result, or the final likelihood cannot be
-        evaluated; logged).
+        logged), and None if the check does not apply (autosomal model is not M, or M may depend
+        on sex bias for this demography and parameters; logged) or cannot be performed
+        (penalty-only step-1 or step-2 result, or the final likelihood cannot be evaluated; logged).
     """
     if genetic_model.phase_type_config.ad_model_autosomes != 'M':
+        return None
+
+    violation = _monoecious_sex_bias_invariance_violation(genetic_model.demographic_model, [step_1_params, final_params])
+    if violation is not None:
+        logger.info(f"Skipping the check that step 2 leaves the Monoecious autosomal log-likelihood unchanged: "
+                    f"{violation}, so this log-likelihood may depend on sex bias.")
         return None
 
     # Out-of-bounds or infeasible parameters only have a penalty objective (see compute_objective
@@ -267,11 +360,11 @@ def check_monoecious_autosomal_loglik_unchanged(genetic_model: GeneticModel, tra
     skip_reason = None
     if not np.isfinite(step_1_autosomal_loglik):
         skip_reason = "the step-1 log-likelihood is not finite"
-    elif genetic_model.outofbounds_fun(final_params_opt) < -1e-14:
+    elif genetic_model.demographic_model.get_violation_score(final_params) < -1e-14:
         skip_reason = "the final step-2 parameters are out of bounds"
     else:
         try:
-            final_autosomal_loglik = _compute_autosomal_loglik(params_opt=final_params_opt,
+            final_autosomal_loglik = _compute_autosomal_loglik(params=final_params,
                                                               genetic_model=genetic_model,
                                                               tracts_data=tracts_data)
         except (np.linalg.LinAlgError, ValueError, FloatingPointError) as exc:
@@ -281,7 +374,8 @@ def check_monoecious_autosomal_loglik_unchanged(genetic_model: GeneticModel, tra
                 skip_reason = "the final autosomal log-likelihood is not finite"
 
     if skip_reason is not None:
-        logger.warning(f"Skipping the check that step 2 leaves the autosomal log-likelihood unchanged: {skip_reason}.")
+        logger.warning(f"Skipping the check that step 2 leaves the Monoecious autosomal log-likelihood unchanged: "
+                       f"{skip_reason}.")
         return None
 
     if np.isclose(final_autosomal_loglik, step_1_autosomal_loglik, rtol=rtol, atol=atol):
@@ -289,10 +383,10 @@ def check_monoecious_autosomal_loglik_unchanged(genetic_model: GeneticModel, tra
                     "step 2, as expected for the Monoecious (M) autosomal model.")
         return True
 
-    warning_message = (f"WARNING: The autosomal log-likelihood changed from {step_1_autosomal_loglik:.6f} (end of step 1) to "
-                       f"{final_autosomal_loglik:.6f} (final step-2 parameters), although the Monoecious (M) autosomal "
-                       "model does not depend on sex-bias parameters and step 2 only optimizes sex-bias parameters. "
-                       "This indicates that a non-sex-bias parameter changed during step 2, which is a bug.")
+    warning_message = (f"WARNING: The autosomal log-likelihood changed from {step_1_autosomal_loglik:.6f} (end of step 1) "
+                       f"to {final_autosomal_loglik:.6f} (final step-2 parameters), although the Monoecious (M) "
+                       "autosomal model does not depend on sex-bias parameters for this demography and step 2 only "
+                       "optimizes sex-bias parameters. This is a bug.")
     print(warning_message)
     logger.warning(warning_message)
     return False

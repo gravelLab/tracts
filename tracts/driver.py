@@ -16,7 +16,7 @@ import numpy as np
 
 from tracts.population import Population
 from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
-from tracts.core_utils import check_monoecious_autosomal_loglik_unchanged
+from tracts.core_utils import check_step_2_kept_non_sex_bias_parameters, check_monoecious_autosomal_loglik_unchanged
 from tracts.genetic_model import GeneticModel
 from tracts.likelihood_options import LikelihoodOptions
 from tracts.tracts_data import TractsData
@@ -516,6 +516,11 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                                   use_autosomes_for_sex_bias=driver_spec.optim.use_autosomes_for_sex_bias,
                                                                   announce=False)
 
+            # ------ Check that step 2 only changed sex-bias parameters ------
+            check_step_2_kept_non_sex_bias_parameters(model_base_params=demographic_model.model_base_params,
+                                                      step_1_params=optimal_params_step_1,
+                                                      final_params=optimal_params)
+
             # ------ Check that step 2 left the autosomal likelihood unchanged (Monoecious autosomes only) ------
             if genetic_model.phase_type_config.ad_model_autosomes == 'M':
                 check_monoecious_autosomal_loglik_unchanged(
@@ -526,7 +531,8 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                            exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
                                                            include_allosomes=False),
                     step_1_autosomal_loglik=_optimal_likelihood_step_1,
-                    final_params_opt=parameter_handler.convert_to_optimizer_params(optimal_params),
+                    step_1_params=optimal_params_step_1,
+                    final_params=optimal_params,
                 )
 
     return optimal_params, optimal_likelihood

@@ -1,20 +1,28 @@
 """
-Tests that the Monoecious (M) autosomal model ignores sex-bias parameters, and the consequences of
-this for the two-step optimization and the sex-bias re-optimizations:
+Tests of when the Monoecious (M) autosomal model ignores sex-bias parameters, and of the
+consequences for the two-step optimization and the sex-bias re-optimizations:
 
-- ``GeneticModel.loglik`` with ``ad_model_autosomes='M'`` gives the same autosomal log-likelihood
-  for any sex-bias values (and the Dioecious-Coarse model, as a control, does not).
-- In ``core.optimize_cob_sex_biased_two_steps``, step 1 under M follows exactly the same path
-  whatever values the (fixed) sex-bias parameters take, so that a re-optimization round is
-  equivalent to restarting step 1 from its previous optimum: any improvement of the autosomal
-  log-likelihood across rounds comes from restarting COBYLA, not from the updated sex bias.
-- ``core_utils.check_monoecious_autosomal_loglik_unchanged`` detects a change of the autosomal
-  log-likelihood during step 2.
+- For founder events and integer-time pulses, ``GeneticModel.loglik`` with
+  ``ad_model_autosomes='M'`` gives the same autosomal log-likelihood for any sex-bias values (and
+  the Dioecious-Coarse model, as a control, does not). For pulses at fractional times it does not:
+  ``PulseEvent.execute`` is nonlinear in the sex-specific rates, so the averaged female/male
+  migration matrix seen by M depends on sex bias.
+- In ``core.optimize_cob_sex_biased_two_steps``, for a founder-only model, step 1 under M follows
+  exactly the same path whatever values the (fixed) sex-bias parameters take, so that a
+  re-optimization round is equivalent to restarting step 1 from its previous optimum: any
+  improvement of the autosomal log-likelihood across rounds comes from restarting COBYLA, not from
+  the updated sex bias. With a fractional-time pulse, the carried-over sex bias does change step 1.
+- ``core_utils.check_step_2_kept_non_sex_bias_parameters`` detects step 2 changing a
+  non-sex-bias parameter, and gives no false warning for fractional-time pulses.
+- ``core_utils.check_monoecious_autosomal_loglik_unchanged`` compares the M autosomal
+  log-likelihood before and after step 2 only where M is guaranteed to ignore sex bias
+  (``core_utils._monoecious_sex_bias_invariance_violation``), and skips it otherwise.
 - ``core._run_cobyla`` reports why COBYLA stopped.
 
-The demographic model is a real, in-memory ``ParametrizedDemographySexBiased`` with one founder
-event (EUR, AMR explicit; AFR implicit), as in ``tests/test_reoptimization.py``. The data are
-small synthetic tract-length histograms, so that real likelihoods are computed quickly.
+The demographic models are real, in-memory ``ParametrizedDemographySexBiased`` instances: one
+founder event (EUR, AMR explicit; AFR implicit), as in ``tests/test_reoptimization.py``, and a
+founder event followed by an AFR pulse. The data are small synthetic tract-length histograms, so
+that real likelihoods are computed quickly.
 """
 import logging
 from types import SimpleNamespace
@@ -26,8 +34,10 @@ import scipy.optimize
 import tracts.core as core_module
 from tracts.core import optimize_cob_sex_biased_two_steps, _run_cobyla
 from tracts.core_utils import (
-    _compute_autosomal_loglik,
+    check_step_2_kept_non_sex_bias_parameters,
     check_monoecious_autosomal_loglik_unchanged,
+    _monoecious_sex_bias_invariance_violation,
+    _compute_autosomal_loglik,
     _build_cobyla_stop_message,
 )
 from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased, SexType
@@ -55,6 +65,32 @@ def _make_model():
     model.finalize()
     model.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={}, user_params_to_fix_by_value={})
     return model
+
+
+def _make_pulse_model():
+    """
+    A founder event (EUR explicit, AMR implicit) at ``t1`` followed by an AFR pulse at ``t2``.
+    Parameter order: REUR, REUR_sex_bias, t1, RAFR, RAFR_sex_bias, t2.
+    """
+    model = ParametrizedDemographySexBiased(name="FounderPlusPulse")
+    model.add_founder_event(
+        dest_population="X",
+        source_populations={"EUR": "REUR"},
+        remainder_population="AMR",
+        found_time="t1",
+    )
+    model.add_pulse_migration(dest_population="X", source_population="AFR", rate_param="RAFR", time_param="t2")
+    model.finalize()
+    model.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={}, user_params_to_fix_by_value={})
+    return model
+
+
+PULSE_NON_SEX_BIAS_INDICES = [0, 2, 3, 5]
+PULSE_SEX_BIAS_INDICES = [1, 4]
+
+
+def _pulse_physical_params(sex_bias, t2, reur=0.5, t1=10.0, rafr=0.3):
+    return np.array([reur, sex_bias[0], t1, rafr, sex_bias[1], t2])
 
 
 def _make_population(population_indices, npts=10, seed=0):
@@ -110,6 +146,14 @@ def core_utils_caplog(caplog):
         core_utils_logger.setLevel(previous_level)
 
 
+@pytest.fixture
+def pulse_setup():
+    model = _make_pulse_model()
+    population = _make_population(model.population_indices)
+    tracts_data = TractsData.from_population(population=population, p_dict=model.population_indices, npts=10)
+    return model, population, tracts_data
+
+
 def _genetic_model(model, ad_model_autosomes):
     return GeneticModel(model, ad_model_autosomes=ad_model_autosomes, ad_model_allosomes="DC")
 
@@ -125,7 +169,7 @@ class TestMonoeciousAutosomalLoglikIgnoresSexBias:
     def test_m_autosomal_loglik_is_identical_for_any_sex_bias(self, setup):
         model, _, tracts_data = setup
         genetic_model = _genetic_model(model, "M")
-        logliks = [_compute_autosomal_loglik(_to_opt(model, _physical_params(sex_bias)), genetic_model, tracts_data)
+        logliks = [_compute_autosomal_loglik(_physical_params(sex_bias), genetic_model, tracts_data)
                    for sex_bias in SEX_BIAS_VALUES]
         assert np.all(np.isfinite(logliks))
         np.testing.assert_allclose(logliks, logliks[0], rtol=1e-12)
@@ -143,14 +187,50 @@ class TestMonoeciousAutosomalLoglikIgnoresSexBias:
         # autosomal likelihood at all (e.g. if the matrices were averaged before being passed in).
         model, _, tracts_data = setup
         genetic_model = _genetic_model(model, "DC")
-        unbiased = _compute_autosomal_loglik(_to_opt(model, _physical_params((0.0, 0.0))), genetic_model, tracts_data)
-        biased = _compute_autosomal_loglik(_to_opt(model, _physical_params((0.5, -0.3))), genetic_model, tracts_data)
+        unbiased = _compute_autosomal_loglik(_physical_params((0.0, 0.0)), genetic_model, tracts_data)
+        biased = _compute_autosomal_loglik(_physical_params((0.5, -0.3)), genetic_model, tracts_data)
         assert not np.isclose(unbiased, biased, rtol=1e-6)
+
+
+class TestMonoeciousAutosomalLoglikWithPulses:
+    """
+    ``PulseEvent.execute`` spreads a pulse at fractional time t over generations floor(t) and
+    floor(t)+1, the latter with rate a*(t-floor(t))/(1-a*(floor(t)+1-t)), nonlinear in the rate a.
+    Applied separately to the female and male rates, its average over sexes depends on sex bias.
+    """
+
+    SEX_BIASES = [(0.0, 0.0), (0.0, 0.5), (0.3, -0.8)]
+
+    def _m_logliks(self, model, tracts_data, t2):
+        genetic_model = _genetic_model(model, "M")
+        return [_compute_autosomal_loglik(_pulse_physical_params(sex_bias, t2), genetic_model, tracts_data)
+                for sex_bias in self.SEX_BIASES]
+
+    def test_m_autosomal_loglik_ignores_sex_bias_for_integer_time_pulse(self, pulse_setup):
+        model, _, tracts_data = pulse_setup
+        logliks = self._m_logliks(model, tracts_data, t2=4.0)
+        np.testing.assert_allclose(logliks, logliks[0], rtol=1e-12)
+
+    def test_m_autosomal_loglik_depends_on_sex_bias_for_fractional_time_pulse(self, pulse_setup):
+        model, _, tracts_data = pulse_setup
+        logliks = self._m_logliks(model, tracts_data, t2=4.5)
+        assert len(set(np.round(logliks, 6))) == len(self.SEX_BIASES)
+
+    def test_averaged_matrix_depends_on_sex_bias_only_in_the_second_pulse_generation(self, pulse_setup):
+        model, _, _ = pulse_setup
+        afr = model.population_indices["AFR"]
+        averages = []
+        for sex_bias in self.SEX_BIASES:
+            matrices = model.get_migration_matrices(_pulse_physical_params(sex_bias, t2=4.5))
+            averages.append((matrices["X_female"] + matrices["X_male"]) / 2)
+        for average in averages[1:]:
+            np.testing.assert_allclose(average[4, afr], averages[0][4, afr], rtol=1e-12)
+            assert not np.isclose(average[5, afr], averages[0][5, afr], rtol=1e-6)
 
 
 # --------------- B. Step 1 under M, and re-optimization rounds ---------------
 
-def _run_step(model, population, steps, p0_opt, maxiter):
+def _run_step(model, population, steps, p0_opt, maxiter, ad_model_autosomes="M"):
     """
     Runs ``optimize_cob_sex_biased_two_steps`` for ``steps`` with the real COBYLA, returning the
     optimal parameters (optimizer space), the optimal likelihood, and the list of objective values
@@ -170,7 +250,7 @@ def _run_step(model, population, steps, p0_opt, maxiter):
         params, likelihood = optimize_cob_sex_biased_two_steps(
             p0=p0_opt,
             population=population,
-            genetic_model=_genetic_model(model, "M"),
+            genetic_model=_genetic_model(model, ad_model_autosomes),
             likelihood_options=LikelihoodOptions(verbose_log=0, verbose_screen=0),
             p_dict=model.population_indices.items(),
             maxiter=maxiter,
@@ -232,57 +312,226 @@ class TestStepOneUnderMonoeciousIgnoresSexBias:
             previous_likelihood = likelihood
             params, _, _ = _run_step(model, population, steps=[2], p0_opt=params, maxiter=8)
 
+    def test_step1_depends_on_fixed_sex_bias_for_fractional_time_pulse(self, pulse_setup):
+        # With a fractional-time pulse, the sex-bias values carried into step 1 (at which they are
+        # fixed) do change the step-1 objective, so a re-optimization round is not a plain restart.
+        model, population, _ = pulse_setup
+        runs = [_run_step(model, population, steps=[1], maxiter=10,
+                          p0_opt=_to_opt(model, _pulse_physical_params(sex_bias, t2=4.5)))
+                for sex_bias in [(0.0, 0.0), (0.0, 0.6)]]
+        (_, _, objectives_a), (_, _, objectives_b) = runs
+        assert not np.isclose(objectives_a[0], objectives_b[0], rtol=1e-8)
 
-# --------------- C. Runtime check that step 2 leaves the M autosomal likelihood unchanged ---------------
 
-class TestCheckMonoeciousAutosomalLoglikUnchanged:
+# --------------- C. Runtime check that step 2 only changes sex-bias parameters ---------------
 
-    def test_returns_none_for_non_monoecious_autosomal_model(self, setup):
-        model, _, tracts_data = setup
-        result = check_monoecious_autosomal_loglik_unchanged(
-            genetic_model=_genetic_model(model, "DC"),
-            tracts_data=tracts_data,
-            step_1_autosomal_loglik=-1.0,
-            final_params_opt=_to_opt(model, _physical_params((0.0, 0.0))),
-        )
-        assert result is None
+class TestCheckStep2KeptNonSexBiasParameters:
+
+    def _check(self, model, step_1_params, final_params):
+        return check_step_2_kept_non_sex_bias_parameters(model_base_params=model.model_base_params,
+                                                         step_1_params=step_1_params,
+                                                         final_params=final_params)
 
     def test_passes_when_only_sex_bias_changed(self, setup, core_utils_caplog, capsys):
-        model, _, tracts_data = setup
-        genetic_model = _genetic_model(model, "M")
-        step_1_loglik = _compute_autosomal_loglik(_to_opt(model, _physical_params((0.0, 0.0))), genetic_model, tracts_data)
-
-        result = check_monoecious_autosomal_loglik_unchanged(
-            genetic_model=genetic_model,
-            tracts_data=tracts_data,
-            step_1_autosomal_loglik=step_1_loglik,
-            final_params_opt=_to_opt(model, _physical_params((0.7, -0.5))),
-        )
+        model, _, _ = setup
+        result = self._check(model, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5)))
 
         assert result is True
         assert "WARNING" not in capsys.readouterr().out
         assert not [record for record in core_utils_caplog.records if record.levelno >= logging.WARNING]
+        assert any("Check passed" in record.getMessage() for record in core_utils_caplog.records)
 
-    def test_warns_when_a_non_sex_bias_parameter_changed(self, setup, core_utils_caplog, capsys):
-        model, _, tracts_data = setup
-        genetic_model = _genetic_model(model, "M")
-        step_1_loglik = _compute_autosomal_loglik(_to_opt(model, _physical_params((0.0, 0.0))), genetic_model, tracts_data)
+    def test_passes_within_unit_conversion_round_off(self, setup, core_utils_caplog, capsys):
+        model, _, _ = setup
+        step_1_params = _physical_params((0.0, 0.0), t=6.37)
+        round_tripped = model.parameter_handler.convert_to_physical_params(_to_opt(model, step_1_params))
+        assert self._check(model, step_1_params, round_tripped) is True
 
-        result = check_monoecious_autosomal_loglik_unchanged(
-            genetic_model=genetic_model,
-            tracts_data=tracts_data,
-            step_1_autosomal_loglik=step_1_loglik,
-            final_params_opt=_to_opt(model, _physical_params((0.7, -0.5), reur=0.4)),
-        )
+    def test_warns_and_names_the_changed_non_sex_bias_parameters(self, setup, core_utils_caplog, capsys):
+        model, _, _ = setup
+        result = self._check(model, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5), reur=0.4, t=7.0))
 
         assert result is False
-        assert "The autosomal log-likelihood changed" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "Step 2 changed non-sex-bias parameters" in out
+        assert "REUR: 0.3 -> 0.4" in out
+        assert "t: 6 -> 7" in out
+        assert "RAMR:" not in out and "sex_bias:" not in out
         assert any(record.levelno == logging.WARNING for record in core_utils_caplog.records)
 
-    def test_two_steps_optimization_runs_the_check_and_it_passes(self, setup, core_utils_caplog, capsys):
+    @pytest.mark.parametrize("ad_model_autosomes", ["M", "DC"])
+    def test_two_steps_optimization_runs_the_check_and_it_passes(self, setup, core_utils_caplog, capsys,
+                                                                 ad_model_autosomes):
         model, population, _ = setup
         p0_opt = _to_opt(model, _physical_params((0.0, 0.0), reur=0.25, ramr=0.25, t=5.0))
+        results = []
 
+        def recording_check(**kwargs):
+            results.append(check_step_2_kept_non_sex_bias_parameters(**kwargs))
+            return results[-1]
+
+        with patch.object(core_module, "check_step_2_kept_non_sex_bias_parameters", side_effect=recording_check):
+            _run_step(model, population, steps=None, p0_opt=p0_opt, maxiter=6, ad_model_autosomes=ad_model_autosomes)
+
+        assert results == [True]
+        assert "Step 2 changed non-sex-bias parameters" not in capsys.readouterr().out
+
+    def test_no_false_warning_for_fractional_time_pulse(self, pulse_setup, core_utils_caplog, capsys):
+        # Regression test: comparing autosomal log-likelihoods before and after step 2 would warn
+        # here, because under M the autosomal log-likelihood depends on sex bias for this pulse.
+        model, population, tracts_data = pulse_setup
+        p0_opt = _to_opt(model, _pulse_physical_params((0.0, 0.0), t2=4.5))
+
+        step1_params, _, _ = _run_step(model, population, steps=[1], p0_opt=p0_opt, maxiter=10)
+        step2_params, _, _ = _run_step(model, population, steps=[2], p0_opt=step1_params, maxiter=10)
+
+        assert not np.isclose(model.parameter_handler.convert_to_physical_params(step2_params)[5] % 1, 0)
+        genetic_model = _genetic_model(model, "M")
+        to_physical = model.parameter_handler.convert_to_physical_params
+        assert not np.isclose(_compute_autosomal_loglik(to_physical(step1_params), genetic_model, tracts_data),
+                              _compute_autosomal_loglik(to_physical(step2_params), genetic_model, tracts_data), rtol=1e-8)
+
+        out = capsys.readouterr().out
+        assert "Step 2 changed non-sex-bias parameters" not in out
+        assert any("Check passed" in record.getMessage() for record in core_utils_caplog.records)
+
+
+# --------------- C2. Runtime check of the M autosomal likelihood, where M ignores sex bias ---------------
+
+def _make_continuous_founder_model():
+    model = ParametrizedDemographySexBiased(name="ContinuousFounder")
+    model.add_founder_event(dest_population="X", source_populations={"EUR": "REUR", "AMR": "RAMR"},
+                            remainder_population=None, found_time="t", end_time="tend")
+    model.finalize()
+    model.set_up_fixed_parameters(params_to_fix_by_ancestry=[], proportions={}, user_params_to_fix_by_value={})
+    return model
+
+
+class TestMonoeciousSexBiasInvarianceViolation:
+
+    def test_founder_only_model_is_invariant(self, setup):
+        model, _, _ = setup
+        params = [_physical_params(sex_bias) for sex_bias in SEX_BIAS_VALUES]
+        assert _monoecious_sex_bias_invariance_violation(model, params) is None
+
+    def test_integer_time_pulse_is_invariant(self, pulse_setup):
+        model, _, _ = pulse_setup
+        params = [_pulse_physical_params((0.0, 0.0), t2=4.0), _pulse_physical_params((0.3, -0.8), t2=4.0)]
+        assert _monoecious_sex_bias_invariance_violation(model, params) is None
+
+    def test_fractional_time_pulse_is_not_invariant(self, pulse_setup):
+        model, _, _ = pulse_setup
+        violation = _monoecious_sex_bias_invariance_violation(model, [_pulse_physical_params((0.0, 0.0), t2=4.5)])
+        assert "fractional time" in violation and "t2" in violation
+
+    def test_continuous_founder_event_is_not_invariant(self):
+        model = _make_continuous_founder_model()
+        violation = _monoecious_sex_bias_invariance_violation(model, [np.zeros(len(model.model_base_params))])
+        assert "continuous founder event" in violation
+
+    def test_clipped_remainder_rate_is_not_invariant(self, setup):
+        # Female founding rates summing to 1 + 5e-5: the remainder rate is clipped at 0, which makes the
+        # averaged matrix depend on sex bias.
+        model, _, _ = setup
+        unbiased = np.array([0.5, 0.0, 0.5, 0.0, 6.0])
+        clipped = np.array([0.5, 1e-4, 0.5, 0.0, 6.0])
+        assert _monoecious_sex_bias_invariance_violation(model, [unbiased]) is None
+        assert "clipped" in _monoecious_sex_bias_invariance_violation(model, [unbiased, clipped])
+        averages = [(m["X_female"] + m["X_male"]) / 2 for m in map(model.get_migration_matrices, [unbiased, clipped])]
+        assert not np.allclose(averages[0], averages[1], rtol=0, atol=1e-6)
+
+
+class TestCheckMonoeciousAutosomalLoglikUnchanged:
+
+    def _check(self, model, tracts_data, step_1_params, final_params, ad_model_autosomes="M",
+               step_1_autosomal_loglik=None):
+        genetic_model = _genetic_model(model, ad_model_autosomes)
+        if step_1_autosomal_loglik is None:
+            step_1_autosomal_loglik = _compute_autosomal_loglik(step_1_params, genetic_model, tracts_data)
+        return check_monoecious_autosomal_loglik_unchanged(genetic_model=genetic_model,
+                                                           tracts_data=tracts_data,
+                                                           step_1_autosomal_loglik=step_1_autosomal_loglik,
+                                                           step_1_params=step_1_params,
+                                                           final_params=final_params)
+
+    def _warnings(self, core_utils_caplog):
+        return [record.getMessage() for record in core_utils_caplog.records if record.levelno >= logging.WARNING]
+
+    def test_passes_when_only_sex_bias_changed(self, setup, core_utils_caplog, capsys):
+        model, _, tracts_data = setup
+        result = self._check(model, tracts_data, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5)))
+        assert result is True
+        assert "WARNING" not in capsys.readouterr().out
+        assert not self._warnings(core_utils_caplog)
+
+    def test_passes_for_integer_time_pulse(self, pulse_setup, core_utils_caplog, capsys):
+        model, _, tracts_data = pulse_setup
+        result = self._check(model, tracts_data, _pulse_physical_params((0.0, 0.0), t2=4.0),
+                             _pulse_physical_params((0.3, -0.8), t2=4.0))
+        assert result is True
+
+    def test_warns_when_the_autosomal_loglik_changed(self, setup, core_utils_caplog, capsys):
+        model, _, tracts_data = setup
+        result = self._check(model, tracts_data, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5), reur=0.4))
+        assert result is False
+        assert "The autosomal log-likelihood changed" in capsys.readouterr().out
+        assert self._warnings(core_utils_caplog)
+
+    def test_returns_none_for_non_monoecious_autosomal_model(self, setup):
+        model, _, tracts_data = setup
+        result = self._check(model, tracts_data, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5)),
+                             ad_model_autosomes="DC", step_1_autosomal_loglik=-1.0)
+        assert result is None
+
+    def test_skipped_without_warning_for_fractional_time_pulse(self, pulse_setup, core_utils_caplog, capsys):
+        # The M autosomal log-likelihood does change with sex bias here, so comparing it would be a
+        # false alarm: the check must be skipped (logged at INFO level), not warn.
+        model, _, tracts_data = pulse_setup
+        step_1_params = _pulse_physical_params((0.0, 0.0), t2=4.5)
+        final_params = _pulse_physical_params((0.3, -0.8), t2=4.5)
+        genetic_model = _genetic_model(model, "M")
+        assert not np.isclose(_compute_autosomal_loglik(step_1_params, genetic_model, tracts_data),
+                              _compute_autosomal_loglik(final_params, genetic_model, tracts_data), rtol=1e-8)
+
+        assert self._check(model, tracts_data, step_1_params, final_params) is None
+        assert "WARNING" not in capsys.readouterr().out
+        assert not self._warnings(core_utils_caplog)
+        assert any("fractional time" in record.getMessage() for record in core_utils_caplog.records)
+
+    def test_skips_when_step_1_loglik_is_not_finite(self, setup, core_utils_caplog):
+        model, _, tracts_data = setup
+        result = self._check(model, tracts_data, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5)),
+                             step_1_autosomal_loglik=-np.inf)
+        assert result is None
+        assert any("step-1 log-likelihood is not finite" in message for message in self._warnings(core_utils_caplog))
+
+    def test_skips_when_final_params_out_of_bounds(self, setup, core_utils_caplog):
+        model, _, tracts_data = setup
+        with patch.object(ParametrizedDemographySexBiased, "get_violation_score", return_value=-1.0):
+            result = self._check(model, tracts_data, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5)),
+                                 step_1_autosomal_loglik=-100.0)
+        assert result is None
+        assert any("out of bounds" in message for message in self._warnings(core_utils_caplog))
+
+    @pytest.mark.parametrize("error", [np.linalg.LinAlgError("singular"), ValueError("bad matrix"),
+                                       FloatingPointError("overflow")])
+    def test_skips_when_final_loglik_cannot_be_evaluated(self, setup, core_utils_caplog, error):
+        model, _, tracts_data = setup
+        with patch.object(GeneticModel, "loglik", side_effect=error):
+            result = self._check(model, tracts_data, _physical_params((0.0, 0.0)), _physical_params((0.7, -0.5)),
+                                 step_1_autosomal_loglik=-100.0)
+        assert result is None
+        assert any("could not be evaluated" in message for message in self._warnings(core_utils_caplog))
+
+    @pytest.mark.parametrize("use_pulse_model, expected", [(False, [True]), (True, [None])])
+    def test_two_steps_optimization_runs_the_check(self, setup, pulse_setup, core_utils_caplog, capsys,
+                                                   use_pulse_model, expected):
+        if use_pulse_model:
+            model, population, _ = pulse_setup
+            p0_opt = _to_opt(model, _pulse_physical_params((0.0, 0.0), t2=4.5))
+        else:
+            model, population, _ = setup
+            p0_opt = _to_opt(model, _physical_params((0.0, 0.0), reur=0.25, ramr=0.25, t=5.0))
         results = []
 
         def recording_check(**kwargs):
@@ -290,48 +539,10 @@ class TestCheckMonoeciousAutosomalLoglikUnchanged:
             return results[-1]
 
         with patch.object(core_module, "check_monoecious_autosomal_loglik_unchanged", side_effect=recording_check):
-            _run_step(model, population, steps=None, p0_opt=p0_opt, maxiter=10)
+            _run_step(model, population, steps=None, p0_opt=p0_opt, maxiter=6)
 
-        assert results == [True]
-        assert "The autosomal log-likelihood changed" not in capsys.readouterr().out
-        assert any("Check passed" in record.getMessage() for record in core_utils_caplog.records)
-
-
-class TestCheckSkipsPenaltyOnlyResults:
-
-    def _check(self, model, tracts_data, step_1_autosomal_loglik=-100.0, physical_params=None):
-        return check_monoecious_autosomal_loglik_unchanged(
-            genetic_model=_genetic_model(model, "M"),
-            tracts_data=tracts_data,
-            step_1_autosomal_loglik=step_1_autosomal_loglik,
-            final_params_opt=_to_opt(model, physical_params if physical_params is not None
-                                     else _physical_params((0.0, 0.0))),
-        )
-
-    def _assert_skipped(self, result, core_utils_caplog, capsys, reason):
-        assert result is None
-        assert "The autosomal log-likelihood changed" not in capsys.readouterr().out
-        messages = [record.getMessage() for record in core_utils_caplog.records if record.levelno == logging.WARNING]
-        assert any("Skipping the check" in message and reason in message for message in messages)
-
-    def test_skips_when_step_1_loglik_is_not_finite(self, setup, core_utils_caplog, capsys):
-        model, _, tracts_data = setup
-        result = self._check(model, tracts_data, step_1_autosomal_loglik=-np.inf)
-        self._assert_skipped(result, core_utils_caplog, capsys, "step-1 log-likelihood is not finite")
-
-    def test_skips_when_final_params_out_of_bounds(self, setup, core_utils_caplog, capsys):
-        model, _, tracts_data = setup
-        with patch.object(GeneticModel, "outofbounds_fun", return_value=-1.0):
-            result = self._check(model, tracts_data)
-        self._assert_skipped(result, core_utils_caplog, capsys, "out of bounds")
-
-    @pytest.mark.parametrize("error", [np.linalg.LinAlgError("singular"), ValueError("bad matrix"),
-                                       FloatingPointError("overflow")])
-    def test_skips_when_final_loglik_cannot_be_evaluated(self, setup, core_utils_caplog, capsys, error):
-        model, _, tracts_data = setup
-        with patch.object(GeneticModel, "loglik", side_effect=error):
-            result = self._check(model, tracts_data)
-        self._assert_skipped(result, core_utils_caplog, capsys, "could not be evaluated")
+        assert results == expected
+        assert "WARNING" not in capsys.readouterr().out
 
 
 # --------------- D. COBYLA stop-reason reporting ---------------
