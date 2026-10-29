@@ -520,7 +520,7 @@ class PhTDioecious(PhaseTypeDistribution):
                 with np.errstate(invalid='ignore', divide='ignore'):
                     scale_m = self.t0_proportions_m[population_number] * L / ETL_m  if freq else 0.5
                     scale_f = self.t0_proportions_f[population_number] * L / ETL_f  if freq else 0.5
-                return newbins, scale_m * density_per_bin_f + scale_f * density_per_bin_m, 0.5 * (ETL_m + ETL_f)
+                return newbins, scale_m * density_per_bin_m + scale_f * density_per_bin_f, 0.5 * (ETL_m + ETL_f)
             
             elif return_only == 0 and not self.X_chr_male: # If return_only == 0, only paternally inherited tracts are considered.
                 with np.errstate(invalid='ignore', divide='ignore'):
