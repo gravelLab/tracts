@@ -172,12 +172,14 @@ class PhTDioecious(PhaseTypeDistribution):
         self.rho_m = rho_m
 
         # Compute ancestry proportions for histograms (c.f. Appendix F.3 in the manuscript)
+        # CLAUDELABEL{predicted_autosome_proportions}
         if not X_chromosome:
             self.t0_proportions_f = self.t0_proportions_m = np.sum(
                 (0.5 * (migration_matrix_f + migration_matrix_m)) * np.transpose(self.survival_factors)[:, np.newaxis],
                 axis=0) # Maternally (t0_proportions_f) and paternally (t0_proportions_m) -inherited ancestry proportions are the same.
         else:
             # Recursive computation for the X chromosome
+            # CLAUDELABEL{predicted_allosome_proportions}
 
             ancestry_proportions_m = migration_matrix_m[self.num_generations - 1, ]
             ancestry_proportions_f = migration_matrix_f[self.num_generations - 1, ]
@@ -290,6 +292,7 @@ class PhTDioecious(PhaseTypeDistribution):
 
         f_f = 0.0
         f_m = 0.0
+        # CLAUDELABEL{density_infty}
         if s1 == 0 or s1 is None:
             transition_matrix_m = self.transition_matrices_m[population_number]
             alpha_m = self.alpha_list_m[population_number]
@@ -306,6 +309,7 @@ class PhTDioecious(PhaseTypeDistribution):
             if not np.isreal(d_val) or d_val < -1e-3:
                 raise Exception('Density value is not a real positive :', d_val)
             f_f = float(np.real(d_val).item())
+        # CLAUDELABEL{final_density}
         if self.X_chr_male or s1 == 1:
             return f_f
         if s1 == 0:
@@ -517,6 +521,7 @@ class PhTDioecious(PhaseTypeDistribution):
             # parameter values explored during optimization). The NaN scale propagates
             # to the return value and is treated as an invalid trial point by the optimizer.
             if return_only is None and not self.X_chr_male: # For autosomes or X chromosome in females, both haploids copies are combined.
+                # CLAUDELABEL{gamma_p}
                 with np.errstate(invalid='ignore', divide='ignore'):
                     scale_m = self.t0_proportions_m[population_number] * L / ETL_m  if freq else 0.5
                     scale_f = self.t0_proportions_f[population_number] * L / ETL_f  if freq else 0.5
@@ -566,6 +571,8 @@ class PhTDioecious(PhaseTypeDistribution):
         if not np.all(np.isreal(normalized_CDF_f)) or np.any(normalized_CDF_f < -1e-3):
             raise Exception('type-f CDF is not positive and real : ', normalized_CDF_f)
         
+        # CLAUDELABEL{exp_Ni}
+        # CLAUDELABEL{exp_Ni_cases}
         if not hybrid_ped: # In the Dioecious Model, maternally and paternally -inherited distributions are combined and returned now.
             return bins, np.real(np.diff(normalized_CDF_m) * scale_m + np.diff(normalized_CDF_f) * scale_f), E
         else: # In the hybrid pedigree model, connected components are combined later.
@@ -640,11 +647,13 @@ class PhTDioecious(PhaseTypeDistribution):
         # norm_f/m can be zero when founding rates sum to more than 1, a scenario
         # the optimizer can explore. The NaN probabilities propagate to the returned
         # scale and are treated as an invalid trial point by the optimizer.
+        # CLAUDELABEL{q1}
         with np.errstate(invalid='ignore', divide='ignore'):
             prob_mig_f_1, prob_mig_m_1 = prob_mig_f_1 / norm_f_1, prob_mig_m_1 / norm_m_1
             prob_ad_f_1, prob_ad_m_1 = prob_ad_f_1 / norm_f_1, prob_ad_m_1 / norm_m_1
             prob_mig_f_2, prob_mig_m_2 = prob_mig_f_2 / norm_f_2, prob_mig_m_2 / norm_m_2
             prob_ad_f_2, prob_ad_m_2 = prob_ad_f_2 / norm_f_2, prob_ad_m_2 / norm_m_2
+        # CLAUDELABEL{qX}
         if s1 == 0:
             if self.X_chr:
                 prop_isolated = prob_mig_m_1 + prob_mig_f_2 * prob_ad_m_1
@@ -1047,6 +1056,7 @@ class PhTDioecious(PhaseTypeDistribution):
 
         if D_model == 'DF':
 
+            # CLAUDELABEL{product_S_matrix_sex}
             S_DF = Rho.dot(M).todense()
 
             if np.any(np.sum(S_DF, axis=1) == 0):
@@ -1057,8 +1067,10 @@ class PhTDioecious(PhaseTypeDistribution):
 
         else:  # Build A and P matrices for DC model computation
 
+            # CLAUDELABEL{product_S_DC}
             A = sparse.csr_matrix((np.ones(len(states)), (np.arange(len(states)), coarse_states.astype(int))),
                                   shape=tuple((len(states), len(pulses_copy))))
+            # CLAUDELABEL{omega}
             P = sparse.csr_matrix((unnorm_sex_prob, (np.arange(len(states)), coarse_states.astype(int))),
                                   shape=tuple((len(states), len(pulses_copy))))
             Pt = normalize(P, norm='l1', axis=0).transpose()
@@ -1102,6 +1114,7 @@ class PhTDioecious(PhaseTypeDistribution):
         NP = np.shape(self.migration_matrix_f)[1]
         states_at_TP = None
         states_after_TP = None
+        # CLAUDELABEL{states_sex_vector}
         if pulses is None:
             ind_f = np.where(self.migration_matrix_f != 0)
             ind_m = np.where(self.migration_matrix_m != 0)
@@ -1129,10 +1142,12 @@ class PhTDioecious(PhaseTypeDistribution):
         states = states[np.isnan(states[:, 3]) * (states[:, 1] == parent_sex) | (states[:, 3] == parent_sex), :]        
         # Every line has the form (p, delta=s_t, m_p^delta(t), s_1, ..., s_{t-1})
 
+        # CLAUDELABEL{states_sex_vector_X}
         if self.X_chr:
 
             self.rho_m = 0
 
+            # CLAUDELABEL{N_mm}
             states = states[~(((states[:, 3:-1] + states[:, 4:]) == 0).any(axis=1)), :]
             last_sex = np.asarray([states[i, :][~np.isnan(states[i, :])][-1] for i in range(np.shape(states)[0])])
             states = states[~((last_sex == 0) * (states[:, 1] == 0)), :]

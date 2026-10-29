@@ -49,8 +49,9 @@ class SexType(Enum):
         Callable[[str,str],Callable[[BaseParametrizedDemography,list[float]],float]]
             A function that takes in the overall rate parameter and the sex bias parameter and returns a function to compute the corresponding rate for that sex in a demography.
         """
+        # CLAUDELABEL{eq:sex-bias_parameter}
         return (lambda rate_param, sex_bias_param:
-                    (lambda demography, params: 
+                    (lambda demography, params:
                         demography.get_param_value(param_name=rate_param,
                                                 params=params)+
                         multiplier*demography.get_param_value(param_name=sex_bias_param,
