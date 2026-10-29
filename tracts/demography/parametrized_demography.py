@@ -70,8 +70,19 @@ class PulseEvent(BaseMigrationEvent):
                                                    params=params)
         t2 = math.floor(t)
         r2 = a * (t2 + 1 - t)
-        migration_matrix[t2, parametrized_demography.population_indices[self.source_population]] += r2
-        migration_matrix[t2 + 1, parametrized_demography.population_indices[self.source_population]] += a * (t - t2) / (1 - r2)
+        pop_idx = parametrized_demography.population_indices[self.source_population]
+
+        # The rate parameter is interpreted as a fraction of the lineages not yet claimed by an
+        # earlier-applied event (the founder event, which always runs first, or an earlier pulse)
+        # at each row, rather than an absolute fraction of the whole population. This keeps each
+        # row's total migration rate at or below 1 by construction even when this pulse's
+        # fractional-time rows (for continuity as `t` varies) coincide with another event's rows,
+        # instead of allowing their independently-computed contributions to add up past 1.
+        remaining_t2 = 1 - migration_matrix[t2, :].sum()
+        migration_matrix[t2, pop_idx] += r2 * remaining_t2
+
+        remaining_t2_plus_1 = 1 - migration_matrix[t2 + 1, :].sum()
+        migration_matrix[t2 + 1, pop_idx] += (a * (t - t2) / (1 - r2)) * remaining_t2_plus_1
 
 class ContinuousEvent(BaseMigrationEvent):
     """
