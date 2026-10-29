@@ -3,10 +3,10 @@ Tests for sex-biased optimizers in tracts/core.py.
 
 The tests use lightweight mocks so that no real tract data or costly model
 evaluations are needed. The Population mock returns pre-computed constant
-histogram arrays; fmin_cobyla is patched to return x0 unchanged so we can
+histogram arrays; scipy.optimize.minimize is patched to return x0 unchanged so we can
 inspect what the optimizers would have been called with without running real
 phase-type computations. Tests that only need to exercise the validation
-logic (raises before fmin_cobyla is called) do not need the patch.
+logic (raises before scipy.optimize.minimize is called) do not need the patch.
 
 GeneticModel.model_func / outofbounds_fun / loglik are stubbed at the class
 level (see ``_stub_genetic_model_methods``) rather than on individual
@@ -20,6 +20,7 @@ import contextlib
 import logging
 import numpy as np
 import pytest
+import scipy.optimize
 from unittest.mock import MagicMock, patch
 
 import tracts.core as core_module
@@ -106,11 +107,18 @@ def _make_population():
     return pop
 
 
-def _fake_fmin(func, x0, cons, **kwargs):
+def _cobyla_result(x):
     """
-    fmin_cobyla mock: returns x0 unchanged without calling the objective.
+    Return value for mocks of ``scipy.optimize.minimize(method='COBYLA')``: an OptimizeResult at ``x``.
     """
-    return x0
+    return scipy.optimize.OptimizeResult(x=x, nfev=0, success=True, status=1, message="mock")
+
+
+def _fake_fmin(fun, x0, **kwargs):
+    """
+    scipy.optimize.minimize mock: returns x0 unchanged without calling the objective.
+    """
+    return _cobyla_result(x0)
 
 
 @contextlib.contextmanager
@@ -118,7 +126,7 @@ def _stub_genetic_model_methods():
     """
     Patches GeneticModel.model_func / outofbounds_fun / loglik at the class
     level so that the (only) real objective evaluation performed by the
-    optimizers (the "fallback" call made when fmin_cobyla is stubbed and
+    optimizers (the "fallback" call made when scipy.optimize.minimize is stubbed and
     never updates best_state) never triggers real migration-matrix or
     phase-type computations. The fixed LoglikBreakdown values are the same
     regardless of which components were requested; tests in this file only
@@ -150,10 +158,10 @@ def _call(steps=None, patch_fmin=True, **overrides):
     """
     Invoke optimize_cob_sex_biased_two_steps with the common fixture.
 
-    When *patch_fmin* is True (default) scipy.optimize.fmin_cobyla is replaced
+    When *patch_fmin* is True (default) scipy.optimize.minimize is replaced
     with a stub that returns x0 unchanged, avoiding any real phase-type call.
-    Set patch_fmin=False only for tests that raise before fmin_cobyla is reached,
-    or that install their own fmin_cobyla mock.
+    Set patch_fmin=False only for tests that raise before scipy.optimize.minimize is reached,
+    or that install their own scipy.optimize.minimize mock.
     """
     genetic_model_overrides, likelihood_overrides, remaining = _split_overrides(overrides)
 
@@ -177,7 +185,7 @@ def _call(steps=None, patch_fmin=True, **overrides):
 
     with _stub_genetic_model_methods():
         if patch_fmin:
-            with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+            with patch.object(core_module.scipy.optimize, "minimize", side_effect=_fake_fmin):
                 return optimize_cob_sex_biased_two_steps(**kwargs)
         else:
             return optimize_cob_sex_biased_two_steps(**kwargs)
@@ -187,7 +195,7 @@ def _call_single(patch_fmin=True, **overrides):
     """
     Invoke optimize_cob_sex_biased_single_step with the common fixture.
 
-    When *patch_fmin* is True (default) scipy.optimize.fmin_cobyla is replaced
+    When *patch_fmin* is True (default) scipy.optimize.minimize is replaced
     with a stub that returns x0 unchanged.
     """
     genetic_model_overrides, likelihood_overrides, remaining = _split_overrides(overrides)
@@ -210,7 +218,7 @@ def _call_single(patch_fmin=True, **overrides):
 
     with _stub_genetic_model_methods():
         if patch_fmin:
-            with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=_fake_fmin):
+            with patch.object(core_module.scipy.optimize, "minimize", side_effect=_fake_fmin):
                 return optimize_cob_sex_biased_single_step(**kwargs)
         return optimize_cob_sex_biased_single_step(**kwargs)
 
@@ -337,7 +345,7 @@ class TestParameterFixingSemantics:
     """
     This class checks that each mode optimizes over exactly the right parameter subset.
     The functions capture the local FixedParametersHandler seen by the optimizer
-    and assert the exact free parameter labels at each fmin_cobyla call.
+    and assert the exact free parameter labels at each scipy.optimize.minimize call.
     """
 
     def _extract_handler_from_callable(self, func):
@@ -377,16 +385,16 @@ class TestParameterFixingSemantics:
     def _run_and_capture_free_labels(self, steps, **extra):
         """
         Runs the two-step optimizer and returns a list of free parameter label
-        lists, one per fmin_cobyla call, captured from the local handler closure.
+        lists, one per scipy.optimize.minimize call, captured from the local handler closure.
         """
         captured = []
 
-        def capturing_fmin(func, x0, cons, **kwargs):
-            handler = self._extract_handler_from_callable(func)
+        def capturing_fmin(fun, x0, **kwargs):
+            handler = self._extract_handler_from_callable(fun)
             captured.append(handler.indices_to_labels(handler.free_parameters_indices))
-            return x0
+            return _cobyla_result(x0)
 
-        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capturing_fmin):
+        with patch.object(core_module.scipy.optimize, "minimize", side_effect=capturing_fmin):
             _call(steps=steps, patch_fmin=False, **extra)
 
         return captured
@@ -396,7 +404,7 @@ class TestParameterFixingSemantics:
         Checks that step 1 only optimizes non-sex-bias parameters.
         """
         captured = self._run_and_capture_free_labels(steps=[1])
-        assert len(captured) == 1, "exactly one fmin_cobyla call expected"
+        assert len(captured) == 1, "exactly one scipy.optimize.minimize call expected"
         assert captured[0] == ["t", "rate_eur"]
 
     def test_step2_only_optimises_sex_bias(self):
@@ -409,7 +417,7 @@ class TestParameterFixingSemantics:
 
     def test_both_steps_two_fmin_calls(self):
         """
-        Checks that running both steps results in two calls to fmin_cobyla, one for each step,
+        Checks that running both steps results in two calls to scipy.optimize.minimize, one for each step,
         with the appropriate parameter subsets free in each.
         """
         captured = self._run_and_capture_free_labels(steps=[1, 2])
@@ -444,7 +452,7 @@ class TestBestLikelihoodTracking:
 
     def _run_tracking_test(self, steps):
         """
-        Return the likelihood reported by the function.  We patch fmin_cobyla
+        Return the likelihood reported by the function.  We patch scipy.optimize.minimize
         to return the initial x0 unchanged so the function always evaluates
         at p0; the exact value does not matter, only that it is consistent.
         """
@@ -574,16 +582,16 @@ class TestStep2OnlyStartingPoint:
 
     def test_step2_only_x0_derived_from_p0(self):
         """
-        Tests that in step-2-only mode, the initial parameter vector (x0) passed to fmin_cobyla is derived
+        Tests that in step-2-only mode, the initial parameter vector (x0) passed to scipy.optimize.minimize is derived
         from the input p0, specifically taking the sex-bias parameters from p0 and not the non-sex-bias parameters.
         """
         captured_x0 = []
 
-        def capture(func, x0, cons, **kw):
+        def capture(fun, x0, **kw):
             captured_x0.append(x0.copy())
-            return x0
+            return _cobyla_result(x0)
 
-        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capture):
+        with patch.object(core_module.scipy.optimize, "minimize", side_effect=capture):
             _call(steps=[2], p0=P0, patch_fmin=False)
 
         assert len(captured_x0) == 1
@@ -625,42 +633,42 @@ class TestSingleStepBasicModes:
 
 class TestSingleStepOptimizerCall:
     """
-    This class contains tests to verify that optimize_cob_sex_biased_single_step makes exactly one call to scipy.optimize.fmin_cobyla
-    and that the initial parameter vector (x0) passed to fmin_cobyla is derived from the input p0 as expected, specifically that it includes
-    the full parameter vector and not just a subset. These tests use a mock for fmin_cobyla to capture the calls and inspect the arguments
+    This class contains tests to verify that optimize_cob_sex_biased_single_step makes exactly one call to scipy.optimize.minimize
+    and that the initial parameter vector (x0) passed to scipy.optimize.minimize is derived from the input p0 as expected, specifically that it includes
+    the full parameter vector and not just a subset. These tests use a mock for scipy.optimize.minimize to capture the calls and inspect the arguments
     without performing any real optimization.
     """
 
     def test_single_step_calls_fmin_once(self):
         """
-        Tests that optimize_cob_sex_biased_single_step makes exactly one call to scipy.optimize.fmin_cobyla, ensuring
+        Tests that optimize_cob_sex_biased_single_step makes exactly one call to scipy.optimize.minimize, ensuring
         that the optimization process is initiated as expected and that there are no unexpected multiple calls to the optimizer.
         """
         call_count = 0
 
-        def capture(func, x0, cons, **kw):
+        def capture(fun, x0, **kw):
             nonlocal call_count
             call_count += 1
-            return x0
+            return _cobyla_result(x0)
 
-        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capture):
+        with patch.object(core_module.scipy.optimize, "minimize", side_effect=capture):
             _call_single(patch_fmin=False)
 
         assert call_count == 1
 
     def test_single_step_x0_is_full_parameter_vector(self):
         """
-        Tests that the initial parameter vector (x0) passed to fmin_cobyla in optimize_cob_sex_biased_single_step is the full parameter
+        Tests that the initial parameter vector (x0) passed to scipy.optimize.minimize in optimize_cob_sex_biased_single_step is the full parameter
         vector derived from the input p0, rather than a subset, ensuring that the optimization is correctly initialized with all parameters
         available for optimization.
         """
         captured_x0 = []
 
-        def capture(func, x0, cons, **kw):
+        def capture(fun, x0, **kw):
             captured_x0.append(np.array(x0, copy=True))
-            return x0
+            return _cobyla_result(x0)
 
-        with patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capture):
+        with patch.object(core_module.scipy.optimize, "minimize", side_effect=capture):
             _call_single(p0=P0, patch_fmin=False)
 
         assert len(captured_x0) == 1
@@ -759,15 +767,15 @@ class TestAncestryOverridesInStep2:
                 captured.append(np.array(params))
             return -1  # always OOB → objective returns without calling model_func
 
-        def fmin_mock(func, x0, cons, **kwargs):
+        def fmin_mock(fun, x0, **kwargs):
             state["in_fmin"] = True
             try:
                 perturbed = x0.copy()
                 perturbed[0] += 0.02  # shift sb_eur to trigger ancestry drift
-                func(perturbed)
+                fun(perturbed)
             finally:
                 state["in_fmin"] = False
-            return x0
+            return _cobyla_result(x0)
 
         ph = self._make_handler_with_ancestry_fixed()
         dem = ph.demography
@@ -783,7 +791,7 @@ class TestAncestryOverridesInStep2:
                 GeneticModel, "outofbounds_fun", lambda self, params, verbose=False: capturing_oob(params)
             ):
                 with patch.object(
-                    core_module.scipy.optimize, "fmin_cobyla", side_effect=fmin_mock
+                    core_module.scipy.optimize, "minimize", side_effect=fmin_mock
                 ):
                     optimize_cob_sex_biased_two_steps(
                         p0=P0,
