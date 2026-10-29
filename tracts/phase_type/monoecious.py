@@ -111,6 +111,7 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         # List of initial probabilities for each state.
         self.alpha_list = [0] * self.num_populations
+        # CLAUDELABEL{states}
         self.all_states = self.migration_matrix.nonzero()
         # all_states[0] contains the migration times and all_states[1] contains the migration populations
         # In other words, (all_states[0][i], all_states[1][i]) gives the i-th (time, pop) migration.
@@ -475,6 +476,7 @@ class PhTMonoecious(PhaseTypeDistribution):
         return sum([self.survival_factors[final_time] / self.survival_factors[T + 1] for T in
                     range(1, min(initial_time, final_time))])
 
+    # CLAUDELABEL{SM_matrix}
     def get_transition_matrix(self):
         r"""
         Computes the transition matrix of the Monoecious Phase-type model.

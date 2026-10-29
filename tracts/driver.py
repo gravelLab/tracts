@@ -16,8 +16,10 @@ import numpy as np
 
 from tracts.population import Population
 from tracts.core import optimize_cob_sex_biased_single_step, optimize_cob_sex_biased_two_steps
+from tracts.core_utils import check_step_2_kept_non_sex_bias_parameters, check_monoecious_autosomal_loglik_unchanged
 from tracts.genetic_model import GeneticModel
 from tracts.likelihood_options import LikelihoodOptions
+from tracts.tracts_data import TractsData
 from tracts.driver_utils import *
 from tracts.driver_utils import (
     _print_run_intro,
@@ -514,6 +516,25 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                                                                   use_autosomes_for_sex_bias=driver_spec.optim.use_autosomes_for_sex_bias,
                                                                   announce=False)
 
+            # ------ Check that step 2 only changed sex-bias parameters ------
+            check_step_2_kept_non_sex_bias_parameters(model_base_params=demographic_model.model_base_params,
+                                                      step_1_params=optimal_params_step_1,
+                                                      final_params=optimal_params)
+
+            # ------ Check that step 2 left the autosomal likelihood unchanged (Monoecious autosomes only) ------
+            if genetic_model.phase_type_config.ad_model_autosomes == 'M':
+                check_monoecious_autosomal_loglik_unchanged(
+                    genetic_model=genetic_model,
+                    tracts_data=TractsData.from_population(population=population,
+                                                           p_dict=demographic_model.population_indices.items(),
+                                                           npts=driver_spec.optim.npts,
+                                                           exclude_tracts_below_cM=driver_spec.optim.exclude_tracts_below_cm,
+                                                           include_allosomes=False),
+                    step_1_autosomal_loglik=_optimal_likelihood_step_1,
+                    step_1_params=optimal_params_step_1,
+                    final_params=optimal_params,
+                )
+
     return optimal_params, optimal_likelihood
 
 
@@ -524,9 +545,10 @@ def run_sex_bias_fixing_reoptimizations(driver_spec: InferenceConfig, model_para
     Repeats ``driver_spec.optim.n_reoptimizations`` times: fixing the sex-bias parameters at
     their most recently optimized values and re-running the optimization starting from the
     current optimal parameters (using a copy of ``driver_spec`` with ``repetitions=1`` and
-    starting parameters set to the current optimum, see ``_get_driver_for_reoptimization``; this
-    also means, per ``core.py``, that sex-bias parameters end up fixed only during step 1,
-    remaining free to be optimized again in step 2). Stops early if the likelihood no longer
+    starting parameters set to the current optimum, rebuilt at every repetition, see
+    ``_get_driver_for_reoptimization``; this also means, per ``core.py``, that sex-bias parameters
+    end up fixed only during step 1, remaining free to be optimized again in step 2, which starts
+    from the sex-bias values of the previous repetition). Stops early if the likelihood no longer
     improves between repetitions. Since only one run per step is performed, each repetition runs
     with ``print_run_details=False`` (see ``run_optimization``): step headers and the optimizer's
     own iteration table are still shown, but the starting-parameters table, "Optimization run #N"
@@ -555,17 +577,6 @@ def run_sex_bias_fixing_reoptimizations(driver_spec: InferenceConfig, model_para
     """
     _print_and_log(_build_reoptimization_intro_message(driver_spec.optim.n_reoptimizations))
 
-    reopt_driver_spec = _get_driver_for_reoptimization(driver_spec=driver_spec,
-                                                       model_param_names=model_param_names,
-                                                       optimal_params=optimal_params)
-
-    # Quiet mode: only one run per step is performed here, so the starting-parameters table,
-    # "Optimization run #N" line, and step-transition messages are just clutter. Step headers and
-    # the optimizer's own iteration table are always shown regardless.
-    run_reoptimization = partial(run_optimization_fixed_options,
-                                driver_spec=reopt_driver_spec,
-                                print_run_details=False)
-
     convergence = False
     for _i in range(driver_spec.optim.n_reoptimizations):
 
@@ -574,7 +585,18 @@ def run_sex_bias_fixing_reoptimizations(driver_spec: InferenceConfig, model_para
         _print_and_log(f"\nRe-optimization {_i + 1}/{driver_spec.optim.n_reoptimizations}: "
                        f"re-optimizing starting from the current optimal parameters (likelihood = {optimal_likelihood:.6f}).")
 
-        new_params, optimal_likelihood_new = run_reoptimization([optimal_params])
+        # Rebuilt at every repetition: step 2 draws its sex-bias starting values from the driver's
+        # start_params, which must therefore be the current optimum rather than the one before the loop.
+        reopt_driver_spec = _get_driver_for_reoptimization(driver_spec=driver_spec,
+                                                           model_param_names=model_param_names,
+                                                           optimal_params=optimal_params)
+
+        # Quiet mode: only one run per step is performed here, so the starting-parameters table,
+        # "Optimization run #N" line, and step-transition messages are just clutter. Step headers and
+        # the optimizer's own iteration table are always shown regardless.
+        new_params, optimal_likelihood_new = run_optimization_fixed_options([optimal_params],
+                                                                            driver_spec=reopt_driver_spec,
+                                                                            print_run_details=False)
 
         if np.isclose(optimal_likelihood_new, optimal_likelihood, atol=driver_spec.optim.reoptimization_likelihood_tolerance):
             _print_and_log(f"No further improvement in likelihood after { _i + 1 } repetitions. Re-optimization completed.")

@@ -193,6 +193,7 @@ class PhaseTypeDistribution(ABC):
             raise Exception('Expectation is not a positive real : ', E_val)
         ET = float(np.real(E_val).item())
         Z = ET + L # Normalization factor
+        # CLAUDELABEL{exp_L}
         ETL = L * ET / Z # Expectation under the finite chromosome model
         return bins, ETL, Z
 
@@ -260,6 +261,7 @@ class PhaseTypeDistribution(ABC):
                 exp_Sx = exp_Sx_per_bin[bin_number]
             if L > 100:
                 density_values[bin_number] = self.PhT_density(bin_val, population_number, s1)
+            # CLAUDELABEL{density_L}
             if bin_val < L:
                 den_val = 2 * (1 - self.PhT_CDF(bin_val, population_number, s1)) + \
                     (L - bin_val) * self.PhT_density(bin_val, population_number, s1)
@@ -660,6 +662,7 @@ class PhaseTypeDistribution(ABC):
             # Replace zeros with machine epsilon to avoid -Inf logarithms
             predicted_tractlength_histogram[predicted_tractlength_histogram <= 0] = np.finfo(float).eps
 
+            # CLAUDELABEL{log-likelihood}
             ll += sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(

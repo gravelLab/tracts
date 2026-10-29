@@ -22,6 +22,9 @@ from tracts.core_utils import (
     _get_steps,
     _flush_final_result,
     _print_step2_header,
+    _build_cobyla_stop_message,
+    check_step_2_kept_non_sex_bias_parameters,
+    check_monoecious_autosomal_loglik_unchanged,
 )
 logger = logging.getLogger(__name__)
 
@@ -166,6 +169,22 @@ def compute_objective(
     return obj
 
 
+def _run_cobyla(func, x0, cons, maxfun: int | None, step_label: str | None = None) -> np.ndarray:
+    """
+    Runs COBYLA with the settings shared by all tracts optimization steps, via
+    ``scipy.optimize.minimize(method='COBYLA')`` (equivalent to ``scipy.optimize.fmin_cobyla``
+    with ``rhobeg=.01``, ``rhoend=.0001`` and ``maxfun=maxfun``), and reports why it stopped,
+    from its termination status. Returns the optimal (free) parameters.
+    """
+    result = scipy.optimize.minimize(fun=func,
+                                     x0=x0,
+                                     method='COBYLA',
+                                     constraints={'type': 'ineq', 'fun': cons},
+                                     options={'rhobeg': .01, 'tol': .0001, 'maxiter': maxfun})
+    _print_and_log(_build_cobyla_stop_message(result, maxfun, step_label))
+    return result.x
+
+
 # ------------------ Single-step optimization ------------------
 
 
@@ -268,12 +287,10 @@ def optimize_cob_sex_biased_single_step(p0:list, population: Population, genetic
 
     _print_single_step_header(local_parameter_handler, print_step_header, verbose_log, verbose_screen, _counter)
 
-    outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_function,
-                                        x0=reduced_p0,
-                                        cons=reduced_outofbounds_fun,
-                                        rhobeg=.01,
-                                        rhoend=.0001,
-                                        maxfun=maxiter)
+    outputs = _run_cobyla(func=reduced_objective_function,
+                          x0=reduced_p0,
+                          cons=reduced_outofbounds_fun,
+                          maxfun=maxiter)
 
     optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                     units="opt",
@@ -494,12 +511,11 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
 
         reduced_objective_autosomes = lambda x: reduced_objective_function(x, include_allosomes=False)
 
-        outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_autosomes,
-                                            x0=reduced_p0,
-                                            cons=reduced_outofbounds_fun,
-                                            rhobeg=.01,
-                                            rhoend=.0001,
-                                            maxfun=maxiter)
+        outputs = _run_cobyla(func=reduced_objective_autosomes,
+                              x0=reduced_p0,
+                              cons=reduced_outofbounds_fun,
+                              maxfun=maxiter,
+                              step_label="Step 1")
 
         optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                         units="opt",
@@ -545,6 +561,9 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
             verbose_log=verbose_log, verbose_screen=verbose_screen,
         )
 
+        # Autosomal log-likelihood at the best step-1 parameters, for check_monoecious_autosomal_loglik_unchanged.
+        step_1_autosomal_loglik = _best_state['loglik'].autosomes if step_1 and _best_state['loglik'] is not None else None
+
         _best_state['objective'] = np.inf
         _best_state['params'] = None
         _best_state['loglik'] = None
@@ -552,12 +571,11 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
         reduced_objective_allosomes = lambda x: reduced_objective_function(x, include_autosomes=autosomes_in_step_2, include_allosomes=True)
 
         if len(reduced_params)>0:
-            outputs = scipy.optimize.fmin_cobyla(func=reduced_objective_allosomes,
-                                                x0=reduced_params,
-                                                cons=reduced_outofbounds_fun,
-                                                rhobeg=.01,
-                                                rhoend=.0001,
-                                                maxfun=maxiter)
+            outputs = _run_cobyla(func=reduced_objective_allosomes,
+                                  x0=reduced_params,
+                                  cons=reduced_outofbounds_fun,
+                                  maxfun=maxiter,
+                                  step_label="Step 2")
 
             step2_full_params_opt = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                                units="opt",
@@ -571,6 +589,23 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
             final_message = "Optimization completed."
             line = "-" * len(final_message)
             _print_and_log(final_message, line)
+
+            if _best_state['params'] is not None:
+                step_1_params_phys = local_parameter_handler.convert_to_physical_params(optimized_parameters)
+                final_params_phys = local_parameter_handler.convert_to_physical_params(_best_state['params'])
+                check_step_2_kept_non_sex_bias_parameters(
+                    model_base_params=local_parameter_handler.demography.model_base_params,
+                    step_1_params=step_1_params_phys,
+                    final_params=final_params_phys,
+                )
+                if step_1_autosomal_loglik is not None:
+                    check_monoecious_autosomal_loglik_unchanged(
+                        genetic_model=local_genetic_model,
+                        tracts_data=tracts_data,
+                        step_1_autosomal_loglik=step_1_autosomal_loglik,
+                        step_1_params=step_1_params_phys,
+                        final_params=final_params_phys,
+                    )
 
             # ------------ Return optimal parameters corresponding to best likelihood ------------
 

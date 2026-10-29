@@ -397,6 +397,7 @@ class BaseParametrizedDemography(ABC):
         np.ndarray
             An array of shape :math:`(P,)` representing the ancestry proportions resulting from the migration events represented by the migration matrix.
         """
+        # CLAUDELABEL{predicted_autosome_proportions}
         current_ancestry_proportions = migration_matrix[-1, :]
         for row in migration_matrix[-2::-1, :]:
             current_ancestry_proportions = current_ancestry_proportions * (1 - row.sum()) + row
@@ -1419,9 +1420,10 @@ class FixedParametersHandler:
             pass # TODO:The logic of passing is not clear to me here.  
 
 
-        def param_objective_func(params_to_solve: np.ndarray, large: float = 1e12): 
+        # CLAUDELABEL{ancestry_system}
+        def param_objective_func(params_to_solve: np.ndarray, large: float = 1e12):
             """
-            Computes the difference between observed and computed ancestry proportions as a function of ``params_to_solve``, in optimizer units. 
+            Computes the difference between observed and computed ancestry proportions as a function of ``params_to_solve``, in optimizer units.
             Uses the physical parameters as a non-local variable.
              
             Parameters

@@ -26,6 +26,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 import numpy as np
 import pytest
+import scipy.optimize
 
 import tracts.driver as driver_module
 import tracts.driver_utils as driver_utils_module
@@ -438,26 +439,37 @@ class TestRunSexBiasFixingReoptimizations:
         assert len(calls) == 3
         assert optimal_likelihood == pytest.approx(-120.0)
 
-    def test_reoptimization_driver_spec_built_once_and_reused_across_iterations(self):
+    def test_reoptimization_driver_spec_start_params_track_the_current_optimum(self):
+        # Step 2 draws its sex-bias starting values from the driver's start_params, so the driver
+        # spec must be rebuilt from the current optimum at every repetition (not once before the loop).
         model_param_names, _, _ = _three_pop_param_names()
         driver_spec = _make_real_driver_spec(n_reoptimizations=3)
+        initial_params = np.array([0.3, 0.0, 0.3, 0.0, 10.0])
+        results = [
+            (np.array([0.31, 0.2, 0.29, -0.1, 10.5]), -140.0),
+            (np.array([0.32, 0.4, 0.28, -0.3, 11.0]), -130.0),
+            (np.array([0.33, 0.6, 0.27, -0.5, 11.5]), -120.0),
+        ]
+        results_iter = iter(results)
         seen_driver_specs = []
-        likelihoods = iter([-140.0, -130.0, -120.0])
 
         def fake_run_optimization_fixed_options(physical_start_params, driver_spec, **kwargs):
             seen_driver_specs.append(driver_spec)
-            return np.array([0.3, 0.0, 0.3, 0.0, 10.0]), next(likelihoods)
+            return next(results_iter)
 
         run_sex_bias_fixing_reoptimizations(
             driver_spec=driver_spec,
             model_param_names=model_param_names,
-            optimal_params=np.array([0.3, 0.0, 0.3, 0.0, 10.0]),
+            optimal_params=initial_params,
             optimal_likelihood=-150.0,
             run_optimization_fixed_options=fake_run_optimization_fixed_options,
         )
 
+        expected_start_params = [initial_params] + [params for params, _ in results[:-1]]
         assert len(seen_driver_specs) == 3
-        assert all(spec is seen_driver_specs[0] for spec in seen_driver_specs)
+        for spec, expected in zip(seen_driver_specs, expected_start_params):
+            assert spec.optim.repetitions == 1
+            np.testing.assert_allclose([getattr(spec.start_params, name) for name in model_param_names], expected)
 
     def test_start_params_carry_the_previous_call_optimum(self):
         model_param_names, _, _ = _three_pop_param_names()
@@ -799,7 +811,7 @@ class TestCoreStepOneFixesSexBiasFromP0:
 
         captured = {}
 
-        def capturing_fmin(func, x0, cons, **kwargs):
+        def capturing_fmin(fun, x0, **kwargs):
             seen = set()
 
             def visit(obj):
@@ -822,9 +834,9 @@ class TestCoreStepOneFixesSexBiasFromP0:
                         return found
                 return None
 
-            handler_seen = visit(func)
+            handler_seen = visit(fun)
             captured["current_fixed_parameters"] = dict(handler_seen.current_fixed_parameters)
-            return x0
+            return scipy.optimize.OptimizeResult(x=x0, nfev=0, success=True, status=1, message="mock")
 
         from tracts.genetic_model import LoglikBreakdown
         dummy_matrix = np.array([[0.5, 0.5]])
@@ -833,7 +845,7 @@ class TestCoreStepOneFixesSexBiasFromP0:
         with patch.object(GeneticModel, "model_func", return_value={"female": dummy_matrix, "male": dummy_matrix}), \
              patch.object(GeneticModel, "outofbounds_fun", return_value=1.0), \
              patch.object(GeneticModel, "loglik", return_value=fake_loglik_result), \
-             patch.object(core_module.scipy.optimize, "fmin_cobyla", side_effect=capturing_fmin):
+             patch.object(core_module.scipy.optimize, "minimize", side_effect=capturing_fmin):
             core_module.optimize_cob_sex_biased_two_steps(
                 p0=p0,
                 population=pop,
