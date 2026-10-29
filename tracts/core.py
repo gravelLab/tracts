@@ -134,7 +134,7 @@ def compute_objective(
 
     try:
         matrices = local_genetic_model.model_func(parameters)
-        male_matrix, female_matrix = local_genetic_model.split_migration_matrices(matrices, include_allosomes)
+        male_matrix, female_matrix = local_genetic_model.split_migration_matrices(matrices)
 
         loglik = local_genetic_model.loglik(
             male_matrix=male_matrix,

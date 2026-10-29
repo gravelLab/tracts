@@ -3444,7 +3444,7 @@ def _report_generation_zero_warning_for_optimal_params(genetic_model: GeneticMod
     """
     try:
         matrices = genetic_model.demographic_model.get_migration_matrices(optimal_params)
-        male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices, include_allosomes=include_allosomes)
+        male_matrix, female_matrix = genetic_model.split_migration_matrices(matrices)
         triggers_warning = genetic_model.check_generation_zero_migration_warning(
             male_matrix=male_matrix, female_matrix=female_matrix,
             include_autosomes=include_autosomes, include_allosomes=include_allosomes,

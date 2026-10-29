@@ -439,19 +439,26 @@ class GeneticModel:
             X_chromosome_male=True,
         )
 
-    def split_migration_matrices(self, matrices: dict, include_allosomes: bool) -> tuple[np.ndarray, np.ndarray]:
+    def split_migration_matrices(self, matrices: dict) -> tuple[np.ndarray, np.ndarray]:
         """
         Splits ``matrices`` (as returned by :meth:`model_func`/``demographic_model.get_migration_matrices``)
-        into ``(male_matrix, female_matrix)``. When ``include_allosomes`` is True, ``matrices`` must contain
-        exactly the male and female matrices. Otherwise, all matrices in ``matrices`` are averaged into a
-        single autosome-only matrix, used for both.
+        into ``(male_matrix, female_matrix)``. For a sex-biased demographic model, ``matrices`` contains
+        exactly the male and female matrices, which are returned unchanged. For a non-sex-biased
+        demographic model, ``matrices`` contains a single matrix, which is returned for both.
+
+        Does not collapse a true male/female pair into an average: which admixture model is being built
+        (``self.phase_type_config.ad_model_autosomes``/``ad_model_allosomes``) decides on its own whether
+        it needs the sex-specific matrices or an average of them (e.g. ``_build_autosome_model`` already
+        averages for ``'M'``) — collapsing them here first would hide real sex-bias dependence from any
+        model (e.g. ``'DC'``/``'DF'``) that needs the true pair, including during an autosomes-only
+        evaluation (see ``compute_objective`` in :mod:`tracts.core`, used for Step 1 of the two-step
+        optimizer).
         """
         matrix_list = list(matrices.values())
-        if include_allosomes:
-            male_matrix, female_matrix = matrix_list
+        if len(matrix_list) == 1:
+            male_matrix = female_matrix = matrix_list[0]
         else:
-            avg_matrix = np.mean(matrix_list, axis=0)
-            male_matrix = female_matrix = avg_matrix
+            male_matrix, female_matrix = matrix_list
         return male_matrix, female_matrix
 
     def check_generation_zero_migration_warning(self, male_matrix: np.ndarray, female_matrix: np.ndarray,

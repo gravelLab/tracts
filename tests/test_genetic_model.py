@@ -352,32 +352,43 @@ class TestGeneticModelLoglik:
 
 class TestGeneticModelSplitMigrationMatrices:
 
-    def test_include_allosomes_true_unpacks_male_and_female(self):
+    def test_two_matrices_unpacks_male_and_female(self):
         dem = _make_demography()
         model = GeneticModel(dem)
         male = np.array([[0.1, 0.2]])
         female = np.array([[0.3, 0.4]])
 
         result_male, result_female = model.split_migration_matrices(
-            {"male": male, "female": female}, include_allosomes=True
+            {"male": male, "female": female}
         )
 
         np.testing.assert_array_equal(result_male, male)
         np.testing.assert_array_equal(result_female, female)
 
-    def test_include_allosomes_false_averages_all_matrices(self):
+    def test_two_matrices_are_not_averaged(self):
+        # A sex-biased demographic model's male/female matrices must reach the autosomal
+        # model unaveraged, even for an autosomes-only evaluation: which admixture model is
+        # being built (e.g. 'M' vs 'DC') decides on its own whether to average them (see
+        # GeneticModel._build_autosome_model), not this function.
         dem = _make_demography()
         model = GeneticModel(dem)
         matrix_a = np.array([[0.0, 0.2]])
         matrix_b = np.array([[0.4, 0.6]])
 
-        male, female = model.split_migration_matrices(
-            {"a": matrix_a, "b": matrix_b}, include_allosomes=False
-        )
+        male, female = model.split_migration_matrices({"a": matrix_a, "b": matrix_b})
 
-        expected = np.array([[0.2, 0.4]])
-        np.testing.assert_allclose(male, expected)
-        np.testing.assert_allclose(female, expected)
+        np.testing.assert_array_equal(male, matrix_a)
+        np.testing.assert_array_equal(female, matrix_b)
+
+    def test_single_matrix_used_for_both_male_and_female(self):
+        dem = _make_demography()
+        model = GeneticModel(dem)
+        matrix = np.array([[0.2, 0.4]])
+
+        male, female = model.split_migration_matrices({"only": matrix})
+
+        np.testing.assert_array_equal(male, matrix)
+        np.testing.assert_array_equal(female, matrix)
         assert male is female
 
 
