@@ -3,10 +3,16 @@ Console/logging helper functions used by :mod:`tracts.core`'s optimization
 functions (:func:`~tracts.core.optimize_cob_sex_biased_single_step`,
 :func:`~tracts.core.optimize_cob_sex_biased_two_steps`), factored out to keep
 the optimization loops themselves focused on control flow rather than
-print/logging boilerplate.
+print/logging boilerplate. Also holds the check that step 2 leaves the
+autosomal log-likelihood unchanged under the Monoecious autosomal model
+(:func:`check_monoecious_autosomal_loglik_unchanged`).
 """
 import logging
+import numpy as np
 from tracts.util import eprint
+from tracts.genetic_model import GeneticModel
+from tracts.likelihood_options import LikelihoodOptions
+from tracts.tracts_data import TractsData
 logger = logging.getLogger(__name__)
 
 def _print_and_log(*messages: str) -> None:
@@ -103,6 +109,21 @@ def _get_steps(steps: list, ad_model_allosomes) -> tuple:
     return step_1, step_2
 
 
+def _build_cobyla_stop_message(n_evaluations: int, maxfun: int | None, step_label: str | None = None) -> str:
+    """
+    Builds the message reporting why a COBYLA run stopped: either it used up its budget of
+    ``maxfun`` objective evaluations (so it may have been cut off before converging, and
+    restarting it from its result can still improve the likelihood), or it stopped before the
+    budget, when its trust-region radius shrank to ``rhoend``.
+    """
+    prefix = f"{step_label}: " if step_label else ""
+    if maxfun is not None and n_evaluations >= maxfun:
+        return (f"{prefix}COBYLA stopped after {n_evaluations} objective evaluations: the evaluation limit "
+                f"(maximum_iterations = {maxfun}) was reached, so the optimizer may not have converged.")
+    return (f"{prefix}COBYLA stopped after {n_evaluations} objective evaluations, before the evaluation limit: "
+            "the trust-region radius reached its final value (rhoend).")
+
+
 def _flush_final_result(best_state: dict, parameter_handler, verbose_log: int, verbose_screen: int,
                         counter: int, note: str = '') -> None:
     """
@@ -172,3 +193,79 @@ def _print_step2_header(step_1: bool, autosomes_in_step_2: bool, free_sex_bias_p
         _print_verbose([line, step_2_message], verbose_log, verbose_screen)
     if ad_model_allosomes is not None:
         _print_verbose([table_header, line_header], verbose_log, verbose_screen)
+
+
+# ------------------ Monoecious autosomal invariance check ------------------
+
+def _compute_autosomal_loglik(params_opt: np.ndarray, genetic_model: GeneticModel, tracts_data: TractsData) -> float:
+    """
+    Computes the autosomal log-likelihood at ``params_opt`` (full parameters, in optimizer
+    space). For sex-biased models, the female and male migration matrices are passed
+    separately to the autosomal model (rather than averaged, as done during step 1), so that
+    the result reflects how the autosomal model itself depends on the sex-bias parameters.
+    """
+    matrices = genetic_model.model_func(params_opt)
+    male_matrix, female_matrix = genetic_model.split_migration_matrices(
+        matrices, include_allosomes=genetic_model.phase_type_config.ad_model_allosomes is not None
+    )
+    loglik = genetic_model.loglik(male_matrix=male_matrix,
+                                  female_matrix=female_matrix,
+                                  tracts_data=tracts_data,
+                                  likelihood_options=LikelihoodOptions(include_autosomes=True,
+                                                                       include_allosomes=False,
+                                                                       verbose_log=0,
+                                                                       verbose_screen=0))
+    return loglik.autosomes
+
+
+def check_monoecious_autosomal_loglik_unchanged(genetic_model: GeneticModel, tracts_data: TractsData,
+                                                step_1_autosomal_loglik: float, final_params_opt: np.ndarray,
+                                                rtol: float = 1e-8, atol: float = 1e-8) -> bool | None:
+    """
+    Checks that step 2 of a two-step optimization did not change the autosomal log-likelihood
+    found at the end of step 1, when autosomes are modelled with the Monoecious (M) model.
+
+    The M model only sees the average of the female and male migration matrices, which does
+    not depend on the sex-bias parameters, and step 2 only changes sex-bias parameters (all
+    non-sex-bias parameters stay fixed at their step-1 values). So the autosomal
+    log-likelihood at the final step-2 parameters must equal the step-1 one. A mismatch is
+    logged as a warning rather than raised, so that it cannot abort a long inference run.
+
+    Parameters
+    ----------
+    genetic_model: GeneticModel
+        The genetic model used in the optimization.
+    tracts_data: TractsData
+        The tract-length data used in the optimization (allosomal data is not needed).
+    step_1_autosomal_loglik: float
+        The autosomal log-likelihood at the best step-1 parameters.
+    final_params_opt: np.ndarray
+        The final (step-2) parameters, in optimizer space.
+    rtol, atol: float
+        Relative and absolute tolerances of the comparison. Defaults to 1e-8.
+
+    Returns
+    -------
+    bool | None
+        True if the autosomal log-likelihood is unchanged, False if it changed (a warning is
+        logged), and None if the check does not apply (autosomal model is not M).
+    """
+    if genetic_model.phase_type_config.ad_model_autosomes != 'M':
+        return None
+
+    final_autosomal_loglik = _compute_autosomal_loglik(params_opt=final_params_opt,
+                                                      genetic_model=genetic_model,
+                                                      tracts_data=tracts_data)
+
+    if np.isclose(final_autosomal_loglik, step_1_autosomal_loglik, rtol=rtol, atol=atol):
+        logger.info(f"Check passed: the autosomal log-likelihood ({final_autosomal_loglik:.6f}) is unchanged by "
+                    "step 2, as expected for the Monoecious (M) autosomal model.")
+        return True
+
+    warning_message = (f"WARNING: The autosomal log-likelihood changed from {step_1_autosomal_loglik:.6f} (end of step 1) to "
+                       f"{final_autosomal_loglik:.6f} (final step-2 parameters), although the Monoecious (M) autosomal "
+                       "model does not depend on sex-bias parameters and step 2 only optimizes sex-bias parameters. "
+                       "This indicates that a non-sex-bias parameter changed during step 2, which is a bug.")
+    print(warning_message)
+    logger.warning(warning_message)
+    return False

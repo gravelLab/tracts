@@ -438,26 +438,37 @@ class TestRunSexBiasFixingReoptimizations:
         assert len(calls) == 3
         assert optimal_likelihood == pytest.approx(-120.0)
 
-    def test_reoptimization_driver_spec_built_once_and_reused_across_iterations(self):
+    def test_reoptimization_driver_spec_start_params_track_the_current_optimum(self):
+        # Step 2 draws its sex-bias starting values from the driver's start_params, so the driver
+        # spec must be rebuilt from the current optimum at every repetition (not once before the loop).
         model_param_names, _, _ = _three_pop_param_names()
         driver_spec = _make_real_driver_spec(n_reoptimizations=3)
+        initial_params = np.array([0.3, 0.0, 0.3, 0.0, 10.0])
+        results = [
+            (np.array([0.31, 0.2, 0.29, -0.1, 10.5]), -140.0),
+            (np.array([0.32, 0.4, 0.28, -0.3, 11.0]), -130.0),
+            (np.array([0.33, 0.6, 0.27, -0.5, 11.5]), -120.0),
+        ]
+        results_iter = iter(results)
         seen_driver_specs = []
-        likelihoods = iter([-140.0, -130.0, -120.0])
 
         def fake_run_optimization_fixed_options(physical_start_params, driver_spec, **kwargs):
             seen_driver_specs.append(driver_spec)
-            return np.array([0.3, 0.0, 0.3, 0.0, 10.0]), next(likelihoods)
+            return next(results_iter)
 
         run_sex_bias_fixing_reoptimizations(
             driver_spec=driver_spec,
             model_param_names=model_param_names,
-            optimal_params=np.array([0.3, 0.0, 0.3, 0.0, 10.0]),
+            optimal_params=initial_params,
             optimal_likelihood=-150.0,
             run_optimization_fixed_options=fake_run_optimization_fixed_options,
         )
 
+        expected_start_params = [initial_params] + [params for params, _ in results[:-1]]
         assert len(seen_driver_specs) == 3
-        assert all(spec is seen_driver_specs[0] for spec in seen_driver_specs)
+        for spec, expected in zip(seen_driver_specs, expected_start_params):
+            assert spec.optim.repetitions == 1
+            np.testing.assert_allclose([getattr(spec.start_params, name) for name in model_param_names], expected)
 
     def test_start_params_carry_the_previous_call_optimum(self):
         model_param_names, _, _ = _three_pop_param_names()
