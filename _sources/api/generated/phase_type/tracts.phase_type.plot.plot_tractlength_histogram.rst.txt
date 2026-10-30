@@ -1,0 +1,6 @@
+tracts.phase\_type.plot.plot\_tractlength\_histogram
+====================================================
+
+.. currentmodule:: tracts.phase_type.plot
+
+.. autofunction:: plot_tractlength_histogram
