@@ -1,0 +1,8 @@
+tracts.demography.base\_parametrized\_demography.BaseMigrationEvent
+===================================================================
+
+.. currentmodule:: tracts.demography.base_parametrized_demography
+
+.. autoclass:: BaseMigrationEvent
+   :members:
+   :show-inheritance:
