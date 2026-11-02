@@ -735,3 +735,41 @@ def test_expected_counts_paternal_X_with_first_and_second_generation_migrants():
     expected = prob_connected * paternal_counts(mig_f, mig_m)
     expected[-1] += prob_full
     numpy.testing.assert_allclose(paternal_counts(mig_f_recent, mig_m_recent), expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("model", ["M", "DC", "DF"])
+@pytest.mark.parametrize("density", [False, True])
+def test_expected_counts_population_only_among_first_generation_migrants(model, density):
+    """
+    If the population of interest only appears among migrants at the first generation, the connected model carries no tracts
+    from it, and the expected counts reduce to one full-length tract per copy inherited from such a migrant (instead of NaN).
+    """
+    T, L, a = 5, 1.5, 0.05
+    mig = numpy.zeros((T + 1, 3))
+    mig[T] = [1, 0, 0]
+    mig[2:T, 1] = 0.1
+    mig[1, 2] = a
+    bins = numpy.linspace(0, L, 7)
+    if model == "M":
+        phase_type = PhTMonoecious(migration_matrix=mig, rho=1)
+    else:
+        phase_type = PhTDioecious(migration_matrix_f=mig, migration_matrix_m=mig, rho_f=1, rho_m=1, sex_model=model)
+    _, counts, expected_length = phase_type.tractlength_histogram_windowed(population_number=2, bins=bins, L=L,
+                                                                           density=density, freq=density)
+    expected = numpy.zeros(len(bins) if density else len(bins) - 1)
+    expected[-1] = 2 * a
+    numpy.testing.assert_allclose(counts, expected, atol=1e-12)
+    assert expected_length == L
+
+
+@pytest.mark.parametrize("density", [False, True])
+def test_hybrid_pedigree_zero_tract_population_returns_zero_counts(density):
+    """
+    On a male X chromosome inherited from a founder of population 0, no tracts of population 1 are expected: the expected counts
+    (histogram or density on the frequency scale) must be an array of zeros on the evaluation grid, not a scalar.
+    """
+    mig_f, mig_m = numpy.array([[0, 0], [1, 0]]), numpy.array([[0, 0], [0, 1]])
+    bins = numpy.linspace(0, 1.5, 7)
+    grid, counts = hybrid_pedigree_distribution(mig_matrix_f=mig_f, mig_matrix_m=mig_m, L=1.5, bingrid=bins, whichpop=1, TP=1,
+                                                X_chr=True, X_chr_male=True, density=density, freq=density, print_progress=False)
+    numpy.testing.assert_array_equal(counts, numpy.zeros(len(grid) if density else len(bins) - 1))
