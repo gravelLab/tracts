@@ -773,3 +773,19 @@ def test_hybrid_pedigree_zero_tract_population_returns_zero_counts(density):
     grid, counts = hybrid_pedigree_distribution(mig_matrix_f=mig_f, mig_matrix_m=mig_m, L=1.5, bingrid=bins, whichpop=1, TP=1,
                                                 X_chr=True, X_chr_male=True, density=density, freq=density, print_progress=False)
     numpy.testing.assert_array_equal(counts, numpy.zeros(len(grid) if density else len(bins) - 1))
+
+
+def test_hybrid_pedigree_zero_tract_population_density_is_undefined():
+    """
+    Without tracts of the population of interest, the tract length density (not on the frequency scale) is undefined and is
+    returned as an array of NaNs on the evaluation grid, explicitly rather than through a 0/0 division.
+    """
+    import warnings
+    mig_f, mig_m = numpy.array([[0, 0], [1, 0]]), numpy.array([[0, 0], [0, 1]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        grid, density = hybrid_pedigree_distribution(mig_matrix_f=mig_f, mig_matrix_m=mig_m, L=1.5, bingrid=numpy.linspace(0, 1.5, 7),
+                                                     whichpop=1, TP=1, X_chr=True, X_chr_male=True, density=True, freq=False,
+                                                     print_progress=False)
+    assert numpy.shape(density) == numpy.shape(grid)
+    assert numpy.all(numpy.isnan(density))
