@@ -15,7 +15,7 @@ from scipy import sparse
 from sklearn.preprocessing import normalize
 logger = logging.getLogger(__name__)
 
-from .base_phase_type import PhaseTypeDistribution, get_survival_factors, _GenerationZeroContributionWarning
+from .base_phase_type import PhaseTypeDistribution, get_survival_factors, ancestry_proportions_by_generation, _GenerationZeroContributionWarning
 
 class PhTDioecious(PhaseTypeDistribution):
     r"""
@@ -171,27 +171,14 @@ class PhTDioecious(PhaseTypeDistribution):
         self.rho_f = rho_f
         self.rho_m = rho_m
 
-        # Compute ancestry proportions for histograms (c.f. Appendix F.3 in the manuscript)
-        # CLAUDELABEL{predicted_autosome_proportions}
-        if not X_chromosome:
-            self.t0_proportions_f = self.t0_proportions_m = np.sum(
-                (0.5 * (migration_matrix_f + migration_matrix_m)) * np.transpose(self.survival_factors)[:, np.newaxis],
-                axis=0) # Maternally (t0_proportions_f) and paternally (t0_proportions_m) -inherited ancestry proportions are the same.
-        else:
-            # Recursive computation for the X chromosome
-            # CLAUDELABEL{predicted_allosome_proportions}
-
-            ancestry_proportions_m = migration_matrix_m[self.num_generations - 1, ]
-            ancestry_proportions_f = migration_matrix_f[self.num_generations - 1, ]
-            for generation_number in range(self.num_generations - 2, 0, -1):
-                
-                ancestry_proportions_f_prev = ancestry_proportions_f.copy()
-                ancestry_proportions_m_prev = ancestry_proportions_m.copy()
-                ancestry_proportions_m = migration_matrix_m[generation_number, ] + (1 - migration_matrix_m[generation_number, ].sum())*ancestry_proportions_f_prev
-                ancestry_proportions_f = migration_matrix_f[generation_number, ] + (1 - migration_matrix_f[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2           
-            
-            self.t0_proportions_f = ancestry_proportions_f
-            self.t0_proportions_m = ancestry_proportions_m
+        # Compute ancestry proportions for histograms (c.f. Appendix F.3 in the manuscript). Row g contains the ancestry
+        # proportions of a female (resp. male) individual at generation g. On autosomes, maternally and paternally -inherited
+        # ancestry proportions differ only if migration at the first generation is sex-biased.
+        # Article equation labels: predicted_autosome_proportions, predicted_allosome_proportions
+        self.ancestry_proportions_by_generation_f, self.ancestry_proportions_by_generation_m = \
+            ancestry_proportions_by_generation(migration_matrix_f, migration_matrix_m, X_chromosome)
+        self.t0_proportions_f = self.ancestry_proportions_by_generation_f[1]
+        self.t0_proportions_m = self.ancestry_proportions_by_generation_m[1]
 
         # Used for computing the hybrid-pedrigree refinements of the DF and DC models      
         if TPED > min(self.num_generations - 1, 4):
@@ -292,7 +279,7 @@ class PhTDioecious(PhaseTypeDistribution):
 
         f_f = 0.0
         f_m = 0.0
-        # CLAUDELABEL{density_infty}
+        # Article equation label: density_infty
         if s1 == 0 or s1 is None:
             transition_matrix_m = self.transition_matrices_m[population_number]
             alpha_m = self.alpha_list_m[population_number]
@@ -309,7 +296,7 @@ class PhTDioecious(PhaseTypeDistribution):
             if not np.isreal(d_val) or d_val < -1e-3:
                 raise Exception('Density value is not a real positive :', d_val)
             f_f = float(np.real(d_val).item())
-        # CLAUDELABEL{final_density}
+        # Article equation label: final_density
         if self.X_chr_male or s1 == 1:
             return f_f
         if s1 == 0:
@@ -465,7 +452,12 @@ class PhTDioecious(PhaseTypeDistribution):
                 
         elif not xi_f and not xi_m:
             raise Exception('The state space for population',population_number, ' is empty. No tracts from population ', population_number, ' allowed.')
-        
+
+        if not hybrid_ped and (freq or not density): # Expected tract counts (histogram or density on the frequency scale)
+            return self._expected_counts_windowed(population_number=population_number, bins=bins, L=L,
+                                                  exp_Sx_per_bin_f=exp_Sx_per_bin_f, exp_Sx_per_bin_m=exp_Sx_per_bin_m,
+                                                  density=density, return_only=return_only)
+
         if return_only == 0 or return_only is None:
             S_m = self.transition_matrices_m[population_number]
             alpha_m = self.alpha_list_m[population_number]
@@ -521,7 +513,7 @@ class PhTDioecious(PhaseTypeDistribution):
             # parameter values explored during optimization). The NaN scale propagates
             # to the return value and is treated as an invalid trial point by the optimizer.
             if return_only is None and not self.X_chr_male: # For autosomes or X chromosome in females, both haploids copies are combined.
-                # CLAUDELABEL{gamma_p}
+                # Article equation label: eta_p
                 with np.errstate(invalid='ignore', divide='ignore'):
                     scale_m = self.t0_proportions_m[population_number] * L / ETL_m  if freq else 0.5
                     scale_f = self.t0_proportions_f[population_number] * L / ETL_f  if freq else 0.5
@@ -571,8 +563,8 @@ class PhTDioecious(PhaseTypeDistribution):
         if not np.all(np.isreal(normalized_CDF_f)) or np.any(normalized_CDF_f < -1e-3):
             raise Exception('type-f CDF is not positive and real : ', normalized_CDF_f)
         
-        # CLAUDELABEL{exp_Ni}
-        # CLAUDELABEL{exp_Ni_cases}
+        # Article equation label: exp_Ni
+        # Article equation label: exp_Ni_cases
         if not hybrid_ped: # In the Dioecious Model, maternally and paternally -inherited distributions are combined and returned now.
             return bins, np.real(np.diff(normalized_CDF_m) * scale_m + np.diff(normalized_CDF_f) * scale_f), E
         else: # In the hybrid pedigree model, connected components are combined later.
@@ -615,7 +607,101 @@ class PhTDioecious(PhaseTypeDistribution):
             histogram += new_histogram
         return histogram
 
-    def submodel_probabilities(self, population_number: int, s1: int | None): 
+    def first_generations_weights(self, population_number: int, s1: int):
+        r"""
+        Splits the haploid copy inherited from the type-`s1` parent according to its most recent generations. With some
+        probability, the copy is entirely inherited from a migrant from the population of interest at the first generation
+        (or, for the paternally inherited X chromosome, at the second generation), yielding one tract of full length.
+        Otherwise, the copy is described by the connected Markov model, whose ancestry proportion is also returned.
+        See Appendix G in the manuscript for details.
+
+        Parameters
+        ----------
+        population_number: int
+            The index of the population of interest, an integer from 0 to the number of populations - 1.
+        s1 : int
+            The sex of the parent at generation 1: 0 for the paternally inherited copy, 1 for the maternally inherited copy.
+
+        Returns
+        -------
+        float
+            The probability that the copy is a single tract of full length from the population of interest.
+        float
+            The probability that the copy is described by the connected Markov model.
+        float
+            The ancestry proportion from the population of interest on the copy, given that it is described by the connected Markov model.
+        """
+        def admixed_parents_proportion(generation):
+            # Ancestry proportion on the copy transmitted by an admixed individual at generation - 1, inherited from either parent.
+            if generation >= np.shape(self.ancestry_proportions_by_generation_f)[0]:
+                return 0.0
+            return (self.ancestry_proportions_by_generation_f[generation, population_number]
+                    + self.ancestry_proportions_by_generation_m[generation, population_number]) / 2
+
+        if s1 == 0 and self.X_chr: # The father inherited his X chromosome from his mother, at the second generation
+            prob_ad_m_1, prob_ad_f_2 = 1 - np.sum(self.m_prop_at_1), 1 - np.sum(self.f_prop_at_2)
+            prob_full = self.m_prop_at_1[population_number] + prob_ad_m_1 * self.f_prop_at_2[population_number]
+            return prob_full, prob_ad_m_1 * prob_ad_f_2, admixed_parents_proportion(3)
+        prop_at_1 = self.m_prop_at_1 if s1 == 0 else self.f_prop_at_1
+        return prop_at_1[population_number], 1 - np.sum(prop_at_1), admixed_parents_proportion(2)
+
+    def _expected_counts_windowed(self, population_number: int, bins: npt.ArrayLike, L: float, exp_Sx_per_bin_f: npt.ArrayLike,
+                                  exp_Sx_per_bin_m: npt.ArrayLike, density: bool, return_only: int | None):
+        r"""
+        Expected tract counts on a finite chromosome of length :math:`L`, returned as a histogram on the intervals defined by
+        `bins` or as a density on the frequency scale. For each haploid copy, a copy entirely inherited from a recent migrant
+        yields one tract of full length, and a copy described by the connected Markov model yields
+        :math:`\pi L/\mathbb{E}(T^L)` tracts on average, where :math:`\pi` and :math:`\mathbb{E}(T^L)` are the ancestry proportion
+        and the expected tract length under that model (Article equation labels: exp_Ni, eta_p, q1, qX).
+        See :func:`~tracts.phase_type.PhTDioecious.tractlength_histogram_windowed` for the parameters and returned values.
+        """
+        copies = {None: (0, 1), 0: (0,), 1: (1,)}[return_only]
+        expected_counts, expected_lengths, newbins = 0, [], bins
+        for s1 in copies:
+            S = self.transition_matrices_f[population_number] if s1 == 1 else self.transition_matrices_m[population_number]
+            alpha = self.alpha_list_f[population_number] if s1 == 1 else self.alpha_list_m[population_number]
+            S0_inv = self.inverse_S0_list_f[population_number] if s1 == 1 else self.inverse_S0_list_m[population_number]
+            exp_Sx_per_bin = exp_Sx_per_bin_f if s1 == 1 else exp_Sx_per_bin_m
+            prob_full, prob_connected, connected_proportion = self.first_generations_weights(population_number, s1)
+            # The connected model carries no tracts if the population of interest only appears among recent migrants. It is
+            # then not evaluated (its expected tract length is zero). A NaN weight, for degenerate parameter values explored
+            # during optimization, is still propagated.
+            if prob_connected * connected_proportion == 0:
+                if density:
+                    newbins = PhaseTypeDistribution.finite_density_grid(bins=bins, L=L)
+                    full_length = np.zeros(len(newbins))
+                    full_length[-1] = 1 # Point mass at L
+                else:
+                    full_length = (np.asarray(bins) >= L).astype(float)
+                expected_counts = expected_counts + prob_full * full_length
+                expected_lengths.append(L) # All tracts have full length
+                continue
+            if density:
+                newbins, distribution, ETL = self.PhT_density_windowed(population_number=population_number, S=S, alpha=alpha,
+                                                                       S0_inv=S0_inv, bins=bins, L=L, s1=s1,
+                                                                       hybrid_pedigree=True) # Connected model only
+                full_length = np.zeros(len(newbins))
+                full_length[-1] = 1 # Point mass at L
+            else:
+                distribution, _, _, ETL = self.PhT_CDF_windowed(S=S, alpha=alpha, S0_inv=S0_inv, bins=bins, L=L,
+                                                                exp_Sx_per_bin=exp_Sx_per_bin, s1=s1, pop_number=population_number,
+                                                                hybrid_pedigree=True) # Connected model only
+                # Check that CDF values are real and positive, since the histogram takes differences of close CDF values.
+                if not np.all(np.isreal(distribution)) or np.any(np.asarray(distribution) < -1e-3):
+                    raise Exception(f"type-{'f' if s1 == 1 else 'm'} CDF is not positive and real : ", distribution)
+                full_length = (np.asarray(bins) >= L).astype(float)
+            # ETL can be zero for degenerate parameter values explored during optimization. The NaN scale propagates to the
+            # returned values and is treated as an invalid trial point by the optimizer.
+            with np.errstate(invalid='ignore', divide='ignore'):
+                expected_counts = expected_counts + prob_connected * connected_proportion * L / ETL * distribution \
+                    + prob_full * full_length
+            prop_isolated, prop_connected = self.submodel_probabilities(population_number=population_number, s1=s1)
+            expected_lengths.append(prop_connected * ETL + prop_isolated * L)
+        if density:
+            return newbins, expected_counts, np.mean(expected_lengths)
+        return bins, np.real(np.diff(expected_counts)), np.mean(expected_lengths)
+
+    def submodel_probabilities(self, population_number: int, s1: int | None):
         r"""
         Computes the probability for a tract at generation :math:`t=0` to be drawn from the connected Markov model or the single-state isolated models
         that yield tracts of full length. See Appendix G in the manuscript for details.
@@ -647,13 +733,13 @@ class PhTDioecious(PhaseTypeDistribution):
         # norm_f/m can be zero when founding rates sum to more than 1, a scenario
         # the optimizer can explore. The NaN probabilities propagate to the returned
         # scale and are treated as an invalid trial point by the optimizer.
-        # CLAUDELABEL{q1}
+        # Article equation label: q1
         with np.errstate(invalid='ignore', divide='ignore'):
             prob_mig_f_1, prob_mig_m_1 = prob_mig_f_1 / norm_f_1, prob_mig_m_1 / norm_m_1
             prob_ad_f_1, prob_ad_m_1 = prob_ad_f_1 / norm_f_1, prob_ad_m_1 / norm_m_1
             prob_mig_f_2, prob_mig_m_2 = prob_mig_f_2 / norm_f_2, prob_mig_m_2 / norm_m_2
             prob_ad_f_2, prob_ad_m_2 = prob_ad_f_2 / norm_f_2, prob_ad_m_2 / norm_m_2
-        # CLAUDELABEL{qX}
+        # Article equation label: qX
         if s1 == 0:
             if self.X_chr:
                 prop_isolated = prob_mig_m_1 + prob_mig_f_2 * prob_ad_m_1
@@ -1056,7 +1142,7 @@ class PhTDioecious(PhaseTypeDistribution):
 
         if D_model == 'DF':
 
-            # CLAUDELABEL{product_S_matrix_sex}
+            # Article equation label: product_S_matrix_sex
             S_DF = Rho.dot(M).todense()
 
             if np.any(np.sum(S_DF, axis=1) == 0):
@@ -1067,10 +1153,10 @@ class PhTDioecious(PhaseTypeDistribution):
 
         else:  # Build A and P matrices for DC model computation
 
-            # CLAUDELABEL{product_S_DC}
+            # Article equation label: product_S_DC
             A = sparse.csr_matrix((np.ones(len(states)), (np.arange(len(states)), coarse_states.astype(int))),
                                   shape=tuple((len(states), len(pulses_copy))))
-            # CLAUDELABEL{omega}
+            # Article equation label: omega
             P = sparse.csr_matrix((unnorm_sex_prob, (np.arange(len(states)), coarse_states.astype(int))),
                                   shape=tuple((len(states), len(pulses_copy))))
             Pt = normalize(P, norm='l1', axis=0).transpose()
@@ -1114,7 +1200,7 @@ class PhTDioecious(PhaseTypeDistribution):
         NP = np.shape(self.migration_matrix_f)[1]
         states_at_TP = None
         states_after_TP = None
-        # CLAUDELABEL{states_sex_vector}
+        # Article equation label: states_sex_vector
         if pulses is None:
             ind_f = np.where(self.migration_matrix_f != 0)
             ind_m = np.where(self.migration_matrix_m != 0)
@@ -1142,12 +1228,12 @@ class PhTDioecious(PhaseTypeDistribution):
         states = states[np.isnan(states[:, 3]) * (states[:, 1] == parent_sex) | (states[:, 3] == parent_sex), :]        
         # Every line has the form (p, delta=s_t, m_p^delta(t), s_1, ..., s_{t-1})
 
-        # CLAUDELABEL{states_sex_vector_X}
+        # Article equation label: states_sex_vector_X
         if self.X_chr:
 
             self.rho_m = 0
 
-            # CLAUDELABEL{N_mm}
+            # Article equation label: N_mm
             states = states[~(((states[:, 3:-1] + states[:, 4:]) == 0).any(axis=1)), :]
             last_sex = np.asarray([states[i, :][~np.isnan(states[i, :])][-1] for i in range(np.shape(states)[0])])
             states = states[~((last_sex == 0) * (states[:, 1] == 0)), :]

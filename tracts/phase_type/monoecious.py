@@ -10,7 +10,7 @@ import numpy as np
 import numpy.typing as npt
 import scipy
 from tracts.util import all_same_sign
-from .base_phase_type import PhaseTypeDistribution, get_survival_factors, _GenerationZeroContributionWarning
+from .base_phase_type import PhaseTypeDistribution, get_survival_factors, ancestry_proportions_by_generation, _GenerationZeroContributionWarning
 logger = logging.getLogger(__name__)
 
 
@@ -111,6 +111,9 @@ class PhTMonoecious(PhaseTypeDistribution):
         
         self.survival_factors = get_survival_factors(self.migration_matrix) 
         self.prop_at_1 = self.migration_matrix[1, :].copy()
+        # Ancestry proportions on a copy transmitted by an admixed parent at generation 1, inherited from generation 2 onwards.
+        ancestry_proportions = ancestry_proportions_by_generation(self.migration_matrix, self.migration_matrix, X_chr=False)[0]
+        self.connected_proportions = ancestry_proportions[2] if self.num_generations > 2 else np.zeros(self.num_populations)
         self.t0_proportions = np.sum(self.migration_matrix * np.transpose([self.survival_factors]), axis=0)
         self.transition_matrices = [0] * self.num_populations
 
@@ -121,7 +124,7 @@ class PhTMonoecious(PhaseTypeDistribution):
 
         # List of initial probabilities for each state.
         self.alpha_list = [0] * self.num_populations
-        # CLAUDELABEL{states}
+        # Article equation label: states
         self.all_states = self.migration_matrix.nonzero()
         # all_states[0] contains the migration times and all_states[1] contains the migration populations
         # In other words, (all_states[0][i], all_states[1][i]) gives the i-th (time, pop) migration.
@@ -274,40 +277,56 @@ class PhTMonoecious(PhaseTypeDistribution):
         S = self.transition_matrices[population_number]
         alpha = self.alpha_list[population_number]
         S0_inv = self.inverse_S0_list[population_number]
-        if density:
+        if density and not freq:
             newbins, density_per_bin, ETL = self.PhT_density_windowed(population_number=population_number,
                                                                       S=S,
                                                                       alpha=alpha,
                                                                       S0_inv=S0_inv,
                                                                       bins=bins,
                                                                       L=L)
-            
-            # ETL can be zero for degenerate parameter values explored during
-            # optimization; the resulting NaN propagates to the return value and
-            # is treated as an invalid trial point by the optimizer.
-            with np.errstate(invalid='ignore', divide='ignore'):
-                scale = 2 * self.t0_proportions[population_number] * L / ETL if freq else 1
             if not np.all(np.isreal(density_per_bin)):
                 print(f'Density is complex.\n{density_per_bin}')
-            return newbins, scale * density_per_bin, ETL
-        
-        normalized_CDF, ET, Z, ETL = self.PhT_CDF_windowed(S=S,
-                                                           alpha=alpha, 
-                                                           S0_inv=S0_inv,
-                                                           bins=bins, 
-                                                           L=L,
-                                                           exp_Sx_per_bin=exp_Sx_per_bin,
-                                                           s1=0xDEADBEEF,
-                                                           pop_number=population_number)
-        
-        if not np.all(np.isreal(normalized_CDF)) or np.any(normalized_CDF < -1e-3):
-            raise Exception('CDF not positive and real : ', normalized_CDF)
-        # ETL (expected tract length) can be zero for degenerate parameter values
-        # explored during optimization. The NaN/inf scale propagates to the returned
-        # histogram and is treated as an invalid likelihood by the optimizer.
+            return newbins, density_per_bin, ETL
+
+        # Expected tract counts (histogram or density on the frequency scale), on both haploid copies. A copy inherited from a
+        # migrant from the population of interest at the first generation yields one tract of full length, and a copy inherited
+        # from an admixed parent yields pi L / E(T^L) tracts on average, where pi and E(T^L) are the ancestry proportion and the
+        # expected tract length under the connected Markov model (Article equation labels: exp_Ni, eta_p, q1).
+        prob_full = self.prop_at_1[population_number]
+        prob_connected = 1 - np.sum(self.prop_at_1)
+        # The connected model carries no tracts if the population of interest only appears among migrants at the first
+        # generation. It is then not evaluated (its expected tract length is zero). A NaN weight, for degenerate parameter
+        # values explored during optimization, is still propagated.
+        if prob_connected * self.connected_proportions[population_number] == 0:
+            if density:
+                bins = PhaseTypeDistribution.finite_density_grid(bins=bins, L=L)
+                full_length = np.zeros(len(bins))
+                full_length[-1] = 1 # Point mass at L
+                return bins, 2 * prob_full * full_length, L
+            full_length = (np.asarray(bins) >= L).astype(float)
+            return bins, np.diff(2 * prob_full * full_length), L # All tracts have full length
+        if density:
+            bins, distribution, ETL_connected = self.PhT_density_windowed(population_number=population_number, S=S, alpha=alpha,
+                                                                          S0_inv=S0_inv, bins=bins, L=L, connected_only=True)
+            full_length = np.zeros(len(bins))
+            full_length[-1] = 1 # Point mass at L
+        else:
+            distribution, ET, Z, ETL_connected = self.PhT_CDF_windowed(S=S, alpha=alpha, S0_inv=S0_inv, bins=bins, L=L,
+                                                                       exp_Sx_per_bin=exp_Sx_per_bin, s1=0xDEADBEEF,
+                                                                       pop_number=population_number, connected_only=True)
+            if not np.all(np.isreal(distribution)) or np.any(distribution < -1e-3):
+                raise Exception('CDF not positive and real : ', distribution)
+            full_length = (np.asarray(bins) >= L).astype(float)
+        # ETL (expected tract length) can be zero for degenerate parameter values explored during optimization. The NaN/inf
+        # scale propagates to the returned values and is treated as an invalid likelihood by the optimizer.
         with np.errstate(invalid='ignore', divide='ignore'):
-            scale = 2 * self.t0_proportions[population_number] * L / ETL
-        return bins, np.real(np.diff(normalized_CDF) * scale), ETL
+            expected_counts = 2 * (prob_connected * self.connected_proportions[population_number] * L / ETL_connected * distribution
+                                   + prob_full * full_length)
+            prop_isolated = prob_full / (prob_full + prob_connected)
+        ETL = (1 - prop_isolated) * ETL_connected + prop_isolated * L
+        if density:
+            return bins, expected_counts, ETL
+        return bins, np.real(np.diff(expected_counts)), ETL
 
     def tract_length_histogram_multi_windowed(self, population_number: int, bins: npt.ArrayLike,
                                               chrom_lengths: npt.ArrayLike) -> npt.ArrayLike:
@@ -344,7 +363,7 @@ class PhTMonoecious(PhaseTypeDistribution):
 
     def PhT_density_windowed(self, population_number: int, S: npt.ArrayLike, alpha: npt.ArrayLike, 
                             S0_inv: npt.ArrayLike, bins: npt.ArrayLike, L: float, s1=None,
-                            exp_Sx_per_bin: npt.ArrayLike = None):
+                            exp_Sx_per_bin: npt.ArrayLike = None, connected_only: bool = False):
         r"""
         Computes a Phase-type density on a finite chromosome of length :math:`L` and evaluates it on a point grid.
         The Phase-type parameters (initial state, transition matrix) are taken from a :class:`PhTMonoecious` object 
@@ -366,7 +385,9 @@ class PhTMonoecious(PhaseTypeDistribution):
         s1 : float, default None
             Not used in the Monoecious model.
         exp_Sx_per_bin: npt.ArrayLike, default None
-            The precomputed values of :math:`e^{Sx}` for every :math:`x` in bins. Used internally to speed up computation. 
+            The precomputed values of :math:`e^{Sx}` for every :math:`x` in bins. Used internally to speed up computation.
+        connected_only: bool, default False
+            For internal use only. If True, tracts of full length due to migrants at the first generation are not included.
         
         Returns
         -------
@@ -401,6 +422,8 @@ class PhTMonoecious(PhaseTypeDistribution):
             prob_ad_1 = prob_ad_1 / norm_1
         prop_isolated = prob_mig_1
         prop_connected = prob_ad_1
+        if connected_only: # Only the connected Markov model (full-length tracts are accounted for in tractlength_histogram_windowed)
+            prop_isolated, prop_connected = 0, 1
         
         return self.populate_density_bins(bins=bins,
                                         population_number=population_number,
@@ -416,7 +439,8 @@ class PhTMonoecious(PhaseTypeDistribution):
                                         alpha=alpha)
 
     def PhT_CDF_windowed(self, S: npt.ArrayLike, alpha: npt.ArrayLike, S0_inv: npt.ArrayLike, bins: npt.ArrayLike, L: float, pop_number: int,
-                         s1: float | None = None,  exp_Sx_per_bin: npt.ArrayLike = None) -> tuple[np.ndarray, float, float, float]:
+                         s1: float | None = None,  exp_Sx_per_bin: npt.ArrayLike = None,
+                         connected_only: bool = False) -> tuple[np.ndarray, float, float, float]:
         r"""
         Computes a Phase-type CDF on a finite chromosome of length :math:`L` and evaluates it on a point grid.
         The Phase-type parameters (initial state, transition matrix) are taken from a :class:`PhTMonoecious` object
@@ -442,6 +466,8 @@ class PhTMonoecious(PhaseTypeDistribution):
             An integer from 0 to the number of populations - 1, corresponding to the column of the migration matrix.
         exp_Sx_per_bin: npt.ArrayLike, default None
             The precomputed values of :math:`e^{Sx}` for every :math:`x` in bins. Used internally to speed up computation.
+        connected_only: bool, default False
+            For internal use only. If True, tracts of full length due to migrants at the first generation are not included.
         
         Returns
         -------
@@ -469,6 +495,8 @@ class PhTMonoecious(PhaseTypeDistribution):
             prob_ad_1 = prob_ad_1 / norm_1
         prop_isolated = prob_mig_1
         prop_connected = prob_ad_1
+        if connected_only: # Only the connected Markov model (full-length tracts are accounted for in tractlength_histogram_windowed)
+            prop_isolated, prop_connected = 0, 1
         return self.populate_CDF_values(bins=bins, 
                                         CDF_values=CDF_values,
                                         S0_inv=S0_inv,
@@ -486,7 +514,7 @@ class PhTMonoecious(PhaseTypeDistribution):
         return sum([self.survival_factors[final_time] / self.survival_factors[T + 1] for T in
                     range(1, min(initial_time, final_time))])
 
-    # CLAUDELABEL{SM_matrix}
+    # Article equation label: SM_matrix
     def get_transition_matrix(self):
         r"""
         Computes the transition matrix of the Monoecious Phase-type model.

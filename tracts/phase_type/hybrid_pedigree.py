@@ -16,6 +16,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from scipy.special import gammaln
 from .dioecious import PhTDioecious
+from .base_phase_type import ancestry_proportions_by_generation
 import logging
 logger = logging.getLogger(__name__)
 
@@ -379,7 +380,63 @@ def density_hybrid_pedigree(which_migration: int, migration_list:list, T_PED:int
     return counts_f, counts_m, which_migration, ETL_f, ETL_m
 
 
-def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndarray, L: float, 
+def configuration_ancestry_proportions(migrations_at_TP: np.ndarray, TP: int, parent_sex: int, whichpop: int, X_chr: bool,
+                                       proportions_f: np.ndarray, proportions_m: np.ndarray):
+    r"""
+    Computes, for every migration configuration of the pedigree at generation :math:`T_P`, the expected ancestry proportion
+    from population `whichpop` on the haploid copy inherited from the type-`parent_sex` parent, conditioned on that configuration.
+
+    Each individual at generation :math:`T_P` is reached by the inherited copy with the probability of its sex path
+    (:math:`(1/2)^{T_P-1}` on autosomes, and following X chromosome transmission otherwise). It contributes 1 if it is a migrant
+    from `whichpop`, 0 if it is a migrant from another population, and the ancestry proportion of its parents at generation
+    :math:`T_P+1` if it is admixed.
+
+    Parameters
+    ----------
+    migrations_at_TP : np.ndarray
+        A 2D array whose rows are the migration configurations at generation :math:`T_P`: 0 for an admixed individual, and
+        :math:`k\in\lbrace 1,\ldots,P\rbrace` for a migrant from population :math:`k-1`. Individuals are ordered as in the
+        state space of :class:`~tracts.phase_type.dioecious.PhTDioecious`.
+    TP : int
+        The number of generations of the pedigree.
+    parent_sex : int
+        The sex of the parent at generation 1 (0 for male, 1 for female).
+    whichpop : int
+        The population of interest, an integer from 0 to the number of populations - 1.
+    X_chr : bool
+        Whether admixture is considered on the X chromosome.
+    proportions_f, proportions_m : np.ndarray
+        The ancestry proportions by generation, as returned by :func:`~tracts.phase_type.hybrid_pedigree.ancestry_proportions_by_generation`.
+
+    Returns
+    -------
+    np.ndarray
+        The ancestry proportion conditioned on each configuration, in the order of the rows of `migrations_at_TP`.
+    """
+    T = int(np.shape(proportions_f)[0] - 1)
+    # Sexes of the individuals at generations 2, ..., TP along the path to each individual at generation TP (1 = female, 0 = male).
+    state_order = np.flip(np.array([i for i in itertools.product([0, 1], repeat=TP - 1)]), axis=0).reshape(2 ** (TP - 1), TP - 1)
+    path_probabilities = np.ones(len(state_order))
+    admixed_proportions = np.zeros(len(state_order))
+    for slot, sexes in enumerate(state_order):
+        path = [parent_sex] + list(sexes)
+        for previous_sex, sex in zip(path[:-1], path[1:]):
+            if X_chr and previous_sex == 0:
+                path_probabilities[slot] *= float(sex == 1) # A male inherits his X chromosome from his mother
+            else:
+                path_probabilities[slot] *= 0.5
+        if TP < T:
+            if X_chr and path[-1] == 0:
+                admixed_proportions[slot] = proportions_f[TP + 1, whichpop]
+            else:
+                admixed_proportions[slot] = (proportions_f[TP + 1, whichpop] + proportions_m[TP + 1, whichpop]) / 2
+    migrations_at_TP = np.asarray(migrations_at_TP)
+    slot_proportions = np.where(migrations_at_TP == 0, admixed_proportions[np.newaxis, :],
+                                (migrations_at_TP == whichpop + 1).astype(float))
+    return slot_proportions @ path_probabilities
+
+
+def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndarray, L: float,
                                 bingrid: np.ndarray, whichpop: int, TP: int = 2, Dioecious_model: str = 'DC',
                                 rho_f: float = 1, rho_m: float = 1, X_chr: bool = False, X_chr_male: bool = False,
                                 N_cores: int = 1, density: bool = True, freq: bool = False, print_progress: bool = True):
@@ -458,31 +515,9 @@ def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndar
 
     T = int(np.shape(mig_matrix_f)[0] - 1) # Number of generations
 
-    mean_mig_matrix = 0.5 * (mig_matrix_f + mig_matrix_m)
-    survival_factors = np.ones(len(mean_mig_matrix))
-    for generation_number in range(1, len(mean_mig_matrix)):
-        survival_factors[generation_number] = survival_factors[generation_number - 1] * (
-                1 - sum(mean_mig_matrix[generation_number - 1]))
-    
-    # Compute ancestry proportions for histograms (see Appendix F.3 in the manuscript)
-    if not X_chr:
-        t0_proportions_f = t0_proportions_m = np.sum(
-            (0.5 * (mig_matrix_f + mig_matrix_m)) * np.transpose(survival_factors)[:, np.newaxis],
-            axis=0) # Maternally (t0_proportions_f) and paternally (t0_proportions_m) -inherited ancestry proportions are the same.
-    else: # Recursive computation for the X chromosome
+    # Ancestry proportions by generation, used to compute the ancestry proportion conditioned on each pedigree configuration
+    proportions_f, proportions_m = ancestry_proportions_by_generation(mig_matrix_f, mig_matrix_m, X_chr)
 
-        ancestry_proportions_m = mig_matrix_m[T, ]
-        ancestry_proportions_f = mig_matrix_f[T, ]
-        for generation_number in range(T-1, 0, -1):
-                
-            ancestry_proportions_f_prev = ancestry_proportions_f.copy()
-            ancestry_proportions_m_prev = ancestry_proportions_m.copy()
-            ancestry_proportions_m = mig_matrix_m[generation_number, ] + (1 - mig_matrix_m[generation_number, ].sum())*ancestry_proportions_f_prev
-            ancestry_proportions_f = mig_matrix_f[generation_number, ] + (1 - mig_matrix_f[generation_number, ].sum())*(ancestry_proportions_m_prev + ancestry_proportions_f_prev)/2           
-            
-        t0_proportions_f = ancestry_proportions_f
-        t0_proportions_m = ancestry_proportions_m
-    
     Npops = int(np.shape(mig_matrix_f)[1])
     nind_TP = 2 ** TP - 1
     nanc_TP = 2 ** (TP - 1)
@@ -583,52 +618,39 @@ def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndar
         bins = bins[bins <= L]  # Truncate to [0, L], where the distribution is supported
         bins = np.unique(np.sort(bins))
 
-    # Remove pedigrees that yield space states with only absorbing states
-    mig_out_f = [den[2] for den in densities_list if np.any(np.isnan(den[0]))]
-    mig_out_m = [den[2] for den in densities_list if np.any(np.isnan(den[1]))]
-    
-    if not X_chr_male: # Re-weight pedigree probabilities
-        data_prob_m = data_prob_m[~data_prob_m.which_ancestral.isin(mig_out_m)]
-        prob_list_m = data_prob_m.groupby(['which_ancestral']).sum().reset_index().to_numpy()
-        prob_list_m[:, 1] = prob_list_m[:, 1] / np.sum(prob_list_m[:, 1])
-       
-    data_prob_f = data_prob_f[~data_prob_f.which_ancestral.isin(mig_out_f)]
-    prob_list_f = data_prob_f.groupby(['which_ancestral']).sum().reset_index().to_numpy()
-    prob_list_f[:, 1] = prob_list_f[:, 1] / np.sum(prob_list_f[:, 1])
-     
-    if X_chr and X_chr_male:
+    # Probability of each configuration at generation TP, for the paternally (index 0) and maternally (index 1) inherited copies
+    config_probs = {1: data_prob_f.groupby('which_ancestral')['prob'].sum()}
+    if not X_chr_male:
+        config_probs[0] = data_prob_m.groupby('which_ancestral')['prob'].sum()
+    copies = [1] if X_chr_male else [1, 0]
 
-        density_f = np.sum(np.array([l[0] * prob_list_f[prob_list_f[:, 0] == l[2], 1]
-                                        for l in densities_list if
-                                        np.isin(l[2], prob_list_f[:, 0])]), axis=0)
-        
-        Exp_f = np.sum(np.array([l[3] * prob_list_f[prob_list_f[:, 0] == l[2], 1] 
-                                    for l in densities_list if
-                                    np.isin(l[2], prob_list_f[:, 0])]), axis=0)
-        
-        scale_f = t0_proportions_f[whichpop] * L / Exp_f if freq else 1
-        final_density = density_f * scale_f
+    if density and not freq:
+        # Density of the length of a tract obtained by first drawing a configuration with its probability, and then a tract of ancestry
+        # whichpop within that configuration. Configurations without tracts of ancestry whichpop are removed and probabilities re-weighted.
+        final_density = np.zeros(len(bins))
+        for xi in copies:
+            valid = [l for l in densities_list if not np.any(np.isnan(l[1 - xi]))]
+            weights = np.array([config_probs[xi].get(l[2], 0) for l in valid])
+            if np.sum(weights) == 0: # No tracts of ancestry whichpop on this copy: the tract length density is undefined
+                return bins, np.full(len(bins), np.nan)
+            density_xi = np.sum(np.array([w * l[1 - xi] for w, l in zip(weights / np.sum(weights), valid)]), axis=0)
+            final_density = final_density + density_xi / len(copies)
 
     else:
-        density_f = np.sum(np.array([l[0] * prob_list_f[prob_list_f[:, 0] == l[2], 1]
-                                        for l in densities_list if
-                                        np.isin(l[2], prob_list_f[:, 0])]), axis=0)
-        
-        density_m = np.sum(np.array([l[1] * prob_list_m[prob_list_m[:, 0] == l[2], 1]
-                                        for l in densities_list if
-                                        np.isin(l[2], prob_list_m[:, 0])]), axis=0)
-        
-        Exp_f = np.sum(np.array([l[3] * prob_list_f[prob_list_f[:, 0] == l[2], 1]
-                                        for l in densities_list if
-                                        np.isin(l[2], prob_list_f[:, 0])]), axis=0)
-        
-        Exp_m = np.sum(np.array([l[4] * prob_list_m[prob_list_m[:, 0] == l[2], 1]
-                                        for l in densities_list if
-                                        np.isin(l[2], prob_list_m[:, 0])]), axis=0)     
-        
-        scale_f = t0_proportions_f[whichpop] * L / Exp_f if freq else 0.5
-        scale_m = t0_proportions_m[whichpop] * L / Exp_m if freq else 0.5
-        final_density = density_f * scale_f + density_m * scale_m
+        # Expected tract counts: every configuration contributes its probability times its own expected number of tracts,
+        # pi(config) * L / E(T^L | config), times its tract length distribution. Configurations without tracts of ancestry
+        # whichpop have a zero ancestry proportion and contribute no tracts.
+        # Article equation labels: exp_Ni, eta_p
+        final_density = np.zeros(len(bins) if density else len(bingrid)) # Zero counts if no configuration carries such tracts
+        for xi in copies:
+            config_proportions = configuration_ancestry_proportions(migrations_at_TP=migrations_at_TP, TP=TP, parent_sex=xi,
+                                                                    whichpop=whichpop, X_chr=X_chr,
+                                                                    proportions_f=proportions_f, proportions_m=proportions_m)
+            for l in densities_list:
+                which_config, distribution, ETL = l[2], l[1 - xi], l[4 - xi]
+                weight = config_probs[xi].get(which_config, 0) * config_proportions[which_config]
+                if weight > 0 and not np.any(np.isnan(distribution)) and np.isfinite(ETL):
+                    final_density = final_density + weight * L / ETL * distribution
 
     if density:
         return bins, final_density
@@ -732,7 +754,7 @@ def HP_loglik(mig_matrix_f: npt.ArrayLike, mig_matrix_m: npt.ArrayLike, rho_f: f
         data : list[list[int]]
             A list of length equal to the number of populations, where the entry at index :math:`i` is a list of the observed tract counts in every bin for population :math:`i`.
         num_samples : int
-            The number of haploid genomes in the sample. Used to scale the predicted tract counts, as the Phase-type distribution is defined for a single haploid genome. If `num_samples` is zero, the log-likelihood is set to zero, as the data does not contain any information.
+            The number of individuals in the sample (for the X chromosome, the number of female or male individuals). Used to scale the predicted tract counts, which are computed per individual (both haploid copies for autosomes and female X chromosomes, the maternal copy for male X chromosomes). If `num_samples` is zero, the log-likelihood is set to zero, as the data does not contain any information.
         cutoff : int, optional
             The index of the first bin to consider in the likelihood calculation. Used to ignore very short tracts, which are very likely to be false positives in real data. 
 

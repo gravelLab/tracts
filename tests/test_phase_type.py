@@ -138,7 +138,7 @@ def verify_same_t0_proportions_unbiased(ptd_autosome: PhaseTypeDistribution,
     assert numpy.all(numpy.isclose(ptd_X.t0_proportions_f, ptd_X.t0_proportions_m, atol=atol))
     assert numpy.all(numpy.isclose(ptd_autosome.t0_proportions_f, ptd_X.t0_proportions_m, atol=atol))
 
-def verify_autosomal_t0_recursive(ptd_autosome: PhaseTypeDistribution, atol: float = 0.02):
+def verify_autosomal_t0_recursive(ptd_autosome: PhaseTypeDistribution, atol: float = 1e-12):
     """
     Checks that the ancestry proportions at generation t=0 for the autosomal model can be computed recursively and match the direct computation.
     This is a consistency check for the computation of t0_proportions in autosomes, which should be the same whether computed directly or recursively,
@@ -597,3 +597,195 @@ def test_dioecious_frequency_density_integrates_to_histogram(X_chromosome):
     integrated = numpy.array([_trapezoid(density[(newbins >= a) & (newbins <= b)], newbins[(newbins >= a) & (newbins <= b)])
                               for a, b in zip(edges[:-1], edges[1:])])
     numpy.testing.assert_allclose(integrated, histogram, rtol=0.03)
+
+
+@pytest.mark.parametrize("sex_model", ["DC", "DF"])
+def test_autosomal_t0_proportions_sex_biased_first_generation(sex_model):
+    """
+    With sex-biased migration at the first generation, the paternally and maternally inherited autosomal copies have
+    different ancestry proportions, pi_xi = m^xi_p(1) + (1 - m^xi(1)) * pi_bar(2), whose average is the sex-averaged
+    proportion. Regression test for a bug in which both were set to the sex-averaged proportion.
+    """
+    # Rows are generations 0, 1, 2, 3: founding at generation 3 and a male-only migration from population 0 at generation 1.
+    mig_m = numpy.array([[0, 0], [0.2, 0], [0, 0], [0.5, 0.5]])
+    mig_f = numpy.array([[0, 0], [0, 0], [0, 0], [0.5, 0.5]])
+    model = PhTDioecious(migration_matrix_f=mig_f, migration_matrix_m=mig_m, rho_f=1, rho_m=1,
+                         sex_model=sex_model, X_chromosome=False)
+
+    numpy.testing.assert_allclose(model.t0_proportions_m, [0.2 + 0.8 * 0.5, 0.8 * 0.5])
+    numpy.testing.assert_allclose(model.t0_proportions_f, [0.5, 0.5])
+    numpy.testing.assert_allclose(0.5 * (model.t0_proportions_m + model.t0_proportions_f), [0.55, 0.45])
+
+
+@pytest.mark.parametrize("X_chromosome", [False, True])
+@pytest.mark.parametrize("TP", [1, 2, 3])
+def test_hybrid_pedigree_configuration_ancestry_proportions_average_to_population_proportions(X_chromosome, TP):
+    """
+    Averaging the ancestry proportion conditioned on each pedigree configuration over the configuration probabilities must
+    give the ancestry proportion of the corresponding haploid copy in the present population.
+    """
+    import itertools
+    import pandas as pd
+    from tracts.phase_type import hybrid_pedigree as HP
+
+    T, P = 5, 2
+    mig_f, mig_m = numpy.zeros((T + 1, P)), numpy.zeros((T + 1, P))
+    mig_f[T] = mig_m[T] = [0.7, 0.3]
+    mig_f[1:T, 1] = [0.15, 0.1, 0.2, 0.05]
+    mig_m[1:T, 1] = [0.02, 0.05, 0.0, 0.1]
+    mig_m[2, 0] = 0.1
+    reference = PhTDioecious(migration_matrix_f=mig_f, migration_matrix_m=mig_m, rho_f=1, rho_m=1, sex_model='DC',
+                             X_chromosome=X_chromosome)
+    proportions_f, proportions_m = HP.ancestry_proportions_by_generation(mig_f, mig_m, X_chromosome)
+
+    n_ind, n_anc = 2 ** TP - 1, 2 ** (TP - 1)
+    configurations = HP.all_possible_trees_as_arrays(TP, P, mig_at_last=False)
+    migrations_at_TP = numpy.array(list(itertools.product(range(P + 1), repeat=n_anc)))
+    pedigree = HP.get_pedigree(TP)
+    for parent_sex, population_proportions in ((1, reference.t0_proportions_f), (0, reference.t0_proportions_m)):
+        probs = pd.DataFrame([HP.prob_of_pop_setting(i, configurations, migrations_at_TP, mig_f, mig_m, parent_sex, n_ind,
+                                                     n_anc, pedigree) for i in range(len(configurations))],
+                             columns=['config', 'prob']).groupby('config')['prob'].sum()
+        for pop in range(P):
+            config_proportions = HP.configuration_ancestry_proportions(migrations_at_TP, TP, parent_sex, pop, X_chromosome,
+                                                                       proportions_f, proportions_m)
+            average = sum(probs.get(c, 0) * config_proportions[c] for c in range(len(migrations_at_TP)))
+            numpy.testing.assert_allclose(average, population_proportions[pop], atol=1e-12)
+
+
+def test_hybrid_pedigree_expected_counts_add_up_over_configurations():
+    """
+    With TP = 1, the parent at generation 1 is a migrant from the population of interest with probability a (one full-length
+    tract per copy), a migrant from the other population with probability b (no tract), or admixed with probability 1 - a - b,
+    in which case the copy follows the DC model without migration at generation 1. Regression test for a bug in which the
+    configurations were combined through their per-copy probabilities instead of their expected numbers of tracts.
+    """
+    T, P, L, pop = 5, 2, 1.5, 1
+    a, b = 0.1, 0.05
+    mig = numpy.zeros((T + 1, P))
+    mig[T] = [1, 0]
+    mig[2:T, 1] = 0.1
+    mig_with_first_generation = mig.copy()
+    mig_with_first_generation[1] = [b, a]
+    bins = numpy.linspace(0, L, 16)
+
+    dc_without_first_generation = PhTDioecious(migration_matrix_f=mig, migration_matrix_m=mig, rho_f=1, rho_m=1,
+                                               sex_model='DC', X_chromosome=False)
+    expected = (1 - a - b) * dc_without_first_generation.tract_length_histogram_multi_windowed(population_number=pop, bins=bins,
+                                                                                               chrom_lengths=[L])
+    expected[-1] += 2 * a
+    _, counts = hybrid_pedigree_distribution(mig_matrix_f=mig_with_first_generation, mig_matrix_m=mig_with_first_generation,
+                                             L=L, bingrid=bins, whichpop=pop, TP=1, Dioecious_model='DC', density=False,
+                                             print_progress=False)
+    numpy.testing.assert_allclose(numpy.real(counts), expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("model", ["M", "DC", "DF"])
+def test_expected_counts_with_first_generation_migrants(model):
+    """
+    A copy inherited from a migrant from the population of interest at the first generation yields one tract of full length,
+    a copy inherited from a migrant from another population yields none, and a copy inherited from an admixed parent follows the
+    model without migration at the first generation. Regression test for a bug in which full-length tracts were weighted by the
+    per-copy probability q_1 instead of by expected tract counts.
+    """
+    T, P, L, pop = 5, 2, 1.5, 1
+    a, b = 0.1, 0.05
+    mig = numpy.zeros((T + 1, P))
+    mig[T] = [1, 0]
+    mig[2:T, 1] = 0.1
+    mig_with_first_generation = mig.copy()
+    mig_with_first_generation[1] = [b, a]
+    bins = numpy.linspace(0, L, 16)
+
+    def build(migration_matrix):
+        if model == "M":
+            return PhTMonoecious(migration_matrix=migration_matrix, rho=1)
+        return PhTDioecious(migration_matrix_f=migration_matrix, migration_matrix_m=migration_matrix, rho_f=1, rho_m=1,
+                            sex_model=model, X_chromosome=False)
+
+    expected = (1 - a - b) * build(mig).tract_length_histogram_multi_windowed(population_number=pop, bins=bins, chrom_lengths=[L])
+    expected[-1] += 2 * a
+    counts = build(mig_with_first_generation).tract_length_histogram_multi_windowed(population_number=pop, bins=bins,
+                                                                                    chrom_lengths=[L])
+    numpy.testing.assert_allclose(counts, expected, atol=1e-12)
+
+
+def test_expected_counts_paternal_X_with_first_and_second_generation_migrants():
+    """
+    The X chromosome inherited from the father is a single tract of full length if the father is a migrant from the population
+    of interest, or if he is admixed and his mother is such a migrant. Otherwise, it follows the model without these migrations.
+    """
+    T, P, L, pop = 5, 2, 1.5, 1
+    mig_f, mig_m = numpy.zeros((T + 1, P)), numpy.zeros((T + 1, P))
+    mig_f[T] = mig_m[T] = [1, 0]
+    mig_f[3:T, 1] = 0.1
+    mig_m[3:T, 1] = 0.05
+    mig_f_recent, mig_m_recent = mig_f.copy(), mig_m.copy()
+    mig_m_recent[1] = [0.03, 0.08]
+    mig_f_recent[2] = [0.02, 0.12]
+    bins = numpy.linspace(0, L, 16)
+
+    def paternal_counts(migration_matrix_f, migration_matrix_m):
+        model = PhTDioecious(migration_matrix_f=migration_matrix_f, migration_matrix_m=migration_matrix_m, rho_f=1, rho_m=1,
+                             sex_model='DC', X_chromosome=True)
+        return numpy.asarray(model.tractlength_histogram_windowed(population_number=pop, bins=bins, L=L, return_only=0)[1])
+
+    prob_full = 0.08 + (1 - 0.11) * 0.12
+    prob_connected = (1 - 0.11) * (1 - 0.14)
+    expected = prob_connected * paternal_counts(mig_f, mig_m)
+    expected[-1] += prob_full
+    numpy.testing.assert_allclose(paternal_counts(mig_f_recent, mig_m_recent), expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("model", ["M", "DC", "DF"])
+@pytest.mark.parametrize("density", [False, True])
+def test_expected_counts_population_only_among_first_generation_migrants(model, density):
+    """
+    If the population of interest only appears among migrants at the first generation, the connected model carries no tracts
+    from it, and the expected counts reduce to one full-length tract per copy inherited from such a migrant (instead of NaN).
+    """
+    T, L, a = 5, 1.5, 0.05
+    mig = numpy.zeros((T + 1, 3))
+    mig[T] = [1, 0, 0]
+    mig[2:T, 1] = 0.1
+    mig[1, 2] = a
+    bins = numpy.linspace(0, L, 7)
+    if model == "M":
+        phase_type = PhTMonoecious(migration_matrix=mig, rho=1)
+    else:
+        phase_type = PhTDioecious(migration_matrix_f=mig, migration_matrix_m=mig, rho_f=1, rho_m=1, sex_model=model)
+    _, counts, expected_length = phase_type.tractlength_histogram_windowed(population_number=2, bins=bins, L=L,
+                                                                           density=density, freq=density)
+    expected = numpy.zeros(len(bins) if density else len(bins) - 1)
+    expected[-1] = 2 * a
+    numpy.testing.assert_allclose(counts, expected, atol=1e-12)
+    assert expected_length == L
+
+
+@pytest.mark.parametrize("density", [False, True])
+def test_hybrid_pedigree_zero_tract_population_returns_zero_counts(density):
+    """
+    On a male X chromosome inherited from a founder of population 0, no tracts of population 1 are expected: the expected counts
+    (histogram or density on the frequency scale) must be an array of zeros on the evaluation grid, not a scalar.
+    """
+    mig_f, mig_m = numpy.array([[0, 0], [1, 0]]), numpy.array([[0, 0], [0, 1]])
+    bins = numpy.linspace(0, 1.5, 7)
+    grid, counts = hybrid_pedigree_distribution(mig_matrix_f=mig_f, mig_matrix_m=mig_m, L=1.5, bingrid=bins, whichpop=1, TP=1,
+                                                X_chr=True, X_chr_male=True, density=density, freq=density, print_progress=False)
+    numpy.testing.assert_array_equal(counts, numpy.zeros(len(grid) if density else len(bins) - 1))
+
+
+def test_hybrid_pedigree_zero_tract_population_density_is_undefined():
+    """
+    Without tracts of the population of interest, the tract length density (not on the frequency scale) is undefined and is
+    returned as an array of NaNs on the evaluation grid, explicitly rather than through a 0/0 division.
+    """
+    import warnings
+    mig_f, mig_m = numpy.array([[0, 0], [1, 0]]), numpy.array([[0, 0], [0, 1]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        grid, density = hybrid_pedigree_distribution(mig_matrix_f=mig_f, mig_matrix_m=mig_m, L=1.5, bingrid=numpy.linspace(0, 1.5, 7),
+                                                     whichpop=1, TP=1, X_chr=True, X_chr_male=True, density=True, freq=False,
+                                                     print_progress=False)
+    assert numpy.shape(density) == numpy.shape(grid)
+    assert numpy.all(numpy.isnan(density))
