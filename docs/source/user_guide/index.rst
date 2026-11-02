@@ -123,9 +123,11 @@ Continuous migration between generations ``t1`` and ``t2`` can be specified as f
 
 
 
-   Consequently, :math:`R_{ti}^{\text{sex-bias}} = 1` corresponds to exclusively female migration,
-   :math:`R_{ti}^{\text{sex-bias}} = -1` to exclusively male migration, and :math:`R_{ti}^{\text{sex-bias}} = 0` to 
-   unbiased migration.
+   Consequently, :math:`R_{ti}^{\text{sex-bias}} = 0` corresponds to unbiased migration, and
+   :math:`R_{ti}^{\text{sex-bias}} = 1` (resp. :math:`-1`) to the most female-biased (resp. male-biased)
+   migration compatible with the rate :math:`R_{ti}`: if :math:`R_{ti} \leq 1/2`, migration is exclusively
+   female (resp. male), i.e. :math:`R_{ti}^{m} = 0` (resp. :math:`R_{ti}^{f} = 0`), whereas if :math:`R_{ti} > 1/2`,
+   female (resp. male) migration is saturated, i.e. :math:`R_{ti}^{f} = 1` (resp. :math:`R_{ti}^{m} = 1`).
 
    For all generations except the founder generation, the initial value of :math:`R_{ti}^{\text{sex-bias}}`
    must be specified by the user when configuring the driver file.
