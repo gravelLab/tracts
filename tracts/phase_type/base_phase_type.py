@@ -194,6 +194,18 @@ class PhaseTypeDistribution(ABC):
         pass
 
     @staticmethod
+    def finite_density_grid(bins: npt.ArrayLike, L: float) -> np.ndarray:
+        r"""
+        Returns the grid on which densities on a finite chromosome of length :math:`L` are evaluated: the input grid
+        truncated to :math:`[0, L]`, where the distribution is supported, with the point :math:`L` added if not already present.
+        """
+        bins = np.asarray(bins)
+        if ~np.any(np.isin(bins, L)): # Add L to the bins vector if not already present
+            bins = np.append(bins, L)
+        bins = bins[bins <= L] # Truncate to [0, L], where the distribution is supported
+        return np.sort(bins)
+
+    @staticmethod
     def initialize_density_bins(bins: npt.ArrayLike, L: float, alpha: float, S0_inv: float):
         r"""
         Initialize the density bins for the phase-type distribution. Performs initial checks, truncates the bins to the finite chromosome length, and computes the expected tract length under the finite chromosome model.
@@ -219,12 +231,7 @@ class PhaseTypeDistribution(ABC):
             The normalization factor :math:`Z` for the density under the finite chromosome model.
         """
 
-        bins = np.asarray(bins)
-        if ~np.any(np.isin(bins, L)): # Add L to the bins vector if not already present
-            bins = np.append(bins, L)
-        
-        bins = bins[bins <= L] # Truncate to [0, L], where the distribution is supported
-        bins = np.sort(bins)
+        bins = PhaseTypeDistribution.finite_density_grid(bins=bins, L=L)
         E_val = -np.dot(alpha, S0_inv) # Expectation under the infinite chromosome model
         if not np.isreal(E_val) or E_val <= -1e-3:
             raise Exception('Expectation is not a positive real : ', E_val)

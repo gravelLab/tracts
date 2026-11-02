@@ -627,10 +627,12 @@ def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndar
     if density and not freq:
         # Density of the length of a tract obtained by first drawing a configuration with its probability, and then a tract of ancestry
         # whichpop within that configuration. Configurations without tracts of ancestry whichpop are removed and probabilities re-weighted.
-        final_density = 0
+        final_density = np.zeros(len(bins))
         for xi in copies:
             valid = [l for l in densities_list if not np.any(np.isnan(l[1 - xi]))]
             weights = np.array([config_probs[xi].get(l[2], 0) for l in valid])
+            if np.sum(weights) == 0: # No tracts of ancestry whichpop on this copy: the tract length density is undefined
+                return bins, np.full(len(bins), np.nan)
             density_xi = np.sum(np.array([w * l[1 - xi] for w, l in zip(weights / np.sum(weights), valid)]), axis=0)
             final_density = final_density + density_xi / len(copies)
 
@@ -639,7 +641,7 @@ def hybrid_pedigree_distribution(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndar
         # pi(config) * L / E(T^L | config), times its tract length distribution. Configurations without tracts of ancestry
         # whichpop have a zero ancestry proportion and contribute no tracts.
         # Article equation labels: exp_Ni, eta_p
-        final_density = 0
+        final_density = np.zeros(len(bins) if density else len(bingrid)) # Zero counts if no configuration carries such tracts
         for xi in copies:
             config_proportions = configuration_ancestry_proportions(migrations_at_TP=migrations_at_TP, TP=TP, parent_sex=xi,
                                                                     whichpop=whichpop, X_chr=X_chr,

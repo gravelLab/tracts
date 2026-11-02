@@ -663,6 +663,19 @@ class PhTDioecious(PhaseTypeDistribution):
             S0_inv = self.inverse_S0_list_f[population_number] if s1 == 1 else self.inverse_S0_list_m[population_number]
             exp_Sx_per_bin = exp_Sx_per_bin_f if s1 == 1 else exp_Sx_per_bin_m
             prob_full, prob_connected, connected_proportion = self.first_generations_weights(population_number, s1)
+            # The connected model carries no tracts if the population of interest only appears among recent migrants. It is
+            # then not evaluated (its expected tract length is zero). A NaN weight, for degenerate parameter values explored
+            # during optimization, is still propagated.
+            if prob_connected * connected_proportion == 0:
+                if density:
+                    newbins = PhaseTypeDistribution.finite_density_grid(bins=bins, L=L)
+                    full_length = np.zeros(len(newbins))
+                    full_length[-1] = 1 # Point mass at L
+                else:
+                    full_length = (np.asarray(bins) >= L).astype(float)
+                expected_counts = expected_counts + prob_full * full_length
+                expected_lengths.append(L) # All tracts have full length
+                continue
             if density:
                 newbins, distribution, ETL = self.PhT_density_windowed(population_number=population_number, S=S, alpha=alpha,
                                                                        S0_inv=S0_inv, bins=bins, L=L, s1=s1,

@@ -292,6 +292,19 @@ class PhTMonoecious(PhaseTypeDistribution):
         # migrant from the population of interest at the first generation yields one tract of full length, and a copy inherited
         # from an admixed parent yields pi L / E(T^L) tracts on average, where pi and E(T^L) are the ancestry proportion and the
         # expected tract length under the connected Markov model (Article equation labels: exp_Ni, eta_p, q1).
+        prob_full = self.prop_at_1[population_number]
+        prob_connected = 1 - np.sum(self.prop_at_1)
+        # The connected model carries no tracts if the population of interest only appears among migrants at the first
+        # generation. It is then not evaluated (its expected tract length is zero). A NaN weight, for degenerate parameter
+        # values explored during optimization, is still propagated.
+        if prob_connected * self.connected_proportions[population_number] == 0:
+            if density:
+                bins = PhaseTypeDistribution.finite_density_grid(bins=bins, L=L)
+                full_length = np.zeros(len(bins))
+                full_length[-1] = 1 # Point mass at L
+                return bins, 2 * prob_full * full_length, L
+            full_length = (np.asarray(bins) >= L).astype(float)
+            return bins, np.diff(2 * prob_full * full_length), L # All tracts have full length
         if density:
             bins, distribution, ETL_connected = self.PhT_density_windowed(population_number=population_number, S=S, alpha=alpha,
                                                                           S0_inv=S0_inv, bins=bins, L=L, connected_only=True)
@@ -304,8 +317,6 @@ class PhTMonoecious(PhaseTypeDistribution):
             if not np.all(np.isreal(distribution)) or np.any(distribution < -1e-3):
                 raise Exception('CDF not positive and real : ', distribution)
             full_length = (np.asarray(bins) >= L).astype(float)
-        prob_full = self.prop_at_1[population_number]
-        prob_connected = 1 - np.sum(self.prop_at_1)
         # ETL (expected tract length) can be zero for degenerate parameter values explored during optimization. The NaN/inf
         # scale propagates to the returned values and is treated as an invalid likelihood by the optimizer.
         with np.errstate(invalid='ignore', divide='ignore'):
