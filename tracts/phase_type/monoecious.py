@@ -90,8 +90,19 @@ class PhTMonoecious(PhaseTypeDistribution):
             print("Offending migration matrix", self.migration_matrix)
             raise Exception('Contributions from source populations must be non-negative and sum up to a value in [0,1].')
 
-        full_replacements = np.where(np.isclose(mig_per_row, 1, atol=1e-2))[0]
+        # A full-replacement generation makes every earlier (more ancient) generation unreachable,
+        # so we want the *most recent* such generation (np.min) and truncate there. But a tight-ish
+        # atol is still needed: a continuous event's fractional-time spread (see FounderEvent.execute)
+        # can put an echo of the true founding row's rate one generation short of it, which must not
+        # be mistaken for a genuine full replacement. Guard against that explicitly: if the very next
+        # (more ancient) generation is even closer to 1, it's the true founding row and the one we
+        # just matched was only its fractional echo, so keep advancing until the row sum stops
+        # increasing.
+        full_replacements = np.where(np.isclose(mig_per_row, 1, atol=1e-8))[0]
         last_full_replacement = np.min(full_replacements)
+        while (last_full_replacement + 1 < len(mig_per_row)
+               and mig_per_row[last_full_replacement + 1] > mig_per_row[last_full_replacement]):
+            last_full_replacement += 1
         self.migration_matrix = self.migration_matrix[:last_full_replacement + 1, :]  # Remove generations after the last full replacement.
         # The founding row may only be close to 1 (within the atol above) rather than exactly 1,
         # e.g. when a continuous event time's fractional part spreads its rate across two adjacent

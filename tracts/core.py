@@ -22,7 +22,7 @@ from tracts.core_utils import (
     _get_steps,
     _flush_final_result,
     _print_step2_header,
-    _build_cobyla_stop_message,
+    _build_optimizer_stop_message,
     check_step_2_kept_non_sex_bias_parameters,
     check_monoecious_autosomal_loglik_unchanged,
 )
@@ -169,19 +169,37 @@ def compute_objective(
     return obj
 
 
-def _run_cobyla(func, x0, cons, maxfun: int | None, step_label: str | None = None) -> np.ndarray:
+def _run_cobyla(func, x0, cons, maxfun: int | None, step_label: str | None = None,
+                method: str = 'COBYLA') -> np.ndarray:
     """
-    Runs COBYLA with the settings shared by all tracts optimization steps, via
-    ``scipy.optimize.minimize(method='COBYLA')`` (equivalent to ``scipy.optimize.fmin_cobyla``
-    with ``rhobeg=.01``, ``rhoend=.0001`` and ``maxfun=maxfun``), and reports why it stopped,
-    from its termination status. Returns the optimal (free) parameters.
+    Runs the optimizer with the settings shared by all tracts optimization steps, and reports why
+    it stopped, from its termination status. Returns the optimal (free) parameters.
+
+    method: str, default 'COBYLA'
+        Either 'COBYLA' (``scipy.optimize.minimize(method='COBYLA')``, equivalent to
+        ``scipy.optimize.fmin_cobyla`` with ``rhobeg=.01``, ``rhoend=.0001`` and
+        ``maxfun=maxfun``; respects the ``cons`` feasibility constraint natively) or 'Powell'
+        (``scipy.optimize.minimize(method='Powell')`` with ``xtol``/``ftol`` set to the same
+        ``.0001`` tolerance and ``maxiter``/``maxfev`` both capped at ``maxfun``; Powell has no
+        general-constraint support, so ``cons`` is ignored and infeasibility is enforced purely
+        through the large out-of-bounds penalty already baked into the objective itself, see
+        ``compute_objective``).
     """
-    result = scipy.optimize.minimize(fun=func,
-                                     x0=x0,
-                                     method='COBYLA',
-                                     constraints={'type': 'ineq', 'fun': cons},
-                                     options={'rhobeg': .01, 'tol': .0001, 'maxiter': maxfun})
-    _print_and_log(_build_cobyla_stop_message(result, maxfun, step_label))
+    if method == 'COBYLA':
+        result = scipy.optimize.minimize(fun=func,
+                                         x0=x0,
+                                         method='COBYLA',
+                                         constraints={'type': 'ineq', 'fun': cons},
+                                         options={'rhobeg': .01, 'tol': .0001, 'maxiter': maxfun})
+    elif method == 'Powell':
+        result = scipy.optimize.minimize(fun=func,
+                                         x0=x0,
+                                         method='Powell',
+                                         options={'xtol': .0001, 'ftol': .0001,
+                                                  'maxiter': maxfun, 'maxfev': maxfun})
+    else:
+        raise ValueError(f"Unsupported optimization method: {method!r}. Must be 'COBYLA' or 'Powell'.")
+    _print_and_log(_build_optimizer_stop_message(result, maxfun, method=method, step_label=step_label))
     return result.x
 
 
@@ -515,7 +533,13 @@ def optimize_cob_sex_biased_two_steps(p0:list, population: Population, genetic_m
                               x0=reduced_p0,
                               cons=reduced_outofbounds_fun,
                               maxfun=maxiter,
-                              step_label="Step 1")
+                              step_label="Step 1",
+                              # Hardcoded for now (intermediate step, not yet user-configurable):
+                              # Step 1's landscape has sharp kinks (see the improving-optimization
+                              # skill's Finding 3) that COBYLA's local trust-region model handles
+                              # poorly; Powell's direction-set line searches were measured to be
+                              # far more consistent across restarts on this step specifically.
+                              method='Powell')
 
         optimized_parameters = local_parameter_handler.extend_parameters(free_parameters=outputs,
                                                                         units="opt",

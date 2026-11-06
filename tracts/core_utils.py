@@ -113,26 +113,33 @@ def _get_steps(steps: list, ad_model_allosomes) -> tuple:
     return step_1, step_2
 
 
-def _build_cobyla_stop_message(result, maxfun: int | None, step_label: str | None = None) -> str:
+def _build_optimizer_stop_message(result, maxfun: int | None, method: str = 'COBYLA',
+                                  step_label: str | None = None) -> str:
     """
-    Builds the message reporting why a COBYLA run stopped, from the ``scipy.optimize.OptimizeResult``
-    returned by ``scipy.optimize.minimize(method='COBYLA')``: it used up its budget of objective
-    evaluations (so it may have been cut off before converging, and restarting it from its result
-    can still improve the likelihood), it converged (trust-region radius reached ``rhoend``), or it
-    stopped early for another reason reported by scipy (e.g. rounding errors or a NaN result).
+    Builds the message reporting why an optimization run stopped, from the
+    ``scipy.optimize.OptimizeResult`` returned by ``scipy.optimize.minimize(method=method)``: it
+    used up its budget of objective evaluations (so it may have been cut off before converging,
+    and restarting it from its result can still improve the likelihood), it converged (COBYLA:
+    trust-region radius reached ``rhoend``; Powell: ``xtol``/``ftol`` reached), or it stopped
+    early for another reason reported by scipy (e.g. rounding errors or a NaN result).
     """
     prefix = f"{step_label}: " if step_label else ""
     limit_reached = ((maxfun is not None and result.nfev >= maxfun)
                      or (not result.success and "function evaluations" in str(result.message).lower()))
     if limit_reached:
         limit = f" (maximum_iterations = {maxfun})" if maxfun is not None else ""
-        return (f"{prefix}COBYLA stopped after {result.nfev} objective evaluations: the evaluation limit{limit} "
+        return (f"{prefix}{method} stopped after {result.nfev} objective evaluations: the evaluation limit{limit} "
                 "was reached, so the optimizer may not have converged.")
     if result.success:
-        return (f"{prefix}COBYLA converged after {result.nfev} objective evaluations: the trust-region radius "
-                "reached its final value (rhoend).")
-    return (f"{prefix}COBYLA stopped after {result.nfev} objective evaluations without converging: "
+        convergence_reason = ("the trust-region radius reached its final value (rhoend)" if method == 'COBYLA'
+                              else "the step size / objective change tolerance (xtol/ftol) was reached")
+        return f"{prefix}{method} converged after {result.nfev} objective evaluations: {convergence_reason}."
+    return (f"{prefix}{method} stopped after {result.nfev} objective evaluations without converging: "
             f"{result.message} (status {result.status}).")
+
+
+# Backwards-compatible alias: existing callers/tests referring to the COBYLA-specific name.
+_build_cobyla_stop_message = _build_optimizer_stop_message
 
 
 def _flush_final_result(best_state: dict, parameter_handler, verbose_log: int, verbose_screen: int,
