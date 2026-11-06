@@ -493,11 +493,25 @@ ALIASES = {"NAT": "AMR"}
 
 PROP_ROW_LABEL = {
     "ppx_xxp_pxx": "Predicted (three pulses)",
-    "ccc": "Predicted (continuous pulse)",
-    "ccp": "Predicted (single and continuous pulse)",
-    "cpc": "Predicted (continuous)",
-    "pcc": "Predicted (single and continuous pulse)",
+    "ccc": "Predicted (continuous migration)",
+    "ccp": "Predicted (continuous migration with a founding pulse)",
+    "cpc": "Predicted (continuous migration with a founding pulse)",
+    "pcc": "Predicted (continuous migration with a founding pulse)",
 }
+# Model names as in the paper, used for the row labels of the combined (all-population) tables.
+MODEL_NAME = {
+    "ppp": "Single pulse",
+    "ppx_xxp_pxx": "Three pulses",
+    "ccc": "Continuous migration",
+    "ccp": "Continuous migration with a founding pulse",
+    "cpc": "Continuous migration with a founding pulse",
+    "pcc": "Continuous migration with a founding pulse",
+}
+# Float placement of each table that appears in the paper, keyed by population (second-model parameter
+# tables) or by label (combined tables).
+PARAMS_PLACEMENT = {"ACB": "h!", "ASW": "hb!", "CLM": "hb!", "MXL": "h!", "PEL": "h", "PUR": "h!"}
+COMBINED_TABLE_PLACEMENT = {"tab:prop": "ht!", "tab:tractcounts": "h!", "tab:params_single": "h!"}
+COMBINED_TABLE_LABEL_WIDTH = "4.7cm"  # width of the (wrapping) model-name column in the combined tables
 PARAMS_LABEL = {"ACB": "table:params_ACB", "PUR": "tab:PURcpc"}
 SINGLE_LABEL = {"PUR": "tab:PURparams_pulse"}
 THREE_PULSE_CAPTION = ("inferred using a three-pulse model (ppx\\_xxp\\_pxx) with joint EUR and AMR "
@@ -505,14 +519,17 @@ THREE_PULSE_CAPTION = ("inferred using a three-pulse model (ppx\\_xxp\\_pxx) wit
 PARAMS_CAPTION = {
     "ACB": THREE_PULSE_CAPTION,
     "ASW": THREE_PULSE_CAPTION,
-    "CLM": "inferred using a continuous-pulse model (ccc) in which the three source populations "
-           "contribute migrants between $t_1$ and $t_2$ generations ago.",
-    "MXL": "inferred using a model with a discrete AFR pulse $t_1$ generations ago and continuous "
-           "EUR and AMR migration between $t_1$ and $t_2$ generations ago.",
-    "PEL": "inferred using a model (pcc) with a discrete EUR pulse $t_1$ generations ago and continuous "
-           "AFR and AMR migration between $t_1$ and $t_2$ generations ago.",
-    "PUR": "inferred using a model (cpc) with a discrete AMR pulse $t_1$ generations ago and continuous "
-           "EUR and AFR migration between $t_1$ and $t_2$ generations ago.",
+    "CLM": "inferred using a continuous-migration model (ccc) in which the three source populations "
+           "contribute migrants between $t^{\\text{start}}$ and $t^{\\text{end}}$ generations ago.",
+    "MXL": "inferred using a continuous-migration with a founding pulse model (ccp), with a founding AFR pulse "
+           "$t^{\\text{start}}$ generations ago and continuous EUR and AMR migration between $t^{\\text{start}}$ "
+           "and $t^{\\text{end}}$ generations ago.",
+    "PEL": "inferred using a continuous-migration with a founding pulse model (pcc), with a founding EUR pulse "
+           "$t^{\\text{start}}$ generations ago and continuous AMR and AFR migration between $t^{\\text{start}}$ "
+           "and $t^{\\text{end}}$ generations ago.",
+    "PUR": "inferred using a continuous-migration with a founding pulse model (cpc), with a founding AMR pulse "
+           "$t^{\\text{start}}$ generations ago and continuous EUR and AFR migration between $t^{\\text{start}}$ "
+           "and $t^{\\text{end}}$ generations ago.",
 }
 
 
@@ -665,9 +682,9 @@ def print_tract_counts_table(f, pop, model, single, other):
     print(r"\end{table}", file=f)
 
 
-def print_params_table(f, pop, colspec, group_rows, header, values, caption, label):
+def print_params_table(f, pop, colspec, group_rows, header, values, caption, label, placement=None):
     colspec = fit_colspec(colspec, values)
-    print(r"\begin{table}", file=f)
+    print(r"\begin{table}" + (f"[{placement}]" if placement else ""), file=f)
     print(r"\centering", file=f)
     print(r"\small", file=f)
     print(r"\setlength{\tabcolsep}{4pt}", file=f)
@@ -739,7 +756,7 @@ def print_model_table(f, pop, model, sig_figs, p):
                   " & \\multicolumn{2}{c}{Time window} & \\\\",
                   r"\cmidrule(lr){1-2} \cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8}"]
         header = (" " + rate_header("EUR") + "\n & " + rate_header("AMR") + "\n & " + rate_header("AFR")
-                  + "\n & {$t_1$} & {$t_2$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
+                  + "\n & {$t^{\\text{start}}$} & {$t^{\\text{end}}$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
         values = []
         for anc in ANCESTRIES:
             values += [fmt(rate(p, anc), sig_figs), fmt(sex_bias(p, anc), sig_figs)]
@@ -753,11 +770,11 @@ def print_model_table(f, pop, model, sig_figs, p):
                    f"                S[table-format={r_fmt}] S[table-format=-1.3]\n"
                    f"                S[table-format=2.2] S[table-format={'1.2'}]\n"
                    f"                S[table-format=-3.0]")
-        groups = [" \\multicolumn{4}{c}{Continuous migration} & \\multicolumn{2}{c}{Discrete pulse}\n"
+        groups = [" \\multicolumn{4}{c}{Continuous migration} & \\multicolumn{2}{c}{Founding pulse}\n"
                   " & \\multicolumn{2}{c}{Time window} & \\\\",
                   r"\cmidrule(lr){1-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8}"]
         header = (" " + rate_header(continuous[0]) + "\n & " + rate_header(continuous[1]) + "\n & "
-                  + rate_header(pulse) + "\n & {$t_1$} & {$t_2$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
+                  + rate_header(pulse) + "\n & {$t^{\\text{start}}$} & {$t^{\\text{end}}$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\")
         values = []
         for anc in continuous + [pulse]:
             values += [fmt(rate(p, anc), sig_figs), fmt(sex_bias(p, anc), sig_figs)]
@@ -765,32 +782,44 @@ def print_model_table(f, pop, model, sig_figs, p):
     else:
         print(f"% No paper table template for model {model}.", file=f)
         return
-    print_params_table(f, pop, colspec, groups, header, values, PARAMS_CAPTION[pop], PARAMS_LABEL.get(pop, f"tab:{pop}params"))
+    print_params_table(f, pop, colspec, groups, header, values, PARAMS_CAPTION[pop], PARAMS_LABEL.get(pop, f"tab:{pop}params"),
+                       placement=PARAMS_PLACEMENT.get(pop))
 
 
 # ── Per-table-file writers ────────────────────────────────────────────────────
 # Each writes exactly one \begin{table}...\end{table} (or, if the data is unavailable, just an
 # explanatory LaTeX comment) to its own file, so it can be \input{} at the right place in the text.
 
+def _load_observed_predicted(f, pop, single_model, single_run, model, model_run,
+                             reader, quantity_label, missing_file_label):
+    """Reads the single-pulse and second-model tables of one population. Returns (single_data, model_data),
+    or None (after writing an explanatory LaTeX comment to f) if a file is missing or the observed values
+    differ between the two runs."""
+    single_data, model_data = reader(single_run), reader(model_run)
+    if single_data is None or model_data is None:
+        print(f"% (missing {missing_file_label} for {pop}: cannot build the {quantity_label} table)", file=f)
+        return None
+    if any(
+        [float(single_data[row][anc]) for anc in ANCESTRIES] !=
+        [float(model_data[row][anc]) for anc in ANCESTRIES]
+        for row in ("Observed (autosomes)", "Observed (X)")
+    ):
+        warning = (f"WARNING: {pop}: observed values differ between the {single_model} and {model} runs "
+                   f"(different samples?); {quantity_label} table skipped.")
+        print(f"% {warning}", file=f)
+        print(f"*** {warning}", file=sys.stderr)
+        return None
+    return single_data, model_data
+
+
 def _write_observed_predicted_file(path, pop, single_model, single_run, model, model_run,
                                     reader, table_printer, quantity_label, missing_file_label):
     with open(path, "w") as f:
         print(f"% {pop} {quantity_label}: {single_model} from {single_run}, {model} from {model_run}", file=f)
-        single_data, model_data = reader(single_run), reader(model_run)
-        if single_data is None or model_data is None:
-            print(f"% (missing {missing_file_label}: cannot build the {quantity_label} table)", file=f)
-            return
-        if any(
-            [float(single_data[row][anc]) for anc in ANCESTRIES] !=
-            [float(model_data[row][anc]) for anc in ANCESTRIES]
-            for row in ("Observed (autosomes)", "Observed (X)")
-        ):
-            warning = (f"WARNING: {pop}: observed values differ between the {single_model} and {model} runs "
-                       f"(different samples?); {quantity_label} table skipped.")
-            print(f"% {warning}", file=f)
-            print(f"*** {warning}", file=sys.stderr)
-            return
-        table_printer(f, pop, model, single_data, model_data)
+        data = _load_observed_predicted(f, pop, single_model, single_run, model, model_run,
+                                        reader, quantity_label, missing_file_label)
+        if data is not None:
+            table_printer(f, pop, model, *data)
 
 
 def write_ancestry_proportions_file(path, pop, single_model, single_run, model, model_run):
@@ -815,6 +844,131 @@ def write_model_params_file(path, pop, model, model_run, sig_figs):
     with open(path, "w") as f:
         print(f"% {pop} {model} parameters: from {model_run}", file=f)
         print_model_table(f, pop, model, sig_figs, read_params(model_run))
+
+
+# ── Combined (all-population) table writers ───────────────────────────────────
+# runs is a list of (pop, single_model, single_run, model, model_run), one entry per population, in the
+# order the populations appear in the table.
+
+def _model_row_label(model):
+    return MODEL_NAME[model] + " (" + model.replace("_", r"\_") + ")"
+
+
+def _write_combined_observed_predicted_file(path, runs, reader, quantity_label, missing_file_label,
+                                            column_header, colspecs, round_precision, caption, label):
+    with open(path, "w") as f:
+        blocks = []
+        for pop, single_model, single_run, model, model_run in runs:
+            print(f"% {pop} {quantity_label}: {single_model} from {single_run}, {model} from {model_run}", file=f)
+            data = _load_observed_predicted(f, pop, single_model, single_run, model, model_run,
+                                            reader, quantity_label, missing_file_label)
+            if data is None:
+                continue
+            single, other = data
+            blocks.append((pop, [("Observed", single["Observed (autosomes)"], single["Observed (X)"]),
+                                 (_model_row_label(single_model), single["Predicted (autosomes)"], single["Predicted (X)"]),
+                                 (_model_row_label(model), other["Predicted (autosomes)"], other["Predicted (X)"])]))
+        if not blocks:
+            print(f"% (no population available: cannot build the combined {quantity_label} table)", file=f)
+            return
+        rows = [row for _, block in blocks for row in block]
+        if callable(colspecs):
+            colspecs = colspecs(rows)
+        pop_width = max(len(f"\\multirow{{{len(block)}}}{{*}}{{{pop}}}") for pop, block in blocks)
+        label_width = max(len(row_label) for row_label, _, _ in rows)
+        print(f"\\begin{{table}}[{COMBINED_TABLE_PLACEMENT[label]}]", file=f)
+        print(r"\centering", file=f)
+        print(f"\\sisetup{{round-mode=places, round-precision={round_precision}}}", file=f)
+        print(f"\\begin{{tabular}}{{l>{{\\raggedright\\arraybackslash}}p{{{COMBINED_TABLE_LABEL_WIDTH}}}", file=f)
+        print("                " + " ".join(colspecs[:3]), file=f)
+        print("                " + " ".join(colspecs[3:]) + "}", file=f)
+        print(r"\toprule", file=f)
+        print(r" & & \multicolumn{3}{c}{Autosomes} & \multicolumn{3}{c}{X chromosome} \\", file=f)
+        print(r"\cmidrule(lr){3-5} \cmidrule(lr){6-8}", file=f)
+        print(f"Population & {column_header} & {{EUR}} & {{AMR}} & {{AFR}} & {{EUR}} & {{AMR}} & {{AFR}} \\\\", file=f)
+        print(r"\midrule", file=f)
+        for block_index, (pop, block) in enumerate(blocks):
+            if block_index > 0:
+                print(r"\addlinespace", file=f)
+            for row_index, (row_label, aut, x) in enumerate(block):
+                first = f"\\multirow{{{len(block)}}}{{*}}{{{pop}}}" if row_index == 0 else ""
+                values = [aut[a] for a in ANCESTRIES] + [x[a] for a in ANCESTRIES]
+                print(f"{first:<{pop_width}} & {row_label:<{label_width}} & " + " & ".join(values) + r" \\", file=f)
+        print(r"\bottomrule", file=f)
+        print(r"\end{tabular}", file=f)
+        print(f"\\caption{{{caption}}}", file=f)
+        print(f"\\label{{{label}}}", file=f)
+        print(r"\end{table}", file=f)
+
+
+def _tract_counts_colspecs(rows):
+    # Integer-part width of each column from its own values, as in print_tract_counts_table.
+    columns = [[aut[a] for _, aut, _ in rows] for a in ANCESTRIES] + [[x[a] for _, _, x in rows] for a in ANCESTRIES]
+    return [f"S[table-format={max(len(v.lstrip('-').split('.')[0]) for v in col)}.{TRACT_COUNTS_ROUND_PRECISION}]"
+            for col in columns]
+
+
+def write_combined_ancestry_proportions_file(path, runs):
+    _write_combined_observed_predicted_file(
+        path, runs, read_proportions, "ancestry proportions", "ancestry_proportions.txt",
+        column_header="Proportions", colspecs=["S[table-format=1.4]"] * 6, round_precision=4,
+        caption=("Observed and predicted ancestry proportions on the autosomes and the X chromosome for the six "
+                 "admixed populations. For each population, predicted proportions are given under a single-pulse "
+                 "model and under an alternative admixture model."),
+        label="tab:prop")
+
+
+def write_combined_tract_counts_file(path, runs):
+    _write_combined_observed_predicted_file(
+        path, runs, read_tract_counts, "tract counts", "tract_counts.txt",
+        column_header="Counts", colspecs=_tract_counts_colspecs, round_precision=TRACT_COUNTS_ROUND_PRECISION,
+        caption=("Observed and predicted tract counts on the autosomes and the X chromosome for the six admixed "
+                 "populations. For each population, predicted counts are given under a single-pulse model and "
+                 "under an alternative admixture model."),
+        label="tab:tractcounts")
+
+
+def write_combined_single_pulse_params_file(path, runs, sig_figs):
+    with open(path, "w") as f:
+        table_rows = []
+        for pop, single_model, single_run, _, _ in runs:
+            print(f"% {pop} single-pulse parameters: {single_model} from {single_run}", file=f)
+            p = read_params(single_run)
+            values = []
+            for anc in ANCESTRIES:
+                values += [fmt(rate(p, anc), sig_figs), fmt(sex_bias(p, anc), sig_figs)]
+            table_rows.append((pop, values + [fmt(p["t"], sig_figs), fmt(p["likelihood"], sig_figs)]))
+        if not table_rows:
+            print("% (no population available: cannot build the combined single-pulse parameters table)", file=f)
+            return
+        colspec = ("S[table-format=1.4] S[table-format=-1.3]\n"
+                   "                S[table-format=1.4] S[table-format=-1.3]\n"
+                   "                S[table-format=1.4] S[table-format=-1.3]\n"
+                   "                S[table-format=1.2]\n"
+                   "                S[table-format=-3.0]")
+        for _, values in table_rows:  # widen each column to fit every population's value
+            colspec = fit_colspec(colspec, values)
+        widths = [max(len(row[i]) for _, row in table_rows) for i in range(len(table_rows[0][1]))]
+        pop_width = max(len(pop) for pop, _ in table_rows)
+        print(r"\begin{table}[" + COMBINED_TABLE_PLACEMENT["tab:params_single"] + "]", file=f)
+        print(r"\centering", file=f)
+        print(r"\small", file=f)
+        print(r"\setlength{\tabcolsep}{4pt}", file=f)
+        print(r"\begin{tabular}{l" + "\n                " + colspec + "}", file=f)
+        print(r"\toprule", file=f)
+        print(r"\multirow{2}{*}{Population} & \multicolumn{2}{c}{EUR} & \multicolumn{2}{c}{AMR} & \multicolumn{2}{c}{AFR} & & \\", file=f)
+        print(r"\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}", file=f)
+        print(" & " + rate_header("EUR") + "\n & " + rate_header("AMR") + "\n & " + rate_header("AFR")
+              + "\n & {$t$}\n & {$\\mathcal{L}_{\\mathcal{D}}(\\bm{\\theta})$} \\\\", file=f)
+        print(r"\midrule", file=f)
+        for pop, values in table_rows:
+            print(f"{pop:<{pop_width}} & " + " & ".join(f"{v:<{w}}" for v, w in zip(values, widths)) + r" \\", file=f)
+        print(r"\bottomrule", file=f)
+        print(r"\end{tabular}", file=f)
+        print(r"\caption{Best-fit parameters for the six admixed populations, inferred using a single-pulse model "
+              r"in which the three source populations contribute at a single admixture event $t$ generations ago.}", file=f)
+        print(r"\label{tab:params_single}", file=f)
+        print(r"\end{table}", file=f)
 
 
 resolved = []  # list of (pop, model, output_dir)
@@ -922,6 +1076,25 @@ for pop, model_output_dirs in by_pop.items():
         path = save_dir / f"{pop}_params_{model}.tex"
         write_model_params_file(path, pop, model, model_run, LATEX_SIG_FIGS)
         print(f"  -> {pop} {model} parameters table: {path}")
+
+# Combined tables (one row block per population, as \input{} in the paper's appendix), built from the
+# same single-pulse and second-model runs as the per-population tables above.
+combined_runs = [(pop, *dirs[0], *dirs[-1]) for pop, dirs in by_pop.items() if len(dirs) >= 2]
+missing = [pop for pop, dirs in by_pop.items() if len(dirs) < 2]
+if missing:
+    print(f"*** combined tables: {', '.join(missing)} left out -- needs two completed models", file=sys.stderr)
+if PRINT_ANCESTRY_PROPORTIONS:
+    path = save_dir / "ancestry_proportions.tex"
+    write_combined_ancestry_proportions_file(path, combined_runs)
+    print(f"  -> combined ancestry proportions table: {path}")
+if PRINT_TRACT_COUNTS:
+    path = save_dir / "tract_counts.tex"
+    write_combined_tract_counts_file(path, combined_runs)
+    print(f"  -> combined tract counts table: {path}")
+if PRINT_SINGLE_PULSE_PARAMETERS:
+    path = save_dir / "single_pulse_params.tex"
+    write_combined_single_pulse_params_file(path, combined_runs, LATEX_SIG_FIGS)
+    print(f"  -> combined single-pulse parameters table: {path}")
 
 print(f"\nPlots and tables saved to: {save_dir}")
 PYEOF

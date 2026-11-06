@@ -53,6 +53,43 @@ def get_survival_factors(migration_matrix):
                 1 - sum(migration_matrix[generation_number - 1]))
     return survival_factors
 
+def ancestry_proportions_by_generation(mig_matrix_f: np.ndarray, mig_matrix_m: np.ndarray, X_chr: bool):
+    r"""
+    Computes, for every generation :math:`g`, the expected ancestry proportions carried by a female and by a male
+    individual at generation :math:`g` in the past (Article equation labels: predicted_autosome_proportions, predicted_allosome_proportions).
+
+    Parameters
+    ----------
+    mig_matrix_f : np.ndarray
+        The female-specific migration matrix, as described in :func:`~tracts.phase_type.hybrid_pedigree.hybrid_pedigree_distribution`.
+    mig_matrix_m : np.ndarray
+        The male-specific migration matrix.
+    X_chr : bool
+        Whether the proportions are computed along the X chromosome (a male inherits his X chromosome from his mother)
+        or along autosomes (a copy is inherited from either parent with equal probabilities).
+
+    Returns
+    -------
+    np.ndarray
+        An array of the shape of `mig_matrix_f`, whose row :math:`g` contains the ancestry proportions of a female individual at generation :math:`g`.
+        Row 0 is not used.
+    np.ndarray
+        The counterpart for male individuals.
+    """
+    T = int(np.shape(mig_matrix_f)[0] - 1)
+    proportions_f = np.zeros(np.shape(mig_matrix_f))
+    proportions_m = np.zeros(np.shape(mig_matrix_m))
+    proportions_f[T, ] = mig_matrix_f[T, ]
+    proportions_m[T, ] = mig_matrix_m[T, ]
+    for generation_number in range(T - 1, 0, -1):
+        proportions_parents = (proportions_f[generation_number + 1, ] + proportions_m[generation_number + 1, ]) / 2
+        proportions_mother = proportions_f[generation_number + 1, ]
+        proportions_f[generation_number, ] = mig_matrix_f[generation_number, ] + (1 - mig_matrix_f[generation_number, ].sum())*proportions_parents
+        proportions_m[generation_number, ] = mig_matrix_m[generation_number, ] + (1 - mig_matrix_m[generation_number, ].sum())*(
+            proportions_mother if X_chr else proportions_parents)
+    return proportions_f, proportions_m
+
+
 # -------- Phase-Type class --------
 
 class PhaseTypeDistribution(ABC):
@@ -157,6 +194,18 @@ class PhaseTypeDistribution(ABC):
         pass
 
     @staticmethod
+    def finite_density_grid(bins: npt.ArrayLike, L: float) -> np.ndarray:
+        r"""
+        Returns the grid on which densities on a finite chromosome of length :math:`L` are evaluated: the input grid
+        truncated to :math:`[0, L]`, where the distribution is supported, with the point :math:`L` added if not already present.
+        """
+        bins = np.asarray(bins)
+        if ~np.any(np.isin(bins, L)): # Add L to the bins vector if not already present
+            bins = np.append(bins, L)
+        bins = bins[bins <= L] # Truncate to [0, L], where the distribution is supported
+        return np.sort(bins)
+
+    @staticmethod
     def initialize_density_bins(bins: npt.ArrayLike, L: float, alpha: float, S0_inv: float):
         r"""
         Initialize the density bins for the phase-type distribution. Performs initial checks, truncates the bins to the finite chromosome length, and computes the expected tract length under the finite chromosome model.
@@ -182,18 +231,13 @@ class PhaseTypeDistribution(ABC):
             The normalization factor :math:`Z` for the density under the finite chromosome model.
         """
 
-        bins = np.asarray(bins)
-        if ~np.any(np.isin(bins, L)): # Add L to the bins vector if not already present
-            bins = np.append(bins, L)
-        
-        bins = bins[bins <= L] # Truncate to [0, L], where the distribution is supported
-        bins = np.sort(bins)
+        bins = PhaseTypeDistribution.finite_density_grid(bins=bins, L=L)
         E_val = -np.dot(alpha, S0_inv) # Expectation under the infinite chromosome model
         if not np.isreal(E_val) or E_val <= -1e-3:
             raise Exception('Expectation is not a positive real : ', E_val)
         ET = float(np.real(E_val).item())
         Z = ET + L # Normalization factor
-        # CLAUDELABEL{exp_L}
+        # Article equation label: exp_L
         ETL = L * ET / Z # Expectation under the finite chromosome model
         return bins, ETL, Z
 
@@ -261,7 +305,7 @@ class PhaseTypeDistribution(ABC):
                 exp_Sx = exp_Sx_per_bin[bin_number]
             if L > 100:
                 density_values[bin_number] = self.PhT_density(bin_val, population_number, s1)
-            # CLAUDELABEL{density_L}
+            # Article equation label: density_L
             if bin_val < L:
                 den_val = 2 * (1 - self.PhT_CDF(bin_val, population_number, s1)) + \
                     (L - bin_val) * self.PhT_density(bin_val, population_number, s1)
@@ -638,7 +682,7 @@ class PhaseTypeDistribution(ABC):
         data: list of list of int
             A list of length equal to the number of populations, where the entry at index :math:`i` is a list of the observed tract counts in every bin for population :math:`i`.
         num_samples: int
-            The number of haploid genomes in the sample. Used to scale the predicted tract counts, as the Phase-type distribution is defined for a single haploid genome. If `num_samples` is zero, the log-likelihood is set to zero, as the data does not contain any information.
+            The number of individuals in the sample (for the X chromosome, the number of female or male individuals). Used to scale the predicted tract counts, which are computed per individual (both haploid copies for autosomes and female X chromosomes, the maternal copy for male X chromosomes). If `num_samples` is zero, the log-likelihood is set to zero, as the data does not contain any information.
         cutoff: int, default 0
             The index of the first bin to consider in the likelihood calculation. Used to ignore very short tracts, which are very likely to be false positives in real data. 
         
@@ -662,7 +706,7 @@ class PhaseTypeDistribution(ABC):
             # Replace zeros with machine epsilon to avoid -Inf logarithms
             predicted_tractlength_histogram[predicted_tractlength_histogram <= 0] = np.finfo(float).eps
 
-            # CLAUDELABEL{log-likelihood}
+            # Article equation label: log-likelihood
             ll += sum(-num_samples * predicted_tracts + data_tracts * np.log(num_samples * predicted_tracts) - gammaln(
             data_tracts + 1.)
                    for data_tracts, predicted_tracts in itertools.islice(
