@@ -1942,15 +1942,56 @@ def _get_params_for_newly_explicit_population(old_demographic_model: Parametrize
     return start_param_updates, fixed_param_values
 
 
+def step_1_sex_bias_start_value(start_param_bounds, param_name: str, param_bounds: tuple[float, float]) -> float:
+    """
+    Returns the value at which a free sex-bias parameter is held fixed during step 1 of a
+    two-step optimization:
+
+    * a single number in ``start_params`` (e.g. a hotstart from a previous optimum) is used as-is;
+    * a ``"min:max"`` range in ``start_params`` gives its midpoint ``(min + max) / 2``;
+    * if the parameter is absent from ``start_params``, the midpoint of its admissible bounds
+      (0 for the default ``(-1, 1)``) is used.
+
+    Parameters
+    ----------
+    start_param_bounds:
+        The driver's ``start_params`` (a Pydantic model, mapping, or attribute-style object).
+    param_name: str
+        The sex-bias parameter's name.
+    param_bounds: tuple[float, float]
+        The parameter's admissible bounds, used when no start value is provided.
+
+    Returns
+    -------
+    float
+        The step 1 value of the sex-bias parameter.
+    """
+    if isinstance(start_param_bounds, Mapping):
+        user_value = start_param_bounds.get(param_name)
+    else:
+        user_value = getattr(start_param_bounds, param_name, None)
+
+    if user_value is None:
+        return float(np.mean(param_bounds))
+    if isinstance(user_value, numbers.Number):
+        return float(user_value)
+    try:
+        low, high = (float(bound) for bound in str(user_value).split(':'))
+    except ValueError as e:
+        raise ValueError(f"Initial value for '{param_name}' must be specified as min:max or a single value, got {user_value!r}.") from e
+    return (low + high) / 2
+
+
 def compute_physical_start_params(driver_spec: InferenceConfig, demographic_model: ParametrizedDemography | ParametrizedDemographySexBiased,
                                   sex_bias_param_names: list[str], non_sex_bias_param_names: list[str],
                                   step_label: str = "step 1") -> list[np.ndarray]:
     """
     Computes physical starting parameters to optimize from. When
     ``driver_spec.optim.two_steps_optimization`` is True, only non-sex-bias parameters are
-    sampled (sex-bias parameters are fixed at the midpoint of their admissible bounds -- 0 with
-    the default ``(-1, 1)`` bounds, or the midpoint of a user-narrowed range that may exclude 0,
-    see ``bounds``; or at any user-provided fixed value), matching step 1's parameter subset, and
+    sampled (sex-bias parameters are fixed at the midpoint of their ``start_params`` range, at
+    their ``start_params`` value if a single value is given, or at the midpoint of their admissible
+    bounds if no start value is given -- see ``step_1_sex_bias_start_value``; or at any
+    ``fix_parameters_by_value`` value), matching step 1's parameter subset, and
     identical starting points are collapsed into one (see ``collapse_identical_start_params``).
     Otherwise, all parameters are sampled/fixed according to
     ``driver_spec.optim.fix_parameters_by_value`` alone.
@@ -1976,13 +2017,14 @@ def compute_physical_start_params(driver_spec: InferenceConfig, demographic_mode
         The physical starting parameters to optimize from.
     """
     if driver_spec.optim.two_steps_optimization:
-        # Fix free sex-bias parameters at the midpoint of their admissible bounds for step 1's
-        # non-sex-bias optimization. With the default sex-bias bounds (-1, 1) the midpoint is 0
-        # (the historical default); with user-narrowed bounds (see ``bounds``) that exclude 0, the
-        # midpoint keeps the fixed value inside the admissible range, so feasible starting
-        # parameters can still be sampled.
+        # Fix free sex-bias parameters for step 1's non-sex-bias optimization at the midpoint of
+        # their user-provided starting range (see ``step_1_sex_bias_start_value``): a single value
+        # is used as-is (e.g. a hotstart from a previous optimum), a "min:max" range gives its
+        # midpoint, and a missing start value falls back to the midpoint of the admissible bounds.
         midpoint_sex_bias = {
-            name: float(np.mean(demographic_model.model_base_params[name].bounds))
+            name: step_1_sex_bias_start_value(start_param_bounds=driver_spec.start_params,
+                                              param_name=name,
+                                              param_bounds=demographic_model.model_base_params[name].bounds)
             for name in sex_bias_param_names
             if name not in driver_spec.optim.fix_parameters_by_value.keys()
         }

@@ -1,7 +1,7 @@
 from tracts.driver_utils import locate_file_path
 from tracts.driver_utils import parse_chromosomes, parse_start_params, shrink_fixed_sex_bias_start_params, _scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
 from tracts.driver_utils import parse_param_bounds, _print_param_bounds_table, check_optimal_params_near_bounds
-from tracts.driver_utils import SamplesConfig, InferenceConfig, ParamBoundsConfig
+from tracts.driver_utils import SamplesConfig, InferenceConfig, ParamBoundsConfig, StartParamsConfig
 from tracts.driver_utils import load_demographic_model_from_driver
 from tracts.driver_utils import load_population
 from tracts.driver_utils import compute_remainder_params
@@ -662,13 +662,13 @@ class TestCheckOptimalParamsNearBounds:
 class TestComputePhysicalStartParamsSexBiasMidpoint:
     """
     In two-step optimization, compute_physical_start_params fixes free sex-bias parameters for
-    step 1 at the midpoint of their admissible bounds (0 for the default (-1, 1) bounds), so that
-    a user-narrowed bound excluding 0 still yields feasible starting parameters.
+    step 1 at the midpoint of their start_params range, at their start_params value if a single
+    value is given, or (when absent from start_params) at the midpoint of their admissible bounds.
     """
 
-    def _driver_spec(self, fix_by_value=None):
+    def _driver_spec(self, fix_by_value=None, start_params=None):
         return SimpleNamespace(
-            start_params=SimpleNamespace(),
+            start_params=start_params if start_params is not None else SimpleNamespace(),
             optim=SimpleNamespace(
                 two_steps_optimization=True,
                 repetitions=1,
@@ -723,6 +723,42 @@ class TestComputePhysicalStartParamsSexBiasMidpoint:
 
         # sb_fixed keeps its user-specified value; only sb_narrow gets the midpoint default.
         assert captured["fixed_param_values"] == {"sb_narrow": 0.5, "sb_fixed": 0.9}
+
+    def test_start_params_scalar_and_range_set_step_1_value(self):
+        """
+        A single start value (hotstart) is used as-is in step 1, a "min:max" range gives its
+        midpoint, and a parameter absent from start_params falls back to the bounds midpoint.
+        """
+        model = self._model({"sb_scalar": (-1, 1), "sb_range": (-1, 1), "sb_missing": (0.2, 0.8)})
+        captured = {}
+
+        def fake_parse_start_params(**kwargs):
+            captured.update(kwargs)
+            return [np.array([0.0])]
+
+        start_params = StartParamsConfig(sb_scalar=-0.999, sb_range="0.8:.999")
+        with patch.object(driver_utils, "parse_start_params", side_effect=fake_parse_start_params), \
+             patch.object(driver_utils, "collapse_identical_start_params", side_effect=lambda sp, label: sp):
+            driver_utils.compute_physical_start_params(
+                driver_spec=self._driver_spec(start_params=start_params),
+                demographic_model=model,
+                sex_bias_param_names=["sb_scalar", "sb_range", "sb_missing"],
+                non_sex_bias_param_names=[],
+            )
+
+        assert captured["fixed_param_values"] == pytest.approx({"sb_scalar": -0.999, "sb_range": 0.8995, "sb_missing": 0.5})
+
+    @pytest.mark.parametrize("start_params", [
+        {"sb": "-0.99:0"},
+        SimpleNamespace(sb="-0.99:0"),
+        StartParamsConfig(sb="-0.99:0"),
+    ])
+    def test_step_1_sex_bias_start_value_accepts_all_start_param_containers(self, start_params):
+        assert driver_utils.step_1_sex_bias_start_value(start_params, "sb", (-1, 1)) == pytest.approx(-0.495)
+
+    def test_step_1_sex_bias_start_value_rejects_malformed_spec(self):
+        with pytest.raises(ValueError, match="min:max or a single value"):
+            driver_utils.step_1_sex_bias_start_value({"sb": "0.1:0.2:0.3"}, "sb", (-1, 1))
 
 
 class TestScaleSelectIndices:
