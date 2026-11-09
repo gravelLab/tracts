@@ -1028,6 +1028,56 @@ def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemogr
         finally:
             demography_logger.setLevel(original_level)
 
+    def _describe_infeasibility(start_param_set: np.ndarray) -> str:
+        """
+        Build a human-readable description of why a candidate is infeasible: the parameter
+        values (and where they came from), the violation score, and any migration-matrix
+        rows summing above 1 or containing negative entries. Diagnostics are best-effort:
+        any error while computing them is reported rather than raised.
+        """
+        lines = ["Candidate parameter values:"]
+        for param_name, param_info in demographic_model.model_base_params.items():
+            if param_name in fixed_param_values:
+                origin = "fixed by caller, e.g. carried over from a previous optimization step"
+            elif param_name in demographic_model.params_fixed_by_ancestry:
+                origin = "fixed by ancestry proportions"
+            else:
+                origin = "from start_params"
+            lines.append(f"  {param_name} = {float(start_param_set[param_info.index])!r} ({origin})")
+        try:
+            lines.append(f"Violation score: {float(demographic_model.get_violation_score(start_param_set))!r} (must be >= 0).")
+        except Exception as e:
+            lines.append(f"Violation score could not be computed: {type(e).__name__}: {e}")
+        try:
+            params_for_matrices = start_param_set
+            if len(demographic_model.params_fixed_by_ancestry) > 0:
+                params_for_matrices = demographic_model.parameter_handler.compute_params_fixed_by_ancestry(start_param_set)
+            matrices = demographic_model.get_migration_matrices(params_for_matrices)
+            for matrix_name, matrix in matrices.items():
+                matrix = np.asarray(matrix)
+                row_sums = matrix.sum(axis=1)
+                for row in np.where(row_sums > 1)[0]:
+                    lines.append(f"  Migration matrix '{matrix_name}', generation {row}: "
+                                 f"row sums to {float(row_sums[row])!r} > 1 (row = {matrix[row]}).")
+                for row in np.where((matrix < 0).any(axis=1))[0]:
+                    lines.append(f"  Migration matrix '{matrix_name}', generation {row}: "
+                                 f"negative migration rate (row = {matrix[row]}).")
+        except Exception as e:
+            lines.append(f"Migration matrices could not be computed: {type(e).__name__}: {e}")
+        return "\n".join(lines)
+
+    # If no parameter is specified as a min:max range, every draw yields the same candidate,
+    # so resampling cannot help: check once and fail with a diagnostic if infeasible.
+    has_range = any(mode == "range" for mode, _ in parsed_specs.values())
+    deterministic_failure_message = (
+        "The starting parameters are infeasible, and no parameter in start_params is specified "
+        "as a min:max range, so resampling cannot produce a different candidate. "
+        "If some values were carried over from a previous optimization step, the fixed start "
+        "values may be incompatible with them (e.g. sex-bias values that were feasible with the "
+        "original rates but push a sex-specific rate past 0 or 1 after the rates moved). "
+        "Adjust the fixed start values, or specify a range (min:max) for some parameters."
+    )
+
     start_params = []
     max_attempts = max(1000, 100*repetitions)
     attempts = 0
@@ -1042,8 +1092,15 @@ def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemogr
             demography_logger.setLevel(logging.ERROR)
             try:
                 candidate = demographic_model.parameter_handler.compute_params_fixed_by_ancestry(candidate)
-            except (ValueError, AssertionError):
+            except (ValueError, AssertionError) as e:
                 demography_logger.setLevel(original_level)
+                if not has_range:
+                    raise ValueError(
+                        "Could not compute the parameters fixed by ancestry proportions for the "
+                        f"starting parameters ({type(e).__name__}: {e}). No parameter in start_params "
+                        "is specified as a min:max range, so resampling cannot produce a different "
+                        "candidate. Adjust the fixed start values or specify a range (min:max)."
+                    ) from e
                 continue
             finally:
                 demography_logger.setLevel(original_level)
@@ -1065,9 +1122,15 @@ def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemogr
 
         if _is_feasible(candidate):
             start_params.append(candidate)
+        elif not has_range:
+            raise ValueError(f"{deterministic_failure_message}\n{_describe_infeasibility(candidate)}")
 
     if len(start_params) < repetitions:
-        raise ValueError(f"Could not generate {repetitions} feasible starting parameter sets after {attempts} attempts. Try widening valid start ranges.")
+        raise ValueError(
+            f"Could not generate {repetitions} feasible starting parameter sets after {attempts} attempts. "
+            "Try widening valid start ranges.\n"
+            f"Last rejected candidate:\n{_describe_infeasibility(candidate)}"
+        )
         
     return start_params
 

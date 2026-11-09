@@ -247,7 +247,7 @@ class TestParseStartParams:
         mock_model.parameter_handler = Mock()
         mock_model.get_violation_score.return_value = -1
 
-        start_bounds = Mock(param1=0.5)
+        start_bounds = Mock(param1="0.2:0.9")
 
         with pytest.raises(
             ValueError,
@@ -260,7 +260,65 @@ class TestParseStartParams:
                 demographic_model=mock_model
             )
 
-        assert mock_model.get_violation_score.call_count == 1000
+        # 1000 feasibility checks, plus one more for the diagnostic of the last candidate.
+        assert mock_model.get_violation_score.call_count == 1001
+
+    def test_parse_start_params_fixed_values_infeasible_fails_immediately(self):
+        """
+        When no parameter is specified as a range, every draw is identical, so an infeasible
+        candidate must raise immediately with a diagnostic instead of resampling 1000 times.
+        """
+        mock_model = Mock()
+        mock_model.model_base_params = {
+            'param1': Mock(index=0, bounds=[0.1, 1.0]),
+            'param2': Mock(index=1, bounds=[0.1, 1.0]),
+        }
+        mock_model.params_fixed_by_ancestry = []
+        mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.return_value = -2e-5
+        mock_model.get_migration_matrices.return_value = {
+            'pop_male': np.array([[0.0, 0.0], [0.6, 0.40002]]),
+            'pop_female': np.array([[0.0, 0.0], [0.5, 0.5]]),
+        }
+
+        start_bounds = Mock(param1=0.5)
+
+        with pytest.raises(ValueError, match=r"no parameter in start_params is specified as a min:max range") as exc_info:
+            parse_start_params(
+                start_param_bounds=start_bounds,
+                repetitions=3,
+                seed=42,
+                demographic_model=mock_model,
+                sample_param_names={'param1'},
+                fixed_param_values={'param2': 0.3},
+            )
+
+        message = str(exc_info.value)
+        assert "param1 = 0.5 (from start_params)" in message
+        assert "param2 = 0.3 (fixed by caller" in message
+        assert "'pop_male', generation 1: row sums to" in message
+        assert "pop_female" not in message
+        # One feasibility check plus one for the diagnostic; no resampling.
+        assert mock_model.get_violation_score.call_count == 2
+
+    def test_parse_start_params_fixed_values_feasible_returns_repetitions(self):
+        """
+        Fixed (non-range) feasible start values are still returned once per repetition.
+        """
+        mock_model = Mock()
+        mock_model.model_base_params = {'param1': Mock(index=0, bounds=[0.1, 1.0])}
+        mock_model.params_fixed_by_ancestry = []
+        mock_model.parameter_handler = Mock()
+        mock_model.get_violation_score.return_value = 0.1
+
+        result = parse_start_params(
+            start_param_bounds=Mock(param1=0.5),
+            repetitions=3,
+            seed=42,
+            demographic_model=mock_model,
+        )
+        assert len(result) == 3
+        assert all(r[0] == 0.5 for r in result)
 
     def test_parse_start_params_range_values(self):
         """
