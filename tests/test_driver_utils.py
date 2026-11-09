@@ -1,5 +1,5 @@
 from tracts.driver_utils import locate_file_path
-from tracts.driver_utils import parse_chromosomes, parse_start_params, _scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
+from tracts.driver_utils import parse_chromosomes, parse_start_params, shrink_fixed_sex_bias_start_params, _scale_select_indices, get_time_scaled_model_func, get_time_scaled_model_bounds
 from tracts.driver_utils import parse_param_bounds, _print_param_bounds_table, check_optimal_params_near_bounds
 from tracts.driver_utils import SamplesConfig, InferenceConfig, ParamBoundsConfig
 from tracts.driver_utils import load_demographic_model_from_driver
@@ -1491,3 +1491,81 @@ class TestReportGenerationZeroWarningForOptimalParams:
 
         captured = capsys.readouterr()
         assert captured.out == ""
+
+
+class TestShrinkFixedSexBiasStartParams:
+    """
+    Tests for shrink_fixed_sex_bias_start_params: closed-form repair of fixed sex-bias starting
+    values that become infeasible with step 1 rates (regression for PEL_ppp_DC_hotstart).
+    """
+    MODEL_PATH = Path(__file__).resolve().parent.parent / "example" / "3pops_sexbiased" / "models" / "ppp.yaml"
+    SEX_BIAS = ['REUR_sex_bias', 'RAMR_sex_bias']
+    # Step 1 estimates from PEL_ppp_DC_hotstart.
+    STEP_1 = {'REUR': 0.19821988634770937, 'RAMR': 0.7740064313652129, 't': 7.166872393889931}
+
+    @pytest.fixture
+    def model(self):
+        from tracts.demography.parametrized_demography_sex_biased import ParametrizedDemographySexBiased
+        return ParametrizedDemographySexBiased.load_from_YAML(str(self.MODEL_PATH), implicit_population='AFR')
+
+    def _params(self, model, values):
+        params = np.zeros(len(model.model_base_params))
+        for name, info in model.model_base_params.items():
+            params[info.index] = values[name]
+        return params
+
+    def test_infeasible_fixed_sex_bias_is_shrunk_to_feasible(self, model):
+        start = {'REUR_sex_bias': -0.9939632603565811, 'RAMR_sex_bias': 0.7488087450421441}
+        assert model.get_violation_score(self._params(model, {**self.STEP_1, **start})) < 0
+
+        repaired = shrink_fixed_sex_bias_start_params(start_param_bounds=start, demographic_model=model,
+                                                      sex_bias_param_names=self.SEX_BIAS,
+                                                      fixed_param_values=dict(self.STEP_1))
+        assert set(repaired) == set(self.SEX_BIAS)
+        params = self._params(model, {**self.STEP_1, **repaired})
+        assert model.get_violation_score(params) >= 0
+        constraint_values = [c['expression']([model.get_param_value(n, params) for n in c['param_subset']])
+                             for c in model.constraints]
+        assert min(constraint_values) == pytest.approx(1e-6, rel=1e-6)  # margin kept on the active constraint
+        # Uniform shrink toward 0, and the change is minimal.
+        lam = repaired['REUR_sex_bias'] / start['REUR_sex_bias']
+        assert 0.999 < lam < 1
+        assert repaired['RAMR_sex_bias'] == pytest.approx(lam * start['RAMR_sex_bias'], rel=1e-12)
+
+        # parse_start_params now succeeds with the repaired values.
+        result = parse_start_params(start_param_bounds=start, demographic_model=model, repetitions=1, seed=1,
+                                    sample_param_names=set(self.SEX_BIAS),
+                                    fixed_param_values={**self.STEP_1, **repaired})
+        assert len(result) == 1
+
+    def test_feasible_fixed_sex_bias_is_unchanged(self, model):
+        start = {'REUR_sex_bias': -0.99, 'RAMR_sex_bias': 0.7488087450421441}
+        assert shrink_fixed_sex_bias_start_params(start_param_bounds=start, demographic_model=model,
+                                                  sex_bias_param_names=self.SEX_BIAS,
+                                                  fixed_param_values=dict(self.STEP_1)) == {}
+
+    def test_ranged_sex_bias_is_not_repaired(self, model):
+        start = {'REUR_sex_bias': "-1:-0.99", 'RAMR_sex_bias': 0.7488087450421441}
+        assert shrink_fixed_sex_bias_start_params(start_param_bounds=start, demographic_model=model,
+                                                  sex_bias_param_names=self.SEX_BIAS,
+                                                  fixed_param_values=dict(self.STEP_1)) == {}
+
+    def test_user_fixed_sex_bias_is_not_modified(self, model):
+        start = {'REUR_sex_bias': -0.9939632603565811, 'RAMR_sex_bias': 0.7488087450421441}
+        fixed = {**self.STEP_1, 'RAMR_sex_bias': start['RAMR_sex_bias']}
+        repaired = shrink_fixed_sex_bias_start_params(start_param_bounds=start, demographic_model=model,
+                                                      sex_bias_param_names=self.SEX_BIAS,
+                                                      fixed_param_values=fixed)
+        assert set(repaired) == {'REUR_sex_bias'}
+        params = self._params(model, {**fixed, **repaired})
+        assert model.get_violation_score(params) >= 0
+
+    def test_unrepairable_when_infeasible_without_free_sex_bias(self, model):
+        # With REUR_sex_bias fixed by the user at -0.994, male EUR+AMR exceeds 1 even when
+        # RAMR_sex_bias is shrunk to 0, so no repair is possible: return {} and let
+        # parse_start_params raise its diagnostic.
+        start = {'REUR_sex_bias': -0.9939632603565811, 'RAMR_sex_bias': 0.7488087450421441}
+        fixed = {**self.STEP_1, 'REUR_sex_bias': start['REUR_sex_bias']}
+        assert shrink_fixed_sex_bias_start_params(start_param_bounds=start, demographic_model=model,
+                                                  sex_bias_param_names=self.SEX_BIAS,
+                                                  fixed_param_values=fixed) == {}

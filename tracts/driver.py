@@ -422,6 +422,14 @@ def run_optimization(physical_start_params: list, genetic_model: GeneticModel,
                 if print_run_details:
                     _print_and_log("Selecting best parameters from step 1 and proceeding to step 2 optimization.\n")
 
+                # Fixed sex-bias start values may be infeasible with the step 1 rates (e.g. negative
+                # implicit-population founding proportion for one sex): shrink them toward 0 if so.
+                step_2_fixed_param_values.update(
+                    shrink_fixed_sex_bias_start_params(start_param_bounds=driver_spec.start_params,
+                                                       demographic_model=demographic_model,
+                                                       sex_bias_param_names=sex_bias_param_names,
+                                                       fixed_param_values=step_2_fixed_param_values))
+
                 step_2_physical_start_params = parse_start_params(start_param_bounds=driver_spec.start_params,
                                                                 repetitions=driver_spec.optim.repetitions,
                                                                 seed=driver_spec.optim.seed,

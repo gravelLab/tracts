@@ -297,6 +297,26 @@ class OutputConfig(BaseModel):
     verbose_screen: int = 30
     log_scale: bool = True
 
+class ParentRunConfig(BaseModel):
+    """
+    Optional provenance metadata recording which prior run's optimal parameters a driver file's
+    ``start_params`` were copied from (e.g. written by ``create_hotstart_file.py`` to record the
+    M-model run a DC hotstart was started from). Purely informational: not read anywhere in the
+    inference pipeline itself, kept only for later analysis/tooling (e.g. detecting a hotstart
+    driver file that has gone stale relative to a newer parent run).
+
+    Attributes
+    ----------
+    optimal_parameters_file: str
+        Path (relative to the script/driver directory) to the ``*_optimal_parameters.txt`` file
+        the starting parameters were copied from.
+    likelihood: float
+        The parent run's log-likelihood, as reported in that file, at the time it was copied.
+    """
+    model_config = ConfigDict(extra="allow")
+    optimal_parameters_file: str
+    likelihood: float | None = None
+
 class InferenceConfig(BaseModel):
     """
     Configuration for the inference process. This determines the list of parameters that can be processed
@@ -320,6 +340,10 @@ class InferenceConfig(BaseModel):
         The configuration for the optimization process used in the inference.
     output: OutputConfig
         The configuration for the output of the inference process.
+    parent_run: ParentRunConfig | None
+        Optional provenance metadata (see ``ParentRunConfig``) recording the prior run that
+        ``start_params`` were copied from, if any. Ignored by the inference pipeline itself;
+        present purely for later analysis. Defaults to None (absent from the driver file).
     """
     model_config = ConfigDict(extra="forbid")
     samples: SamplesConfig
@@ -328,6 +352,7 @@ class InferenceConfig(BaseModel):
     bounds: ParamBoundsConfig = ParamBoundsConfig()
     optim: OptimizationConfig
     output: OutputConfig
+    parent_run: ParentRunConfig | None = None
 
 
 # --------------- Driver file setup ---------------
@@ -1131,8 +1156,131 @@ def parse_start_params(start_param_bounds, demographic_model: ParametrizedDemogr
             "Try widening valid start ranges.\n"
             f"Last rejected candidate:\n{_describe_infeasibility(candidate)}"
         )
-        
+
     return start_params
+
+
+def shrink_fixed_sex_bias_start_params(start_param_bounds, demographic_model: ParametrizedDemography,
+                                       sex_bias_param_names: list[str], fixed_param_values: dict[str, float],
+                                       margin: float = 1e-6) -> dict[str, float]:
+    r"""
+    Make fixed (non-range) sex-bias starting values compatible with the model constraints, given
+    fixed values for all other parameters (typically the best step 1 estimates).
+
+    Sex-bias starting values that are feasible with the user's starting rates can become infeasible
+    once step 1 has moved the rates, e.g. when the implicit (remainder) population's sex-specific
+    founding proportion :math:`1-\sum_i r_i^{\pm}` turns slightly negative. Since the starting values
+    are fixed, resampling cannot help. This function shrinks the sex-bias vector toward zero,
+    :math:`s \to \lambda s`, using the largest :math:`\lambda \in [0, 1]` that satisfies the model
+    constraints with a small margin.
+
+    The sex-specific rates :math:`r^{\pm} = r \mp s\,(1/2-|r-1/2|)` are linear in :math:`s`, so every
+    founder-sum constraint :math:`g = 1-\sum_i r_i^{\pm}` is linear in :math:`\lambda`:
+    :math:`g_c(\lambda) = g_c(0) + \lambda\,(g_c(1)-g_c(0))`. Each constraint
+    :math:`g_c(\lambda) \geq \text{margin}` therefore bounds :math:`\lambda` from one side, the
+    feasible set is an interval :math:`[\lambda_{lo}, \lambda_{hi}] \cap [0, 1]` obtained in closed
+    form, and :math:`\lambda_{hi}` (the start closest to the user's values) is used. When all
+    sex-bias parameters are shrunk, :math:`\lambda = 0` reproduces the step 1 rates and is always
+    feasible; when some sex-bias values are held fixed, the interval can be empty, in which case
+    no repair is made. If the margin cannot be met, the constraint boundary itself is used.
+
+    Repair is only attempted when every free sex-bias parameter has a fixed (single-number)
+    starting value: when a range is given, resampling in :func:`parse_start_params` handles
+    infeasible draws. It is also skipped when parameters are fixed by ancestry proportions, since
+    those are recomputed non-linearly from the others. Parameters present in ``fixed_param_values``
+    (e.g. sex-bias values fixed by the user) are never modified.
+
+    Parameters
+    ----------
+    start_param_bounds
+        The starting-parameter specification (as in :func:`parse_start_params`).
+    demographic_model: ParametrizedDemography
+        The demographic model.
+    sex_bias_param_names: list[str]
+        Names of the sex-bias parameters.
+    fixed_param_values: dict[str, float]
+        Fixed values for the other parameters.
+    margin: float
+        Minimum slack kept on each repaired constraint (capped at half the slack available at
+        :math:`\lambda = 0`).
+
+    Returns
+    -------
+    dict[str, float]
+        Repaired sex-bias starting values to add to ``fixed_param_values``. Empty when no repair is
+        needed or possible, in which case :func:`parse_start_params` behaves as before.
+    """
+    if len(demographic_model.params_fixed_by_ancestry) > 0:
+        return {}
+
+    if isinstance(start_param_bounds, Mapping):
+        start_values = dict(start_param_bounds)
+    elif callable(getattr(start_param_bounds, "model_dump", None)):
+        start_values = dict(start_param_bounds.model_dump())
+    else:
+        start_values = {name: getattr(start_param_bounds, name) for name in sex_bias_param_names
+                        if hasattr(start_param_bounds, name)}
+
+    free_sex_bias = [name for name in sex_bias_param_names if name not in fixed_param_values]
+    if not free_sex_bias:
+        return {}
+    if not all(isinstance(start_values.get(name), numbers.Number) for name in free_sex_bias):
+        return {}  # Some sex-bias start value is a range (or missing): let resampling handle it.
+
+    params = np.zeros(len(demographic_model.model_base_params))
+    for param_name, param_info in demographic_model.model_base_params.items():
+        if param_name in fixed_param_values:
+            params[param_info.index] = fixed_param_values[param_name]
+        elif param_name in free_sex_bias:
+            params[param_info.index] = float(start_values[param_name])
+        else:
+            return {}  # Not every parameter has a fixed value: cannot evaluate constraints.
+
+    sex_bias_indices = [demographic_model.model_base_params[name].index for name in free_sex_bias]
+
+    def _scaled(lam: float) -> np.ndarray:
+        scaled = params.copy()
+        scaled[sex_bias_indices] *= lam
+        return scaled
+
+    def _constraint_values(param_values: np.ndarray) -> list[float]:
+        return [constraint['expression']([demographic_model.get_param_value(param_name=name, params=param_values)
+                                          for name in constraint['param_subset']])
+                for constraint in demographic_model.constraints]
+
+    g0 = _constraint_values(_scaled(0.0))
+    g1 = _constraint_values(_scaled(1.0))
+    if min(g1, default=0.0) >= 0:
+        return {}  # Original start values already satisfy the constraints.
+
+    def _feasible_interval(target: float) -> tuple[float, float]:
+        # Each constraint g_c(lam) = g0_c + lam*(g1_c - g0_c) >= target bounds lam on one side.
+        lo, hi = 0.0, 1.0
+        for g0_c, g1_c in zip(g0, g1):
+            slope = g1_c - g0_c
+            if slope > 0:
+                lo = max(lo, (target - g0_c) / slope)
+            elif slope < 0:
+                hi = min(hi, (g0_c - target) / -slope)
+            elif g0_c < target:
+                return 1.0, 0.0  # Constraint unaffected by sex bias and violated: empty interval.
+        return lo, hi
+
+    lo, hi = _feasible_interval(margin)
+    if lo > hi:
+        lo, hi = _feasible_interval(0.0)  # Too tight for the margin: settle for the boundary.
+    if lo > hi:
+        return {}  # No uniform shrink satisfies the constraints: leave it to parse_start_params' diagnostic.
+
+    lam = float(hi)  # Largest feasible factor: closest to the user's start values.
+    repaired = {name: float(params[index]) * lam for name, index in zip(free_sex_bias, sex_bias_indices)}
+    original = {name: float(params[index]) for name, index in zip(free_sex_bias, sex_bias_indices)}
+    _print_and_log(
+        f"Fixed starting sex-bias values {original} are infeasible with the step 1 estimates "
+        f"(a sex-specific founding proportion would be negative). Shrinking them toward 0 by a "
+        f"factor {lam:.8g}: {repaired}."
+    )
+    return repaired
 
 
 def parse_param_bounds(param_bounds, demographic_model: ParametrizedDemography) -> None:
