@@ -1,0 +1,6 @@
+tracts.phase\_type.hybrid\_pedigree.configuration\_ancestry\_proportions
+========================================================================
+
+.. currentmodule:: tracts.phase_type.hybrid_pedigree
+
+.. autofunction:: configuration_ancestry_proportions

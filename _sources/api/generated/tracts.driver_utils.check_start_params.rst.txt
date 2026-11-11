@@ -1,0 +1,6 @@
+tracts.driver\_utils.check\_start\_params
+=========================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: check_start_params

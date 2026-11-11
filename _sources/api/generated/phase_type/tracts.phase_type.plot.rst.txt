@@ -1,0 +1,21 @@
+﻿tracts.phase\_type.plot
+=======================
+
+.. automodule:: tracts.phase_type.plot
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   plot_tractlength_density
+   plot_tractlength_histogram
+
+
+
+
