@@ -2,6 +2,7 @@
 # Regenerates admixture, migration-matrix and tract-length plots, and the paper's LaTeX result
 # tables, for the most recent completed tracts run of each selected population/model, without
 # re-running inference. Uses the same RUN_<POP>/<POP>_MODELS configuration convention as run_all.sh.
+# Covers both the M runs (run_all.sh) and the DC hot-started runs (run_all_DC_hotstart.sh); see VARIANTS.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -21,6 +22,14 @@ MXL_MODELS=(ppp ccp)
 PEL_MODELS=(ppp pcc)
 PUR_MODELS=(ppp cpc)
 
+# ── Run variants to plot ──────────────────────────────────────────────────────
+# Each variant reads the driver files <POP>/<POP>_<model><suffix>.yaml, where the suffix is empty for "M"
+# (the run_all.sh runs) and "_<variant>" otherwise (e.g. "_DC_hotstart" for run_all_DC_hotstart.sh runs).
+# Population-level figures, LaTeX tables and LaTeX labels of a non-"M" variant are tagged with its suffix
+# (e.g. ACB_DC_hotstart_ancestry_proportions.tex, \label{tab:ACBprop_DC_hotstart}) so that they do not
+# overwrite / clash with those of the M runs.
+VARIANTS=(M DC_hotstart)
+
 # Directory where the regenerated plots and LaTeX tables are saved (created if it does not already exist).
 SAVE_DIR="$SCRIPT_DIR/plots"
 
@@ -39,8 +48,10 @@ PRINT_SINGLE_PULSE_PARAMETERS=1  # best-fit parameters table of the single-pulse
 PAIRS=()
 add_pop() {
     local pop=$1; shift
-    for model in "$@"; do
-        PAIRS+=("$pop $model")
+    for variant in "${VARIANTS[@]}"; do
+        for model in "$@"; do
+            PAIRS+=("$pop $model $variant")
+        done
     done
 }
 [ "$RUN_ACB" -eq 1 ] && add_pop ACB "${ACB_MODELS[@]}"
@@ -151,7 +162,47 @@ PRINT_SINGLE_PULSE_PARAMETERS = os.environ["PRINT_SINGLE_PULSE_PARAMETERS"] == "
 yaml_loader = YAML(typ="safe")
 
 
-def most_recent_output_dir(pop: str, model: str) -> Path | None:
+def variant_suffix(variant: str) -> str:
+    """Driver/output filename suffix of a run variant: "" for the M runs, "_<variant>" otherwise."""
+    return "" if variant == "M" else f"_{variant}"
+
+
+# Human-readable description of each non-M variant, appended to figure titles and table captions.
+VARIANT_DESCRIPTION = {
+    "DC_hotstart": "DC model, hot-started from the M-model fit",
+}
+
+# Variant currently being written (set in the main loop below). The LaTeX label/caption helpers read it so
+# that tables of different variants get distinct labels and self-describing captions.
+CURRENT_VARIANT = "M"
+
+
+def tag_label(label: str) -> str:
+    """Appends the current variant's suffix to a LaTeX label (unchanged for the M runs)."""
+    return label + variant_suffix(CURRENT_VARIANT)
+
+
+def tag_caption(caption: str) -> str:
+    """Appends the current variant's description to a LaTeX caption (unchanged for the M runs)."""
+    if CURRENT_VARIANT == "M":
+        return caption
+    description = VARIANT_DESCRIPTION.get(CURRENT_VARIANT, CURRENT_VARIANT.replace("_", r"\_"))
+    return f"{caption} ({description}.)"
+
+
+def figure_name(population: str, variant: str) -> str:
+    """Filename stem of a population-level figure (e.g. "ACB" or "ACB_DC_hotstart")."""
+    return f"{population}{variant_suffix(variant)}"
+
+
+def figure_title(population: str, variant: str) -> str:
+    """Title of a population-level figure (e.g. "ACB" or "ACB (DC model, hot-started from the M-model fit)")."""
+    if variant == "M":
+        return population
+    return f"{population} ({VARIANT_DESCRIPTION.get(variant, variant)})"
+
+
+def most_recent_output_dir(pop: str, model: str, variant: str = "M") -> Path | None:
     """
     Finds the most recent output directory for ``pop``/``model``, by reading the
     ``output.output_directory`` field of its driver file (resolving the "{date}" placeholder to the
@@ -160,6 +211,7 @@ def most_recent_output_dir(pop: str, model: str) -> Path | None:
     crashed), the model is skipped with a message. If USE_LATEST_COMPLETE_RUN is 1, the most recent
     complete run is used instead.
     """
+    model = f"{model}{variant_suffix(variant)}"
     driver_path = script_dir / pop / f"{pop}_{model}.yaml"
     if not driver_path.exists():
         print(f"  x {pop}_{model}: driver file not found ({driver_path})", file=sys.stderr)
@@ -264,7 +316,7 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
                                           output_filename_format, log_scale, save_dir,
                                           xlabel, ylabel, alpha_ci, title_fontsize, subtitle_fontsize,
                                           label_fontsize, tick_fontsize, legend_fontsize,
-                                          figure_width_inches, figure_height_inches):
+                                          figure_width_inches, figure_height_inches, variant="M"):
     """
     Builds one figure for ``population`` with one panel per (model, output_dir) in ``model_output_dirs``,
     all sharing a single legend (population colors + observed/predicted glyphs) below the figure.
@@ -312,7 +364,7 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
         if population_handles is None:
             population_handles = handles
 
-    fig.suptitle(f"{population} — {suptitle_suffix}", fontsize=title_fontsize + 2, fontweight='bold',
+    fig.suptitle(f"{figure_title(population, variant)} — {suptitle_suffix}", fontsize=title_fontsize + 2, fontweight='bold',
                  fontfamily='DejaVu Sans')
 
     glyph_handles = [
@@ -333,11 +385,11 @@ def _save_tract_length_comparison_figure(population, model_output_dirs, tract_ki
     fig.legend(handles=glyph_handles, loc="upper center", bbox_to_anchor=(0.5, -0.46), bbox_transform=blended,
                frameon=False, fontsize=legend_fontsize, ncol=2)
 
-    output_path = save_dir / f"{population}_{tract_kind}_model_comparison.pdf"
+    output_path = save_dir / f"{figure_name(population, variant)}_{tract_kind}_model_comparison.pdf"
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     fig.savefig(output_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
-    print(f"  -> {population} {tract_kind} model-comparison plot: {output_path}")
+    print(f"  -> {figure_name(population, variant)} {tract_kind} model-comparison plot: {output_path}")
 
 
 def plot_tract_length_model_comparison(population, model_output_dirs, output_filename_format, log_scale,
@@ -345,7 +397,7 @@ def plot_tract_length_model_comparison(population, model_output_dirs, output_fil
                                         xlabel="Tract Length (M)", ylabel="Count", alpha_ci=0.05,
                                         title_fontsize=14, subtitle_fontsize=10, label_fontsize=12,
                                         tick_fontsize=10, legend_fontsize=10,
-                                        figure_width_inches=7.5, figure_height_inches=4.4):
+                                        figure_width_inches=7.5, figure_height_inches=4.4, variant="M"):
     """
     Produces, for a single population, one tract length distribution comparison figure per tract kind
     (autosomal, and allosomal if present) with one panel per entry of ``model_output_dirs``
@@ -357,7 +409,7 @@ def plot_tract_length_model_comparison(population, model_output_dirs, output_fil
         "tract_length_autosome_bins", "autosome_sample_tract_distribution",
         "autosome_predicted_tract_distribution", output_filename_format, log_scale, save_dir,
         xlabel, ylabel, alpha_ci, title_fontsize, subtitle_fontsize, label_fontsize, tick_fontsize,
-        legend_fontsize, figure_width_inches, figure_height_inches,
+        legend_fontsize, figure_width_inches, figure_height_inches, variant,
     )
 
     # Allosomes are only present for sex-biased models; detect from the first model's output directory.
@@ -372,6 +424,7 @@ def plot_tract_length_model_comparison(population, model_output_dirs, output_fil
             "tract_length_allosome_bins", sample_label, predicted_label, output_filename_format,
             log_scale, save_dir, xlabel, ylabel, alpha_ci, title_fontsize, subtitle_fontsize,
             label_fontsize, tick_fontsize, legend_fontsize, figure_width_inches, figure_height_inches,
+            variant,
         )
 
 
@@ -380,7 +433,8 @@ def plot_allosome_tracts_and_migration_matrices(population, model_output_dirs, o
                                                 figure_width_inches, figure_height_inches, height_ratios,
                                                 xlabel="Tract Length (M)", ylabel="Count", alpha_ci=0.05,
                                                 title_fontsize=14, subtitle_fontsize=10, label_fontsize=12,
-                                                tick_fontsize=10, legend_fontsize=10, matrix_kwargs=None):
+                                                tick_fontsize=10, legend_fontsize=10, matrix_kwargs=None,
+                                                variant="M"):
     """
     Produces, for a single population, one 2x2 figure: the X-chromosome tract length distributions of the
     first two entries of ``model_output_dirs`` in the top row (panels a, b), and the mean and sex-bias
@@ -461,7 +515,7 @@ def plot_allosome_tracts_and_migration_matrices(population, model_output_dirs, o
     fig_bottom.suptitle(f"Migration matrices ({complex_model})", fontsize=title_fontsize + 1,
                         fontweight='bold', fontfamily='DejaVu Sans')
 
-    fig.suptitle(population, fontsize=title_fontsize + 3, fontweight='bold', fontfamily='DejaVu Sans')
+    fig.suptitle(figure_title(population, variant), fontsize=title_fontsize + 3, fontweight='bold', fontfamily='DejaVu Sans')
 
     # Center each matrix (together with its colorbar) horizontally under the tract length panel above it.
     # Constrained layout is frozen first, as it would otherwise recompute the positions on save.
@@ -476,11 +530,11 @@ def plot_allosome_tracts_and_migration_matrices(population, model_output_dirs, o
             box = ax.get_position()
             ax.set_position([box.x0 + dx, box.y0, box.width, box.height])
 
-    output_path = save_dir / f"{population}_allosomes_and_migration_matrices.pdf"
+    output_path = save_dir / f"{figure_name(population, variant)}_allosomes_and_migration_matrices.pdf"
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     fig.savefig(output_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
-    print(f"  -> {population} X-chromosome tracts + migration matrices plot: {output_path}")
+    print(f"  -> {figure_name(population, variant)} X-chromosome tracts + migration matrices plot: {output_path}")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -636,8 +690,8 @@ def print_proportions_table(f, pop, model, single, other):
         print(f"{label:<{width}} & " + " & ".join(values) + r" \\", file=f)
     print(r"\bottomrule", file=f)
     print(r"\end{tabular}", file=f)
-    print(f"\\caption{{Observed and predicted ancestry proportions for the {pop} population, on the autosomes and the X chromosome.}}", file=f)
-    print(f"\\label{{tab:{pop}prop}}", file=f)
+    print(f"\\caption{{{tag_caption(f'Observed and predicted ancestry proportions for the {pop} population, on the autosomes and the X chromosome.')}}}", file=f)
+    print(f"\\label{{{tag_label(f'tab:{pop}prop')}}}", file=f)
     print(r"\end{table}", file=f)
 
 
@@ -677,8 +731,8 @@ def print_tract_counts_table(f, pop, model, single, other):
         print(f"{label:<{width}} & " + " & ".join(values) + r" \\", file=f)
     print(r"\bottomrule", file=f)
     print(r"\end{tabular}", file=f)
-    print(f"\\caption{{Observed and predicted tract counts for the {pop} population, on the autosomes and the X chromosome.}}", file=f)
-    print(f"\\label{{tab:{pop}counts}}", file=f)
+    print(f"\\caption{{{tag_caption(f'Observed and predicted tract counts for the {pop} population, on the autosomes and the X chromosome.')}}}", file=f)
+    print(f"\\label{{{tag_label(f'tab:{pop}counts')}}}", file=f)
     print(r"\end{table}", file=f)
 
 
@@ -697,8 +751,8 @@ def print_params_table(f, pop, colspec, group_rows, header, values, caption, lab
     print(" " + " & ".join(values) + r" \\", file=f)
     print(r"\bottomrule", file=f)
     print(r"\end{tabular}", file=f)
-    print(f"\\caption{{Best-fit parameters for the {pop} population, {caption}}}", file=f)
-    print(f"\\label{{{label}}}", file=f)
+    print(f"\\caption{{{tag_caption(f'Best-fit parameters for the {pop} population, {caption}')}}}", file=f)
+    print(f"\\label{{{tag_label(label)}}}", file=f)
     print(r"\end{table}", file=f)
 
 
@@ -896,8 +950,8 @@ def _write_combined_observed_predicted_file(path, runs, reader, quantity_label, 
                 print(f"{first:<{pop_width}} & {row_label:<{label_width}} & " + " & ".join(values) + r" \\", file=f)
         print(r"\bottomrule", file=f)
         print(r"\end{tabular}", file=f)
-        print(f"\\caption{{{caption}}}", file=f)
-        print(f"\\label{{{label}}}", file=f)
+        print(f"\\caption{{{tag_caption(caption)}}}", file=f)
+        print(f"\\label{{{tag_label(label)}}}", file=f)
         print(r"\end{table}", file=f)
 
 
@@ -965,35 +1019,37 @@ def write_combined_single_pulse_params_file(path, runs, sig_figs):
             print(f"{pop:<{pop_width}} & " + " & ".join(f"{v:<{w}}" for v, w in zip(values, widths)) + r" \\", file=f)
         print(r"\bottomrule", file=f)
         print(r"\end{tabular}", file=f)
-        print(r"\caption{Best-fit parameters for the six admixed populations, inferred using a single-pulse model "
-              r"in which the three source populations contribute at a single admixture event $t$ generations ago.}", file=f)
-        print(r"\label{tab:params_single}", file=f)
+        caption = tag_caption(r"Best-fit parameters for the six admixed populations, inferred using a single-pulse model "
+                              r"in which the three source populations contribute at a single admixture event $t$ generations ago.")
+        print(f"\\caption{{{caption}}}", file=f)
+        print(f"\\label{{{tag_label('tab:params_single')}}}", file=f)
         print(r"\end{table}", file=f)
 
 
-resolved = []  # list of (pop, model, output_dir)
-for pop, model in pairs:
-    latest = most_recent_output_dir(pop, model)
+resolved = []  # list of (pop, model, variant, output_dir)
+for pop, model, variant in pairs:
+    latest = most_recent_output_dir(pop, model, variant)
     if latest is not None:
-        print(f"  -> {pop}_{model}: {latest}")
-        resolved.append((pop, model, latest))
+        print(f"  -> {pop}_{model}{variant_suffix(variant)}: {latest}")
+        resolved.append((pop, model, variant, latest))
 
 if not resolved:
     sys.exit("No completed output directories found for the selected populations/models.")
 
-for pop, model, output_dir in resolved:
+for pop, model, variant, output_dir in resolved:
     plot_admixture_from_output(output_dir=output_dir, output_filename_format=OUTPUT_FILENAME_FORMAT,
                                save_dir=save_dir, **ADMIXTURE_KWARGS)
     plot_migration_matrices_from_output(output_dir=output_dir, output_filename_format=OUTPUT_FILENAME_FORMAT,
                                         save_dir=save_dir, **MIGRATION_MATRICES_KWARGS)
 
-# One tract length distribution comparison figure per population (one panel per model), instead of the
-# default single-model plots.
-by_pop = defaultdict(list)
-for pop, model, output_dir in resolved:
-    by_pop[pop].append((model, output_dir))
+# One tract length distribution comparison figure per population and variant (one panel per model),
+# instead of the default single-model plots. Model labels are the base model names (e.g. "ppp"), the
+# variant being carried separately, so that the model-specific table templates below apply to every variant.
+by_pop = defaultdict(list)  # (pop, variant) -> [(model, output_dir), ...]
+for pop, model, variant, output_dir in resolved:
+    by_pop[(pop, variant)].append((model, output_dir))
 
-for pop, model_output_dirs in by_pop.items():
+for (pop, variant), model_output_dirs in by_pop.items():
     plot_tract_length_model_comparison(
         population=pop,
         model_output_dirs=model_output_dirs,
@@ -1001,6 +1057,7 @@ for pop, model_output_dirs in by_pop.items():
         log_scale=LOG_SCALE,
         save_dir=save_dir,
         sum_female_and_male_allosome_tracts=SUM_FEMALE_AND_MALE_ALLOSOME_TRACTS,
+        variant=variant,
         **TRACT_LENGTH_KWARGS,
     )
     plot_allosome_tracts_and_migration_matrices(
@@ -1013,6 +1070,7 @@ for pop, model_output_dirs in by_pop.items():
         figure_height_inches=COMBINED_FIGURE_HEIGHT_INCHES,
         height_ratios=COMBINED_FIGURE_HEIGHT_RATIOS,
         matrix_kwargs={k: v for k, v in MIGRATION_MATRICES_KWARGS.items() if k != "figsize"},
+        variant=variant,
         **{k: v for k, v in TRACT_LENGTH_KWARGS.items() if k != "figure_height_inches"},
     )
 
@@ -1039,7 +1097,8 @@ for d in sorted((p for p in save_dir.rglob("*") if p.is_dir()), key=lambda p: -l
 # LaTeX tables (paper format): one file per table (ancestry proportions, tract counts, single-pulse
 # parameters, second/complex-model parameters) per population, built from the single-pulse model
 # (first entry of <POP>_MODELS) and the second/complex model (last entry) -- so each table can be
-# \input{} independently at the right place in the paper text.
+# \input{} independently at the right place in the paper text. Written once per variant; tables of a
+# non-M variant get its suffix in their filenames and LaTeX labels, and its description in their captions.
 TABLE_KINDS = [
     (PRINT_ANCESTRY_PROPORTIONS, "ancestry_proportions", "ancestry proportions"),
     (PRINT_TRACT_COUNTS, "tract_counts", "tract counts"),
@@ -1047,54 +1106,63 @@ TABLE_KINDS = [
     (PRINT_PARAMETERS, None, "second-model parameters"),  # filename suffix depends on the model name
 ]
 
-for pop, model_output_dirs in by_pop.items():
-    if len(model_output_dirs) < 2:
-        msg = f"{pop}: skipped -- needs two completed models (single-pulse and second)"
-        print(f"*** {msg}", file=sys.stderr)
-        for enabled, suffix, _ in TABLE_KINDS:
-            if enabled and suffix is not None:
-                with open(save_dir / f"{pop}_{suffix}.tex", "w") as f:
-                    print(f"% ===== {msg} =====", file=f)
+variants = list(dict.fromkeys(variant for _, _, variant in pairs))  # in configuration order
+for variant in variants:
+    CURRENT_VARIANT = variant  # read by tag_label/tag_caption
+    suffix_v = variant_suffix(variant)
+    variant_runs = [(key, dirs) for key, dirs in by_pop.items() if key[1] == variant]
+    if not variant_runs:
+        print(f"*** variant {variant}: no completed run; tables skipped", file=sys.stderr)
         continue
+    for (pop, _), model_output_dirs in variant_runs:
+        tag = figure_name(pop, variant)
+        if len(model_output_dirs) < 2:
+            msg = f"{tag}: skipped -- needs two completed models (single-pulse and second)"
+            print(f"*** {msg}", file=sys.stderr)
+            for enabled, suffix, _ in TABLE_KINDS:
+                if enabled and suffix is not None:
+                    with open(save_dir / f"{tag}_{suffix}.tex", "w") as f:
+                        print(f"% ===== {msg} =====", file=f)
+            continue
 
-    single_model, single_run = model_output_dirs[0]
-    model, model_run = model_output_dirs[-1]
+        single_model, single_run = model_output_dirs[0]
+        model, model_run = model_output_dirs[-1]
 
+        if PRINT_ANCESTRY_PROPORTIONS:
+            path = save_dir / f"{tag}_ancestry_proportions.tex"
+            write_ancestry_proportions_file(path, pop, single_model, single_run, model, model_run)
+            print(f"  -> {tag} ancestry proportions table: {path}")
+        if PRINT_TRACT_COUNTS:
+            path = save_dir / f"{tag}_tract_counts.tex"
+            write_tract_counts_file(path, pop, single_model, single_run, model, model_run)
+            print(f"  -> {tag} tract counts table: {path}")
+        if PRINT_SINGLE_PULSE_PARAMETERS:
+            path = save_dir / f"{tag}_params_single.tex"
+            write_single_pulse_params_file(path, pop, single_model, single_run, LATEX_SIG_FIGS)
+            print(f"  -> {tag} single-pulse parameters table: {path}")
+        if PRINT_PARAMETERS:
+            path = save_dir / f"{tag}_params_{model}.tex"
+            write_model_params_file(path, pop, model, model_run, LATEX_SIG_FIGS)
+            print(f"  -> {tag} {model} parameters table: {path}")
+
+    # Combined tables (one row block per population, as \input{} in the paper's appendix), built from the
+    # same single-pulse and second-model runs as the per-population tables above.
+    combined_runs = [(pop, *dirs[0], *dirs[-1]) for (pop, _), dirs in variant_runs if len(dirs) >= 2]
+    missing = [pop for (pop, _), dirs in variant_runs if len(dirs) < 2]
+    if missing:
+        print(f"*** combined{suffix_v} tables: {', '.join(missing)} left out -- needs two completed models", file=sys.stderr)
     if PRINT_ANCESTRY_PROPORTIONS:
-        path = save_dir / f"{pop}_ancestry_proportions.tex"
-        write_ancestry_proportions_file(path, pop, single_model, single_run, model, model_run)
-        print(f"  -> {pop} ancestry proportions table: {path}")
+        path = save_dir / f"ancestry_proportions{suffix_v}.tex"
+        write_combined_ancestry_proportions_file(path, combined_runs)
+        print(f"  -> combined{suffix_v} ancestry proportions table: {path}")
     if PRINT_TRACT_COUNTS:
-        path = save_dir / f"{pop}_tract_counts.tex"
-        write_tract_counts_file(path, pop, single_model, single_run, model, model_run)
-        print(f"  -> {pop} tract counts table: {path}")
+        path = save_dir / f"tract_counts{suffix_v}.tex"
+        write_combined_tract_counts_file(path, combined_runs)
+        print(f"  -> combined{suffix_v} tract counts table: {path}")
     if PRINT_SINGLE_PULSE_PARAMETERS:
-        path = save_dir / f"{pop}_params_single.tex"
-        write_single_pulse_params_file(path, pop, single_model, single_run, LATEX_SIG_FIGS)
-        print(f"  -> {pop} single-pulse parameters table: {path}")
-    if PRINT_PARAMETERS:
-        path = save_dir / f"{pop}_params_{model}.tex"
-        write_model_params_file(path, pop, model, model_run, LATEX_SIG_FIGS)
-        print(f"  -> {pop} {model} parameters table: {path}")
-
-# Combined tables (one row block per population, as \input{} in the paper's appendix), built from the
-# same single-pulse and second-model runs as the per-population tables above.
-combined_runs = [(pop, *dirs[0], *dirs[-1]) for pop, dirs in by_pop.items() if len(dirs) >= 2]
-missing = [pop for pop, dirs in by_pop.items() if len(dirs) < 2]
-if missing:
-    print(f"*** combined tables: {', '.join(missing)} left out -- needs two completed models", file=sys.stderr)
-if PRINT_ANCESTRY_PROPORTIONS:
-    path = save_dir / "ancestry_proportions.tex"
-    write_combined_ancestry_proportions_file(path, combined_runs)
-    print(f"  -> combined ancestry proportions table: {path}")
-if PRINT_TRACT_COUNTS:
-    path = save_dir / "tract_counts.tex"
-    write_combined_tract_counts_file(path, combined_runs)
-    print(f"  -> combined tract counts table: {path}")
-if PRINT_SINGLE_PULSE_PARAMETERS:
-    path = save_dir / "single_pulse_params.tex"
-    write_combined_single_pulse_params_file(path, combined_runs, LATEX_SIG_FIGS)
-    print(f"  -> combined single-pulse parameters table: {path}")
+        path = save_dir / f"single_pulse_params{suffix_v}.tex"
+        write_combined_single_pulse_params_file(path, combined_runs, LATEX_SIG_FIGS)
+        print(f"  -> combined{suffix_v} single-pulse parameters table: {path}")
 
 print(f"\nPlots and tables saved to: {save_dir}")
 PYEOF

@@ -5,6 +5,9 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Keep macOS from idle-sleeping while this script runs (no-op where caffeinate doesn't exist).
+command -v caffeinate >/dev/null 2>&1 && ( caffeinate -i -w $$ & )  # subshell: detached, so the final `wait` does not wait for it
+
 # ── Per-population run flags ───────────────────────────────────────────────────
 RUN_ACB=1
 RUN_ASW=1
