@@ -1,0 +1,8 @@
+tracts.demography.parametrized\_demography.ParametrizedDemography
+=================================================================
+
+.. currentmodule:: tracts.demography.parametrized_demography
+
+.. autoclass:: ParametrizedDemography
+   :members:
+   :show-inheritance:

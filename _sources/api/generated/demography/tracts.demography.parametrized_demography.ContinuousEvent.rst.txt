@@ -1,0 +1,8 @@
+tracts.demography.parametrized\_demography.ContinuousEvent
+==========================================================
+
+.. currentmodule:: tracts.demography.parametrized_demography
+
+.. autoclass:: ContinuousEvent
+   :members:
+   :show-inheritance:

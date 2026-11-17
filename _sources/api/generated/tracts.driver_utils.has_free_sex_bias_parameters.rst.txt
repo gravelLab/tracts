@@ -1,0 +1,6 @@
+tracts.driver\_utils.has\_free\_sex\_bias\_parameters
+=====================================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: has_free_sex_bias_parameters

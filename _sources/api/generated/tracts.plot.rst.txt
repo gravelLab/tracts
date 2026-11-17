@@ -1,0 +1,23 @@
+﻿tracts.plot
+===========
+
+.. automodule:: tracts.plot
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   plot_admixture_from_output
+   plot_all_from_output_directories
+   plot_migration_matrices_from_output
+   plot_tract_length_distributions_from_output
+
+
+
+

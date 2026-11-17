@@ -1,0 +1,6 @@
+tracts.driver\_utils.shrink\_fixed\_sex\_bias\_start\_params
+============================================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: shrink_fixed_sex_bias_start_params

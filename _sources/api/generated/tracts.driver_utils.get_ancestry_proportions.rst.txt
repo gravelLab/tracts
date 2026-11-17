@@ -1,0 +1,6 @@
+tracts.driver\_utils.get\_ancestry\_proportions
+===============================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: get_ancestry_proportions

@@ -1,0 +1,20 @@
+﻿tracts.likelihood\_options
+==========================
+
+.. automodule:: tracts.likelihood_options
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   LikelihoodOptions
+
+

@@ -1,0 +1,6 @@
+tracts.phase\_type.base\_phase\_type.ancestry\_proportions\_by\_generation
+==========================================================================
+
+.. currentmodule:: tracts.phase_type.base_phase_type
+
+.. autofunction:: ancestry_proportions_by_generation

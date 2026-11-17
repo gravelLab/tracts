@@ -1,0 +1,6 @@
+tracts.driver\_utils.setup\_fixed\_parameters
+=============================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: setup_fixed_parameters
