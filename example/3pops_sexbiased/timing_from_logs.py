@@ -18,8 +18,7 @@ For each script it also reports the summed wall time of all runs (each run is a 
 so this approximates total CPU time when ``N_cores`` is 1) and the batch wall time (earliest start
 to latest end), together with the maximum number of runs that overlapped in time.
 
-Caveats: runs that overlapped in time competed for CPU, so their timings are slower than a
-standalone run would be. Evaluation times are the gaps between consecutive ``iter=`` log lines; the
+Evaluation times are the gaps between consecutive ``iter=`` log lines; the
 first evaluation of each optimization (whose gap includes setup) is not timed, and when
 ``verbose_log`` > 1 the gap is divided evenly among the evaluations it spans.
 
