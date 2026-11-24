@@ -18,7 +18,7 @@ WRITE_ANCESTRY_PROPORTIONS=1  # write the ancestry proportions table of all popu
 WRITE_SINGLE_PULSE_PARAMS=1   # write the single-pulse best-fit parameters of all populations to $LATEX_TABLES_DIR/single_pulse_params.tex
 
 # ── Models per population for the LaTeX tables: single-pulse model first, then the second
-# model (same convention as run_all.sh; files must be <POP>/<POP>_<model>.yaml) ──
+# model (same convention as fit_M.sh; files must be <POP>/<POP>_<model>.yaml) ──
 ACB_MODELS=(ppp ppx_xxp_pxx)
 ASW_MODELS=(ppp ppx_xxp_pxx)
 CLM_MODELS=(ppp ccc)

@@ -2,7 +2,7 @@
 Generate DC_hotstart driver files
 ==================================
 
-For every population/model pair listed in ``run_all.sh``, this script creates a
+For every population/model pair listed in ``fit_M.sh``, this script creates a
 "DC_hotstart" variant of the driver YAML (and matching driver .py script):
 
 * ``ad_model_autosomes`` is set to ``DC`` (instead of ``M``).
@@ -25,7 +25,7 @@ from pathlib import Path
 import ruamel.yaml
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-RUN_ALL_SH = SCRIPT_DIR / "run_all.sh"
+RUN_ALL_SH = SCRIPT_DIR / "fit_M.sh"
 SUFFIX = "DC_hotstart"
 
 yaml = ruamel.yaml.YAML(typ="rt")

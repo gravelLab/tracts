@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Regenerates admixture, migration-matrix and tract-length plots, and the paper's LaTeX result
 # tables, for the most recent completed tracts run of each selected population/model, without
-# re-running inference. Uses the same RUN_<POP>/<POP>_MODELS configuration convention as run_all.sh.
-# Covers both the M runs (run_all.sh) and the DC hot-started runs (run_all_DC_hotstart.sh); see VARIANTS.
+# re-running inference. Uses the same RUN_<POP>/<POP>_MODELS configuration convention as fit_M.sh.
+# Covers both the M runs (fit_M.sh) and the DC hot-started runs (fit_DC_hotstart.sh); see VARIANTS.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -24,7 +24,7 @@ PUR_MODELS=(ppp cpc)
 
 # ── Run variants to plot ──────────────────────────────────────────────────────
 # Each variant reads the driver files <POP>/<POP>_<model><suffix>.yaml, where the suffix is empty for "M"
-# (the run_all.sh runs) and "_<variant>" otherwise (e.g. "_DC_hotstart" for run_all_DC_hotstart.sh runs).
+# (the fit_M.sh runs) and "_<variant>" otherwise (e.g. "_DC_hotstart" for fit_DC_hotstart.sh runs).
 # Population-level figures, LaTeX tables and LaTeX labels of a non-"M" variant are tagged with its suffix
 # (e.g. ACB_DC_hotstart_ancestry_proportions.tex, \label{tab:ACBprop_DC_hotstart}) so that they do not
 # overwrite / clash with those of the M runs.

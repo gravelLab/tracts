@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Summarizes the latest completed runs produced by run_all_DC_hotstart.sh.
+Summarizes the latest completed runs produced by fit_DC_hotstart.sh.
 
 For every <POP>/output_*_DC_hotstart/ directory under this folder, finds the
 most recent timestamped run and prints the contents of its

@@ -24,7 +24,7 @@ model are fitted:
   (data, model, starting parameters and optimization options) and a short Python launcher
   `<POP>_<model>.py` for each model. Each run writes its results to
   `<POP>/output_<model>/<YYYYMMDD_HHMMSS>/`.
-- `run_all.sh`, `summarize_output.sh`, `produce_plots.sh`: the three scripts described below.
+- `fit_M.sh`, `summarize_output.sh`, `produce_plots.sh`: the three scripts described below.
 
 Only the models listed in the table above are used in the paper.
 
@@ -55,10 +55,10 @@ in the driver files. `example/data/list_unrelateds_males.sh` is the helper that 
 For ASW, four individuals with more than 20% ancestry from the Americas are also excluded (see the
 paper).
 
-### 3. Run the inference: `run_all.sh`
+### 3. Run the inference: `fit_M.sh`
 
 ```bash
-bash run_all.sh
+bash fit_M.sh
 ```
 
 Runs the inference for every population and model in the table above, in parallel (up to

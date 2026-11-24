@@ -41,7 +41,7 @@ MXL_MODELS=(ppp ccp)
 PEL_MODELS=(ppp pcc)
 PUR_MODELS=(ppp cpc)
 
-MAX_WORKERS=5
+MAX_WORKERS=12
 
 # Failed or missing runs are recorded here, so that the script can exit with a nonzero status.
 FAILED_RUNS_FILE="$(mktemp)"

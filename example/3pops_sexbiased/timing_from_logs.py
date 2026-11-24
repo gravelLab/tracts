@@ -1,9 +1,9 @@
 """
-Estimate runtimes of the runs launched by ``run_all.sh`` and ``run_all_DC_hotstart.sh`` from the
+Estimate runtimes of the runs launched by ``fit_M.sh`` and ``fit_DC_hotstart.sh`` from the
 timestamps in their existing log files. Nothing is run and, unless ``--csv`` is given, nothing is
 written: results are printed to the screen.
 
-For each population/model listed in a run_all script (and enabled with ``RUN_<POP>=1``), the
+For each population/model listed in a fit script (and enabled with ``RUN_<POP>=1``), the
 script reads the driver YAML's ``output.output_directory``, picks the most recent completed run
 (a log ending with "Results saved to"), and reports:
 
@@ -26,7 +26,7 @@ Usage::
 
     python timing_from_logs.py                      # both scripts, latest completed runs
     python timing_from_logs.py --on 20261109        # only runs from timestamp dirs starting with 20261109
-    python timing_from_logs.py --scripts run_all.sh --csv timings.csv
+    python timing_from_logs.py --scripts fit_M.sh --csv timings.csv
     python timing_from_logs.py --plot timing.pdf    # also plot runtime against the number of generations
 
 The number of generations of each run is read from its fitted migration matrix
@@ -45,7 +45,7 @@ from pathlib import Path
 from ruamel.yaml import YAML
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_SCRIPTS = ["run_all.sh", "run_all_DC_hotstart.sh"]
+DEFAULT_SCRIPTS = ["fit_M.sh", "fit_DC_hotstart.sh"]
 
 _TS_RE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - ")
 _ITER_RE = re.compile(r"^(\S+ \S+) - tracts\.core - INFO - iter=(\d+)\s*\|.*\|\s*params=array\(\[.*?\]\)\s*(.*)$")
@@ -57,11 +57,11 @@ def _parse_ts(text: str) -> datetime:
 
 
 # ----------------------------------------------------------------------------------------------
-# run_all script and driver file parsing
+# fit script and driver file parsing
 # ----------------------------------------------------------------------------------------------
 
 def parse_run_all_script(path: Path) -> tuple[str, list[tuple[str, str]]]:
-    """Returns the driver suffix and the enabled (population, model) pairs of a run_all script."""
+    """Returns the driver suffix and the enabled (population, model) pairs of a fit script."""
     text = path.read_text()
     suffix_match = re.search(r'^SUFFIX="([^"]*)"', text, re.MULTILINE)
     suffix = suffix_match.group(1) if suffix_match else ""
@@ -382,7 +382,7 @@ def plot_timings(per_script: list[tuple[str, list[RunTiming], list[str]]], path:
     """
     Saves a two-panel figure: (left) median time per likelihood evaluation, with interquartile
     range, against the number of generations of the fitted model, by chromosome type and admixture
-    model; (right) wall time per run against the number of generations, by run_all script.
+    model; (right) wall time per run against the number of generations, by fit script.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -440,7 +440,7 @@ def plot_timings(per_script: list[tuple[str, list[RunTiming], list[str]]], path:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--scripts", nargs="+", default=DEFAULT_SCRIPTS, help="run_all scripts to analyze")
+    parser.add_argument("--scripts", nargs="+", default=DEFAULT_SCRIPTS, help="fit scripts to analyze")
     parser.add_argument("--on", default=None, help="only use run directories whose timestamp starts with this (e.g. 20261109)")
     parser.add_argument("--csv", type=Path, default=None, help="also write per-run results to this CSV file")
     parser.add_argument("--max-gap", type=float, default=300,

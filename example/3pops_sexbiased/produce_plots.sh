@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Regenerates admixture, migration-matrix and tract-length plots for the most recent completed
 # tracts run of each selected population/model, without re-running inference.
-# Uses the same RUN_<POP>/<POP>_MODELS configuration convention as run_all.sh.
+# Uses the same RUN_<POP>/<POP>_MODELS configuration convention as fit_M.sh.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
