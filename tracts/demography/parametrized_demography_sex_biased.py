@@ -239,9 +239,9 @@ class ParametrizedDemographySexBiased(ParametrizedDemography):
             current_male_proportions=male_matrix[-1,:]
             current_female_proportions=female_matrix[-1,:]
             for male_row, female_row in zip(male_matrix[-2::-1, :], female_matrix[-2::-1, :]):
-                (current_male_proportions, current_female_proportions) = (
-                    current_female_proportions * (1 - female_row.sum()) + female_row,
-                    1/2*(current_male_proportions * (1 - male_row.sum()) + male_row+current_female_proportions * (1 - female_row.sum()) + female_row)
+                current_male_proportions, current_female_proportions = (
+                male_row + (1 - male_row.sum()) * current_female_proportions,
+                female_row + (1 - female_row.sum()) * (current_male_proportions + current_female_proportions) / 2,
                 )
             proportions[f'{population}_{self.allosome_label}']=(current_male_proportions+2*current_female_proportions)/3
         return proportions
