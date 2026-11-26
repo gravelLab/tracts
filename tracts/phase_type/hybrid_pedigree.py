@@ -16,7 +16,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from scipy.special import gammaln
 from .dioecious import PhTDioecious
-from .base_phase_type import ancestry_proportions_by_generation
+from tracts.migration_matrices import ancestry_proportions_by_generation
 import logging
 logger = logging.getLogger(__name__)
 
@@ -406,7 +406,7 @@ def configuration_ancestry_proportions(migrations_at_TP: np.ndarray, TP: int, pa
     X_chr : bool
         Whether admixture is considered on the X chromosome.
     proportions_f, proportions_m : np.ndarray
-        The ancestry proportions by generation, as returned by :func:`~tracts.phase_type.hybrid_pedigree.ancestry_proportions_by_generation`.
+        The ancestry proportions by generation, as returned by :func:`~tracts.migration_matrices.ancestry_proportions_by_generation`.
 
     Returns
     -------

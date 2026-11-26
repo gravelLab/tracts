@@ -13,6 +13,7 @@ Core modules
    tracts.haploid
    tracts.indiv
    tracts.likelihood_options
+   tracts.migration_matrices
    tracts.plot
    tracts.population
    tracts.tract

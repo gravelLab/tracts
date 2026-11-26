@@ -15,7 +15,8 @@ from scipy import sparse
 from sklearn.preprocessing import normalize
 logger = logging.getLogger(__name__)
 
-from .base_phase_type import PhaseTypeDistribution, get_survival_factors, ancestry_proportions_by_generation, _GenerationZeroContributionWarning
+from .base_phase_type import PhaseTypeDistribution, _GenerationZeroContributionWarning
+from tracts.migration_matrices import ancestry_proportions_by_generation, get_survival_factors
 
 class PhTDioecious(PhaseTypeDistribution):
     r"""

@@ -636,7 +636,8 @@ def test_hybrid_pedigree_configuration_ancestry_proportions_average_to_populatio
     mig_m[2, 0] = 0.1
     reference = PhTDioecious(migration_matrix_f=mig_f, migration_matrix_m=mig_m, rho_f=1, rho_m=1, sex_model='DC',
                              X_chromosome=X_chromosome)
-    proportions_f, proportions_m = HP.ancestry_proportions_by_generation(mig_f, mig_m, X_chromosome)
+    from tracts.migration_matrices import ancestry_proportions_by_generation
+    proportions_f, proportions_m = ancestry_proportions_by_generation(mig_f, mig_m, X_chromosome)
 
     n_ind, n_anc = 2 ** TP - 1, 2 ** (TP - 1)
     configurations = HP.all_possible_trees_as_arrays(TP, P, mig_at_last=False)
