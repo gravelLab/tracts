@@ -2442,6 +2442,30 @@ def _plot_migration_matrices(migration_matrix_f: np.ndarray, migration_matrix_m:
     fig.savefig(png_path, dpi=300, bbox_inches="tight")
 
 
+def _plot_migration_lineages(migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray, pop_labels: list,
+                             pop_colors: dict, with_allosomes: bool, output_path: str):
+    """
+    Saves the migration lineage plot (see :func:`~tracts.lineage_flow_plots.plot_sex_biased_migration_lineages`)
+    to ``output_path``, with a ``.png`` copy. The X chromosome panel is drawn only when allosomes are modelled and
+    the female and male migration matrices differ (otherwise its lineage flows are those of the autosomes).
+    Warnings raised while drawing (e.g. lineages never assigned to a source population) are logged.
+    """
+    # Imported here: tracts.lineage_flow_plots imports get_population_colors from this module.
+    from tracts.lineage_flow_plots import plot_sex_biased_migration_lineages
+
+    sex_biased = with_allosomes and not np.allclose(migration_matrix_f, migration_matrix_m)
+    chromosomes = ("autosome", "X") if sex_biased else ("autosome",)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        fig, _ = plot_sex_biased_migration_lineages(migration_matrix_f, migration_matrix_m, pop_labels,
+                                                    chromosomes=chromosomes, colors=pop_colors)
+    for w in caught:
+        logger.warning(f"Migration lineage plot: {w.message}")
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    fig.savefig(os.path.splitext(output_path)[0] + ".png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def _draw_migration_matrices(fig, ax1, ax2, migration_matrix_f: np.ndarray, migration_matrix_m: np.ndarray,
                              pop_labels: list, title_mean: str = "Mean migration matrix",
                              title_sex_bias: str = "Sex-bias in migration", title_fontsize: float | None = None,
@@ -2870,6 +2894,7 @@ _OUTPUT_SUBDIRS: dict[str, str] = {
     'optimal_parameters.txt': 'optimal_model',
 
     'migration_matrices.pdf': 'optimal_model/figures',
+    'migration_lineages.pdf': 'optimal_model/figures',
 }
 
 
@@ -3208,6 +3233,14 @@ def output_simulation_data_sex_biased(sample_population: Population,
                             migration_matrix_m=male_matrix,
                             pop_labels=pop_names,
                             output_path=str(_get_output_path(output_dir, output_filename_format, "migration_matrices.pdf")))
+
+    # --- Produce migration lineages plot
+    _plot_migration_lineages(migration_matrix_f=female_matrix,
+                             migration_matrix_m=male_matrix,
+                             pop_labels=pop_names,
+                             pop_colors=pop_colors,
+                             with_allosomes=ad_model_allosomes is not None,
+                             output_path=str(_get_output_path(output_dir, output_filename_format, "migration_lineages.pdf")))
 
     # --- Produce plot for autosomes ---
     _plot_panel(

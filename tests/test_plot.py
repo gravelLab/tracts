@@ -118,6 +118,11 @@ def autosome_only_output_dir_distinct_format(tmp_path_factory) -> Path:
 
 class TestPlotFromCombinedAllosomeOutput:
 
+    def test_run_produces_migration_lineages_plot(self, combined_allosome_output_dir):
+        # Must run before the tests below, which delete the plots produced by the run.
+        assert _out(combined_allosome_output_dir, "test_output_", "migration_lineages.pdf").exists()
+        assert _out(combined_allosome_output_dir, "test_output_", "migration_lineages.png").exists()
+
     def test_admixture_plot(self, combined_allosome_output_dir):
         _delete_plots(combined_allosome_output_dir)
         plot_admixture_from_output(combined_allosome_output_dir)
@@ -171,6 +176,10 @@ class TestPlotFromSeparateAllosomeOutput:
 
 
 class TestPlotFromAutosomeOnlyOutput:
+
+    def test_run_produces_migration_lineages_plot(self, autosome_only_output_dir):
+        # Must run before the tests below, which delete the plots produced by the run.
+        assert _out(autosome_only_output_dir, "test_output_", "migration_lineages.pdf").exists()
 
     def test_tract_length_distribution_plots(self, autosome_only_output_dir):
         _delete_plots(autosome_only_output_dir)

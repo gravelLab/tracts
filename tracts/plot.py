@@ -3,6 +3,9 @@ Re-plots the output figures produced by :func:`~tracts.driver_utils.output_simul
 (i.e. by :func:`~tracts.driver.run_tracts`) directly from a previously produced output directory, without
 re-running the optimization. This is useful to reformat plots for a given analysis, or to batch-produce plots for a list of different runs (different models, populations, etc.),
 by calling the relevant function below once per output directory.
+
+The migration matrices of an output directory can be read with :func:`read_migration_matrices_from_output`, for
+instance to draw the lineage plots of :mod:`tracts.lineage_flow_plots`.
 """
 
 from pathlib import Path
@@ -453,3 +456,24 @@ def plot_all_from_output_directories(output_dirs, output_filename_format: str | 
                                                     save_dir=save_dir,
                                                     sum_female_and_male_allosome_tracts=sum_female_and_male_allosome_tracts,
                                                     **tract_length_kwargs)
+
+
+# -------------- Reading migration matrices --------------
+
+def read_migration_matrices_from_output(output_dir: str | Path, output_filename_format: str | None = None
+                                        ) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """
+    Reads the female and male migration matrices and the population names from a
+    :func:`~tracts.driver.run_tracts` output directory. Nothing is written to ``output_dir``.
+    """
+    output_dir = Path(output_dir)
+    if output_filename_format is None:
+        output_filename_format = _detect_output_filename_format(output_dir)
+
+    def read_path(label):
+        return output_dir / _OUTPUT_SUBDIRS.get(label, "") / output_filename_format.format(label=label)
+
+    pop_names = _read_population_names(read_path("ancestry_per_individual"))
+    female = np.loadtxt(read_path("female_migration_matrix"), ndmin=2)
+    male = np.loadtxt(read_path("male_migration_matrix"), ndmin=2)
+    return female, male, list(pop_names)
