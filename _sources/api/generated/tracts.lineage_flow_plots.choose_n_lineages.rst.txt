@@ -1,0 +1,6 @@
+tracts.lineage\_flow\_plots.choose\_n\_lineages
+===============================================
+
+.. currentmodule:: tracts.lineage_flow_plots
+
+.. autofunction:: choose_n_lineages

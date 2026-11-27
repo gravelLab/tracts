@@ -1,0 +1,6 @@
+tracts.driver\_utils.get\_population\_colors
+============================================
+
+.. currentmodule:: tracts.driver_utils
+
+.. autofunction:: get_population_colors

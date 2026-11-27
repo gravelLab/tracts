@@ -1,0 +1,8 @@
+tracts.genetic\_model.LoglikBreakdown
+=====================================
+
+.. currentmodule:: tracts.genetic_model
+
+.. autoclass:: LoglikBreakdown
+   :members:
+   :show-inheritance:

@@ -1,0 +1,25 @@
+﻿tracts.driver
+=============
+
+.. automodule:: tracts.driver
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   run_boundary_reoptimization
+   run_model
+   run_model_multi_init
+   run_optimization
+   run_sex_bias_fixing_reoptimizations
+   run_tracts
+
+
+
+

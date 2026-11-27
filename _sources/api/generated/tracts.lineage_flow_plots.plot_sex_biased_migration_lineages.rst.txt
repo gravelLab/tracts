@@ -1,0 +1,6 @@
+tracts.lineage\_flow\_plots.plot\_sex\_biased\_migration\_lineages
+==================================================================
+
+.. currentmodule:: tracts.lineage_flow_plots
+
+.. autofunction:: plot_sex_biased_migration_lineages

@@ -1,0 +1,26 @@
+﻿tracts.lineage\_flow\_plots
+===========================
+
+.. automodule:: tracts.lineage_flow_plots
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   choose_n_lineages
+   compute_lineage_flows
+   lineage_counts
+   plot_lineage_flows
+   plot_lineages_by_population
+   plot_migration_lineages
+   plot_sex_biased_migration_lineages
+
+
+
+

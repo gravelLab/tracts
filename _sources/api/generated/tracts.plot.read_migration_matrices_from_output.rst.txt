@@ -1,0 +1,6 @@
+tracts.plot.read\_migration\_matrices\_from\_output
+===================================================
+
+.. currentmodule:: tracts.plot
+
+.. autofunction:: read_migration_matrices_from_output

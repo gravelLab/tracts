@@ -1,0 +1,6 @@
+tracts.migration\_matrices.ancestry\_proportions\_by\_generation
+================================================================
+
+.. currentmodule:: tracts.migration_matrices
+
+.. autofunction:: ancestry_proportions_by_generation

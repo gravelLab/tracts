@@ -1,0 +1,6 @@
+tracts.lineage\_flow\_plots.lineage\_counts
+===========================================
+
+.. currentmodule:: tracts.lineage_flow_plots
+
+.. autofunction:: lineage_counts

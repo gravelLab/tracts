@@ -1,0 +1,21 @@
+﻿tracts.migration\_matrices
+==========================
+
+.. automodule:: tracts.migration_matrices
+   :no-members:
+
+
+
+
+.. rubric:: Functions
+
+.. autosummary::
+   :toctree: .
+
+
+   ancestry_proportions_by_generation
+   get_survival_factors
+
+
+
+

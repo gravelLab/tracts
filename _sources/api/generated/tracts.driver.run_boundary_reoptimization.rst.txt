@@ -1,0 +1,6 @@
+tracts.driver.run\_boundary\_reoptimization
+===========================================
+
+.. currentmodule:: tracts.driver
+
+.. autofunction:: run_boundary_reoptimization

@@ -1,0 +1,22 @@
+﻿tracts.genetic\_model
+=====================
+
+.. automodule:: tracts.genetic_model
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Classes
+
+.. autosummary::
+   :toctree: .
+
+
+   GeneticModel
+   LoglikBreakdown
+   PhaseTypeModelConfig
+
+

@@ -1,0 +1,6 @@
+tracts.migration\_matrices.get\_survival\_factors
+=================================================
+
+.. currentmodule:: tracts.migration_matrices
+
+.. autofunction:: get_survival_factors

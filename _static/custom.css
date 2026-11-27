@@ -1,0 +1,107 @@
+/* =========================
+   GLOBAL TYPOGRAPHY
+   ========================= */
+
+/* Main title (h1) */
+.bd-article h1 {
+    font-size: 2rem;
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+}
+
+/* Section titles (h2) */
+.bd-article h2 {
+    font-size: 1.4rem;
+    font-weight: 500;
+    margin-top: 2rem;
+    margin-bottom: 0.6rem;
+}
+
+/* Subsections (h3) */
+.bd-article h3 {
+    font-size: 1.15rem;
+    font-weight: 500;
+}
+
+/* Reduce paragraph spacing slightly */
+.bd-article p {
+    margin-bottom: 0.7rem;
+}
+
+
+/* =========================
+   HOMEPAGE (index) TUNING
+   ========================= */
+
+/* Only affect homepage */
+.bd-page-index .bd-article h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+}
+
+/* Subtitle spacing */
+.bd-page-index .bd-article p {
+    font-size: 1rem;
+    max-width: 700px;
+}
+
+
+/* =========================
+   GRID CARDS (like sklearn)
+   ========================= */
+
+.bd-card {
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: none;
+    transition: all 0.2s ease;
+}
+
+/* Hover effect */
+.bd-card:hover {
+    border-color: #c0c0c0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+/* Card title */
+.bd-card .sd-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Card text */
+.bd-card .sd-card-text {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+
+/* =========================
+   CONTENT WIDTH (important)
+   ========================= */
+
+/* Slightly narrower content for readability */
+.bd-main .bd-content .bd-article-container {
+    max-width: 900px;
+}
+
+
+/* =========================
+   NAVBAR CLEANUP
+   ========================= */
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+
+/* =========================
+   CODE BLOCKS (cleaner look)
+   ========================= */
+
+.highlight {
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
