@@ -1,0 +1,9 @@
+parameter	value
+REUR	0.7440998430563865
+REUR_sex_bias	-0.999
+RAMR	0.14262600005646944
+RAMR_sex_bias	0.9989999999999999
+t	9.876712852595215
+targetpop_AFR_rate	0.11321751980870048
+targetpop_AFR_sex_bias	1.0
+likelihood     -1128.61
